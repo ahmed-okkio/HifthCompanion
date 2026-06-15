@@ -16,26 +16,25 @@ export default async function ReaderPage({ params }: Props) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-stone-50 text-stone-900">
+    <div className="flex flex-col min-h-screen bg-stone-50 text-stone-900 font-sans selection:bg-emerald-100">
       <ReaderNav currentPage={pageNum} />
       
-      <main className="flex-grow flex items-start justify-center p-4 md:p-8">
-        <div className="bg-white shadow-[0_4px_20px_-5px_rgba(0,0,0,0.1)] rounded-lg overflow-hidden border border-stone-200 max-w-[600px] w-full">
+      <main className="flex-grow flex items-center justify-center p-6 md:p-12">
+        <div className="bg-white shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] rounded-2xl overflow-hidden border border-stone-100 max-w-[500px] w-full transition-all duration-300 hover:shadow-[0_25px_60px_-20px_rgba(0,0,0,0.15)]">
           <div className="relative w-full aspect-[3/4]">
             <Image
               src={getPageImageUrl(pageNum)}
               alt={`Quran page ${pageNum}`}
               fill
-              className="object-contain"
-              style={{ objectFit: 'contain' }}
+              className="object-contain p-2"
               priority
-              sizes="(max-width: 768px) 100vw, 600px"
+              sizes="(max-width: 768px) 100vw, 500px"
             />
           </div>
         </div>
       </main>
       
-      <footer className="pb-8 text-center text-stone-400 text-sm">
+      <footer className="pb-6 text-center text-stone-400 text-xs tracking-wider uppercase">
         HifthCompanion © 2026
       </footer>
     </div>

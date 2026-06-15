@@ -1,0 +1,30 @@
+/* src/app/reader/[page]/page.module.css */
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  background-color: #fafaf9; /* stone-50 */
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.imageWrapper {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  background-color: #ffffff;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.quranImage {
+  max-height: 100%;
+  width: auto;
+  object-fit: contain;
+}

@@ -66,7 +66,12 @@ export default function ReaderNav({ currentPage }: { currentPage: number }) {
         {isLoggedIn === null ? (
           <div className="w-16 h-8 animate-pulse bg-stone-200 rounded-md" />
         ) : isLoggedIn ? (
-          <LogoutButton />
+          <>
+            <Link href="/sets" className="text-sm font-semibold text-stone-600 hover:text-emerald-700">
+              My Sets
+            </Link>
+            <LogoutButton />
+          </>
         ) : (
           <Link href="/login" className="text-sm font-semibold text-emerald-700 hover:text-emerald-800">
             Log In

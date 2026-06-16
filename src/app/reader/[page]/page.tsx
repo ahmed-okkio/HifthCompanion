@@ -1,10 +1,11 @@
-import { notFound } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
 import { getPageImageUrl, TOTAL_PAGES } from '@/lib/quran';
+import { notFound } from 'next/navigation';
 import ReaderNav from '@/components/ReaderNav';
-import Image from 'next/image';
+import AnnotationCanvas from '@/components/AnnotationCanvas';
 
 interface Props {
-  params: { page: string };
+  params: Promise<{ page: string }>;
 }
 
 export default async function ReaderPage({ params }: Props) {
@@ -15,26 +16,31 @@ export default async function ReaderPage({ params }: Props) {
     notFound();
   }
 
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Fetch user's annotation sets for the set-picker
+  const { data: sets } = user
+    ? await supabase
+        .from('annotation_sets')
+        .select('id, name')
+        .order('created_at', { ascending: false })
+    : { data: [] };
+
   return (
-    <div className="flex flex-col min-h-screen bg-stone-50 text-stone-900 font-sans selection:bg-emerald-100">
+    <div className="flex flex-col items-center min-h-screen bg-stone-950">
       <ReaderNav currentPage={pageNum} />
       
-      <main className="flex-grow flex items-center justify-center p-6 md:p-12">
-        <div className="bg-white shadow-[0_20px_50px_-15px_rgba(0,0,0,0.1)] rounded-2xl overflow-hidden border border-stone-100 max-w-[500px] w-full transition-all duration-300 hover:shadow-[0_25px_60px_-20px_rgba(0,0,0,0.15)]">
-          <div className="relative w-full aspect-[3/4]">
-            <Image
-              src={getPageImageUrl(pageNum)}
-              alt={`Quran page ${pageNum}`}
-              fill
-              className="object-contain p-2"
-              priority
-              sizes="(max-width: 768px) 100vw, 500px"
-            />
-          </div>
-        </div>
+      <main className="relative w-full max-w-2xl px-2 py-4 flex-grow">
+        <AnnotationCanvas
+          pageNum={pageNum}
+          imageUrl={getPageImageUrl(pageNum)}
+          sets={sets ?? []}
+          user={user}
+        />
       </main>
-      
-      <footer className="pb-6 text-center text-stone-400 text-xs tracking-wider uppercase">
+
+      <footer className="w-full py-6 text-center text-stone-500 text-xs tracking-wider uppercase bg-stone-950">
         HifthCompanion © 2026
       </footer>
     </div>

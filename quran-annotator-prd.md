@@ -59,7 +59,7 @@ Each slice is independently deployable and testable.
 
 **Done when:** A user can register, verify email, log in, and log out.
 
-### Slice 3 — Annotation Sets (CRUD) [TODO]
+### Slice 3 — Annotation Sets (CRUD) [COMPLETE]
 **Goal:** Logged-in users can create and manage named annotation sets.
 
 - "My Sets" page listing all sets for the current user
@@ -70,7 +70,7 @@ Each slice is independently deployable and testable.
 
 **Done when:** A user can create, rename, and delete annotation sets.
 
-### Slice 4 — Canvas Annotation Layer [TODO]
+### Slice 4 — Canvas Annotation Layer [COMPLETE]
 **Goal:** Users can draw on a Quran page within a selected set.
 
 - Canvas overlay rendered on top of page image at `/reader/[page]`

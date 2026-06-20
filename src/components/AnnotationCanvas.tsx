@@ -133,7 +133,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
   const [opacity, setOpacity] = useState<number>(0.4);
   const [penWidth, setPenWidth] = useState<number>(3);
   const [toolbarOpen, setToolbarOpen] = useState<boolean>(true);
-  const [openPopoverTool, setOpenPopoverTool] = useState<Tool | null>(null);
+  const [openPopoverTool, setOpenPopoverTool] = useState<Tool | null>(null); // kept for backward-compat but click popover removed
   const [hoveredTool, setHoveredTool] = useState<Tool | null>(null);
   const [hoverPos, setHoverPos] = useState<{ top: number; left: number } | null>(null);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -478,11 +478,11 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
   };
 
   const handleToolClick = (t: Tool) => {
+    // simply switch active tool. click popovers have been removed in favor of centralized controls.
     if (activeTool === t) {
-      setOpenPopoverTool(prev => prev === t ? null : t);
+      setActiveTool('pen'); // toggle back to pen as a simple behavior
     } else {
       setActiveTool(t);
-      setOpenPopoverTool(t);
     }
   };
 
@@ -502,23 +502,25 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
               {tools.map(t => (
                 <button
                   key={t}
-                  ref={el => (buttonRefs.current[t] = el)}
+                  ref={el => { buttonRefs.current[t] = el; }}
                   onClick={() => handleToolClick(t)}
                   onMouseEnter={(e) => {
                     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current as any);
                     const el = buttonRefs.current[t];
                     if (el) {
                       const rect = el.getBoundingClientRect();
-                      // prefer popping out to the left; fall back to right if there's no space
+                      // force popout to the left side and clamp inside viewport
                       const popWidth = 260;
-                      const margin = 10;
+                      const margin = 12;
                       let leftPos = rect.left - popWidth - margin;
                       try {
                         const vw = window.innerWidth || 1024;
-                        if (leftPos < 8) leftPos = rect.right + margin; // not enough room on left, place on right
-                        if (leftPos + popWidth > vw - 8) leftPos = Math.max(8, vw - popWidth - 8);
+                        // clamp so it never goes off-screen on the left
+                        leftPos = Math.max(8, leftPos);
+                        // also ensure it doesn't overflow right edge
+                        leftPos = Math.min(leftPos, Math.max(8, vw - popWidth - 8));
                       } catch (err) {
-                        leftPos = rect.left - popWidth - margin;
+                        leftPos = Math.max(8, rect.left - popWidth - margin);
                       }
                       setHoverPos({ left: leftPos, top: rect.top + rect.height / 2 });
                     }
@@ -539,26 +541,27 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
                   {TOOL_ICONS[t]}
                 </button>
               ))}
+
+              {/* Always-visible color swatches (vertical) */}
+              <div className="flex flex-col items-center gap-2 my-2 w-full mt-3">
+                {PRESET_COLORS.map(c => (
+                  <button
+                    key={c.value}
+                    onClick={() => setActiveColor(c.value)}
+                    title={c.name}
+                    className="w-6 h-6 rounded-full"
+                    style={{
+                      backgroundColor: c.value,
+                      border: activeColor === c.value ? '2px solid var(--text-primary)' : '2px solid transparent',
+                      boxShadow: activeColor === c.value ? `0 4px 12px ${c.value}30` : 'none',
+                    }}
+                  />
+                ))}
+              </div>
             </div>
 
             <hr style={{ width: '100%', borderColor: 'var(--border-subtle)' }} />
 
-            {/* Color swatches (vertical) */}
-            <div className="flex flex-col items-center gap-2 my-2 w-full">
-              {PRESET_COLORS.map(c => (
-                <button
-                  key={c.value}
-                  onClick={() => setActiveColor(c.value)}
-                  title={c.name}
-                  className="w-8 h-8 rounded-full"
-                  style={{
-                    backgroundColor: c.value,
-                    border: activeColor === c.value ? '2px solid var(--text-primary)' : '2px solid transparent',
-                    boxShadow: activeColor === c.value ? `0 0 8px ${c.value}40` : 'none',
-                  }}
-                />
-              ))}
-            </div>
 
 
             <div className="mt-3 w-full flex flex-col items-center gap-2">
@@ -574,7 +577,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
                   ...( !canUndo ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none', background: 'transparent', boxShadow: 'none' } : {}),
                 }}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
               </button>
 
               <button
@@ -589,7 +592,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
                   ...( !canRedo ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none', background: 'transparent', boxShadow: 'none' } : {}),
                 }}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" /></svg>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" /></svg>
               </button>
 
               <button onClick={handleClear} title="Clear page" className="w-10 h-10 flex items-center justify-center rounded-full btn btn-danger-ghost" style={{ border: '1px solid var(--border-subtle)' }}>
@@ -601,25 +604,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
           </div>
         </aside>
 
-        {/* Click popover */}
-        {openPopoverTool && (
-          <div className="hidden lg:block" style={{ width: '280px' }}>
-            <div className="bg-[var(--bg-elevated)] rounded-lg p-3" style={{ border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-lg)' }}>
-              <div className="text-sm font-semibold mb-2">{TOOL_LABELS[openPopoverTool]}</div>
-              <div className="mb-2">
-                <div className="flex gap-2">
-                  {PRESET_COLORS.map(c => (
-                    <button key={c.value} onClick={() => setActiveColor(c.value)} className="w-8 h-8 rounded-full" style={{ backgroundColor: c.value, border: activeColor === c.value ? '2px solid var(--text-primary)' : '2px solid transparent' }} />
-                  ))}
-                </div>
-              </div>
 
-              <div className="mt-3 flex justify-end">
-                <button onClick={() => setOpenPopoverTool(null)} className="btn btn-ghost">Close</button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Hover popover (anchored to tool button) */}
         {hoveredTool && hoverPos && (hoveredTool === 'pen' || hoveredTool === 'circle' || hoveredTool === 'underline' || hoveredTool === 'highlighter') && (

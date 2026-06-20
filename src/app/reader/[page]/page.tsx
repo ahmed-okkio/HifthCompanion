@@ -5,6 +5,7 @@ import ReaderNav from '@/components/ReaderNav';
 import AnnotationCanvas from '@/components/AnnotationCanvas';
 import ShareButton from '@/components/ShareButton';
 import NotesPanel from '@/components/NotesPanel';
+import SurahNavPanel from '@/components/SurahNavPanel';
 import { getNotes } from '@/lib/services/notes';
 
 interface Props {
@@ -43,9 +44,15 @@ export default async function ReaderPage({ params }: Props) {
       
       <main className="w-full max-w-7xl mx-auto px-4 py-6 sm:py-8 flex-grow animate-fade-in">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
+          {/* Left nav */}
+          <div className="lg:col-span-3">
+            <div className="animate-fade-in-scale lg:sticky lg:top-[88px]" style={{ animationDelay: '50ms' }}>
+              <SurahNavPanel />
+            </div>
+          </div>
+
           {/* Main Canvas Area */}
-          <div className="lg:col-span-8 flex flex-col gap-4">
+          <div className="lg:col-span-6 flex flex-col gap-4">
             <AnnotationCanvas
               pageNum={pageNum}
               imageUrl={getPageImageUrl(pageNum)}
@@ -54,8 +61,8 @@ export default async function ReaderPage({ params }: Props) {
             />
           </div>
 
-          {/* Sidebar Area */}
-          <div className="lg:col-span-4 flex flex-col gap-4 lg:sticky lg:top-[88px]">
+          {/* Right Sidebar Area */}
+          <div className="lg:col-span-3 flex flex-col gap-4 lg:sticky lg:top-[88px]">
             {user && (sets ?? []).length > 0 && (
               <div className="card p-5 flex flex-col gap-3 animate-fade-in-scale" style={{ animationDelay: '100ms' }}>
                 <div>

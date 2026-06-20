@@ -81,7 +81,7 @@ Each slice is independently deployable and testable.
 
 **Done when:** A user can draw on a page, navigate away, return, and see their drawing restored.
 
-### Slice 5 — Highlighter Tool [TODO]
+### Slice 5 — Highlighter Tool [COMPLETE]
 **Goal:** Users can highlight text areas on a page.
 
 - Highlighter tool added to toolbar (semi-transparent filled rectangle)
@@ -91,7 +91,7 @@ Each slice is independently deployable and testable.
 
 **Done when:** A user can drag to highlight a region with a chosen colour.
 
-### Slice 6 — Shapes Tool [TODO]
+### Slice 6 — Shapes Tool [COMPLETE]
 **Goal:** Users can draw circles and underlines on a page.
 
 - Circle tool: click-drag to place ellipse
@@ -101,7 +101,7 @@ Each slice is independently deployable and testable.
 
 **Done when:** A user can add circles and underlines to a page annotation.
 
-### Slice 7 — Text Annotations [TODO]
+### Slice 7 — Text Annotations [COMPLETE]
 **Goal:** Users can add typed text labels on a page.
 
 - Text tool in toolbar
@@ -112,7 +112,7 @@ Each slice is independently deployable and testable.
 
 **Done when:** A user can place, edit, and save text labels on a page.
 
-### Slice 8 — Notes / Comments on Selections [TODO]
+### Slice 8 — Notes / Comments on Selections [COMPLETE]
 **Goal:** Users can attach a written note to a specific canvas selection.
 
 - Select an existing annotation object (shape, highlight, pen stroke)
@@ -123,7 +123,7 @@ Each slice is independently deployable and testable.
 
 **Done when:** A user can attach a note to a marking and read it back in the side panel.
 
-### Slice 9 — Read-Only Share Links [TODO]
+### Slice 9 — Read-Only Share Links [COMPLETE]
 **Goal:** Users can share a page with their annotations as a read-only link.
 
 - "Share" button on reader page
@@ -134,7 +134,7 @@ Each slice is independently deployable and testable.
 
 **Done when:** An unauthenticated visitor can open a share link and see the sharer's annotations.
 
-### Slice 10 — Toolbar UX Polish [TODO]
+### Slice 10 — Toolbar UX Polish [COMPLETE]
 **Goal:** Toolbar is intuitive and non-intrusive on the reader.
 
 - Collapsible/expandable toolbar (minimise icon)

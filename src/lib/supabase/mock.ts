@@ -1,0 +1,360 @@
+const IS_SERVER = typeof window === 'undefined';
+
+interface MockSet {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+}
+
+interface MockAnnotation {
+  id: string;
+  set_id: string;
+  page_number: number;
+  canvas_json: any;
+  updated_at: string;
+}
+
+interface MockNote {
+  id: string;
+  set_id: string;
+  page_number: number;
+  body: string;
+  x: number | null;
+  y: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Global server-side DB
+const globalForDb = global as unknown as {
+  mockSets?: MockSet[];
+  mockAnnotations?: MockAnnotation[];
+  mockNotes?: MockNote[];
+};
+
+if (!globalForDb.mockSets) {
+  globalForDb.mockSets = [];
+}
+if (!globalForDb.mockAnnotations) {
+  globalForDb.mockAnnotations = [];
+}
+if (!globalForDb.mockNotes) {
+  globalForDb.mockNotes = [];
+}
+
+// LocalStorage key helper
+const STORAGE_KEY_SETS = 'mock_supabase_sets';
+const STORAGE_KEY_ANNOTATIONS = 'mock_supabase_annotations';
+const STORAGE_KEY_NOTES = 'mock_supabase_notes';
+
+function getNotes(): MockNote[] {
+  if (IS_SERVER) return globalForDb.mockNotes!;
+  try {
+    const val = localStorage.getItem(STORAGE_KEY_NOTES);
+    return val ? JSON.parse(val) : [];
+  } catch { return []; }
+}
+
+function saveNotes(notes: MockNote[]) {
+  if (IS_SERVER) { globalForDb.mockNotes = notes; }
+  else { try { localStorage.setItem(STORAGE_KEY_NOTES, JSON.stringify(notes)); } catch {} }
+}
+
+function getSets(): MockSet[] {
+  if (IS_SERVER) {
+    return globalForDb.mockSets!;
+  }
+  try {
+    const val = localStorage.getItem(STORAGE_KEY_SETS);
+    return val ? JSON.parse(val) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSets(sets: MockSet[]) {
+  if (IS_SERVER) {
+    globalForDb.mockSets = sets;
+  } else {
+    try {
+      localStorage.setItem(STORAGE_KEY_SETS, JSON.stringify(sets));
+    } catch {}
+  }
+}
+
+function getAnnotations(): MockAnnotation[] {
+  if (IS_SERVER) {
+    return globalForDb.mockAnnotations!;
+  }
+  try {
+    const val = localStorage.getItem(STORAGE_KEY_ANNOTATIONS);
+    return val ? JSON.parse(val) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveAnnotations(annos: MockAnnotation[]) {
+  if (IS_SERVER) {
+    globalForDb.mockAnnotations = annos;
+  } else {
+    try {
+      localStorage.setItem(STORAGE_KEY_ANNOTATIONS, JSON.stringify(annos));
+    } catch {}
+  }
+}
+
+class MockQueryBuilder {
+  private table: string;
+  private filters: { field: string; value: any }[] = [];
+  private orderField: string | null = null;
+  private orderAscending = true;
+  private isSingle = false;
+  private isMaybeSingle = false;
+  
+  private op: 'select' | 'insert' | 'update' | 'delete' | 'upsert' = 'select';
+  private opValues: any = null;
+
+  constructor(table: string) {
+    this.table = table;
+  }
+
+  select(columns?: string) {
+    // select is default op
+    return this;
+  }
+
+  eq(field: string, value: any) {
+    this.filters.push({ field, value });
+    return this;
+  }
+
+  order(field: string, options?: { ascending?: boolean }) {
+    this.orderField = field;
+    this.orderAscending = options?.ascending ?? true;
+    return this;
+  }
+
+  single() {
+    this.isSingle = true;
+    return this;
+  }
+
+  maybeSingle() {
+    this.isMaybeSingle = true;
+    return this;
+  }
+
+  insert(values: any) {
+    this.op = 'insert';
+    this.opValues = values;
+    return this;
+  }
+
+  update(values: any) {
+    this.op = 'update';
+    this.opValues = values;
+    return this;
+  }
+
+  delete() {
+    this.op = 'delete';
+    return this;
+  }
+
+  upsert(values: any, options?: { onConflict?: string }) {
+    this.op = 'upsert';
+    this.opValues = values;
+    return this;
+  }
+
+  private applyFilters(items: any[]) {
+    let result = [...items];
+    for (const filter of this.filters) {
+      result = result.filter(item => item[filter.field] == filter.value);
+    }
+    return result;
+  }
+
+  async execute() {
+    if (this.table === 'annotation_sets') {
+      if (this.op === 'insert') {
+        const sets = getSets();
+        const newSet = {
+          id: Math.random().toString(36).substring(2, 9),
+          user_id: '52345ff6-3348-40d5-b6d8-1234567890ab',
+          name: this.opValues?.name ?? '',
+          created_at: new Date().toISOString(),
+          ...this.opValues,
+        };
+        sets.push(newSet);
+        saveSets(sets);
+        return newSet;
+      }
+      
+      if (this.op === 'update') {
+        const sets = getSets();
+        const filtered = this.applyFilters(sets);
+        for (const item of filtered) {
+          Object.assign(item, this.opValues);
+        }
+        saveSets(sets);
+        return filtered;
+      }
+
+      if (this.op === 'delete') {
+        const sets = getSets();
+        const filtered = this.applyFilters(sets);
+        const idsToDelete = new Set(filtered.map(item => item.id));
+        const remaining = sets.filter(item => !idsToDelete.has(item.id));
+        saveSets(remaining);
+        return filtered;
+      }
+
+      // Default: select
+      let sets = getSets();
+      sets = this.applyFilters(sets);
+      if (this.orderField) {
+        sets.sort((a: any, b: any) => {
+          const valA = a[this.orderField!];
+          const valB = b[this.orderField!];
+          if (valA < valB) return this.orderAscending ? -1 : 1;
+          if (valA > valB) return this.orderAscending ? 1 : -1;
+          return 0;
+        });
+      }
+      if (this.isSingle) {
+        return sets[0] ?? null;
+      }
+      return sets;
+    } else if (this.table === 'annotations') {
+      if (this.op === 'upsert') {
+        const annos = getAnnotations();
+        const setId = this.opValues.set_id;
+        const pageNum = this.opValues.page_number;
+        const existingIdx = annos.findIndex(a => a.set_id === setId && a.page_number === pageNum);
+        let updatedOrCreated;
+        if (existingIdx > -1) {
+          annos[existingIdx] = {
+            ...annos[existingIdx],
+            ...this.opValues,
+            updated_at: new Date().toISOString(),
+          };
+          updatedOrCreated = annos[existingIdx];
+        } else {
+          updatedOrCreated = {
+            id: Math.random().toString(36).substring(2, 9),
+            ...this.opValues,
+            updated_at: new Date().toISOString(),
+          };
+          annos.push(updatedOrCreated);
+        }
+        saveAnnotations(annos);
+        return updatedOrCreated;
+      }
+
+      // Default: select
+      let annos = getAnnotations();
+      annos = this.applyFilters(annos);
+      if (this.isSingle || this.isMaybeSingle) {
+        return annos[0] ?? null;
+      }
+      return annos;
+    } else if (this.table === 'notes') {
+      if (this.op === 'insert') {
+        const notes = getNotes();
+        const newNote = {
+          id: Math.random().toString(36).substring(2, 9),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          ...this.opValues,
+        };
+        notes.push(newNote);
+        saveNotes(notes);
+        return newNote;
+      }
+      if (this.op === 'update') {
+        const notes = getNotes();
+        const filtered = this.applyFilters(notes);
+        for (const n of filtered) Object.assign(n, this.opValues);
+        saveNotes(notes);
+        return filtered[0] ?? null;
+      }
+      if (this.op === 'delete') {
+        const notes = getNotes();
+        const filtered = this.applyFilters(notes);
+        const ids = new Set(filtered.map((n: any) => n.id));
+        saveNotes(notes.filter((n: any) => !ids.has(n.id)));
+        return null;
+      }
+      // select
+      let notes = getNotes();
+      notes = this.applyFilters(notes) as MockNote[];
+      if (this.orderField) {
+        notes.sort((a: any, b: any) => {
+          if (a[this.orderField!] < b[this.orderField!]) return this.orderAscending ? -1 : 1;
+          if (a[this.orderField!] > b[this.orderField!]) return this.orderAscending ? 1 : -1;
+          return 0;
+        });
+      }
+      if (this.isSingle) return notes[0] ?? null;
+      return notes;
+    }
+    return [];
+  }
+
+  then(onfulfilled: (value: any) => any, onrejected?: (reason: any) => any) {
+    this.execute()
+      .then(data => onfulfilled({ data, error: null }))
+      .catch(err => {
+        if (onrejected) onrejected(err);
+        else onfulfilled({ data: null, error: err });
+      });
+  }
+}
+
+export class MockSupabaseClient {
+  private authenticated = false;
+
+  constructor(authenticated: boolean) {
+    this.authenticated = authenticated;
+  }
+
+  auth = {
+    getUser: async () => {
+      if (!this.authenticated) {
+        return { data: { user: null }, error: null };
+      }
+      return {
+        data: {
+          user: {
+            id: '52345ff6-3348-40d5-b6d8-1234567890ab',
+            email: 'test@example.com',
+          },
+        },
+        error: null,
+      };
+    },
+    getSession: async () => {
+      if (!this.authenticated) {
+        return { data: { session: null }, error: null };
+      }
+      return {
+        data: {
+          session: {
+            user: {
+              id: '52345ff6-3348-40d5-b6d8-1234567890ab',
+              email: 'test@example.com',
+            },
+          },
+        },
+        error: null,
+      };
+    },
+  };
+
+  from(table: string) {
+    return new MockQueryBuilder(table);
+  }
+}

@@ -1,33 +1,116 @@
 'use client';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function SignupPage() {
-  const router = useRouter();
   const supabase = createClient();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [isError, setIsError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   async function handleSignup() {
+    setLoading(true);
+    setMessage('');
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: `${location.origin}/auth/callback` },
     });
-    if (error) setMessage(error.message);
-    else setMessage('Check your email to confirm your account.');
+    if (error) { setMessage(error.message); setIsError(true); }
+    else { setMessage('Check your email to confirm your account.'); setIsError(false); }
+    setLoading(false);
   }
 
   return (
-    <div className="max-w-sm mx-auto mt-20 flex flex-col gap-4">
-      <h1 className="text-xl font-bold">Sign Up</h1>
-      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="border p-2 rounded" />
-      <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" className="border p-2 rounded" />
-      <button onClick={handleSignup} className="bg-emerald-700 text-white p-2 rounded">Create Account</button>
-      {message && <p className="text-sm text-gray-600">{message}</p>}
-      <a href="/login" className="text-sm text-blue-600 underline">Already have an account? Log in</a>
+    <div className="min-h-screen flex items-center justify-center px-4"
+         style={{ background: 'var(--bg-base)' }}>
+      <div className="w-full max-w-sm animate-fade-in-scale">
+        {/* Brand */}
+        <div className="text-center mb-8">
+          <Link href="/reader/1">
+            <span className="text-3xl font-bold" style={{ color: 'var(--text-accent)' }}>
+              حفظ
+            </span>
+          </Link>
+          <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
+            Create your account
+          </p>
+        </div>
+
+        {/* Card */}
+        <div className="card" style={{ padding: '32px' }}>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="block text-xs font-semibold mb-1.5"
+                     style={{ color: 'var(--text-secondary)' }}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSignup()}
+                placeholder="you@example.com"
+                className="input"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold mb-1.5"
+                     style={{ color: 'var(--text-secondary)' }}>
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSignup()}
+                placeholder="••••••••"
+                className="input"
+              />
+            </div>
+
+            {message && (
+              <div className="text-xs font-medium px-3 py-2 rounded-md animate-fade-in"
+                   style={{
+                     background: isError ? 'var(--danger-muted)' : 'var(--accent-muted)',
+                     color: isError ? 'var(--danger)' : 'var(--text-accent)',
+                     border: `1px solid ${isError ? 'rgba(248, 113, 113, 0.2)' : 'var(--border-accent)'}`,
+                   }}>
+                {message}
+              </div>
+            )}
+
+            <button
+              onClick={handleSignup}
+              disabled={loading || !email || !password}
+              className="btn btn-primary w-full"
+              style={{ padding: '10px 16px', fontSize: '14px', marginTop: '4px' }}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Creating…
+                </span>
+              ) : 'Create Account'}
+            </button>
+          </div>
+        </div>
+
+        {/* Footer link */}
+        <p className="text-center mt-5 text-sm" style={{ color: 'var(--text-muted)' }}>
+          Already have an account?{' '}
+          <Link href="/login"
+                className="font-semibold hover:underline"
+                style={{ color: 'var(--text-accent)' }}>
+            Log in
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

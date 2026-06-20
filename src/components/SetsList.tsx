@@ -42,25 +42,54 @@ export default function SetsList({ initialSets }: { initialSets: AnnotationSet[]
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Create */}
-      <div className="flex gap-2">
+    <div className="flex flex-col gap-3">
+      {/* Create new set */}
+      <div className="card flex gap-2 items-center"
+           style={{ padding: '12px 16px' }}>
         <input
           value={newName}
           onChange={e => setNewName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleCreateSet()}
           placeholder="New set name..."
-          className="flex-1 border rounded px-3 py-2"
+          className="input"
+          style={{ flex: 1 }}
         />
-        <button onClick={handleCreateSet} className="bg-emerald-700 text-white px-4 rounded">
+        <button onClick={handleCreateSet}
+                disabled={!newName.trim()}
+                className="btn btn-primary flex items-center gap-1"
+                style={{ flexShrink: 0 }}>
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
           Create
         </button>
       </div>
 
-      {/* List */}
-      {sets.length === 0 && <p className="text-gray-400">No sets yet. Create one above.</p>}
-      {sets.map(set => (
-        <div key={set.id} className="flex items-center justify-between border rounded px-4 py-3">
+      {/* Empty state */}
+      {sets.length === 0 && (
+        <div className="card text-center animate-fade-in"
+             style={{ padding: '40px 24px', color: 'var(--text-muted)' }}>
+          <div className="flex justify-center mb-3 text-emerald-500">
+            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+          </div>
+          <p className="text-sm font-medium">No annotation sets yet</p>
+          <p className="text-xs mt-1">Create one above to start annotating the Quran</p>
+        </div>
+      )}
+
+      {/* Set items */}
+      {sets.map((set, i) => (
+        <div key={set.id}
+             className="card group animate-fade-in"
+             style={{
+               padding: '14px 18px',
+               animationDelay: `${i * 50}ms`,
+               display: 'flex',
+               alignItems: 'center',
+               justifyContent: 'space-between',
+             }}>
           {editingId === set.id ? (
             <input
               autoFocus
@@ -70,26 +99,61 @@ export default function SetsList({ initialSets }: { initialSets: AnnotationSet[]
                 if (e.key === 'Enter') handleRenameSet(set.id);
                 if (e.key === 'Escape') setEditingId(null);
               }}
-              className="flex-1 border rounded px-2 py-1 mr-2"
+              className="input input-sm"
+              style={{ flex: 1, marginRight: '12px' }}
             />
           ) : (
-            <span className="flex-1 font-medium">{set.name}</span>
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-2 h-2 rounded-full flex-shrink-0"
+                   style={{ background: 'var(--accent)' }} />
+              <span className="font-medium text-sm truncate"
+                    style={{ color: 'var(--text-primary)' }}>
+                {set.name}
+              </span>
+            </div>
           )}
-          <div className="flex gap-2 text-sm">
+
+          <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100"
+               style={{ transition: 'opacity var(--duration-fast) var(--ease-out)' }}>
             {editingId === set.id ? (
               <>
-                <button onClick={() => handleRenameSet(set.id)} className="text-emerald-600">Save</button>
-                <button onClick={() => setEditingId(null)} className="text-gray-400">Cancel</button>
+                 <button onClick={() => handleRenameSet(set.id)}
+                        className="btn btn-ghost flex items-center gap-1"
+                        style={{ padding: '4px 10px', fontSize: '11px', color: 'var(--text-accent)' }}>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Save
+                </button>
+                <button onClick={() => setEditingId(null)}
+                        className="btn btn-ghost flex items-center gap-1"
+                        style={{ padding: '4px 10px', fontSize: '11px' }}>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Cancel
+                </button>
               </>
             ) : (
               <>
                 <button
                   onClick={() => { setEditingId(set.id); setEditName(set.name); }}
-                  className="text-blue-500"
+                  className="btn btn-ghost flex items-center gap-1"
+                  style={{ padding: '4px 10px', fontSize: '11px' }}
                 >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
                   Rename
                 </button>
-                <button onClick={() => handleDeleteSet(set.id)} className="text-red-400">Delete</button>
+                <button onClick={() => handleDeleteSet(set.id)}
+                        className="btn btn-danger-ghost flex items-center gap-1"
+                        style={{ padding: '4px 10px', fontSize: '11px' }}>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  Delete
+                </button>
               </>
             )}
           </div>

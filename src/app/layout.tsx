@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HifthCompanion",
-  description: "Your Quran memorization companion",
+  title: "HifthCompanion — Quran Annotation & Study",
+  description: "Read, annotate, and study the Quran with powerful drawing tools and shareable annotations.",
 };
 
 export default function RootLayout({
@@ -24,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="bg-stone-50 text-stone-900 antialiased min-h-screen font-sans">
+      <body className="font-sans">
         {children}
       </body>
     </html>

@@ -12,3 +12,14 @@ export interface Annotation {
   canvas_json: any; // Using any for Fabric.js JSON object
   updated_at: string;
 }
+
+export interface Note {
+  id: string;
+  set_id: string;
+  page_number: number;
+  body: string;
+  x: number | null;
+  y: number | null;
+  created_at: string;
+  updated_at: string;
+}

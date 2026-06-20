@@ -1,7 +1,9 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Annotations Persistence', () => {
-  test('should persist drawings across page reloads', async ({ page, context }) => {
+  test('should persist drawings across page reloads', async ({ page }) => {
+    page.on('console', msg => console.log(`[Browser] ${msg.text()}`));
+
     // 1. Setup authenticated session
     // Note: We are using the storageState from auth.setup.ts
     // We don't need to manually inject cookies here.
@@ -41,7 +43,7 @@ test.describe('Annotations Persistence', () => {
     
     await page.mouse.move(box.x + 100, box.y + 100);
     await page.mouse.down();
-    await page.mouse.move(box.x + 200, box.y + 200);
+    await page.mouse.move(box.x + 200, box.y + 200, { steps: 5 });
     await page.mouse.up();
 
     // 6. Wait for explicit save confirmation
@@ -51,7 +53,15 @@ test.describe('Annotations Persistence', () => {
     }).toBeTruthy();
 
     // 7. Reload and verify
+    const lsBefore = await page.evaluate(() => localStorage.getItem('mock_supabase_annotations'));
+    console.error('[E2E DEBUG] LS BEFORE:', lsBefore);
     await page.reload();
+    const lsAfter = await page.evaluate(() => localStorage.getItem('mock_supabase_annotations'));
+    console.error('[E2E DEBUG] LS AFTER:', lsAfter);
+    
+    // Ensure our set is selected (to avoid parallel test pollution)
+    const pickerAfter = page.locator('#set-picker');
+    await pickerAfter.selectOption({ label: setName });
     
     // Check if drawing restored
     await expect.poll(async () => {

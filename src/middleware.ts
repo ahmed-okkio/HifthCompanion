@@ -33,6 +33,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
+  if (isE2E) {
+    response.cookies.set('x-e2e-test', 'true');
+  }
+
   return response;
 }
 

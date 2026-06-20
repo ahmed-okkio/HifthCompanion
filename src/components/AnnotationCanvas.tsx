@@ -11,20 +11,137 @@ interface Props {
   user: { id: string } | null;
 }
 
-const SAVE_DELAY_MS = 1500; // debounce
+const SAVE_DELAY_MS = 1500;
+
+const PRESET_COLORS = [
+  { name: 'Red', value: '#ef4444' },
+  { name: 'Orange', value: '#f97316' },
+  { name: 'Yellow', value: '#eab308' },
+  { name: 'Green', value: '#22c55e' },
+  { name: 'Blue', value: '#3b82f6' },
+];
+
+type Tool = 'pen' | 'highlighter' | 'circle' | 'underline' | 'text' | 'eraser';
+
+// --- History management (simple undo/redo via JSON snapshots) ---
+class CanvasHistory {
+  private stack: string[] = [];
+  private ptr = -1;
+  private canvas: fabric.Canvas;
+  private frozen = false;
+
+  constructor(canvas: fabric.Canvas) {
+    this.canvas = canvas;
+  }
+
+  snapshot() {
+    if (this.frozen) return;
+    const json = JSON.stringify(this.canvas.toJSON());
+    this.stack = this.stack.slice(0, this.ptr + 1);
+    this.stack.push(json);
+    this.ptr = this.stack.length - 1;
+  }
+
+  clear() {
+    this.stack = [];
+    this.ptr = -1;
+  }
+
+  undo(onDone?: () => void) {
+    if (this.ptr <= 0) return;
+    this.ptr--;
+    this.restore(onDone);
+  }
+
+  redo(onDone?: () => void) {
+    if (this.ptr >= this.stack.length - 1) return;
+    this.ptr++;
+    this.restore(onDone);
+  }
+
+  canUndo() { return this.ptr > 0; }
+  canRedo() { return this.ptr < this.stack.length - 1; }
+
+  private restore(onDone?: () => void) {
+    this.frozen = true;
+    const json = this.stack[this.ptr];
+    this.canvas.loadFromJSON(JSON.parse(json), () => {
+      this.canvas.renderAll();
+      this.frozen = false;
+      onDone?.();
+    });
+  }
+}
+
+const TOOL_ICONS: Record<Tool, React.ReactNode> = {
+  pen: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+    </svg>
+  ),
+  highlighter: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  ),
+  circle: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle cx={12} cy={12} r={9} strokeWidth={2} />
+    </svg>
+  ),
+  underline: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6v6a8 8 0 0016 0V6M4 18h16" />
+    </svg>
+  ),
+  text: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h12M4 18h8" />
+    </svg>
+  ),
+  eraser: (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+  ),
+};
+
+const TOOL_LABELS: Record<Tool, string> = {
+  pen: 'Pen',
+  highlighter: 'Highlighter',
+  circle: 'Circle',
+  underline: 'Underline',
+  text: 'Text',
+  eraser: 'Eraser',
+};
 
 export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
+  const historyRef = useRef<CanvasHistory | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const supabase = createClient();
 
   const [selectedSetId, setSelectedSetId] = useState<string>(sets[0]?.id ?? '');
   const [saving, setSaving] = useState(false);
-  
-  // Track what's currently loaded to avoid redundant reloads
+  const [activeTool, setActiveTool] = useState<Tool>('pen');
+  const [activeColor, setActiveColor] = useState<string>('#ef4444');
+  const [opacity, setOpacity] = useState<number>(0.4);
+  const [penWidth, setPenWidth] = useState<number>(3);
+  const [toolbarOpen, setToolbarOpen] = useState<boolean>(true);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
   const lastLoadedRef = useRef<{ setId: string; pageNum: number } | null>(null);
+
+  const refreshHistory = useCallback(() => {
+    const h = historyRef.current;
+    if (h) {
+      setCanUndo(h.canUndo());
+      setCanRedo(h.canRedo());
+    }
+  }, []);
 
   const applyBackground = useCallback((canvas: fabric.Canvas, url: string, width: number) => {
     return new Promise<void>((resolve) => {
@@ -40,28 +157,16 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
 
   const saveCanvas = useCallback(async (canvas: fabric.Canvas, setId: string, page: number) => {
     if (!user || !setId) return;
-    
     setSaving(true);
     try {
       const json = canvas.toJSON();
-      // Remove background image from JSON to save space and avoid restoration issues
       delete (json as any).backgroundImage;
-      
       const { error } = await supabase.from('annotations').upsert(
-        { 
-          set_id: setId, 
-          page_number: page, 
-          canvas_json: json, 
-          updated_at: new Date().toISOString() 
-        },
+        { set_id: setId, page_number: page, canvas_json: json, updated_at: new Date().toISOString() },
         { onConflict: 'set_id,page_number' }
       );
-
-      if (error) {
-        console.error('[AnnotationCanvas] Save error:', error);
-      } else {
-        console.log('[AnnotationCanvas] Save successful');
-      }
+      if (error) console.error('[AnnotationCanvas] Save error:', error);
+      else console.log('[AnnotationCanvas] Save successful');
     } catch (err) {
       console.error('[AnnotationCanvas] Unexpected save error:', err);
     } finally {
@@ -72,52 +177,55 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
   const scheduleSave = useCallback(() => {
     if (!user || !selectedSetId || !fabricRef.current) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    
     saveTimerRef.current = setTimeout(() => {
       saveCanvas(fabricRef.current!, selectedSetId, pageNum);
     }, SAVE_DELAY_MS);
   }, [selectedSetId, pageNum, saveCanvas, user]);
 
+  const activeLoadSetIdRef = useRef<string | null>(null);
+
   const loadAnnotation = useCallback(async (canvas: fabric.Canvas, setId: string, page: number) => {
-    if (lastLoadedRef.current?.setId === setId && lastLoadedRef.current?.pageNum === page) {
-      return;
-    }
+    if (lastLoadedRef.current?.setId === setId && lastLoadedRef.current?.pageNum === page) return;
+
+    activeLoadSetIdRef.current = setId;
 
     const { data, error } = await supabase
-      .from('annotations')
-      .select('canvas_json')
-      .eq('set_id', setId)
-      .eq('page_number', page)
-      .maybeSingle();
+      .from('annotations').select('canvas_json')
+      .eq('set_id', setId).eq('page_number', page).maybeSingle();
 
-    if (error) {
-      console.error('[AnnotationCanvas] Load error:', error);
-      return;
-    }
+    if (activeLoadSetIdRef.current !== setId) return; // stale request
 
-    // loadFromJSON clears everything.
-    // We must ensure the background is re-applied AFTER or DURING restoration.
+    if (error) { console.error('[AnnotationCanvas] Load error:', error); return; }
+
     if (data?.canvas_json) {
+      console.log('[AnnotationCanvas] Calling loadFromJSON with objects:', data.canvas_json.objects?.length);
       canvas.loadFromJSON(data.canvas_json, async () => {
-        // Re-apply the background image because loadFromJSON might have cleared it
+        console.log('[AnnotationCanvas] loadFromJSON callback! current ref:', activeLoadSetIdRef.current, 'setId:', setId);
+        if (activeLoadSetIdRef.current !== setId) return;
         if (containerRef.current) {
-           await applyBackground(canvas, imageUrl, containerRef.current.offsetWidth);
+          await applyBackground(canvas, imageUrl, containerRef.current.offsetWidth);
         }
-        canvas.renderAll();
+        historyRef.current?.clear();
+        historyRef.current?.snapshot();
+        refreshHistory();
         lastLoadedRef.current = { setId, pageNum: page };
+        console.log('[AnnotationCanvas] Restored objects:', canvas.getObjects().length);
       });
     } else {
-      // No saved annotations, just clear objects (keeping background if already set)
-      canvas.getObjects().forEach(obj => canvas.remove(obj));
-      canvas.renderAll();
+      canvas.clear();
+      if (containerRef.current) {
+        await applyBackground(canvas, imageUrl, containerRef.current.offsetWidth);
+      }
+      historyRef.current?.clear();
+      historyRef.current?.snapshot();
+      refreshHistory();
       lastLoadedRef.current = { setId, pageNum: page };
     }
-  }, [supabase, imageUrl, applyBackground]);
+  }, [supabase, imageUrl, applyBackground, refreshHistory]);
 
   // Init Fabric canvas
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
-
     let isMounted = true;
     const width = containerRef.current.offsetWidth;
     const img = new Image();
@@ -128,97 +236,468 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
       const height = (img.naturalHeight / img.naturalWidth) * width;
 
       const canvas = new fabric.Canvas(canvasRef.current!, {
-        width,
-        height,
-        isDrawingMode: !!user && !!selectedSetId,
+        width, height,
+        isDrawingMode: !!user && !!selectedSetId && activeTool === 'pen',
       });
 
       canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-      canvas.freeDrawingBrush.width = 3;
-      canvas.freeDrawingBrush.color = '#ef4444';
+      canvas.freeDrawingBrush.width = penWidth;
+      canvas.freeDrawingBrush.color = activeColor;
 
       fabricRef.current = canvas;
+      historyRef.current = new CanvasHistory(canvas);
       // @ts-ignore
       window.fabricCanvas = canvas;
 
-      // Initial background load
       await applyBackground(canvas, imageUrl, width);
-      
+
       if (selectedSetId && isMounted) {
         loadAnnotation(canvas, selectedSetId, pageNum);
+      } else {
+        historyRef.current.snapshot();
+        refreshHistory();
       }
 
-      // Events
-      const handleSave = () => scheduleSave();
+      const handleSave = () => { historyRef.current?.snapshot(); refreshHistory(); scheduleSave(); };
       canvas.on('path:created', handleSave);
       canvas.on('object:modified', handleSave);
       canvas.on('object:removed', handleSave);
+      canvas.on('object:added', () => { refreshHistory(); });
     };
 
     return () => {
       isMounted = false;
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
-        if (fabricRef.current && selectedSetId) {
-          saveCanvas(fabricRef.current, selectedSetId, pageNum);
-        }
+        if (fabricRef.current && selectedSetId) saveCanvas(fabricRef.current, selectedSetId, pageNum);
       }
-      
-      if (fabricRef.current) {
-        fabricRef.current.dispose();
-        fabricRef.current = null;
-      }
+      if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
     };
-  }, [pageNum, imageUrl, user, applyBackground]); // Re-init on page change or auth change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageNum, imageUrl, user, applyBackground]);
 
-  // Handle set change without re-initializing canvas
+  // Sync drawing mode & brush settings when tool/color/penWidth changes
   useEffect(() => {
     const canvas = fabricRef.current;
-    if (canvas) {
-      canvas.isDrawingMode = !!user && !!selectedSetId;
-      if (selectedSetId) {
-        loadAnnotation(canvas, selectedSetId, pageNum);
-      }
+    if (!canvas) return;
+    canvas.isDrawingMode = !!user && !!selectedSetId && activeTool === 'pen';
+    if (canvas.freeDrawingBrush) {
+      canvas.freeDrawingBrush.color = activeColor;
+      canvas.freeDrawingBrush.width = penWidth;
     }
-  }, [selectedSetId, user, pageNum, loadAnnotation]);
+  }, [activeTool, activeColor, penWidth, user, selectedSetId]);
+
+  // Eraser tool logic
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+
+    const handleEraserMouseDown = (opt: fabric.IEvent) => {
+      if (activeTool !== 'eraser') return;
+      const target = opt.target || canvas.findTarget(opt.e, false);
+      if (target) {
+        canvas.remove(target);
+        canvas.discardActiveObject();
+        canvas.renderAll();
+        historyRef.current?.snapshot();
+        refreshHistory();
+        scheduleSave();
+      }
+    };
+
+    if (activeTool === 'eraser') {
+      canvas.on('mouse:down', handleEraserMouseDown);
+      canvas.selection = false;
+    }
+
+    return () => {
+      canvas.off('mouse:down', handleEraserMouseDown);
+    };
+  }, [activeTool, refreshHistory, scheduleSave]);
+
+  // Set change
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (canvas && selectedSetId) loadAnnotation(canvas, selectedSetId, pageNum);
+  }, [selectedSetId, pageNum, loadAnnotation]);
+
+  // Shape/text drawing via mouse events
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+
+    let isDrawing = false;
+    let shape: fabric.Object | null = null;
+    let startX = 0;
+    let startY = 0;
+
+    const handleMouseDown = (opt: fabric.IEvent) => {
+      if (activeTool === 'pen' || activeTool === 'eraser') return;
+
+      // Text: place IText on click
+      if (activeTool === 'text') {
+        const pointer = canvas.getPointer(opt.e);
+        const text = new fabric.IText('Type here', {
+          left: pointer.x,
+          top: pointer.y,
+          fontSize: 18,
+          fill: activeColor,
+          fontFamily: 'sans-serif',
+          editable: true,
+        });
+        canvas.add(text);
+        canvas.setActiveObject(text);
+        text.enterEditing();
+        text.selectAll();
+        canvas.renderAll();
+        historyRef.current?.snapshot();
+        refreshHistory();
+        scheduleSave();
+        return;
+      }
+
+      const pointer = canvas.getPointer(opt.e);
+      isDrawing = true;
+      startX = pointer.x;
+      startY = pointer.y;
+
+      if (activeTool === 'highlighter') {
+        shape = new fabric.Rect({
+          left: startX, top: startY, width: 0, height: 0,
+          fill: activeColor, opacity, selectable: false,
+          hasBorders: false, hasControls: false,
+        });
+      } else if (activeTool === 'circle') {
+        shape = new fabric.Ellipse({
+          left: startX, top: startY, rx: 0, ry: 0,
+          fill: 'transparent', stroke: activeColor, strokeWidth: 2,
+          selectable: false, hasBorders: false, hasControls: false,
+        });
+      } else if (activeTool === 'underline') {
+        shape = new fabric.Line([startX, startY, startX, startY], {
+          stroke: activeColor, strokeWidth: 2,
+          selectable: false, hasBorders: false, hasControls: false,
+        });
+      }
+
+      if (shape) { canvas.add(shape); canvas.setActiveObject(shape); }
+    };
+
+    const handleMouseMove = (opt: fabric.IEvent) => {
+      if (!isDrawing || !shape) return;
+      const pointer = canvas.getPointer(opt.e);
+      const x = pointer.x;
+      const y = pointer.y;
+
+      if (activeTool === 'highlighter') {
+        (shape as fabric.Rect).set({
+          left: Math.min(startX, x), top: Math.min(startY, y),
+          width: Math.abs(startX - x), height: Math.abs(startY - y),
+        });
+      } else if (activeTool === 'circle') {
+        const rx = Math.abs(startX - x) / 2;
+        const ry = Math.abs(startY - y) / 2;
+        (shape as fabric.Ellipse).set({
+          left: Math.min(startX, x), top: Math.min(startY, y), rx, ry,
+        });
+      } else if (activeTool === 'underline') {
+        (shape as fabric.Line).set({ x2: x, y2: startY }); // horizontal
+      }
+
+      canvas.renderAll();
+    };
+
+    const handleMouseUp = () => {
+      if (!isDrawing) return;
+      isDrawing = false;
+      // Remove tiny/accidental shapes
+      if (shape) {
+        const obj = shape as any;
+        let tooSmall = false;
+        if (obj.type === 'rect') {
+          tooSmall = (obj.width ?? 0) < 2 || (obj.height ?? 0) < 2;
+        } else if (obj.type === 'ellipse') {
+          tooSmall = (obj.rx ?? 0) < 2 || (obj.ry ?? 0) < 2;
+        } else if (obj.type === 'line') {
+          tooSmall = Math.abs((obj.x2 ?? 0) - (obj.x1 ?? 0)) < 2 && Math.abs((obj.y2 ?? 0) - (obj.y1 ?? 0)) < 2;
+        }
+
+        if (tooSmall) { canvas.remove(shape); }
+        else { historyRef.current?.snapshot(); refreshHistory(); scheduleSave(); }
+        shape = null;
+      }
+    };
+
+    canvas.on('mouse:down', handleMouseDown);
+    canvas.on('mouse:move', handleMouseMove);
+    canvas.on('mouse:up', handleMouseUp);
+
+    return () => {
+      canvas.off('mouse:down', handleMouseDown);
+      canvas.off('mouse:move', handleMouseMove);
+      canvas.off('mouse:up', handleMouseUp);
+    };
+  }, [activeTool, activeColor, opacity, scheduleSave, refreshHistory]);
+
+  const handleUndo = () => {
+    historyRef.current?.undo(() => { scheduleSave(); refreshHistory(); });
+    refreshHistory();
+  };
+
+  const handleRedo = () => {
+    historyRef.current?.redo(() => { scheduleSave(); refreshHistory(); });
+    refreshHistory();
+  };
+
+  const handleClear = () => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    if (!confirm('Clear all annotations on this page?')) return;
+    canvas.getObjects().forEach(obj => canvas.remove(obj));
+    canvas.renderAll();
+    historyRef.current?.snapshot();
+    refreshHistory();
+    scheduleSave();
+  };
+
+  const tools: Tool[] = ['pen', 'highlighter', 'circle', 'underline', 'text', 'eraser'];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between bg-white p-3 rounded-xl shadow-sm border border-stone-100">
-        {user ? (
-          <div className="flex items-center gap-3 text-stone-700 text-sm">
-            {sets.length > 0 ? (
-              <>
-                <label htmlFor="set-picker" className="font-medium">Annotation Set:</label>
-                <select
-                  id="set-picker"
-                  value={selectedSetId}
-                  onChange={e => setSelectedSetId(e.target.value)}
-                  className="bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all cursor-pointer"
+    <div className="flex flex-col gap-3">
+      {/* Toolbar */}
+      <div className="card overflow-hidden animate-fade-in">
+        {/* Toolbar header */}
+        <div className="flex items-center justify-between px-4 py-2.5"
+             style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+          {user ? (
+            <div className="flex items-center gap-3">
+              {sets.length > 0 ? (
+                <>
+                  <label htmlFor="set-picker"
+                         className="text-[10px] font-semibold uppercase tracking-wider"
+                         style={{ color: 'var(--text-muted)' }}>
+                    Set
+                  </label>
+                  <select
+                    id="set-picker"
+                    value={selectedSetId}
+                    onChange={e => setSelectedSetId(e.target.value)}
+                    className="input input-sm"
+                    style={{ width: 'auto', minWidth: '120px', cursor: 'pointer' }}
+                  >
+                    {sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </>
+              ) : (
+                <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
+                  No sets.{' '}
+                  <a href="/sets" style={{ color: 'var(--text-accent)' }} className="hover:underline">
+                    Create one
+                  </a>.
+                </p>
+              )}
+              {saving && (
+                <span className="flex items-center gap-1.5 text-[11px]"
+                      style={{ color: 'var(--text-accent)' }}>
+                  <span className="w-1.5 h-1.5 rounded-full inline-block"
+                        style={{ background: 'var(--accent)', animation: 'pulse-dot 1.5s infinite' }} />
+                  Saving…
+                </span>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              <a href="/login" style={{ color: 'var(--text-accent)' }} className="font-semibold hover:underline">
+                Log in
+              </a>{' '}
+              to annotate this page.
+            </p>
+          )}
+
+          {user && sets.length > 0 && (
+            <button
+              onClick={() => setToolbarOpen(o => !o)}
+              className="btn btn-ghost flex items-center gap-1"
+              style={{ padding: '2px 8px', fontSize: '11px' }}
+              title={toolbarOpen ? 'Collapse toolbar' : 'Expand toolbar'}
+            >
+              {toolbarOpen ? (
+                <>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                  </svg>
+                  Hide
+                </>
+              ) : (
+                <>
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                  </svg>
+                  Tools
+                </>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Toolbar body */}
+        {user && sets.length > 0 && toolbarOpen && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 animate-slide-down"
+               style={{ background: 'var(--bg-elevated)' }}>
+            {/* Tool buttons */}
+            <div className="flex items-center gap-0.5 p-1 rounded-lg"
+                 style={{ background: 'rgba(255,255,255,0.04)' }}>
+              {tools.map(t => (
+                <button
+                  key={t}
+                  onClick={() => setActiveTool(t)}
+                  title={TOOL_LABELS[t]}
+                  className="px-2.5 py-1.5 text-sm rounded-md font-medium"
+                  style={{
+                    transition: 'all var(--duration-fast) var(--ease-out)',
+                    ...(activeTool === t
+                      ? {
+                          background: 'var(--accent-muted)',
+                          color: 'var(--text-accent)',
+                          boxShadow: '0 0 8px var(--accent-glow)',
+                        }
+                      : {
+                          color: 'var(--text-muted)',
+                        }),
+                  }}
+                  onMouseEnter={e => {
+                    if (activeTool !== t) {
+                      (e.target as HTMLElement).style.color = 'var(--text-primary)';
+                      (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.06)';
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    if (activeTool !== t) {
+                      (e.target as HTMLElement).style.color = 'var(--text-muted)';
+                      (e.target as HTMLElement).style.background = 'transparent';
+                    }
+                  }}
                 >
-                  {sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-              </>
-            ) : (
-              <p className="text-stone-500 italic">No sets found. <a href="/sets" className="text-emerald-600 hover:underline">Create one</a> to start drawing.</p>
-            )}
-            {saving && (
-              <div className="flex items-center gap-1.5 text-stone-400 text-xs animate-pulse ml-2">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                Saving...
+                  {TOOL_ICONS[t]}
+                </button>
+              ))}
+            </div>
+
+            {/* Color swatches */}
+            <div className="flex items-center gap-1.5">
+              {PRESET_COLORS.map(c => (
+                <button
+                  key={c.value}
+                  onClick={() => setActiveColor(c.value)}
+                  title={c.name}
+                  className="w-6 h-6 rounded-full"
+                  style={{
+                    backgroundColor: c.value,
+                    border: activeColor === c.value
+                      ? '2px solid var(--text-primary)'
+                      : '2px solid transparent',
+                    boxShadow: activeColor === c.value
+                      ? `0 0 8px ${c.value}40`
+                      : 'none',
+                    transform: activeColor === c.value ? 'scale(1.15)' : 'scale(1)',
+                    transition: 'all var(--duration-fast) var(--ease-out)',
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Pen width (pen/underline/circle only) */}
+            {(activeTool === 'pen' || activeTool === 'circle' || activeTool === 'underline') && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider"
+                      style={{ color: 'var(--text-muted)' }}>
+                  Width
+                </span>
+                <input
+                  type="range" min="1" max="12" step="1" value={penWidth}
+                  onChange={e => setPenWidth(Number(e.target.value))}
+                  className="w-16 h-1 rounded-lg cursor-pointer accent-emerald-500"
+                />
+                <span className="text-[10px] font-mono w-4"
+                      style={{ color: 'var(--text-muted)' }}>
+                  {penWidth}
+                </span>
               </div>
             )}
+
+            {/* Opacity (highlighter only) */}
+            {activeTool === 'highlighter' && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-wider"
+                      style={{ color: 'var(--text-muted)' }}>
+                  Opacity
+                </span>
+                <input
+                  type="range" min="0.1" max="0.9" step="0.05" value={opacity}
+                  onChange={e => setOpacity(parseFloat(e.target.value))}
+                  className="w-16 h-1 rounded-lg cursor-pointer accent-emerald-500"
+                />
+                <span className="text-[10px] font-mono w-7"
+                      style={{ color: 'var(--text-muted)' }}>
+                  {Math.round(opacity * 100)}%
+                </span>
+              </div>
+            )}
+
+            {/* Undo / Redo / Clear */}
+            <div className="flex items-center gap-1 ml-auto">
+              <button
+                onClick={handleUndo}
+                disabled={!canUndo}
+                suppressHydrationWarning
+                title="Undo"
+                className="btn btn-ghost flex items-center gap-1"
+                style={{ padding: '4px 8px', fontSize: '11px' }}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                </svg>
+                Undo
+              </button>
+              <button
+                onClick={handleRedo}
+                disabled={!canRedo}
+                suppressHydrationWarning
+                title="Redo"
+                className="btn btn-ghost flex items-center gap-1"
+                style={{ padding: '4px 8px', fontSize: '11px' }}
+              >
+                Redo
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
+                </svg>
+              </button>
+              <button
+                onClick={handleClear}
+                title="Clear page"
+                className="btn btn-danger-ghost flex items-center gap-1"
+                style={{ padding: '4px 8px', fontSize: '11px' }}
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Clear
+              </button>
+            </div>
           </div>
-        ) : (
-          <p className="text-stone-500 text-sm">
-            <a href="/login" className="text-emerald-600 font-semibold hover:underline">Log in</a> to annotate this page.
-          </p>
         )}
       </div>
 
-      <div 
-        ref={containerRef} 
-        className="w-full bg-white shadow-xl rounded-2xl overflow-hidden border border-stone-100 transition-all duration-300"
+      {/* Canvas */}
+      <div
+        ref={containerRef}
+        className="w-full overflow-hidden"
+        style={{
+          background: 'var(--bg-card)',
+          borderRadius: 'var(--radius-xl)',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: 'var(--shadow-lg)',
+        }}
       >
         <canvas ref={canvasRef} />
       </div>

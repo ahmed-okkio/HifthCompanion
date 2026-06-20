@@ -6,7 +6,17 @@
       "domain": "localhost",
       "path": "/",
       "expires": -1,
-      "httpOnly": true,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "x-e2e-test",
+      "value": "true",
+      "domain": "localhost",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     }

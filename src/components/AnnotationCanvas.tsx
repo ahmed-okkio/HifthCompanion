@@ -80,8 +80,11 @@ const TOOL_ICONS: Record<Tool, React.ReactNode> = {
     </svg>
   ),
   highlighter: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+      {/* marker body */}
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17.25l5.5 2.5 10-10L13 4.75 3 14.75V17.25z" />
+      {/* tip / highlight stroke */}
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 6l6 6" />
     </svg>
   ),
   circle: (
@@ -130,10 +133,16 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
   const [opacity, setOpacity] = useState<number>(0.4);
   const [penWidth, setPenWidth] = useState<number>(3);
   const [toolbarOpen, setToolbarOpen] = useState<boolean>(true);
+  const [openPopoverTool, setOpenPopoverTool] = useState<Tool | null>(null);
+  const [hoveredTool, setHoveredTool] = useState<Tool | null>(null);
+  const [hoverPos, setHoverPos] = useState<{ top: number; left: number } | null>(null);
+  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const buttonRefs = useRef<Record<Tool, HTMLButtonElement | null>>({} as Record<Tool, HTMLButtonElement | null>);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
   const lastLoadedRef = useRef<{ setId: string; pageNum: number } | null>(null);
+  const lastSnapshotAtRef = useRef<number>(0);
 
   const refreshHistory = useCallback(() => {
     const h = historyRef.current;
@@ -258,11 +267,19 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
         refreshHistory();
       }
 
-      const handleSave = () => { historyRef.current?.snapshot(); refreshHistory(); scheduleSave(); };
+      const snapshotWithDebounce = (force = false) => {
+        const now = Date.now();
+        if (!force && now - lastSnapshotAtRef.current < 120) return; // avoid double snapshots
+        lastSnapshotAtRef.current = now;
+        historyRef.current?.snapshot();
+        refreshHistory();
+      };
+
+      const handleSave = () => { snapshotWithDebounce(); scheduleSave(); };
       canvas.on('path:created', handleSave);
-      canvas.on('object:modified', handleSave);
-      canvas.on('object:removed', handleSave);
-      canvas.on('object:added', () => { refreshHistory(); });
+      canvas.on('object:modified', () => { snapshotWithDebounce(); scheduleSave(); });
+      canvas.on('object:removed', () => { snapshotWithDebounce(); scheduleSave(); });
+      canvas.on('object:added', () => { snapshotWithDebounce(); scheduleSave(); });
     };
 
     return () => {
@@ -460,122 +477,63 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
     scheduleSave();
   };
 
+  const handleToolClick = (t: Tool) => {
+    if (activeTool === t) {
+      setOpenPopoverTool(prev => prev === t ? null : t);
+    } else {
+      setActiveTool(t);
+      setOpenPopoverTool(t);
+    }
+  };
+
   const tools: Tool[] = ['pen', 'highlighter', 'circle', 'underline', 'text', 'eraser'];
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Toolbar */}
-      <div className="card overflow-hidden animate-fade-in">
-        {/* Toolbar header */}
-        <div className="flex items-center justify-between px-4 py-2.5"
-             style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-          {user ? (
-            <div className="flex items-center gap-3">
-              {sets.length > 0 ? (
-                <>
-                  <label htmlFor="set-picker"
-                         className="text-[10px] font-semibold uppercase tracking-wider"
-                         style={{ color: 'var(--text-muted)' }}>
-                    Set
-                  </label>
-                  <select
-                    id="set-picker"
-                    value={selectedSetId}
-                    onChange={e => setSelectedSetId(e.target.value)}
-                    className="input input-sm"
-                    style={{ width: 'auto', minWidth: '120px', cursor: 'pointer' }}
-                  >
-                    {sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </>
-              ) : (
-                <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>
-                  No sets.{' '}
-                  <a href="/sets" style={{ color: 'var(--text-accent)' }} className="hover:underline">
-                    Create one
-                  </a>.
-                </p>
-              )}
-              {saving && (
-                <span className="flex items-center gap-1.5 text-[11px]"
-                      style={{ color: 'var(--text-accent)' }}>
-                  <span className="w-1.5 h-1.5 rounded-full inline-block"
-                        style={{ background: 'var(--accent)', animation: 'pulse-dot 1.5s infinite' }} />
-                  Saving…
-                </span>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              <a href="/login" style={{ color: 'var(--text-accent)' }} className="font-semibold hover:underline">
-                Log in
-              </a>{' '}
-              to annotate this page.
-            </p>
-          )}
+    <div className="flex justify-center px-4">
+      <div className="flex items-start gap-6 max-w-[1200px] w-full">
+        {/* Vertical Toolbar (compact) */}
+        <aside className="flex flex-col items-center gap-3 p-2" style={{ width: '64px' }}>
+          <div className="bg-[var(--bg-elevated)] rounded-lg p-2 flex flex-col items-center w-full shadow-sm" style={{ border: '1px solid var(--border-subtle)' }}>
+            {/* Top: set picker (compact) */}
+            <div className="w-full h-2" />
 
-          {user && sets.length > 0 && (
-            <button
-              onClick={() => setToolbarOpen(o => !o)}
-              className="btn btn-ghost flex items-center gap-1"
-              style={{ padding: '2px 8px', fontSize: '11px' }}
-              title={toolbarOpen ? 'Collapse toolbar' : 'Expand toolbar'}
-            >
-              {toolbarOpen ? (
-                <>
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
-                  </svg>
-                  Hide
-                </>
-              ) : (
-                <>
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                  </svg>
-                  Tools
-                </>
-              )}
-            </button>
-          )}
-        </div>
-
-        {/* Toolbar body */}
-        {user && sets.length > 0 && toolbarOpen && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 animate-slide-down"
-               style={{ background: 'var(--bg-elevated)' }}>
-            {/* Tool buttons */}
-            <div className="flex items-center gap-0.5 p-1 rounded-lg"
-                 style={{ background: 'rgba(255,255,255,0.04)' }}>
+            {/* Tool icons */}
+            <div className="flex flex-col items-center gap-2 my-1 w-full">
               {tools.map(t => (
                 <button
                   key={t}
-                  onClick={() => setActiveTool(t)}
+                  ref={el => (buttonRefs.current[t] = el)}
+                  onClick={() => handleToolClick(t)}
+                  onMouseEnter={(e) => {
+                    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current as any);
+                    const el = buttonRefs.current[t];
+                    if (el) {
+                      const rect = el.getBoundingClientRect();
+                      // prefer popping out to the left; fall back to right if there's no space
+                      const popWidth = 260;
+                      const margin = 10;
+                      let leftPos = rect.left - popWidth - margin;
+                      try {
+                        const vw = window.innerWidth || 1024;
+                        if (leftPos < 8) leftPos = rect.right + margin; // not enough room on left, place on right
+                        if (leftPos + popWidth > vw - 8) leftPos = Math.max(8, vw - popWidth - 8);
+                      } catch (err) {
+                        leftPos = rect.left - popWidth - margin;
+                      }
+                      setHoverPos({ left: leftPos, top: rect.top + rect.height / 2 });
+                    }
+                    setHoveredTool(t);
+                  }}
+                  onMouseLeave={() => {
+                    hoverTimeoutRef.current = setTimeout(() => setHoveredTool(null), 150);
+                  }}
                   title={TOOL_LABELS[t]}
-                  className="px-2.5 py-1.5 text-sm rounded-md font-medium"
+                  className="w-12 h-12 flex items-center justify-center rounded-md"
                   style={{
                     transition: 'all var(--duration-fast) var(--ease-out)',
                     ...(activeTool === t
-                      ? {
-                          background: 'var(--accent-muted)',
-                          color: 'var(--text-accent)',
-                          boxShadow: '0 0 8px var(--accent-glow)',
-                        }
-                      : {
-                          color: 'var(--text-muted)',
-                        }),
-                  }}
-                  onMouseEnter={e => {
-                    if (activeTool !== t) {
-                      (e.target as HTMLElement).style.color = 'var(--text-primary)';
-                      (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.06)';
-                    }
-                  }}
-                  onMouseLeave={e => {
-                    if (activeTool !== t) {
-                      (e.target as HTMLElement).style.color = 'var(--text-muted)';
-                      (e.target as HTMLElement).style.background = 'transparent';
-                    }
+                      ? { background: 'var(--accent-muted)', color: 'var(--text-accent)', boxShadow: '0 6px 18px var(--accent-glow)' }
+                      : { color: 'var(--text-muted)' }),
                   }}
                 >
                   {TOOL_ICONS[t]}
@@ -583,123 +541,139 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
               ))}
             </div>
 
-            {/* Color swatches */}
-            <div className="flex items-center gap-1.5">
+            <hr style={{ width: '100%', borderColor: 'var(--border-subtle)' }} />
+
+            {/* Color swatches (vertical) */}
+            <div className="flex flex-col items-center gap-2 my-2 w-full">
               {PRESET_COLORS.map(c => (
                 <button
                   key={c.value}
                   onClick={() => setActiveColor(c.value)}
                   title={c.name}
-                  className="w-6 h-6 rounded-full"
+                  className="w-8 h-8 rounded-full"
                   style={{
                     backgroundColor: c.value,
-                    border: activeColor === c.value
-                      ? '2px solid var(--text-primary)'
-                      : '2px solid transparent',
-                    boxShadow: activeColor === c.value
-                      ? `0 0 8px ${c.value}40`
-                      : 'none',
-                    transform: activeColor === c.value ? 'scale(1.15)' : 'scale(1)',
-                    transition: 'all var(--duration-fast) var(--ease-out)',
+                    border: activeColor === c.value ? '2px solid var(--text-primary)' : '2px solid transparent',
+                    boxShadow: activeColor === c.value ? `0 0 8px ${c.value}40` : 'none',
                   }}
                 />
               ))}
             </div>
 
-            {/* Pen width (pen/underline/circle only) */}
-            {(activeTool === 'pen' || activeTool === 'circle' || activeTool === 'underline') && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wider"
-                      style={{ color: 'var(--text-muted)' }}>
-                  Width
-                </span>
-                <input
-                  type="range" min="1" max="12" step="1" value={penWidth}
-                  onChange={e => setPenWidth(Number(e.target.value))}
-                  className="w-16 h-1 rounded-lg cursor-pointer accent-emerald-500"
-                />
-                <span className="text-[10px] font-mono w-4"
-                      style={{ color: 'var(--text-muted)' }}>
-                  {penWidth}
-                </span>
-              </div>
-            )}
 
-            {/* Opacity (highlighter only) */}
-            {activeTool === 'highlighter' && (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-semibold uppercase tracking-wider"
-                      style={{ color: 'var(--text-muted)' }}>
-                  Opacity
-                </span>
-                <input
-                  type="range" min="0.1" max="0.9" step="0.05" value={opacity}
-                  onChange={e => setOpacity(parseFloat(e.target.value))}
-                  className="w-16 h-1 rounded-lg cursor-pointer accent-emerald-500"
-                />
-                <span className="text-[10px] font-mono w-7"
-                      style={{ color: 'var(--text-muted)' }}>
-                  {Math.round(opacity * 100)}%
-                </span>
-              </div>
-            )}
-
-            {/* Undo / Redo / Clear */}
-            <div className="flex items-center gap-1 ml-auto">
+            <div className="mt-3 w-full flex flex-col items-center gap-2">
               <button
                 onClick={handleUndo}
                 disabled={!canUndo}
                 suppressHydrationWarning
                 title="Undo"
-                className="btn btn-ghost flex items-center gap-1"
-                style={{ padding: '4px 8px', fontSize: '11px' }}
+                aria-disabled={!canUndo}
+                className="w-10 h-10 flex items-center justify-center rounded-full btn btn-ghost"
+                style={{
+                  border: '1px solid var(--border-subtle)',
+                  ...( !canUndo ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none', background: 'transparent', boxShadow: 'none' } : {}),
+                }}
               >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                </svg>
-                Undo
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
               </button>
+
               <button
                 onClick={handleRedo}
                 disabled={!canRedo}
                 suppressHydrationWarning
                 title="Redo"
-                className="btn btn-ghost flex items-center gap-1"
-                style={{ padding: '4px 8px', fontSize: '11px' }}
+                aria-disabled={!canRedo}
+                className="w-10 h-10 flex items-center justify-center rounded-full btn btn-ghost"
+                style={{
+                  border: '1px solid var(--border-subtle)',
+                  ...( !canRedo ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none', background: 'transparent', boxShadow: 'none' } : {}),
+                }}
               >
-                Redo
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
-                </svg>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" /></svg>
               </button>
-              <button
-                onClick={handleClear}
-                title="Clear page"
-                className="btn btn-danger-ghost flex items-center gap-1"
-                style={{ padding: '4px 8px', fontSize: '11px' }}
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-                Clear
+
+              <button onClick={handleClear} title="Clear page" className="w-10 h-10 flex items-center justify-center rounded-full btn btn-danger-ghost" style={{ border: '1px solid var(--border-subtle)' }}>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               </button>
+            </div>
+
+            {saving && <span className="absolute top-1 right-1 w-2 h-2 rounded-full" style={{ background: 'var(--accent)' }} />}
+          </div>
+        </aside>
+
+        {/* Click popover */}
+        {openPopoverTool && (
+          <div className="hidden lg:block" style={{ width: '280px' }}>
+            <div className="bg-[var(--bg-elevated)] rounded-lg p-3" style={{ border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-lg)' }}>
+              <div className="text-sm font-semibold mb-2">{TOOL_LABELS[openPopoverTool]}</div>
+              <div className="mb-2">
+                <div className="flex gap-2">
+                  {PRESET_COLORS.map(c => (
+                    <button key={c.value} onClick={() => setActiveColor(c.value)} className="w-8 h-8 rounded-full" style={{ backgroundColor: c.value, border: activeColor === c.value ? '2px solid var(--text-primary)' : '2px solid transparent' }} />
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-3 flex justify-end">
+                <button onClick={() => setOpenPopoverTool(null)} className="btn btn-ghost">Close</button>
+              </div>
             </div>
           </div>
         )}
-      </div>
 
-      {/* Canvas */}
-      <div
-        ref={containerRef}
-        className="w-full overflow-hidden"
-        style={{
-          background: 'var(--bg-card)',
-          borderRadius: 'var(--radius-xl)',
-          border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-lg)',
-        }}
-      >
-        <canvas ref={canvasRef} />
+        {/* Hover popover (anchored to tool button) */}
+        {hoveredTool && hoverPos && (hoveredTool === 'pen' || hoveredTool === 'circle' || hoveredTool === 'underline' || hoveredTool === 'highlighter') && (
+          <div
+            onMouseEnter={() => {
+              if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current as any);
+            }}
+            onMouseLeave={() => {
+              hoverTimeoutRef.current = setTimeout(() => setHoveredTool(null), 120);
+            }}
+            style={{ position: 'fixed', left: hoverPos.left, top: hoverPos.top, transform: 'translateY(-50%)', width: 260, zIndex: 60 }}
+            className="hidden lg:block"
+          >
+            <div className="bg-[var(--bg-elevated)] rounded-md p-3 shadow-lg" style={{ border: '1px solid var(--border-subtle)' }}>
+              { (hoveredTool === 'pen' || hoveredTool === 'circle' || hoveredTool === 'underline') && (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium">Size</span>
+                  <input type="range" min="1" max="40" step="1" value={penWidth} onChange={e => setPenWidth(Number(e.target.value))} className="w-full h-1 rounded-lg cursor-pointer accent-emerald-500" />
+                  <span className="text-sm font-mono w-8">{penWidth}</span>
+                </div>
+              )}
+
+              { hoveredTool === 'highlighter' && (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium">Opacity</span>
+                  <input type="range" min="0.1" max="0.9" step="0.05" value={opacity} onChange={e => setOpacity(parseFloat(e.target.value))} className="w-full h-1 rounded-lg cursor-pointer accent-emerald-500" />
+                  <span className="text-sm font-mono w-8">{Math.round(opacity*100)}%</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Canvas area */}
+        <div className="flex-1">
+          <div className="mb-3 flex items-center justify-between">
+            {user ? (
+              sets.length > 0 ? (
+                <select id="set-picker-top" value={selectedSetId} onChange={e => setSelectedSetId(e.target.value)} className="input input-sm" style={{ minWidth: '180px' }}>
+                  {sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </select>
+              ) : (
+                <a href="/sets" className="text-sm" style={{ color: 'var(--text-accent)' }}>Create set</a>
+              )
+            ) : (
+              <a href="/login" className="text-sm" style={{ color: 'var(--text-accent)' }}>Log in to annotate</a>
+            )}
+            {saving && <span className="text-sm" style={{ color: 'var(--text-accent)' }}>Saving…</span>}
+          </div>
+
+          <div ref={containerRef} className="overflow-hidden" style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-lg)' }}>
+            <canvas ref={canvasRef} />
+          </div>
+        </div>
       </div>
     </div>
   );

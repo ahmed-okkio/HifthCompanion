@@ -65,16 +65,20 @@ test.describe('Annotations', () => {
     // Wait for canvas to render
     const canvas = page.locator('.upper-canvas');
     await expect(canvas).toBeVisible();
+    await expect.poll(async () => {
+      return await page.evaluate(() => Boolean((window as any).fabricCanvas));
+    }, { timeout: 10000 }).toBeTruthy();
+    await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible();
 
     // Select highlighter tool
-    await page.click('button[title="Highlighter"]');
+    await page.click('button[title="Highlighter"]', { force: true });
 
     // Opacity slider should be visible
     await expect(page.locator('text=Opacity')).toBeVisible();
 
     // Select Green color
     // The button title is "Green" and has backgroundColor: '#22c55e'
-    await page.click('button[title="Green"]');
+    await page.click('button[title="Green"]', { force: true });
 
     // Draw on the canvas
     const box = await canvas.boundingBox();

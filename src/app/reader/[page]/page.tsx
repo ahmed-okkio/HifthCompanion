@@ -1,11 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { getPageImageUrl, TOTAL_PAGES } from '@/lib/quran';
 import { notFound } from 'next/navigation';
-import ReaderNav from '@/components/ReaderNav';
 import AnnotationCanvas from '@/components/AnnotationCanvas';
 import ShareButton from '@/components/ShareButton';
 import NotesPanel from '@/components/NotesPanel';
-import SurahNavPanel from '@/components/SurahNavPanel';
 import { getNotes } from '@/lib/services/notes';
 
 interface Props {
@@ -38,21 +36,11 @@ export default async function ReaderPage({ params }: Props) {
     : [];
 
   return (
-    <div className="flex flex-col min-h-screen"
-         style={{ background: 'var(--bg-base)' }}>
-      <ReaderNav currentPage={pageNum} />
-      
-      <main className="w-full max-w-7xl mx-auto px-4 py-6 sm:py-8 flex-grow animate-fade-in">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left nav */}
-          <div className="lg:col-span-3">
-            <div className="animate-fade-in-scale lg:sticky lg:top-[88px]" style={{ animationDelay: '50ms' }}>
-              <SurahNavPanel />
-            </div>
-          </div>
+    <main className="w-full flex-grow px-4 py-6 sm:px-6 sm:py-8 animate-fade-in">
+      <div className="mx-auto grid w-full max-w-[1160px] grid-cols-1 gap-7 items-start lg:grid-cols-[minmax(0,780px)_minmax(280px,330px)] lg:justify-center">
 
           {/* Main Canvas Area */}
-          <div className="lg:col-span-6 flex flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
             <AnnotationCanvas
               pageNum={pageNum}
               imageUrl={getPageImageUrl(pageNum)}
@@ -62,9 +50,9 @@ export default async function ReaderPage({ params }: Props) {
           </div>
 
           {/* Right Sidebar Area */}
-          <div className="lg:col-span-3 flex flex-col gap-4 lg:sticky lg:top-[88px]">
+          <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-[88px]">
             {user && (sets ?? []).length > 0 && (
-              <div className="card p-5 flex flex-col gap-3 animate-fade-in-scale" style={{ animationDelay: '100ms' }}>
+              <div className="card p-5 flex flex-col gap-3 animate-fade-in-scale" style={{ animationDelay: '100ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>
                 <div>
                   <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Share Page</h3>
                   <p className="text-xs mt-1.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
@@ -90,7 +78,7 @@ export default async function ReaderPage({ params }: Props) {
                 />
               </div>
             ) : !user ? (
-              <div className="card p-8 text-center flex flex-col items-center justify-center animate-fade-in-scale" style={{ animationDelay: '100ms' }}>
+              <div className="card p-8 text-center flex flex-col items-center justify-center animate-fade-in-scale" style={{ animationDelay: '100ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>
                 <div className="text-4xl mb-4 opacity-50" style={{ filter: 'grayscale(1)' }}>🔒</div>
                 <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Sign in to annotate</h3>
                 <p className="text-sm mt-2 max-w-[240px]" style={{ color: 'var(--text-muted)' }}>
@@ -101,7 +89,7 @@ export default async function ReaderPage({ params }: Props) {
                 </a>
               </div>
             ) : (
-              <div className="card p-6 text-center animate-fade-in-scale" style={{ animationDelay: '200ms' }}>
+              <div className="card p-6 text-center animate-fade-in-scale" style={{ animationDelay: '200ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>
                 <div className="text-3xl mb-3 opacity-50">📂</div>
                 <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>No annotation sets</h3>
                 <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
@@ -116,11 +104,5 @@ export default async function ReaderPage({ params }: Props) {
           
         </div>
       </main>
-
-      <footer className="w-full py-6 text-center text-xs tracking-wider uppercase border-t"
-              style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}>
-        HifthCompanion © 2026
-      </footer>
-    </div>
   );
 }

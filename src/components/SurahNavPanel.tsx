@@ -1,12 +1,19 @@
 'use client';
-import React, { useMemo, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { SURAH_FIRST_PAGES } from '@/lib/quran';
 
 export type Surah = {
   number: number;
   name: string;
   englishName?: string;
   verses?: number;
+};
+
+type SurahPageGroup = {
+  page: number;
+  surahs: Surah[];
 };
 
 // Hard-coded list of 114 surahs (names only). Verse counts are omitted for brevity.
@@ -135,100 +142,146 @@ interface Props {
 
 export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, onSelect }: Props) {
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<number | null>(initialSelected ?? null);
+  const activeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const hasAutoScrolledRef = useRef(false);
+
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const currentPage = useMemo(() => {
+    const match = pathname.match(/^\/reader\/(\d+)/);
+    return match ? Number.parseInt(match[1], 10) : 1;
+  }, [pathname]);
+
+  const groupedSurahs = useMemo<SurahPageGroup[]>(() => {
+    const groups = new Map<number, Surah[]>();
+    surahs.forEach(surah => {
+      const page = SURAH_FIRST_PAGES[surah.number];
+      if (!groups.has(page)) groups.set(page, []);
+      groups.get(page)!.push(surah);
+    });
+
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([page, groupSurahs]) => ({ page, surahs: groupSurahs }));
+  }, [surahs]);
+
+  const activePage = useMemo(() => {
+    let page = SURAH_FIRST_PAGES[initialSelected ?? 1] ?? 1;
+    for (const group of groupedSurahs) {
+      if (group.page <= currentPage) page = group.page;
+      else break;
+    }
+    return page;
+  }, [currentPage, groupedSurahs, initialSelected]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return surahs;
-    return surahs.filter(s => (`${s.number}`.includes(q)
-      || s.name.toLowerCase().includes(q)
-      || (s.englishName || '').toLowerCase().includes(q)));
-  }, [surahs, query]);
-
-  const router = useRouter();
-
-  // map of surah -> first page
-  const [firstPages, setFirstPages] = useState<Record<number, number> | null>(null);
+    if (!q) return groupedSurahs;
+    return groupedSurahs.filter(group => (
+      `${group.page}`.includes(q)
+      || group.surahs.some(surah => (
+        `${surah.number}`.includes(q)
+        || surah.name.toLowerCase().includes(q)
+        || (surah.englishName || '').toLowerCase().includes(q)
+      ))
+    ));
+  }, [groupedSurahs, query]);
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const res = await fetch('https://api.quran.com/api/v4/chapters');
-        if (!res.ok) return;
-        const json = await res.json();
-        const map: Record<number, number> = {};
-        (json.chapters || []).forEach((c: any) => {
-          if (c.id && Array.isArray(c.pages) && c.pages.length) map[c.id] = c.pages[0];
-        });
-        if (mounted) setFirstPages(map);
-      } catch (err) {
-        // ignore network errors; firstPages remains null
-      }
-    })();
-    return () => { mounted = false; };
-  }, []);
+    if (query.trim()) return;
+    if (hasAutoScrolledRef.current) return;
+    if (!activeButtonRef.current) return;
+    activeButtonRef.current.scrollIntoView({
+      block: 'center',
+      inline: 'nearest',
+    });
+    hasAutoScrolledRef.current = true;
+  }, [activePage, query]);
 
-  const handleSelect = (n: number) => {
-    setSelected(n);
-    onSelect?.(n);
-    // navigate if we have a first page mapping
-    const first = firstPages?.[n];
-    if (typeof first === 'number') {
-      router.push(`/reader/${first}`);
+  const handleSelect = async (group: SurahPageGroup) => {
+    const flush = (window as any).__hifthFlushReaderCanvas as undefined | (() => Promise<void>);
+    await flush?.();
+    onSelect?.(group.surahs[0]?.number ?? 1);
+    const params = new URLSearchParams(searchParams.toString());
+    const query = params.toString();
+    const targetPath = `/reader/${group.page}`;
+    const targetHref = query ? `${targetPath}?${query}` : targetPath;
+    const currentHref = query ? `${pathname}?${query}` : pathname;
+
+    if (targetHref === currentHref) {
+      return;
     }
+
+    router.push(targetHref, { scroll: false });
   };
 
 
-  return (
-    <aside className="w-72 bg-[var(--bg-card)] rounded-xl border border-[var(--border-subtle)] overflow-hidden shadow-sm lg:sticky lg:top-[88px]" style={{ marginLeft: 'calc((100vw - 100%) / -2)' }}>
+  const panel = (
+    <aside
+      data-testid="surah-panel"
+      className="w-72 overflow-hidden border-r border-[var(--border-subtle)] bg-white/78 shadow-[18px_0_40px_rgba(15,23,42,0.06)] backdrop-blur-xl"
+      style={{ position: 'fixed', left: 0, top: '88px', height: 'calc(100vh - 88px)', overflow: 'auto', zIndex: 40, margin: 0, transform: 'none' }}
+    >
 
       <div className="px-3 py-3">
-        <div className="px-3 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-elevated)]">
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-white/80 px-3 py-3 shadow-sm">
           <div className="flex items-center gap-3">
-            <button className="flex-1 py-2 rounded-full text-sm font-semibold bg-[var(--bg-card)]">Surahs</button>
-            <button className="py-2 px-3 rounded-full text-sm text-[var(--text-muted)]">Juz</button>
+            <button className="flex-1 rounded-full bg-[var(--accent-solid)] py-2 text-sm font-semibold text-white shadow-sm">Surahs</button>
           </div>
 
           <div className="mt-3">
             <div className="relative">
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35" />
+                <circle cx="11" cy="11" r="6" strokeWidth={2} />
+              </svg>
               <input
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Search Surah"
-                className="w-full input input-sm pl-10"
+                className="w-full input input-sm"
                 aria-label="Search Surah"
-                style={{ background: 'transparent' }}
+                style={{ background: 'transparent', paddingLeft: '3rem' }}
               />
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35" />
-                <circle cx="11" cy="11" r="6" strokeWidth={2} />
-              </svg>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="overflow-auto px-1 py-2 h-[calc(100vh-260px)] thin-scroll">
-        <ul className="divide-y divide-[var(--border-subtle)]">
-          {filtered.map(s => {
-            const active = selected === s.number;
+      <div data-testid="surah-scroll-list" className="overflow-auto px-2 pb-4 pt-1 h-[calc(100vh-248px)] thin-scroll">
+        <ul className="space-y-1">
+          {filtered.map(group => {
+            const active = activePage === group.page;
+            const primarySurah = group.surahs[0];
+            const isMultiSurah = group.surahs.length > 1;
             return (
-              <li key={s.number} className={`px-3 py-3 cursor-pointer ${active ? 'bg-[var(--accent)] text-white rounded-lg mr-2 ml-2' : 'hover:bg-[rgba(0,0,0,0.03)]'} `}>
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3" onClick={() => handleSelect(s.number)}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${active ? 'bg-white/10 text-white' : 'bg-[var(--bg-card)] text-[var(--text-primary)]'}`}>
-                      {s.number}
-                    </div>
-                    <div className="text-sm">
-                      <div className="font-medium">{s.name}</div>
-                      {typeof s.verses === 'number' && s.verses > 0 ? (
-                        <div className="text-[12px] text-[var(--text-muted)]">{s.verses} verses</div>
-                      ) : null}
-                    </div>
+              <li key={group.page} className="px-2 py-1.5">
+                <button
+                  ref={active ? activeButtonRef : undefined}
+                  type="button"
+                  onClick={() => { void handleSelect(group); }}
+                  className={`w-full rounded-2xl border px-3 text-left transition-all duration-150 active:scale-[0.985] ${isMultiSurah ? 'py-4' : 'py-3'} ${active ? 'border-emerald-200 bg-emerald-50 text-emerald-950 shadow-sm shadow-emerald-900/5 ring-1 ring-emerald-100' : 'border-transparent bg-white/45 text-[var(--text-primary)] hover:border-emerald-100 hover:bg-white/90 hover:shadow-sm'}`}
+                >
+                  <div className="min-w-0">
+                    <div className={isMultiSurah ? 'flex flex-col gap-2' : ''}>
+                        {group.surahs.map(surah => (
+                          <div key={surah.number} className="flex items-center gap-3">
+                            <span className={`inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-xl px-2 text-[12px] font-bold tabular-nums shadow-sm ${active ? 'bg-white text-emerald-700 ring-1 ring-emerald-100' : 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100'}`}>
+                              {surah.number}
+                            </span>
+                            <span className={`min-w-0 truncate text-sm font-semibold leading-snug ${active ? 'text-emerald-950' : 'text-[var(--text-primary)]'}`}>
+                              {surah.name}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className={`mt-2 pl-10 text-[12px] font-medium ${active ? 'text-emerald-700' : 'text-[var(--text-muted)]'}`}>
+                        Page {group.page}{group.surahs.length > 1 ? ` · ${group.surahs.length} surahs` : primarySurah?.verses ? ` · ${primarySurah.verses} verses` : ''}
+                      </div>
                   </div>
-
-                </div>
+                </button>
               </li>
             );
           })}
@@ -236,4 +289,10 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
       </div>
     </aside>
   );
+
+  if (typeof document !== 'undefined') {
+    return createPortal(panel, document.body);
+  }
+
+  return panel;
 }

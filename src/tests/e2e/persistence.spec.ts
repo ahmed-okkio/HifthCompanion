@@ -34,8 +34,13 @@ test.describe('Annotations Persistence', () => {
     await expect(upperCanvas).toBeVisible();
     
     // Verify our new set is selected
-    const picker = page.locator('#set-picker');
+    const picker = page.locator('#set-picker-top');
     await expect(picker).toContainText(setName);
+    await expect.poll(async () => {
+      return await page.evaluate(() => Boolean((window as any).fabricCanvas));
+    }, { timeout: 10000 }).toBeTruthy();
+    await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible();
+    await page.click('button[title="Pen"]', { force: true });
 
     // 5. Draw on the canvas
     const box = await upperCanvas.boundingBox();
@@ -60,8 +65,13 @@ test.describe('Annotations Persistence', () => {
     console.error('[E2E DEBUG] LS AFTER:', lsAfter);
     
     // Ensure our set is selected (to avoid parallel test pollution)
-    const pickerAfter = page.locator('#set-picker');
+    const pickerAfter = page.locator('#set-picker-top');
     await pickerAfter.selectOption({ label: setName });
+    await expect.poll(async () => {
+      return await page.evaluate(() => Boolean((window as any).fabricCanvas));
+    }, { timeout: 10000 }).toBeTruthy();
+    await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible();
+    await page.click('button[title="Pen"]', { force: true });
     
     // Check if drawing restored
     await expect.poll(async () => {

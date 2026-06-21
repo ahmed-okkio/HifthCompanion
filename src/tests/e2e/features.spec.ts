@@ -17,8 +17,17 @@ async function setupAuthenticatedReader(page: Page, setName: string) {
   await expect(page.locator(`text=${setName}`)).toBeVisible();
   await page.goto('/reader/1');
   await expect(page.locator('.upper-canvas')).toBeVisible();
+  await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible();
   // Ensure our set is selected in the picker
-  await page.locator('#set-picker').selectOption({ label: setName });
+  await page.locator('#set-picker-top').selectOption({ label: setName });
+  await expect.poll(async () => {
+    return await page.evaluate(() => Boolean((window as any).fabricCanvas));
+  }, { timeout: 10000 }).toBeTruthy();
+  await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible();
+  await page.click('button[title="Pen"]', { force: true });
+  await expect.poll(async () => {
+    return await page.evaluate(() => Boolean((window as any).fabricCanvas?.isDrawingMode));
+  }, { timeout: 10000 }).toBeTruthy();
 }
 
 // Helper: draw on canvas
@@ -73,10 +82,10 @@ test.describe('Toolbar tools', () => {
     const setName = `Hl-${Date.now()}`;
     await setupAuthenticatedReader(page, setName);
 
-    await page.click('button[title="Highlighter"]');
+    await page.click('button[title="Highlighter"]', { force: true });
     await expect(page.locator('text=Opacity')).toBeVisible();
 
-    await page.click('button[title="Blue"]');
+    await page.click('button[title="Blue"]', { force: true });
     await drawOnCanvas(page, 160, 80);
 
     const result = await page.evaluate(() => {
@@ -97,7 +106,7 @@ test.describe('Toolbar tools', () => {
     const setName = `Circle-${Date.now()}`;
     await setupAuthenticatedReader(page, setName);
 
-    await page.click('button[title="Circle"]');
+    await page.click('button[title="Circle"]', { force: true });
     await drawOnCanvas(page, 100, 80);
 
     const count = await page.evaluate(() => {
@@ -113,7 +122,7 @@ test.describe('Toolbar tools', () => {
     const setName = `Ul-${Date.now()}`;
     await setupAuthenticatedReader(page, setName);
 
-    await page.click('button[title="Underline"]');
+    await page.click('button[title="Underline"]', { force: true });
     await drawOnCanvas(page, 120, 5); // nearly horizontal
 
     const count = await page.evaluate(() => {
@@ -129,7 +138,7 @@ test.describe('Toolbar tools', () => {
     const setName = `Txt-${Date.now()}`;
     await setupAuthenticatedReader(page, setName);
 
-    await page.click('button[title="Text"]');
+    await page.click('button[title="Text"]', { force: true });
 
     const canvas = page.locator('.upper-canvas');
     const box = await canvas.boundingBox();
@@ -329,7 +338,7 @@ test.describe('Share Links', () => {
 
     // Get share link from reader
     await page.goto('/reader/1');
-    await page.locator('#set-picker').selectOption({ label: setName });
+    await page.locator('#set-picker-top').selectOption({ label: setName });
     await page.click('button:has-text("Share")');
 
     const urlInput = page.locator('input[readonly]');

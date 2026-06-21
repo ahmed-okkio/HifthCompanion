@@ -1,8 +1,9 @@
 'use client';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { fabric } from 'fabric';
 import { createClient } from '@/lib/supabase/client';
 import type { AnnotationSet } from '@/types';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 interface Props {
   pageNum: number;
@@ -81,30 +82,34 @@ const TOOL_ICONS: Record<Tool, React.ReactNode> = {
   ),
   highlighter: (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
-      {/* marker body */}
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 17.25l5.5 2.5 10-10L13 4.75 3 14.75V17.25z" />
-      {/* tip / highlight stroke */}
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 6l6 6" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 15.5L15.5 4 20 8.5 8.5 20H4v-4.5z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M13.5 6l4.5 4.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M3.5 21h9" />
     </svg>
   ),
   circle: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <circle cx={12} cy={12} r={9} strokeWidth={2} />
+      <circle cx={12} cy={12} r={7.5} strokeWidth={2.4} />
     </svg>
   ),
   underline: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6v6a8 8 0 0016 0V6M4 18h16" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M7.5 5.5v6.25a4.5 4.5 0 009 0V5.5" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6.5 19.5h11" />
     </svg>
   ),
   text: (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h12M4 18h8" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.35} d="M5.5 6.5h13" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.35} d="M12 6.5v12" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.35} d="M9.5 18.5h5" />
     </svg>
   ),
   eraser: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4.5 15.5L14 6a2 2 0 012.8 0l2.7 2.7a2 2 0 010 2.8L12 19H8l-3.5-3.5z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M11.5 8.5l4 4" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 19h7.5" />
     </svg>
   ),
 };
@@ -118,15 +123,37 @@ const TOOL_LABELS: Record<Tool, string> = {
   eraser: 'Eraser',
 };
 
+const cursorSvg = (svg: string, x = 12, y = 12) => {
+  const encoded = encodeURIComponent(svg)
+    .replace(/'/g, '%27')
+    .replace(/"/g, '%22');
+  return `url("data:image/svg+xml,${encoded}") ${x} ${y}, auto`;
+};
+
+const getToolCursor = (tool: Tool): string => {
+  const cursors: Record<Tool, string> = {
+    pen: cursorSvg('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M21.2 4.8l6 6L11.8 26.2 5 28l1.8-6.8L21.2 4.8z" fill="#fff" stroke="#111827" stroke-width="3" stroke-linejoin="round"/><path d="M19.3 7.2l5.5 5.5" stroke="#10b981" stroke-width="3" stroke-linecap="round"/></svg>', 6, 27),
+    highlighter: cursorSvg('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M7 19.5L20.5 6 26 11.5 12.5 25H7v-5.5z" fill="#fff" stroke="#111827" stroke-width="3" stroke-linejoin="round"/><path d="M18.5 8.5l5 5" stroke="#10b981" stroke-width="3" stroke-linecap="round"/><path d="M5 28h14" stroke="#f59e0b" stroke-width="4" stroke-linecap="round"/></svg>', 7, 26),
+    circle: cursorSvg('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><circle cx="16" cy="16" r="10" fill="#fff" stroke="#111827" stroke-width="3"/><path d="M16 4v4M16 24v4M4 16h4M24 16h4" stroke="#10b981" stroke-width="3" stroke-linecap="round"/></svg>', 16, 16),
+    underline: cursorSvg('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect x="4" y="4" width="24" height="24" rx="7" fill="#fff" stroke="#111827" stroke-width="2.5"/><path d="M10 9v7a6 6 0 0012 0V9" fill="none" stroke="#111827" stroke-width="3" stroke-linecap="round"/><path d="M9 24h14" stroke="#10b981" stroke-width="4" stroke-linecap="round"/></svg>', 16, 24),
+    text: cursorSvg('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect x="5" y="4" width="22" height="24" rx="7" fill="#fff" stroke="#111827" stroke-width="2.5"/><path d="M10 10h12M16 10v13M13 23h6" stroke="#111827" stroke-width="3" stroke-linecap="round"/></svg>', 16, 16),
+    eraser: cursorSvg('<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><path d="M21 5l7 7-12 12H9l-5-5L21 5z" fill="#fff" stroke="#111827" stroke-width="3" stroke-linejoin="round"/><path d="M15.5 10.5l6 6" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/><path d="M15 27h12" stroke="#10b981" stroke-width="4" stroke-linecap="round"/></svg>', 8, 22),
+  };
+  return cursors[tool];
+};
+
 export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
   const historyRef = useRef<CanvasHistory | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
-  const [selectedSetId, setSelectedSetId] = useState<string>(sets[0]?.id ?? '');
+  const [selectedSetId, setSelectedSetId] = useState<string>(() => searchParams.get('set') ?? sets[0]?.id ?? '');
   const [saving, setSaving] = useState(false);
   const [activeTool, setActiveTool] = useState<Tool>('pen');
   const [activeColor, setActiveColor] = useState<string>('#ef4444');
@@ -140,9 +167,21 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
   const buttonRefs = useRef<Record<Tool, HTMLButtonElement | null>>({} as Record<Tool, HTMLButtonElement | null>);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [canvasReady, setCanvasReady] = useState(false);
 
   const lastLoadedRef = useRef<{ setId: string; pageNum: number } | null>(null);
   const lastSnapshotAtRef = useRef<number>(0);
+
+  useEffect(() => {
+    const setFromUrl = searchParams.get('set');
+    if (setFromUrl && setFromUrl !== selectedSetId) {
+      setSelectedSetId(setFromUrl);
+      return;
+    }
+    if (!setFromUrl && !selectedSetId && sets[0]?.id) {
+      setSelectedSetId(sets[0].id);
+    }
+  }, [searchParams, selectedSetId, sets]);
 
   const refreshHistory = useCallback(() => {
     const h = historyRef.current;
@@ -183,6 +222,26 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
     }
   }, [user, supabase]);
 
+  useEffect(() => {
+    const flush = async () => {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      if (fabricRef.current && selectedSetId) {
+        await saveCanvas(fabricRef.current, selectedSetId, pageNum);
+      }
+    };
+
+    (window as any).__hifthFlushReaderCanvas = flush;
+
+    return () => {
+      if ((window as any).__hifthFlushReaderCanvas === flush) {
+        delete (window as any).__hifthFlushReaderCanvas;
+      }
+    };
+  }, [pageNum, saveCanvas, selectedSetId]);
+
   const scheduleSave = useCallback(() => {
     if (!user || !selectedSetId || !fabricRef.current) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -197,6 +256,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
     if (lastLoadedRef.current?.setId === setId && lastLoadedRef.current?.pageNum === page) return;
 
     activeLoadSetIdRef.current = setId;
+    setCanvasReady(false);
 
     const { data, error } = await supabase
       .from('annotations').select('canvas_json')
@@ -218,6 +278,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
         historyRef.current?.snapshot();
         refreshHistory();
         lastLoadedRef.current = { setId, pageNum: page };
+        setCanvasReady(true);
         console.log('[AnnotationCanvas] Restored objects:', canvas.getObjects().length);
       });
     } else {
@@ -229,6 +290,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
       historyRef.current?.snapshot();
       refreshHistory();
       lastLoadedRef.current = { setId, pageNum: page };
+      setCanvasReady(true);
     }
   }, [supabase, imageUrl, applyBackground, refreshHistory]);
 
@@ -247,6 +309,10 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
       const canvas = new fabric.Canvas(canvasRef.current!, {
         width, height,
         isDrawingMode: !!user && !!selectedSetId && activeTool === 'pen',
+        defaultCursor: getToolCursor(activeTool),
+        hoverCursor: getToolCursor(activeTool),
+        moveCursor: getToolCursor(activeTool),
+        freeDrawingCursor: getToolCursor('pen'),
       });
 
       canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
@@ -265,6 +331,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
       } else {
         historyRef.current.snapshot();
         refreshHistory();
+        setCanvasReady(true);
       }
 
       const snapshotWithDebounce = (force = false) => {
@@ -298,10 +365,16 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
     const canvas = fabricRef.current;
     if (!canvas) return;
     canvas.isDrawingMode = !!user && !!selectedSetId && activeTool === 'pen';
+    const cursor = getToolCursor(activeTool);
+    canvas.defaultCursor = cursor;
+    canvas.hoverCursor = cursor;
+    canvas.moveCursor = cursor;
+    canvas.freeDrawingCursor = cursor;
     if (canvas.freeDrawingBrush) {
       canvas.freeDrawingBrush.color = activeColor;
       canvas.freeDrawingBrush.width = penWidth;
     }
+    canvas.renderAll();
   }, [activeTool, activeColor, penWidth, user, selectedSetId]);
 
   // Eraser tool logic
@@ -488,12 +561,20 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
 
   const tools: Tool[] = ['pen', 'highlighter', 'circle', 'underline', 'text', 'eraser'];
 
+  const updateSelectedSetInUrl = (setId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (setId) params.set('set', setId);
+    else params.delete('set');
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  };
+
   return (
-    <div className="flex justify-center px-4">
-      <div className="flex items-start gap-6 max-w-[1200px] w-full">
+    <div className="flex justify-center">
+      <div className="flex w-full max-w-[860px] items-start gap-4 sm:gap-5">
         {/* Vertical Toolbar (compact) */}
-        <aside className="flex flex-col items-center gap-3 p-2" style={{ width: '64px' }}>
-          <div className="bg-[var(--bg-elevated)] rounded-lg p-2 flex flex-col items-center w-full shadow-sm" style={{ border: '1px solid var(--border-subtle)' }}>
+        <aside className="sticky top-24 flex flex-col items-center gap-3" style={{ width: '72px' }}>
+          <div className="flex w-full flex-col items-center rounded-3xl bg-white/82 p-2 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl" style={{ border: '1px solid var(--border-subtle)' }}>
             {/* Top: set picker (compact) */}
             <div className="w-full h-2" />
 
@@ -530,7 +611,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
                     hoverTimeoutRef.current = setTimeout(() => setHoveredTool(null), 150);
                   }}
                   title={TOOL_LABELS[t]}
-                  className="w-12 h-12 flex items-center justify-center rounded-md"
+                  className="w-12 h-12 flex items-center justify-center rounded-2xl [&>svg]:h-5 [&>svg]:w-5"
                   style={{
                     transition: 'all var(--duration-fast) var(--ease-out)',
                     ...(activeTool === t
@@ -543,7 +624,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
               ))}
 
               {/* Always-visible color swatches (vertical) */}
-              <div className="flex flex-col items-center gap-2 my-2 w-full mt-3">
+              <div className="flex flex-col items-center gap-2 my-2 w-full mt-3 rounded-2xl bg-slate-950/[0.025] py-2">
                 {PRESET_COLORS.map(c => (
                   <button
                     key={c.value}
@@ -571,13 +652,13 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
                 suppressHydrationWarning
                 title="Undo"
                 aria-disabled={!canUndo}
-                className="w-10 h-10 flex items-center justify-center rounded-full btn btn-ghost"
+                className="w-12 h-12 flex items-center justify-center rounded-full btn btn-ghost"
                 style={{
                   border: '1px solid var(--border-subtle)',
                   ...( !canUndo ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none', background: 'transparent', boxShadow: 'none' } : {}),
                 }}
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
               </button>
 
               <button
@@ -586,17 +667,17 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
                 suppressHydrationWarning
                 title="Redo"
                 aria-disabled={!canRedo}
-                className="w-10 h-10 flex items-center justify-center rounded-full btn btn-ghost"
+                className="w-12 h-12 flex items-center justify-center rounded-full btn btn-ghost"
                 style={{
                   border: '1px solid var(--border-subtle)',
                   ...( !canRedo ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none', background: 'transparent', boxShadow: 'none' } : {}),
                 }}
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" /></svg>
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" /></svg>
               </button>
 
-              <button onClick={handleClear} title="Clear page" className="w-10 h-10 flex items-center justify-center rounded-full btn btn-danger-ghost" style={{ border: '1px solid var(--border-subtle)' }}>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              <button onClick={handleClear} title="Clear all drawings" aria-label="Clear all drawings" className="w-12 h-12 flex items-center justify-center rounded-full btn btn-danger-ghost" style={{ border: '1px solid var(--border-subtle)' }}>
+                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               </button>
             </div>
 
@@ -639,11 +720,21 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
         )}
 
         {/* Canvas area */}
-        <div className="flex-1">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="mb-3 flex items-center justify-between rounded-2xl border border-[var(--border-subtle)] bg-white/72 px-3 py-2 shadow-sm backdrop-blur">
             {user ? (
               sets.length > 0 ? (
-                <select id="set-picker-top" value={selectedSetId} onChange={e => setSelectedSetId(e.target.value)} className="input input-sm" style={{ minWidth: '180px' }}>
+                <select
+                  id="set-picker-top"
+                  value={selectedSetId}
+                  onChange={e => {
+                    const nextSetId = e.target.value;
+                    setSelectedSetId(nextSetId);
+                    updateSelectedSetInUrl(nextSetId);
+                  }}
+                  className="input input-sm"
+                  style={{ minWidth: '180px' }}
+                >
                   {sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               ) : (
@@ -655,7 +746,17 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
             {saving && <span className="text-sm" style={{ color: 'var(--text-accent)' }}>Saving…</span>}
           </div>
 
-          <div ref={containerRef} className="overflow-hidden" style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-xl)', border: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-lg)' }}>
+          <div
+            ref={containerRef}
+            data-canvas-ready={canvasReady ? 'true' : 'false'}
+            className="overflow-hidden"
+            style={{
+              background: 'linear-gradient(180deg, #fff 0%, #fbfaf6 100%)',
+              borderRadius: '24px',
+              border: '1px solid rgba(15,23,42,0.08)',
+              boxShadow: '0 24px 70px rgba(15,23,42,0.12), 0 0 0 8px rgba(255,255,255,0.44)',
+            }}
+          >
             <canvas ref={canvasRef} />
           </div>
         </div>

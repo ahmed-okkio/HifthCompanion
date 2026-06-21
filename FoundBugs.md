@@ -1,0 +1,1 @@
+Tool state resets on page swap

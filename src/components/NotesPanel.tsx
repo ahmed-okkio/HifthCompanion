@@ -7,9 +7,15 @@ interface Props {
   setId: string;
   pageNum: number;
   initialNotes: Note[];
+  readOnly?: boolean;
 }
 
-export default function NotesPanel({ setId, pageNum, initialNotes }: Props) {
+export default function NotesPanel({
+  setId,
+  pageNum,
+  initialNotes,
+  readOnly = false,
+}: Props) {
   const [notes, setNotes] = useState<Note[]>(initialNotes);
   const [newBody, setNewBody] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -85,6 +91,11 @@ export default function NotesPanel({ setId, pageNum, initialNotes }: Props) {
           </span>
           {notes.length > 0 && (
             <span className="badge">{notes.length}</span>
+          )}
+          {readOnly && (
+            <span className="badge badge-muted">
+              Read-only
+            </span>
           )}
         </div>
         <button
@@ -170,8 +181,9 @@ export default function NotesPanel({ setId, pageNum, initialNotes }: Props) {
                        style={{ color: 'var(--text-secondary)' }}>
                       {note.body}
                     </p>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 shrink-0"
-                         style={{ transition: 'opacity var(--duration-fast) var(--ease-out)' }}>
+                    {!readOnly && (
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 shrink-0"
+                          style={{ transition: 'opacity var(--duration-fast) var(--ease-out)' }}>
                       <button
                         onClick={() => startEdit(note)}
                         className="btn btn-ghost flex items-center gap-1"
@@ -194,6 +206,7 @@ export default function NotesPanel({ setId, pageNum, initialNotes }: Props) {
                         Delete
                       </button>
                     </div>
+                    )}
                   </div>
                 )}
                 <p className="text-[9px] mt-1" style={{ color: 'var(--text-muted)' }}>
@@ -204,7 +217,10 @@ export default function NotesPanel({ setId, pageNum, initialNotes }: Props) {
           </div>
 
           {/* Add note */}
-          <div className="px-4 py-3" style={{ background: 'var(--bg-elevated)' }}>
+          {!readOnly && (
+            <>
+              {/* Add note */}
+              <div className="px-4 py-3" style={{ background: 'var(--bg-elevated)' }}>
             <textarea
               value={newBody}
               onChange={e => setNewBody(e.target.value)}
@@ -231,6 +247,8 @@ export default function NotesPanel({ setId, pageNum, initialNotes }: Props) {
               </button>
             </div>
           </div>
+          </>
+          )}
         </div>
       )}
     </aside>

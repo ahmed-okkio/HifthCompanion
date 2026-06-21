@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import ReadOnlyCanvas from '@/components/ReadOnlyCanvas';
 import SurahNavPanel from '@/components/SurahNavPanel';
+import { getNotes } from '@/lib/services/notes';
+import NotesPanel from '@/components/NotesPanel';
 
 interface Props {
   params: Promise<{ userId: string; page: string }>;
@@ -46,7 +48,9 @@ export default async function SharePage({ params, searchParams }: Props) {
     .eq('set_id', setId)
     .eq('page_number', pageNum)
     .maybeSingle();
-
+    
+  const initialNotes = await getNotes(setId, pageNum).catch(() => []);
+    
   const imageUrl = getPageImageUrl(pageNum);
 
   const prevPage = clampPage(pageNum - 1);
@@ -115,7 +119,7 @@ export default async function SharePage({ params, searchParams }: Props) {
      </header>
      <div className="flex min-h-screen flex-col items-center">
 
-      <main className="relative w-full max-w-4xl px-3 py-5 flex-grow sm:px-4 animate-fade-in lg:max-w-[960px]">
+      <main className="relative w-full max-w-4xl px-3 py-5 flex-grow sm:px-4 animate-fade-in lg:max-w-[1360px]">
         {/* Read-only badge */}
         <div className="mx-auto mb-3 flex w-fit items-center gap-2 rounded-lg px-3 py-2"
              style={{
@@ -130,11 +134,24 @@ export default async function SharePage({ params, searchParams }: Props) {
           <span>Shared annotation — read-only</span>
         </div>
 
-        <ReadOnlyCanvas
-          pageNum={pageNum}
-          imageUrl={imageUrl}
-          canvasJson={annotation?.canvas_json ?? null}
-        />
+        <div className="relative w-full">
+          <div className="flex justify-center">
+            <ReadOnlyCanvas
+              pageNum={pageNum}
+              imageUrl={imageUrl}
+              canvasJson={annotation?.canvas_json ?? null}
+            />
+          </div>
+
+          <aside className="hidden lg:block absolute right-0 top-0 w-[280px]">
+            <NotesPanel
+              setId={setId}
+              pageNum={pageNum}
+              initialNotes={initialNotes}
+              readOnly
+            />
+          </aside>
+        </div>
       </main>
 
       <footer className="w-full py-5 text-center text-xs tracking-wider uppercase"

@@ -222,26 +222,6 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
     }
   }, [user, supabase]);
 
-  useEffect(() => {
-    const flush = async () => {
-      if (saveTimerRef.current) {
-        clearTimeout(saveTimerRef.current);
-        saveTimerRef.current = null;
-      }
-      if (fabricRef.current && selectedSetId) {
-        await saveCanvas(fabricRef.current, selectedSetId, pageNum);
-      }
-    };
-
-    (window as any).__hifthFlushReaderCanvas = flush;
-
-    return () => {
-      if ((window as any).__hifthFlushReaderCanvas === flush) {
-        delete (window as any).__hifthFlushReaderCanvas;
-      }
-    };
-  }, [pageNum, saveCanvas, selectedSetId]);
-
   const scheduleSave = useCallback(() => {
     if (!user || !selectedSetId || !fabricRef.current) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -249,6 +229,25 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
       saveCanvas(fabricRef.current!, selectedSetId, pageNum);
     }, SAVE_DELAY_MS);
   }, [selectedSetId, pageNum, saveCanvas, user]);
+
+  const saveNow = useCallback(async () => {
+    if (!user || !selectedSetId || !fabricRef.current) return;
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    await saveCanvas(fabricRef.current, selectedSetId, pageNum);
+  }, [pageNum, saveCanvas, selectedSetId, user]);
+
+  useEffect(() => {
+    (window as any).__hifthFlushReaderCanvas = saveNow;
+
+    return () => {
+      if ((window as any).__hifthFlushReaderCanvas === saveNow) {
+        delete (window as any).__hifthFlushReaderCanvas;
+      }
+    };
+  }, [saveNow]);
 
   const activeLoadSetIdRef = useRef<string | null>(null);
 
@@ -342,11 +341,11 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
         refreshHistory();
       };
 
-      const handleSave = () => { snapshotWithDebounce(); scheduleSave(); };
-      canvas.on('path:created', handleSave);
+      const handleCompletedDraw = () => { snapshotWithDebounce(); void saveNow(); };
+      canvas.on('path:created', handleCompletedDraw);
       canvas.on('object:modified', () => { snapshotWithDebounce(); scheduleSave(); });
       canvas.on('object:removed', () => { snapshotWithDebounce(); scheduleSave(); });
-      canvas.on('object:added', () => { snapshotWithDebounce(); scheduleSave(); });
+      canvas.on('object:added', () => { snapshotWithDebounce(); });
     };
 
     return () => {
@@ -391,7 +390,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
         canvas.renderAll();
         historyRef.current?.snapshot();
         refreshHistory();
-        scheduleSave();
+        void saveNow();
       }
     };
 
@@ -403,7 +402,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
     return () => {
       canvas.off('mouse:down', handleEraserMouseDown);
     };
-  }, [activeTool, refreshHistory, scheduleSave]);
+  }, [activeTool, refreshHistory, saveNow]);
 
   // Set change
   useEffect(() => {
@@ -442,7 +441,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
         canvas.renderAll();
         historyRef.current?.snapshot();
         refreshHistory();
-        scheduleSave();
+        void saveNow();
         return;
       }
 
@@ -513,7 +512,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
         }
 
         if (tooSmall) { canvas.remove(shape); }
-        else { historyRef.current?.snapshot(); refreshHistory(); scheduleSave(); }
+        else { historyRef.current?.snapshot(); refreshHistory(); void saveNow(); }
         shape = null;
       }
     };
@@ -527,7 +526,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
       canvas.off('mouse:move', handleMouseMove);
       canvas.off('mouse:up', handleMouseUp);
     };
-  }, [activeTool, activeColor, opacity, scheduleSave, refreshHistory]);
+  }, [activeTool, activeColor, opacity, saveNow, refreshHistory]);
 
   const handleUndo = () => {
     historyRef.current?.undo(() => { scheduleSave(); refreshHistory(); });

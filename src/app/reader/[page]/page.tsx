@@ -38,17 +38,33 @@ export default async function ReaderPage({ params }: Props) {
   return (
     <>
       <main className="w-full flex-grow px-4 py-6 sm:px-6 sm:py-8 animate-fade-in">
-        <div className="mx-auto grid w-full max-w-[1160px] grid-cols-1 gap-7 items-start lg:grid-cols-[minmax(280px,330px)_minmax(0,780px)_minmax(280px,330px)] lg:justify-center">
+        {/*
+          Track sizing fix: the middle column previously used
+          `minmax(0,780px)` with no `fr` unit. Since 1104px of available
+          space (1160 container - 56px gap) is less than the sum of all
+          three tracks' maximums (330+780+330=1440px), the grid's track
+          resolution algorithm treated all three `minmax()` tracks as
+          competing equally for space rather than favoring the middle one —
+          so the two 330px side tracks grew toward their max and squeezed
+          the middle track down to ~444px regardless of its own 780px max.
+          `minmax(0,1fr)` explicitly tells the grid to give the middle
+          track all remaining space after the side tracks are sized, which
+          is what was actually intended. The old 780px visual cap is now
+          applied to the inner content wrapper instead of the grid track.
+        */}
+        <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-6 items-start lg:grid-cols-[minmax(240px,280px)_minmax(0,1fr)_minmax(240px,280px)] lg:justify-center">
           <div aria-hidden className="hidden lg:block" />
 
           {/* Main Canvas Area */}
           <div className="flex min-w-0 flex-col gap-4 lg:col-start-2">
-            <AnnotationCanvas
-              pageNum={pageNum}
-              imageUrl={getPageImageUrl(pageNum)}
-              sets={sets ?? []}
-              user={user}
-            />
+            <div className="mx-auto w-full">
+              <AnnotationCanvas
+                pageNum={pageNum}
+                imageUrl={getPageImageUrl(pageNum)}
+                sets={sets ?? []}
+                user={user}
+              />
+            </div>
           </div>
 
           {/* Right Sidebar Area */}

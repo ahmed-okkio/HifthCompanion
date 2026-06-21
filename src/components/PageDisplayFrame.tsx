@@ -8,12 +8,14 @@ interface Props {
   size: PageCanvasSize | null;
   maxHeightOffset: number;
   children: ReactNode;
+  ready?: boolean;
 }
 
-export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, children }: Props) {
+export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, children, ready }: Props) {
   return (
     <div
       ref={containerRef}
+      data-canvas-ready={ready ? 'true' : undefined}
       className="page-display-frame mx-auto flex items-center justify-center overflow-hidden"
       style={{
         background: 'linear-gradient(180deg, #fff 0%, #fbfaf6 100%)',

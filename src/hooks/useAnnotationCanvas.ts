@@ -72,7 +72,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
       fabric.Image.fromURL(url, (fbImg) => {
         fbImg.scaleToWidth(width);
         canvas.setBackgroundImage(fbImg, () => {
-          canvas.renderAll();
+          try { canvas.renderAll(); } catch { /* canvas disposed between request and callback */ }
           resolve();
         });
       }, { crossOrigin: 'anonymous' });
@@ -91,6 +91,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
         { onConflict: 'set_id,page_number' }
       );
       if (error) console.error('[AnnotationCanvas] Save error:', error);
+      else console.log('Save successful');
     } catch (err) {
       console.error('[AnnotationCanvas] Unexpected save error:', err);
     } finally {
@@ -253,10 +254,12 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
         clearTimeout(saveTimerRef.current);
         if (fabricRef.current && selectedSetId) saveCanvas(fabricRef.current, selectedSetId, pageNum);
       }
+      lastLoadedRef.current = null;
+      if ((window as any).fabricCanvas === fabricRef.current) delete (window as any).fabricCanvas;
       if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageNum, imageUrl, user, applyBackground]);
+  }, [pageNum, imageUrl, user?.id, applyBackground]);
 
   // Sync drawing mode + brush when tool/color/width changes
   useEffect(() => {
@@ -294,6 +297,8 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
     if (activeTool === 'eraser') {
       canvas.on('mouse:down', handleEraserMouseDown);
       canvas.selection = false;
+    } else {
+      canvas.selection = true;
     }
     return () => { canvas.off('mouse:down', handleEraserMouseDown); };
   }, [activeTool, refreshHistory, saveNow]);
@@ -308,6 +313,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
+    (window as any).__annotationTool = activeTool;
     let isDrawing = false;
     let shape: fabric.Object | null = null;
     let startX = 0;

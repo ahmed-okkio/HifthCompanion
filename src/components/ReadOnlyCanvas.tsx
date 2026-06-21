@@ -15,12 +15,14 @@ export default function ReadOnlyCanvas({ pageNum, imageUrl, canvasJson }: Props)
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
   const [canvasSize, setCanvasSize] = useState<PageCanvasSize | null>(null);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
 
     let isMounted = true;
     setCanvasSize(null);
+    setReady(false);
     const img = new Image();
     img.src = imageUrl;
 
@@ -49,9 +51,11 @@ export default function ReadOnlyCanvas({ pageNum, imageUrl, canvasJson }: Props)
 
      // Set background image
      fabric.Image.fromURL(imageUrl, (fbImg) => {
+       if (!isMounted) return;
        fbImg.scaleToWidth(fitSize.width);
        canvas.setBackgroundImage(fbImg, () => {
-         canvas.renderAll();
+         try { canvas.renderAll(); } catch { /* canvas disposed */ }
+         if (isMounted) setReady(true);
        });
      }, { crossOrigin: 'anonymous' });
 
@@ -105,7 +109,7 @@ export default function ReadOnlyCanvas({ pageNum, imageUrl, canvasJson }: Props)
   }, [pageNum, imageUrl, canvasJson]);
 
   return (
-    <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={24}>
+    <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={24} ready={ready}>
       <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
     </PageDisplayFrame>
   );

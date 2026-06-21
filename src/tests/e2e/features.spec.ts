@@ -33,7 +33,11 @@ async function setupAuthenticatedReader(page: Page, setName: string) {
 // Helper: draw on canvas
 async function drawOnCanvas(page: Page, dx = 150, dy = 100) {
   const canvas = page.locator('.upper-canvas');
-  const box = await canvas.boundingBox();
+  let box: { x: number; y: number; width: number; height: number } | null = null;
+  await expect.poll(async () => {
+    box = await canvas.boundingBox();
+    return box !== null && box.width > 0 && box.height > 0;
+  }, { timeout: 10000, message: 'Canvas not found or zero size' }).toBeTruthy();
   if (!box) throw new Error('Canvas not found');
   await page.mouse.move(box.x + 100, box.y + 100);
   await page.mouse.down();
@@ -107,6 +111,10 @@ test.describe('Toolbar tools', () => {
     await setupAuthenticatedReader(page, setName);
 
     await page.click('button[title="Circle"]', { force: true });
+    await expect.poll(async () => page.evaluate(() => {
+      const c = (window as any).fabricCanvas;
+      return c != null && c.isDrawingMode === false;
+    }), { timeout: 10000 }).toBeTruthy();
     await drawOnCanvas(page, 100, 80);
 
     const count = await page.evaluate(() => {
@@ -123,6 +131,10 @@ test.describe('Toolbar tools', () => {
     await setupAuthenticatedReader(page, setName);
 
     await page.click('button[title="Underline"]', { force: true });
+    await expect.poll(async () => page.evaluate(() => {
+      const c = (window as any).fabricCanvas;
+      return c != null && c.isDrawingMode === false;
+    }), { timeout: 10000 }).toBeTruthy();
     await drawOnCanvas(page, 120, 5); // nearly horizontal
 
     const count = await page.evaluate(() => {
@@ -141,9 +153,13 @@ test.describe('Toolbar tools', () => {
     await page.click('button[title="Text"]', { force: true });
 
     const canvas = page.locator('.upper-canvas');
-    const box = await canvas.boundingBox();
-    if (!box) throw new Error('Canvas not found');
-    await page.mouse.click(box.x + 200, box.y + 200);
+    let textBox: { x: number; y: number; width: number; height: number } | null = null;
+    await expect.poll(async () => {
+      textBox = await canvas.boundingBox();
+      return textBox !== null && textBox.width > 0 && textBox.height > 0;
+    }, { timeout: 10000 }).toBeTruthy();
+    if (!textBox) throw new Error('Canvas not found');
+    await page.mouse.click(textBox.x + 200, textBox.y + 200);
 
     const count = await page.evaluate(() => {
       // @ts-ignore
@@ -352,6 +368,8 @@ test.describe('Share Links', () => {
 
     // Read-only badge and canvas
     await expect(page.locator('text=read-only').first()).toBeVisible();
+    // Wait for canvas to fully initialize (background image loaded + Fabric.js ready)
+    await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible({ timeout: 15000 });
     const canvas = page.locator('.page-display-frame');
     await expect(canvas).toBeVisible();
 

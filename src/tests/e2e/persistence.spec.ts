@@ -29,22 +29,30 @@ test.describe('Annotations Persistence', () => {
     // 3. Go to reader page
     await page.goto('/reader/1');
 
-    // 4. Wait for canvas to be initialized and set selected
+    // 4. Wait for canvas to be initialized, then explicitly select our set
     const upperCanvas = page.locator('.upper-canvas');
     await expect(upperCanvas).toBeVisible();
-    
-    // Verify our new set is selected
-    const picker = page.locator('#set-picker-top');
-    await expect(picker).toContainText(setName);
     await expect.poll(async () => {
       return await page.evaluate(() => Boolean((window as any).fabricCanvas));
     }, { timeout: 10000 }).toBeTruthy();
-    await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible();
+
+    // Explicitly select our set (parallel tests may have added other sets)
+    const picker = page.locator('#set-picker-top');
+    await picker.selectOption({ label: setName });
+    await expect.poll(async () => {
+      return await page.evaluate(() => Boolean((window as any).fabricCanvas));
+    }, { timeout: 10000 }).toBeTruthy();
+    await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible({ timeout: 10000 });
     await page.click('button[title="Pen"]', { force: true });
 
     // 5. Draw on the canvas
-    const box = await upperCanvas.boundingBox();
+    let box: { x: number; y: number; width: number; height: number } | null = null;
+    await expect.poll(async () => {
+      box = await upperCanvas.boundingBox();
+      return box !== null && box.width > 0 && box.height > 0;
+    }, { timeout: 10000 }).toBeTruthy();
     if (!box) throw new Error('Canvas not found');
+    box = box as { x: number; y: number; width: number; height: number };
     
     await page.mouse.move(box.x + 100, box.y + 100);
     await page.mouse.down();

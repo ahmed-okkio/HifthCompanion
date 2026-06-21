@@ -1,5 +1,5 @@
 'use client';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { type Tool, ALL_TOOLS, TOOL_ICONS, TOOL_LABELS, PRESET_COLORS } from '@/lib/canvasTools';
 
 interface Props {
@@ -22,6 +22,7 @@ export default function AnnotationToolbar({
   onToolClick, onColorChange, onUndo, onRedo, onClear,
   onHoverEnter, onHoverLeave,
 }: Props) {
+  const [toolbarOpen, setToolbarOpen] = useState(true);
   const buttonRefs = useRef<Record<Tool, HTMLButtonElement | null>>({} as Record<Tool, HTMLButtonElement | null>);
 
   const handleMouseEnter = (t: Tool) => {
@@ -37,10 +38,34 @@ export default function AnnotationToolbar({
     onHoverEnter(t, { left: leftPos, top: rect.top + rect.height / 2 });
   };
 
+  if (!toolbarOpen) {
+    return (
+      <aside className="sticky top-24 flex flex-col items-center gap-3 justify-self-start" style={{ width: '72px' }}>
+        <div className="flex w-full flex-col items-center rounded-3xl bg-white/82 p-2 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl" style={{ border: '1px solid var(--border-subtle)' }}>
+          <button
+            onClick={() => setToolbarOpen(true)}
+            className="w-12 h-7 flex items-center justify-center rounded-xl text-xs font-semibold"
+            style={{ color: 'var(--text-muted)', background: 'var(--bg-subtle)' }}
+          >
+            Tools
+          </button>
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <aside className="sticky top-24 flex flex-col items-center gap-3 justify-self-start" style={{ width: '72px' }}>
       <div className="flex w-full flex-col items-center rounded-3xl bg-white/82 p-2 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl" style={{ border: '1px solid var(--border-subtle)' }}>
-        <div className="w-full h-2" />
+        <div className="w-full flex justify-end pt-1 pb-0.5">
+          <button
+            onClick={() => setToolbarOpen(false)}
+            className="flex items-center gap-0.5 rounded-lg px-1.5 py-0.5 text-xs"
+            style={{ color: 'var(--text-muted)', background: 'transparent' }}
+          >
+            Hide
+          </button>
+        </div>
 
         <div className="flex flex-col items-center gap-2 my-1 w-full">
           {ALL_TOOLS.map(t => (
@@ -98,6 +123,7 @@ export default function AnnotationToolbar({
             <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
             </svg>
+            <span className="sr-only">Undo</span>
           </button>
 
           <button
@@ -115,6 +141,7 @@ export default function AnnotationToolbar({
             <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
             </svg>
+            <span className="sr-only">Redo</span>
           </button>
 
           <button
@@ -127,6 +154,7 @@ export default function AnnotationToolbar({
             <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
+            <span className="sr-only">Clear</span>
           </button>
         </div>
 

@@ -219,8 +219,14 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
     try {
       const json = canvas.toJSON();
       delete (json as any).backgroundImage;
+
+      const canvasJson = {
+        width: canvas.getWidth(),
+        height: canvas.getHeight(),
+        ...json,
+      };
       const { error } = await supabase.from('annotations').upsert(
-        { set_id: setId, page_number: page, canvas_json: json, updated_at: new Date().toISOString() },
+        { set_id: setId, page_number: page, canvas_json: canvasJson, updated_at: new Date().toISOString() },
         { onConflict: 'set_id,page_number' }
       );
       if (error) console.error('[AnnotationCanvas] Save error:', error);

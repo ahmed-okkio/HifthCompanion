@@ -64,15 +64,35 @@ export default function ReadOnlyCanvas({ pageNum, imageUrl, canvasJson }: Props)
      });
 
      // Load annotations if provided
-     if (canvasJson) {
-       canvas.loadFromJSON(canvasJson, () => {
-         canvas.getObjects().forEach(obj => {
-           obj.selectable = false;
-           obj.evented = false;
-         });
-         canvas.renderAll();
-       });
-     }
+    if (canvasJson) {
+      canvas.loadFromJSON(canvasJson, () => {
+
+        const originalWidth = canvasJson.width;
+        const originalHeight = canvasJson.height;
+
+        if (originalWidth && originalHeight) {
+          const scaleX = fitSize.width / originalWidth;
+          const scaleY = fitSize.height / originalHeight;
+
+          canvas.getObjects().forEach((obj) => {
+            obj.scaleX = (obj.scaleX ?? 1) * scaleX;
+            obj.scaleY = (obj.scaleY ?? 1) * scaleY;
+
+            obj.left = (obj.left ?? 0) * scaleX;
+            obj.top = (obj.top ?? 0) * scaleY;
+
+            obj.setCoords();
+          });
+        }
+
+        canvas.getObjects().forEach(obj => {
+          obj.selectable = false;
+          obj.evented = false;
+        });
+
+        canvas.renderAll();
+      });
+    }
     };
 
     return () => {

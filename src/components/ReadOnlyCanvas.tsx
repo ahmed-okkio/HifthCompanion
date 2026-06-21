@@ -1,6 +1,8 @@
 'use client';
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { fabric } from 'fabric';
+import PageDisplayFrame from '@/components/PageDisplayFrame';
+import { calculatePageCanvasSize, type PageCanvasSize } from '@/lib/pageCanvas';
 
 interface Props {
   pageNum: number;
@@ -12,77 +14,79 @@ export default function ReadOnlyCanvas({ pageNum, imageUrl, canvasJson }: Props)
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
-
-  const applyBackground = useCallback((canvas: fabric.Canvas, url: string, width: number) => {
-    return new Promise<void>((resolve) => {
-      fabric.Image.fromURL(url, (fbImg) => {
-        fbImg.scaleToWidth(width);
-        canvas.setBackgroundImage(fbImg, () => {
-          canvas.renderAll();
-          resolve();
-        });
-      }, { crossOrigin: 'anonymous' });
-    });
-  }, []);
+  const [canvasSize, setCanvasSize] = useState<PageCanvasSize | null>(null);
 
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
+
     let isMounted = true;
-    const width = containerRef.current.offsetWidth;
+    setCanvasSize(null);
     const img = new Image();
     img.src = imageUrl;
 
     img.onload = async () => {
-      if (!isMounted) return;
-      const height = (img.naturalHeight / img.naturalWidth) * width;
+     if (!isMounted) return;
 
-      const canvas = new fabric.Canvas(canvasRef.current!, {
-        width, height,
-        isDrawingMode: false,
-        selection: false,
-      });
-      // Make all objects non-interactive
-      canvas.on('object:added', (e) => {
-        if (e.target) {
-          e.target.selectable = false;
-          e.target.evented = false;
-        }
-      });
+     const widthLimit = Math.max(280, containerRef.current!.clientWidth);
+     const heightLimit = Math.max(320, window.innerHeight - 24);
+     const fitSize = calculatePageCanvasSize(
+       img.naturalWidth || 1,
+       img.naturalHeight || 1,
+       widthLimit,
+       heightLimit,
+     );
+     setCanvasSize(fitSize);
 
-      fabricRef.current = canvas;
-      await applyBackground(canvas, imageUrl, width);
+     const canvas = new fabric.Canvas(canvasRef.current!, {
+       width: fitSize.width,
+       height: fitSize.height,
+       isDrawingMode: false,
+       selection: false,
+     });
+     canvas.setDimensions({ width: fitSize.width, height: fitSize.height });
 
-      if (canvasJson) {
-        canvas.loadFromJSON(canvasJson, async () => {
-          // Disable selection on all loaded objects
-          canvas.getObjects().forEach(obj => {
-            obj.selectable = false;
-            obj.evented = false;
-          });
-          if (containerRef.current) {
-            await applyBackground(canvas, imageUrl, containerRef.current.offsetWidth);
-          }
-          canvas.renderAll();
-        });
-      }
+     fabricRef.current = canvas;
+
+     // Set background image
+     fabric.Image.fromURL(imageUrl, (fbImg) => {
+       fbImg.scaleToWidth(fitSize.width);
+       canvas.setBackgroundImage(fbImg, () => {
+         canvas.renderAll();
+       });
+     }, { crossOrigin: 'anonymous' });
+
+     // Make all objects non-interactive
+     canvas.on('object:added', (e) => {
+       if (e.target) {
+         e.target.selectable = false;
+         e.target.evented = false;
+       }
+     });
+
+     // Load annotations if provided
+     if (canvasJson) {
+       canvas.loadFromJSON(canvasJson, () => {
+         canvas.getObjects().forEach(obj => {
+           obj.selectable = false;
+           obj.evented = false;
+         });
+         canvas.renderAll();
+       });
+     }
     };
 
     return () => {
-      isMounted = false;
-      if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
+     isMounted = false;
+     if (fabricRef.current) {
+       fabricRef.current.dispose();
+       fabricRef.current = null;
+     }
     };
-  }, [pageNum, imageUrl, canvasJson, applyBackground]);
+  }, [pageNum, imageUrl, canvasJson]);
 
   return (
-    <div ref={containerRef}
-         className="w-full overflow-hidden"
-         style={{
-           background: 'var(--bg-card)',
-           borderRadius: 'var(--radius-xl)',
-           border: '1px solid var(--border-subtle)',
-           boxShadow: 'var(--shadow-lg)',
-         }}>
-      <canvas ref={canvasRef} />
-    </div>
+    <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={24}>
+      <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
+    </PageDisplayFrame>
   );
 }

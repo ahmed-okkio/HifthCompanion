@@ -352,7 +352,19 @@ test.describe('Share Links', () => {
 
     // Read-only badge and canvas
     await expect(page.locator('text=read-only').first()).toBeVisible();
-    await expect(page.locator('canvas').first()).toBeVisible();
+    const canvas = page.locator('.page-display-frame');
+    await expect(canvas).toBeVisible();
+
+    const box = await canvas.boundingBox();
+    expect(box).not.toBeNull();
+    const viewport = page.viewportSize();
+    expect(viewport).not.toBeNull();
+    if (box && viewport) {
+      expect(box.width).toBeGreaterThan(450);
+      expect(box.height).toBeGreaterThan(600);
+      expect(box.width).toBeLessThanOrEqual(viewport.width - 40);
+      expect(box.height).toBeLessThanOrEqual(viewport.height);
+    }
 
     // No toolbar buttons
     await expect(page.locator('button[title="Pen"]')).not.toBeVisible();

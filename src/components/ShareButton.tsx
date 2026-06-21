@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface Props {
   userId: string;
@@ -11,6 +12,8 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
   const [copied, setCopied] = useState(false);
   const [selectedSetId, setSelectedSetId] = useState(sets[0]?.id ?? '');
   const [open, setOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   if (sets.length === 0) return null;
 
@@ -26,9 +29,39 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
     }
   };
 
+  useLayoutEffect(() => {
+    if (!open || !buttonRef.current || typeof window === 'undefined') {
+      if (!open) setMenuPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const menuWidth = 280;
+      const menuHeight = 220;
+      const padding = 8;
+      const top = Math.min(rect.bottom + padding, window.innerHeight - menuHeight - padding);
+      const left = Math.min(rect.right - menuWidth, window.innerWidth - menuWidth - padding);
+
+      setMenuPosition({ top: Math.max(padding, top), left: Math.max(padding, left) });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [open]);
+
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         onClick={() => setOpen(o => !o)}
         className="btn btn-outline"
         style={{ fontSize: '12px', padding: '6px 14px' }}
@@ -39,9 +72,13 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
         Share
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-10 z-50 card animate-fade-in-scale"
-             style={{ padding: '16px', width: '280px' }}>
+      {open && menuPosition && typeof document !== 'undefined' && createPortal(
+        <div
+          role="dialog"
+          aria-label="Share link"
+          className="card fixed z-[9999]"
+          style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px`, padding: '16px', width: '280px' }}
+        >
           <p className="text-xs font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
             Share page {pageNum}
           </p>
@@ -72,7 +109,7 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
             />
             <button
               onClick={handleCopy}
-              className={copied ? 'btn btn-primary' : 'btn btn-primary'}
+              className="btn btn-primary"
               style={{ fontSize: '12px', padding: '6px 14px', flexShrink: 0 }}
             >
               {copied ? '✓ Copied' : 'Copy'}
@@ -82,7 +119,8 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
           <p className="mt-2.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>
             Anyone with this link can view your annotations (read-only).
           </p>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

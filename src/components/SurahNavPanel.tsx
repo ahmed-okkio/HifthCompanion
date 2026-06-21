@@ -138,9 +138,12 @@ interface Props {
   surahs?: Surah[];
   initialSelected?: number;
   onSelect?: (surahNumber: number) => void;
+  currentPage?: number;
+  basePath?: string;
+  topOffset?: number;
 }
 
-export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, onSelect }: Props) {
+export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, onSelect, currentPage: currentPageProp, basePath, topOffset = 72 }: Props) {
   const [query, setQuery] = useState('');
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
   const hasAutoScrolledRef = useRef(false);
@@ -150,9 +153,22 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
   const searchParams = useSearchParams();
 
   const currentPage = useMemo(() => {
-    const match = pathname.match(/^\/reader\/(\d+)/);
-    return match ? Number.parseInt(match[1], 10) : 1;
-  }, [pathname]);
+    if (typeof currentPageProp === 'number') {
+      return currentPageProp;
+    }
+
+    const readerMatch = pathname.match(/^\/reader\/(\d+)/);
+    if (readerMatch) {
+      return Number.parseInt(readerMatch[1], 10);
+    }
+
+    const shareMatch = pathname.match(/^\/share\/[^/]+\/(\d+)/);
+    if (shareMatch) {
+      return Number.parseInt(shareMatch[1], 10);
+    }
+
+    return 1;
+  }, [currentPageProp, pathname]);
 
   const groupedSurahs = useMemo<SurahPageGroup[]>(() => {
     const groups = new Map<number, Surah[]>();
@@ -206,7 +222,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     onSelect?.(group.surahs[0]?.number ?? 1);
     const params = new URLSearchParams(searchParams.toString());
     const query = params.toString();
-    const targetPath = `/reader/${group.page}`;
+    const targetPath = `${basePath ?? '/reader'}/${group.page}`;
     const targetHref = query ? `${targetPath}?${query}` : targetPath;
     const currentHref = query ? `${pathname}?${query}` : pathname;
 
@@ -222,7 +238,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     <aside
       data-testid="surah-panel"
       className="w-72 overflow-hidden border-r border-[var(--border-subtle)] bg-white/78 shadow-[18px_0_40px_rgba(15,23,42,0.06)] backdrop-blur-xl"
-      style={{ position: 'fixed', left: 0, top: '88px', height: 'calc(100vh - 88px)', overflow: 'auto', zIndex: 40, margin: 0, transform: 'none' }}
+      style={{ position: 'fixed', left: 0, top: `${topOffset}px`, height: `calc(100vh - ${topOffset}px)`, overflow: 'auto', zIndex: 40, margin: 0, transform: 'none' }}
     >
 
       <div className="px-3 py-3">

@@ -36,8 +36,9 @@ export default async function ReaderPage({ params }: Props) {
     : [];
 
   return (
-    <main className="w-full flex-grow px-4 py-6 sm:px-6 sm:py-8 animate-fade-in">
-      <div className="mx-auto grid w-full max-w-[1160px] grid-cols-1 gap-7 items-start lg:grid-cols-[minmax(0,780px)_minmax(280px,330px)] lg:justify-center">
+    <>
+      <main className="w-full flex-grow px-4 py-6 sm:px-6 sm:py-8 animate-fade-in">
+        <div className="mx-auto grid w-full max-w-[1160px] grid-cols-1 gap-7 items-start lg:grid-cols-[minmax(0,780px)_minmax(280px,330px)] lg:justify-center">
 
           {/* Main Canvas Area */}
           <div className="flex min-w-0 flex-col gap-4">
@@ -104,5 +105,6 @@ export default async function ReaderPage({ params }: Props) {
           
         </div>
       </main>
+    </>
   );
 }

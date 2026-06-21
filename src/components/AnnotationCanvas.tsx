@@ -4,6 +4,8 @@ import { fabric } from 'fabric';
 import { createClient } from '@/lib/supabase/client';
 import type { AnnotationSet } from '@/types';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import PageDisplayFrame from '@/components/PageDisplayFrame';
+import { calculatePageCanvasSize, type PageCanvasSize } from '@/lib/pageCanvas';
 
 interface Props {
   pageNum: number;
@@ -148,6 +150,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
   const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
   const fabricRef = useRef<fabric.Canvas | null>(null);
   const historyRef = useRef<CanvasHistory | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -168,6 +171,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
+  const [canvasSize, setCanvasSize] = useState<PageCanvasSize | null>(null);
 
   const lastLoadedRef = useRef<{ setId: string; pageNum: number } | null>(null);
   const lastSnapshotAtRef = useRef<number>(0);
@@ -271,7 +275,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
         console.log('[AnnotationCanvas] loadFromJSON callback! current ref:', activeLoadSetIdRef.current, 'setId:', setId);
         if (activeLoadSetIdRef.current !== setId) return;
         if (containerRef.current) {
-          await applyBackground(canvas, imageUrl, containerRef.current.offsetWidth);
+          await applyBackground(canvas, imageUrl, canvas.getWidth());
         }
         historyRef.current?.clear();
         historyRef.current?.snapshot();
@@ -283,7 +287,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
     } else {
       canvas.clear();
       if (containerRef.current) {
-        await applyBackground(canvas, imageUrl, containerRef.current.offsetWidth);
+        await applyBackground(canvas, imageUrl, canvas.getWidth());
       }
       historyRef.current?.clear();
       historyRef.current?.snapshot();
@@ -297,22 +301,36 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
     let isMounted = true;
-    const width = containerRef.current.offsetWidth;
+    setCanvasSize(null);
     const img = new Image();
     img.src = imageUrl;
 
     img.onload = async () => {
       if (!isMounted) return;
-      const height = (img.naturalHeight / img.naturalWidth) * width;
+      const naturalWidth = img.naturalWidth || 1;
+      const naturalHeight = img.naturalHeight || 1;
+      const fitSize = calculatePageCanvasSize(
+        naturalWidth,
+        naturalHeight,
+        Math.max(280, Math.min(containerRef.current?.clientWidth ?? window.innerWidth - 220, window.innerWidth - 220)),
+        Math.max(320, window.innerHeight - 260),
+      );
+      setCanvasSize(fitSize);
 
       const canvas = new fabric.Canvas(canvasRef.current!, {
-        width, height,
+        width: fitSize.width,
+        height: fitSize.height,
         isDrawingMode: !!user && !!selectedSetId && activeTool === 'pen',
         defaultCursor: getToolCursor(activeTool),
         hoverCursor: getToolCursor(activeTool),
         moveCursor: getToolCursor(activeTool),
         freeDrawingCursor: getToolCursor('pen'),
       });
+      canvas.setDimensions({ width: fitSize.width, height: fitSize.height });
+      if (canvasRef.current) {
+        canvasRef.current.style.width = `${fitSize.width}px`;
+        canvasRef.current.style.height = `${fitSize.height}px`;
+      }
 
       canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
       canvas.freeDrawingBrush.width = penWidth;
@@ -323,7 +341,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
       // @ts-ignore
       window.fabricCanvas = canvas;
 
-      await applyBackground(canvas, imageUrl, width);
+      await applyBackground(canvas, imageUrl, fitSize.width);
 
       if (selectedSetId && isMounted) {
         loadAnnotation(canvas, selectedSetId, pageNum);
@@ -570,9 +588,9 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
 
   return (
     <div className="flex justify-center">
-      <div className="flex w-full max-w-[860px] items-start gap-4 sm:gap-5">
+      <div className="grid w-full max-w-[940px] grid-cols-1 items-start gap-4 sm:gap-5 lg:grid-cols-[72px_minmax(0,1fr)_72px] lg:justify-center">
         {/* Vertical Toolbar (compact) */}
-        <aside className="sticky top-24 flex flex-col items-center gap-3" style={{ width: '72px' }}>
+        <aside className="sticky top-24 flex flex-col items-center gap-3 justify-self-start" style={{ width: '72px' }}>
           <div className="flex w-full flex-col items-center rounded-3xl bg-white/82 p-2 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl" style={{ border: '1px solid var(--border-subtle)' }}>
             {/* Top: set picker (compact) */}
             <div className="w-full h-2" />
@@ -719,7 +737,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
         )}
 
         {/* Canvas area */}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 lg:col-start-2 lg:w-full">
           <div className="mb-3 flex items-center justify-between rounded-2xl border border-[var(--border-subtle)] bg-white/72 px-3 py-2 shadow-sm backdrop-blur">
             {user ? (
               sets.length > 0 ? (
@@ -745,20 +763,11 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
             {saving && <span className="text-sm" style={{ color: 'var(--text-accent)' }}>Saving…</span>}
           </div>
 
-          <div
-            ref={containerRef}
-            data-canvas-ready={canvasReady ? 'true' : 'false'}
-            className="overflow-hidden"
-            style={{
-              background: 'linear-gradient(180deg, #fff 0%, #fbfaf6 100%)',
-              borderRadius: '24px',
-              border: '1px solid rgba(15,23,42,0.08)',
-              boxShadow: '0 24px 70px rgba(15,23,42,0.12), 0 0 0 8px rgba(255,255,255,0.44)',
-            }}
-          >
-            <canvas ref={canvasRef} />
-          </div>
+          <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={300}>
+            <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
+          </PageDisplayFrame>
         </div>
+        <div aria-hidden className="hidden lg:block" />
       </div>
     </div>
   );

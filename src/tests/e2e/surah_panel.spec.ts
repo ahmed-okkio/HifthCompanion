@@ -131,6 +131,39 @@ test.describe('Surah panel and toolbar layout', () => {
     }
   });
 
+  test('share page shows the surah panel and navigates within the shared route', async ({ page }) => {
+    listenForErrors(page);
+
+    await page.goto('/share/test-user/1?set=test-set');
+    await page.waitForLoadState('networkidle');
+
+    const panel = page.locator('[data-testid="surah-panel"]');
+    await expect(panel).toBeVisible({ timeout: 10000 });
+
+    await page.getByRole('button', { name: /Al-Baqarah/i }).click();
+
+    await expect(page).toHaveURL(/\/share\/test-user\/2\?set=test-set$/);
+  });
+
+  test('reader page display is centered in the viewport', async ({ page }) => {
+    listenForErrors(page);
+
+    const frame = page.locator('.page-display-frame');
+    await expect(frame).toBeVisible({ timeout: 10000 });
+    await page.screenshot({ path: 'test-results/reader-centered-debug.png', fullPage: false });
+
+    const box = await frame.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box).not.toBeNull();
+    expect(viewport).not.toBeNull();
+
+    if (box && viewport) {
+      const frameCenter = box.x + box.width / 2;
+      const viewportCenter = viewport.width / 2;
+      expect(Math.abs(frameCenter - viewportCenter)).toBeLessThan(140);
+    }
+  });
+
   test('Undo/Redo buttons are visible and large enough', async ({ page }) => {
     const undo = page.locator('button[title="Undo"]');
     const redo = page.locator('button[title="Redo"]');

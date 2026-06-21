@@ -19,7 +19,7 @@ export default function ReaderShell({ children }: { children: React.ReactNode })
         <SurahNavPanel />
       </div>
       <ReaderNav currentPage={pageNum} />
-      <div className="flex min-h-[calc(100vh-72px)] min-w-0 flex-col lg:ml-72">
+      <div className="flex min-h-[calc(100vh-72px)] min-w-0 flex-col lg:px-72">
         {children}
         <footer
           className="w-full py-6 text-center text-xs tracking-wider uppercase border-t"

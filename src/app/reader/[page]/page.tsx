@@ -38,10 +38,11 @@ export default async function ReaderPage({ params }: Props) {
   return (
     <>
       <main className="w-full flex-grow px-4 py-6 sm:px-6 sm:py-8 animate-fade-in">
-        <div className="mx-auto grid w-full max-w-[1160px] grid-cols-1 gap-7 items-start lg:grid-cols-[minmax(0,780px)_minmax(280px,330px)] lg:justify-center">
+        <div className="mx-auto grid w-full max-w-[1160px] grid-cols-1 gap-7 items-start lg:grid-cols-[minmax(280px,330px)_minmax(0,780px)_minmax(280px,330px)] lg:justify-center">
+          <div aria-hidden className="hidden lg:block" />
 
           {/* Main Canvas Area */}
-          <div className="flex min-w-0 flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4 lg:col-start-2">
             <AnnotationCanvas
               pageNum={pageNum}
               imageUrl={getPageImageUrl(pageNum)}
@@ -51,7 +52,7 @@ export default async function ReaderPage({ params }: Props) {
           </div>
 
           {/* Right Sidebar Area */}
-          <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-[88px]">
+          <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-[88px] lg:col-start-3">
             {user && (sets ?? []).length > 0 && (
               <div className="card p-5 flex flex-col gap-3 animate-fade-in-scale" style={{ animationDelay: '100ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>
                 <div>

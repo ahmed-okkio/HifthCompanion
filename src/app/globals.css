@@ -118,37 +118,12 @@
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-@keyframes slide-down {
-  from { opacity: 0; max-height: 0; }
-  to { opacity: 1; max-height: 500px; }
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-@keyframes glow-pulse {
-  0%, 100% { box-shadow: 0 0 8px var(--accent-glow); }
-  50% { box-shadow: 0 0 20px var(--accent-glow); }
-}
-
 .animate-fade-in {
   animation: fade-in var(--duration-normal) var(--ease-out) both;
 }
 
 .animate-fade-in-scale {
   animation: fade-in-scale var(--duration-normal) var(--ease-out) both;
-}
-
-.animate-slide-down {
-  animation: slide-down var(--duration-slow) var(--ease-out) both;
-  overflow: hidden;
 }
 
 /* ===== Glass Surface ===== */
@@ -295,13 +270,6 @@
 .badge-muted {
   background: rgba(2, 6, 23, 0.045);
   color: var(--text-muted);
-}
-
-/* ===== Divider ===== */
-.divider {
-  height: 1px;
-  background: var(--border-subtle);
-  border: none;
 }
 
 /* ===== Responsive helpers ===== */

@@ -149,6 +149,12 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const containerRef = useRef<HTMLDivElement>(null);
+  // Stable measurement point for available width. Unlike `containerRef`
+  // (the PageDisplayFrame itself, whose CSS width/height are *derived from*
+  // canvasSize), this wrapper's width is controlled purely by the CSS grid
+  // and never depends on canvasSize — so it's safe to measure for sizing
+  // without creating a circular dependency.
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const fabricRef = useRef<fabric.Canvas | null>(null);
@@ -305,19 +311,33 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
     const img = new Image();
     img.src = imageUrl;
 
-    img.onload = async () => {
-      if (!isMounted) return;
-      const naturalWidth = img.naturalWidth || 1;
-      const naturalHeight = img.naturalHeight || 1;
-      const fitSize = calculatePageCanvasSize(
+    // Hoisted so the ResizeObserver below can reuse them without re-decoding the image.
+    let naturalWidth = 0;
+    let naturalHeight = 0;
+    let canvas: fabric.Canvas | null = null;
+
+    // Measure the stable wrapper (grid cell), NOT the frame itself — the
+    // frame's own size is derived from this calculation, so measuring it
+    // here would be circular and produce stale/incorrect results.
+    const computeFitSize = () => {
+      const wrapperWidth = wrapperRef.current?.clientWidth || window.innerWidth - 72;
+      return calculatePageCanvasSize(
         naturalWidth,
         naturalHeight,
-        Math.max(280, Math.min(containerRef.current?.clientWidth ?? window.innerWidth - 220, window.innerWidth - 220)),
-        Math.max(320, window.innerHeight - 260),
+        Math.max(280, wrapperWidth),
+        Math.max(320, window.innerHeight - 96),
       );
+    };
+
+    img.onload = async () => {
+      if (!isMounted) return;
+      naturalWidth = img.naturalWidth || 1;
+      naturalHeight = img.naturalHeight || 1;
+
+      const fitSize = computeFitSize();
       setCanvasSize(fitSize);
 
-      const canvas = new fabric.Canvas(canvasRef.current!, {
+      canvas = new fabric.Canvas(canvasRef.current!, {
         width: fitSize.width,
         height: fitSize.height,
         isDrawingMode: !!user && !!selectedSetId && activeTool === 'pen',
@@ -366,8 +386,26 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
       canvas.on('object:added', () => { snapshotWithDebounce(); });
     };
 
+    // Recompute the fit size whenever the stable wrapper's box changes
+    // (window resize, sidebar collapse/expand, etc). Without this, sizing
+    // only ran once on mount and never adapted afterward.
+    const ro = new ResizeObserver(() => {
+      if (!naturalWidth || !naturalHeight || !canvas) return;
+      const fitSize = computeFitSize();
+      setCanvasSize(fitSize);
+      canvas.setDimensions({ width: fitSize.width, height: fitSize.height });
+      if (canvasRef.current) {
+        canvasRef.current.style.width = `${fitSize.width}px`;
+        canvasRef.current.style.height = `${fitSize.height}px`;
+      }
+      void applyBackground(canvas, imageUrl, fitSize.width);
+      canvas.renderAll();
+    });
+    if (wrapperRef.current) ro.observe(wrapperRef.current);
+
     return () => {
       isMounted = false;
+      ro.disconnect();
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
         if (fabricRef.current && selectedSetId) saveCanvas(fabricRef.current, selectedSetId, pageNum);
@@ -587,8 +625,8 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
   };
 
   return (
-    <div className="flex justify-center">
-      <div className="grid w-full max-w-[940px] grid-cols-1 items-start gap-4 sm:gap-5 lg:grid-cols-[72px_minmax(0,1fr)_72px] lg:justify-center">
+    <div className="flex w-full justify-center">
+      <div className="grid w-full grid-cols-1 items-start gap-4 sm:gap-5 lg:grid-cols-[72px_minmax(0,1fr)_72px]">
         {/* Vertical Toolbar (compact) */}
         <aside className="sticky top-24 flex flex-col items-center gap-3 justify-self-start" style={{ width: '72px' }}>
           <div className="flex w-full flex-col items-center rounded-3xl bg-white/82 p-2 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl" style={{ border: '1px solid var(--border-subtle)' }}>
@@ -737,7 +775,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
         )}
 
         {/* Canvas area */}
-        <div className="min-w-0 lg:col-start-2 lg:w-full">
+        <div ref={wrapperRef} className="min-w-0 w-full lg:col-start-2 lg:w-full">
           <div className="mb-3 flex items-center justify-between rounded-2xl border border-[var(--border-subtle)] bg-white/72 px-3 py-2 shadow-sm backdrop-blur">
             {user ? (
               sets.length > 0 ? (
@@ -763,7 +801,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
             {saving && <span className="text-sm" style={{ color: 'var(--text-accent)' }}>Saving…</span>}
           </div>
 
-          <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={300}>
+          <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={96}>
             <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
           </PageDisplayFrame>
         </div>

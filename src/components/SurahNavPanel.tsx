@@ -237,8 +237,21 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
   const panel = (
     <aside
       data-testid="surah-panel"
-      className="w-72 overflow-hidden border-r border-[var(--border-subtle)] bg-white/78 shadow-[18px_0_40px_rgba(15,23,42,0.06)] backdrop-blur-xl"
-      style={{ position: 'fixed', left: 0, top: `${topOffset}px`, height: `calc(100vh - ${topOffset}px)`, overflow: 'auto', zIndex: 40, margin: 0, transform: 'none' }}
+      className="panel-surface w-72 overflow-hidden"
+      style={{
+        position: 'fixed',
+        left: 0,
+        top: `${topOffset}px`,
+        height: `calc(100vh - ${topOffset}px)`,
+        overflow: 'auto',
+        zIndex: 40,
+        margin: 0,
+        transform: 'none',
+        borderLeft: 'none',
+        borderTop: 'none',
+        borderBottom: 'none',
+        borderRadius: 0,
+      }}
     >
 
       <div className="px-3 py-3">
@@ -286,6 +299,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
                           <div key={surah.number} className="flex items-center gap-3">
                             <span className={`inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-xl px-2 text-[12px] font-bold tabular-nums shadow-sm ${active ? 'bg-white text-emerald-700 ring-1 ring-emerald-100' : 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100'}`}>
                               {surah.number}
+                              
                             </span>
                             <span className={`min-w-0 truncate text-sm font-semibold leading-snug ${active ? 'text-emerald-950' : 'text-[var(--text-primary)]'}`}>
                               {surah.name}

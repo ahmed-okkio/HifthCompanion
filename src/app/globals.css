@@ -40,6 +40,12 @@
   --shadow-lg: 0 12px 40px rgba(2,6,23,0.10);
   --shadow-glow: 0 0 18px rgba(16,185,129,0.06);
 
+  /* Symmetric "floating panel" shadow — used for fixed/sticky surfaces like
+     the surah nav panel and top navbar instead of one-sided directional
+     shadows, which read as smudges/haze on a flat light background rather
+     than as elevation. */
+  --shadow-panel: 0 1px 2px rgba(2,6,23,0.04), 0 8px 24px rgba(2,6,23,0.06);
+
   /* Radii */
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -69,7 +75,9 @@
     color: var(--text-primary);
   }
 
-  /* Smooth scrollbar */
+  /* Smooth scrollbar — light-theme colors. (Previously these were
+     rgba(255,255,255,*), a dark-theme leftover that was nearly invisible
+     against this light background.) */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -78,11 +86,11 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(2, 6, 23, 0.14);
     border-radius: var(--radius-full);
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(2, 6, 23, 0.22);
   }
 
   /* Focus ring */
@@ -165,6 +173,18 @@
   box-shadow: var(--shadow-md);
 }
 
+/* ===== Fixed/sticky panel surface =====
+   For panels that float above page content (surah nav panel, top navbar).
+   Symmetric shadow + hairline border instead of a one-sided directional
+   shadow, which reads as a smudge rather than elevation on this palette. */
+.panel-surface {
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-panel);
+}
+
 /* ===== Buttons ===== */
 .btn {
   display: inline-flex;
@@ -206,7 +226,8 @@
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
+  /* Was rgba(255,255,255,0.06) — invisible on a light surface. */
+  background: rgba(2, 6, 23, 0.045);
   color: var(--text-primary);
 }
 
@@ -272,7 +293,7 @@
 }
 
 .badge-muted {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(2, 6, 23, 0.045);
   color: var(--text-muted);
 }
 
@@ -290,10 +311,11 @@
   }
 }
 
-/* Thin modern scrollbar for panels */
+/* Thin modern scrollbar for panels — light-theme colors.
+   (Previously rgba(255,255,255,*), invisible against light panel surfaces.) */
 .thin-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.12) transparent;
+  scrollbar-color: rgba(2,6,23,0.16) transparent;
 }
 .thin-scroll::-webkit-scrollbar {
   width: 8px;
@@ -303,14 +325,14 @@
   background: transparent;
 }
 .thin-scroll::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+  background: linear-gradient(180deg, rgba(2,6,23,0.16), rgba(2,6,23,0.10));
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: padding-box;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+  box-shadow: inset 0 0 0 1px rgba(2,6,23,0.03);
 }
 .thin-scroll::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.08));
+  background: linear-gradient(180deg, rgba(2,6,23,0.26), rgba(2,6,23,0.16));
 }
 
 /* Fabric.js canvas layers - ensure proper fit */

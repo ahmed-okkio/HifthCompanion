@@ -44,10 +44,14 @@ export default function AnnotationToolbar({
         <div className="flex w-full flex-col items-center rounded-3xl bg-white/82 p-2 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl" style={{ border: '1px solid var(--border-subtle)' }}>
           <button
             onClick={() => setToolbarOpen(true)}
-            className="w-12 h-7 flex items-center justify-center rounded-xl text-xs font-semibold"
-            style={{ color: 'var(--text-muted)', background: 'var(--bg-subtle)' }}
+            title="Show annotation tools"
+            className="w-12 h-12 flex items-center justify-center rounded-2xl transition-colors hover:bg-black/5"
+            style={{ color: 'var(--text-muted)' }}
           >
-            Tools
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            <span className="sr-only">Show annotation tools</span>
           </button>
         </div>
       </aside>
@@ -57,13 +61,17 @@ export default function AnnotationToolbar({
   return (
     <aside className="sticky top-24 flex flex-col items-center gap-3 justify-self-start" style={{ width: '72px' }}>
       <div className="flex w-full flex-col items-center rounded-3xl bg-white/82 p-2 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl" style={{ border: '1px solid var(--border-subtle)' }}>
-        <div className="w-full flex justify-end pt-1 pb-0.5">
+        <div className="w-full flex justify-center pt-1 pb-0.5">
           <button
             onClick={() => setToolbarOpen(false)}
-            className="flex items-center gap-0.5 rounded-lg px-1.5 py-0.5 text-xs"
-            style={{ color: 'var(--text-muted)', background: 'transparent' }}
+            title="Hide toolbar"
+            className="w-8 h-8 flex items-center justify-center rounded-xl transition-colors hover:bg-black/5"
+            style={{ color: 'var(--text-muted)' }}
           >
-            Hide
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <span className="sr-only">Hide toolbar</span>
           </button>
         </div>
 

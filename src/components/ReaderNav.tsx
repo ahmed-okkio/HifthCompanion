@@ -1,5 +1,5 @@
 'use client';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { TOTAL_PAGES, clampPage } from '@/lib/quran';
 import LogoutButton from './LogoutButton';
@@ -9,7 +9,6 @@ import styles from './ReaderNav.module.css';
 
 export default function ReaderNav({ currentPage }: { currentPage: number }) {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [jumpInput, setJumpInput] = useState('');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
@@ -23,11 +22,10 @@ export default function ReaderNav({ currentPage }: { currentPage: number }) {
   }, []);
 
   const go = (page: number) => {
-    const pageNum = clampPage(page);
+    const clamped = clampPage(page);
     const params = new URLSearchParams(searchParams.toString());
-    const query = params.toString();
-    const nextPath = pathname.replace(/\/reader\/\d+$/, `/reader/${pageNum}`);
-    router.push(query ? `${nextPath}?${query}` : nextPath);
+    params.set('page', String(clamped));
+    router.push(`/reader?${params.toString()}`, { scroll: false });
     setJumpInput('');
   };
 

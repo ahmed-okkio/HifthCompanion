@@ -145,6 +145,7 @@ interface Props {
 
 export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, onSelect, currentPage: currentPageProp, basePath, topOffset = 72 }: Props) {
   const [query, setQuery] = useState('');
+  const [mounted, setMounted] = useState(false);
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
   const hasAutoScrolledRef = useRef(false);
 
@@ -157,18 +158,17 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
       return currentPageProp;
     }
 
+    const qp = parseInt(searchParams.get('page') ?? '', 10);
+    if (!isNaN(qp) && qp > 0) return qp;
+
     const readerMatch = pathname.match(/^\/reader\/(\d+)/);
-    if (readerMatch) {
-      return Number.parseInt(readerMatch[1], 10);
-    }
+    if (readerMatch) return Number.parseInt(readerMatch[1], 10);
 
     const shareMatch = pathname.match(/^\/share\/[^/]+\/(\d+)/);
-    if (shareMatch) {
-      return Number.parseInt(shareMatch[1], 10);
-    }
+    if (shareMatch) return Number.parseInt(shareMatch[1], 10);
 
     return 1;
-  }, [currentPageProp, pathname]);
+  }, [currentPageProp, pathname, searchParams]);
 
   const groupedSurahs = useMemo<SurahPageGroup[]>(() => {
     const groups = new Map<number, Surah[]>();
@@ -205,6 +205,8 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     ));
   }, [groupedSurahs, query]);
 
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
     if (query.trim()) return;
     if (hasAutoScrolledRef.current) return;
@@ -221,14 +223,12 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     await flush?.();
     onSelect?.(group.surahs[0]?.number ?? 1);
     const params = new URLSearchParams(searchParams.toString());
-    const query = params.toString();
-    const targetPath = `${basePath ?? '/reader'}/${group.page}`;
-    const targetHref = query ? `${targetPath}?${query}` : targetPath;
-    const currentHref = query ? `${pathname}?${query}` : pathname;
+    params.set('page', String(group.page));
+    const base = basePath ?? '/reader';
+    const targetHref = `${base}?${params.toString()}`;
+    const currentPage = parseInt(searchParams.get('page') ?? '', 10);
 
-    if (targetHref === currentHref) {
-      return;
-    }
+    if (currentPage === group.page) return;
 
     router.push(targetHref, { scroll: false });
   };
@@ -320,9 +320,6 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     </aside>
   );
 
-  if (typeof document !== 'undefined') {
-    return createPortal(panel, document.body);
-  }
-
-  return panel;
+  if (!mounted) return null;
+  return createPortal(panel, document.body);
 }

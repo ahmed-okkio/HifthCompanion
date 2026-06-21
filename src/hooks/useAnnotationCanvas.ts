@@ -40,7 +40,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
   const [activeTool, setActiveTool] = useState<Tool>('pen');
   const [activeColor, setActiveColor] = useState<string>('#ef4444');
   const [opacity, setOpacity] = useState<number>(0.4);
-  const [penWidth, setPenWidth] = useState<number>(3);
+  const [penWidth, setPenWidth] = useState<number>(6);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);

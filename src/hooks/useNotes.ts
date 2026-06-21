@@ -1,15 +1,34 @@
 'use client';
-import { useState, useTransition } from 'react';
+import { useState, useEffect, useTransition, useMemo } from 'react';
 import type { Note } from '@/types';
 import { createNote, updateNote, deleteNote } from '@/lib/services/notes';
+import { createClient } from '@/lib/supabase/client';
 
-export function useNotes(setId: string, pageNum: number, initialNotes: Note[]) {
+export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = []) {
+  const supabase = useMemo(() => createClient(), []);
   const [notes, setNotes] = useState<Note[]>(initialNotes);
   const [newBody, setNewBody] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState('');
   const [collapsed, setCollapsed] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!setId) { setNotes([]); return; }
+    supabase
+      .from('notes')
+      .select('*')
+      .eq('set_id', setId)
+      .eq('page_number', pageNum)
+      .order('created_at', { ascending: true })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .then((res: any) => {
+        setNotes(res.data ?? []);
+        setEditingId(null);
+        setEditBody('');
+        setNewBody('');
+      });
+  }, [setId, pageNum, supabase]);
 
   const handleCreate = () => {
     if (!newBody.trim()) return;

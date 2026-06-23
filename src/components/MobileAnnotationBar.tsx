@@ -20,6 +20,7 @@ export default function MobileAnnotationBar({
 }: Props) {
   return (
     <div
+      data-testid="mobile-annotation-bar"
       className="lg:hidden"
       style={{
         position: 'fixed',

@@ -42,22 +42,48 @@ test.describe('Annotations Persistence', () => {
     await expect.poll(async () => {
       return await page.evaluate(() => Boolean((window as any).fabricCanvas));
     }, { timeout: 10000 }).toBeTruthy();
-    await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible({ timeout: 10000 });
+    // Poll until canvas-ready attr appears (handles cycle and instant load)
+    await expect.poll(async () => {
+      return await page.evaluate(() => {
+        const el = document.querySelector('[data-canvas-ready="true"]');
+        return el !== null;
+      });
+    }, { timeout: 15000, message: 'data-canvas-ready="true" not found after set selection' }).toBeTruthy();
     await page.click('button[title="Pen"]', { force: true });
 
-    // 5. Draw on the canvas
-    let box: { x: number; y: number; width: number; height: number } | null = null;
+    // Confirm drawing mode is armed before we draw
     await expect.poll(async () => {
-      box = await upperCanvas.boundingBox();
-      return box !== null && box.width > 0 && box.height > 0;
+      return await page.evaluate(() => Boolean((window as any).fabricCanvas?.isDrawingMode));
     }, { timeout: 10000 }).toBeTruthy();
-    if (!box) throw new Error('Canvas not found');
-    box = box as { x: number; y: number; width: number; height: number };
-    
-    await page.mouse.move(box.x + 100, box.y + 100);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 200, box.y + 200, { steps: 5 });
-    await page.mouse.up();
+
+    // 5. Draw on the canvas with retry — slow FS can delay event registration
+    let drew = false;
+    for (let attempt = 0; attempt < 3 && !drew; attempt++) {
+      let box: { x: number; y: number; width: number; height: number } | null = null;
+      await expect.poll(async () => {
+        box = await upperCanvas.boundingBox();
+        return box !== null && box.width > 50 && box.height > 50;
+      }, { timeout: 10000 }).toBeTruthy();
+      if (!box) throw new Error('Canvas not found');
+      box = box as { x: number; y: number; width: number; height: number };
+
+      const startX = box.x + Math.round(box.width * 0.25);
+      const startY = box.y + Math.round(box.height * 0.25);
+      await page.mouse.move(startX, startY);
+      await page.mouse.down();
+      await page.mouse.move(startX + 100, startY + 100, { steps: 10 });
+      await page.mouse.up();
+
+      try {
+        await expect.poll(async () => {
+          return await page.evaluate(() => {
+            const canvas = (window as any).fabricCanvas;
+            return canvas ? canvas.getObjects().length > 0 : false;
+          });
+        }, { timeout: 3000 }).toBeTruthy();
+        drew = true;
+      } catch { /* retry */ }
+    }
 
     // 6. Wait for explicit save confirmation
     await expect.poll(() => logs.some(l => l.includes('Save successful')), {

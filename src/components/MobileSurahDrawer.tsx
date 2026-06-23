@@ -130,8 +130,13 @@ const SURAH_LIST: Surah[] = [
   { number: 114, name: 'An-Nas' },
 ];
 
-export default function MobileSurahDrawer() {
-  const [open, setOpen] = useState(false);
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  basePath?: string;
+}
+
+export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/reader' }: Props) {
   const [query, setQuery] = useState('');
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
   const hasAutoScrolledRef = useRef(false);
@@ -218,9 +223,9 @@ export default function MobileSurahDrawer() {
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page');
     const query = params.toString();
-    const targetPath = `/reader/${group.page}`;
+    const targetPath = `${basePath}/${group.page}`;
     const targetHref = query ? `${targetPath}?${query}` : targetPath;
-    setOpen(false);
+    onOpenChange(false);
     if (currentPage !== group.page) {
       router.push(targetHref, { scroll: false });
     }
@@ -228,48 +233,10 @@ export default function MobileSurahDrawer() {
 
   return (
     <>
-      {/* Floating pill button — mobile only */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="lg:hidden flex items-center"
-        aria-label="Open surah list"
-        style={{
-          position: 'fixed',
-          bottom: '24px',
-          left: '16px',
-          zIndex: 60,
-          gap: '6px',
-          paddingLeft: '16px',
-          paddingRight: '16px',
-          paddingTop: '10px',
-          paddingBottom: '10px',
-          borderRadius: '9999px',
-          background: 'var(--accent-solid)',
-          color: '#fff',
-          fontSize: '14px',
-          fontWeight: 600,
-          boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
-          border: 'none',
-          cursor: 'pointer',
-          lineHeight: 1,
-        }}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <line x1="8" y1="6" x2="21" y2="6" />
-          <line x1="8" y1="12" x2="21" y2="12" />
-          <line x1="8" y1="18" x2="21" y2="18" />
-          <line x1="3" y1="6" x2="3.01" y2="6" />
-          <line x1="3" y1="12" x2="3.01" y2="12" />
-          <line x1="3" y1="18" x2="3.01" y2="18" />
-        </svg>
-        Surahs
-      </button>
-
       {/* Backdrop */}
       {open && (
         <div
-          onClick={() => setOpen(false)}
+          onClick={() => onOpenChange(false)}
           aria-hidden
           style={{
             position: 'fixed',
@@ -339,7 +306,7 @@ export default function MobileSurahDrawer() {
               </span>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => onOpenChange(false)}
                 aria-label="Close surah list"
                 style={{
                   display: 'flex',

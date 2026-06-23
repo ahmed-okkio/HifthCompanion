@@ -1,0 +1,44 @@
+/* Share header chrome — mirrors ReaderNav.module.css: in-flow at the top of the
+   desktop flex shell, and fixed at the top of the viewport on mobile so the
+   content scrolls beneath it (Story 14). The .glass header inside provides the
+   background/border; this wrapper only owns positioning. */
+.headerWrap {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  width: 100%;
+}
+
+@media (max-width: 1023px) {
+  .headerWrap {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+  }
+}
+
+/* Mobile-only surah trigger, matching ReaderNav's surahButton. */
+.surahButton {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 0;
+  appearance: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--accent-solid);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05);
+  transition:
+    transform 160ms var(--ease-out),
+    background-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out);
+}
+
+.surahButton:hover {
+  background: #fff;
+  transform: translateY(-1px);
+}

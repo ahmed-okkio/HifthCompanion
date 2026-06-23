@@ -52,16 +52,16 @@ export default function SetsList({ initialSets }: { initialSets: AnnotationSet[]
           onKeyDown={e => e.key === 'Enter' && handleCreateSet()}
           placeholder="New set name..."
           className="input"
-          style={{ flex: 1 }}
+          style={{ flex: 1, minWidth: 0 }}
         />
         <button onClick={handleCreateSet}
                 disabled={!newName.trim()}
                 className="btn btn-primary flex items-center gap-1"
-                style={{ flexShrink: 0 }}>
+                style={{ flexShrink: 0, minHeight: '44px' }}>
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Create
+          <span className="sm:inline">Create</span>
         </button>
       </div>
 
@@ -86,77 +86,73 @@ export default function SetsList({ initialSets }: { initialSets: AnnotationSet[]
              style={{
                padding: '14px 18px',
                animationDelay: `${i * 50}ms`,
-               display: 'flex',
-               alignItems: 'center',
-               justifyContent: 'space-between',
              }}>
+          {/* Top row: name / edit-input */}
           {editingId === set.id ? (
-            <input
-              autoFocus
-              value={editName}
-              onChange={e => setEditName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') handleRenameSet(set.id);
-                if (e.key === 'Escape') setEditingId(null);
-              }}
-              className="input input-sm"
-              style={{ flex: 1, marginRight: '12px' }}
-            />
-          ) : (
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="w-2 h-2 rounded-full flex-shrink-0"
-                   style={{ background: 'var(--accent)' }} />
-              <span className="font-medium text-sm truncate"
-                    style={{ color: 'var(--text-primary)' }}>
-                {set.name}
-              </span>
-            </div>
-          )}
-
-          <div className="flex gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100"
-               style={{ transition: 'opacity var(--duration-fast) var(--ease-out)' }}>
-            {editingId === set.id ? (
-              <>
-                 <button onClick={() => handleRenameSet(set.id)}
+            <div className="flex gap-2 items-center">
+              <input
+                autoFocus
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleRenameSet(set.id);
+                  if (e.key === 'Escape') setEditingId(null);
+                }}
+                className="input input-sm"
+                style={{ flex: 1, minWidth: 0, minHeight: '44px' }}
+              />
+              <div className="flex gap-1 flex-shrink-0">
+                <button onClick={() => handleRenameSet(set.id)}
                         className="btn btn-ghost flex items-center gap-1"
-                        style={{ padding: '4px 10px', fontSize: '11px', color: 'var(--text-accent)' }}>
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        style={{ minHeight: '44px', padding: '4px 12px', fontSize: '13px', color: 'var(--text-accent)' }}>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   Save
                 </button>
                 <button onClick={() => setEditingId(null)}
                         className="btn btn-ghost flex items-center gap-1"
-                        style={{ padding: '4px 10px', fontSize: '11px' }}>
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        style={{ minHeight: '44px', padding: '4px 12px', fontSize: '13px' }}>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                   Cancel
                 </button>
-              </>
-            ) : (
-              <>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-2 h-2 rounded-full flex-shrink-0"
+                     style={{ background: 'var(--accent)' }} />
+                <span className="font-medium text-sm truncate"
+                      style={{ color: 'var(--text-primary)' }}>
+                  {set.name}
+                </span>
+              </div>
+              {/* Always visible on touch (hover: none); hover-reveal on pointer devices */}
+              <div className="sets-actions flex gap-1 flex-shrink-0">
                 <button
                   onClick={() => { setEditingId(set.id); setEditName(set.name); }}
                   className="btn btn-ghost flex items-center gap-1"
-                  style={{ padding: '4px 10px', fontSize: '11px' }}
+                  style={{ minHeight: '44px', padding: '4px 12px', fontSize: '13px' }}
                 >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
-                  Rename
+                  <span className="hidden sm:inline">Rename</span>
                 </button>
                 <button onClick={() => handleDeleteSet(set.id)}
                         className="btn btn-danger-ghost flex items-center gap-1"
-                        style={{ padding: '4px 10px', fontSize: '11px' }}>
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        style={{ minHeight: '44px', padding: '4px 12px', fontSize: '13px' }}>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
-                  Delete
+                  <span className="hidden sm:inline">Delete</span>
                 </button>
-              </>
-            )}
-          </div>
+              </div>
+            </div>
+          )}
         </div>
       ))}
     </div>

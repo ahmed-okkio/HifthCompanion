@@ -9,6 +9,10 @@ import { CanvasHistory } from '@/lib/canvasHistory';
 import { type Tool, getToolCursor } from '@/lib/canvasTools';
 
 const SAVE_DELAY_MS = 1500;
+// Bottom breathing room below the page-display-frame inside the desktop app-shell.
+const PAGE_BOTTOM_GAP = 24;
+// Fallback offset before the chrome above the page can be measured (≈ nav + padding + set-picker).
+const FALLBACK_PAGE_OFFSET = 200;
 
 interface UseAnnotationCanvasProps {
   pageNum: number;
@@ -30,10 +34,21 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeLoadSetIdRef = useRef<string | null>(null);
   const lastLoadedRef = useRef<{ setId: string; pageNum: number } | null>(null);
+  // Tracks the (set, page) currently rendered into the live canvas so the soft-swap effect
+  // can flush the OUTGOING page before loading the next one (Story 24).
+  const loadedKeyRef = useRef<{ setId: string; page: number } | null>(null);
   const lastSnapshotAtRef = useRef<number>(0);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const supabase = useMemo(() => createClient(), []);
+
+  // Live refs so the mount-only init effect can read the current page/image without
+  // re-running (and disposing the Fabric instance) on every page change. The page swap
+  // is handled by the separate load effect below, which keeps the same canvas alive.
+  const pageNumRef = useRef(pageNum);
+  const imageUrlRef = useRef(imageUrl);
+  pageNumRef.current = pageNum;
+  imageUrlRef.current = imageUrl;
 
   const [selectedSetId, setSelectedSetId] = useState<string>(() => searchParams.get('set') ?? sets[0]?.id ?? '');
   const [saving, setSaving] = useState(false);
@@ -45,6 +60,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
   const [canRedo, setCanRedo] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
   const [canvasSize, setCanvasSize] = useState<PageCanvasSize | null>(null);
+  const [pageMaxHeightOffset, setPageMaxHeightOffset] = useState(FALLBACK_PAGE_OFFSET);
   const [hoveredTool, setHoveredTool] = useState<Tool | null>(null);
   const [hoverPos, setHoverPos] = useState<{ top: number; left: number } | null>(null);
 
@@ -58,6 +74,18 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
       setSelectedSetId(sets[0].id);
     }
   }, [searchParams, selectedSetId, sets]);
+
+  // Distance (px) from the viewport top to the bottom limit available to the page-display-frame:
+  // the frame's own top offset (covers fixed nav + main padding + set-picker chrome) plus a gap.
+  // Falls back to a constant before the frame is mounted/positioned. Also syncs state so the
+  // frame's CSS maxHeight tracks the same value used to size the canvas.
+  const measurePageOffset = useCallback(() => {
+    const frame = containerRef.current;
+    const top = frame ? frame.getBoundingClientRect().top : 0;
+    const offset = top > 0 ? Math.round(top) + PAGE_BOTTOM_GAP : FALLBACK_PAGE_OFFSET;
+    setPageMaxHeightOffset(offset);
+    return offset;
+  }, []);
 
   const refreshHistory = useCallback(() => {
     const h = historyRef.current;
@@ -158,13 +186,17 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
     }
   }, [supabase, imageUrl, applyBackground, refreshHistory]);
 
-  // Canvas init + resize
+  // Canvas init + resize.
+  // Story 24 (soft page swap): this effect creates/disposes the Fabric instance ONCE
+  // (mount/unmount + auth change only). Page navigation does NOT re-run it — the separate
+  // load effect below swaps the background image + objects into the SAME canvas instance,
+  // so changing pages no longer tears down and recreates Fabric (the old "reload" flash).
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
     let isMounted = true;
     setCanvasSize(null);
     const img = new Image();
-    img.src = imageUrl;
+    img.src = imageUrlRef.current;
     let naturalWidth = 0;
     let naturalHeight = 0;
     let canvas: fabric.Canvas | null = null;
@@ -172,10 +204,16 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
     // Measure stable wrapper (grid cell), not the frame — frame size is derived from this calculation
     const computeFitSize = () => {
       const wrapperWidth = wrapperRef.current?.clientWidth || window.innerWidth - 72;
+      // Desktop: cap available height so the page fits in the fixed app-shell without scrolling.
+      // Mobile (< 1024px): document-flow model — no height cap; canvas fills available width at
+      // natural aspect ratio and the user scrolls vertically (Story 8).
+      const isMobile = window.innerWidth < 1024;
+      const offset = measurePageOffset();
+      const availableHeight = isMobile ? 99999 : Math.max(320, window.innerHeight - offset);
       return calculatePageCanvasSize(
         naturalWidth, naturalHeight,
         Math.max(280, wrapperWidth),
-        Math.max(320, window.innerHeight - 96),
+        availableHeight,
       );
     };
 
@@ -207,11 +245,16 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
       historyRef.current = new CanvasHistory(canvas);
       // @ts-ignore
       window.fabricCanvas = canvas;
+      // Soft-swap proof (Story 24): increment a window counter every time a Fabric
+      // instance is actually CREATED. Page navigation must reuse the instance, so this
+      // value stays stable across prev/next/jump/surah-select to a different page.
+      (window as any).__hifthFabricCreatedCount = ((window as any).__hifthFabricCreatedCount ?? 0) + 1;
 
-      await applyBackground(canvas, imageUrl, fitSize.width);
+      await applyBackground(canvas, imageUrlRef.current, fitSize.width);
 
       if (selectedSetId && isMounted) {
-        loadAnnotation(canvas, selectedSetId, pageNum);
+        loadedKeyRef.current = { setId: selectedSetId, page: pageNumRef.current };
+        loadAnnotation(canvas, selectedSetId, pageNumRef.current);
       } else {
         historyRef.current.snapshot();
         refreshHistory();
@@ -242,7 +285,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
         canvasRef.current.style.width = `${fitSize.width}px`;
         canvasRef.current.style.height = `${fitSize.height}px`;
       }
-      void applyBackground(canvas, imageUrl, fitSize.width);
+      void applyBackground(canvas, imageUrlRef.current, fitSize.width);
       canvas.renderAll();
     });
     if (wrapperRef.current) ro.observe(wrapperRef.current);
@@ -252,14 +295,21 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
       ro.disconnect();
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
-        if (fabricRef.current && selectedSetId) saveCanvas(fabricRef.current, selectedSetId, pageNum);
+        if (fabricRef.current && selectedSetId) saveCanvas(fabricRef.current, selectedSetId, pageNumRef.current);
       }
       lastLoadedRef.current = null;
       if ((window as any).fabricCanvas === fabricRef.current) delete (window as any).fabricCanvas;
       if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageNum, imageUrl, user?.id, applyBackground]);
+  }, [user?.id, applyBackground]);
+
+  // Keep the page-fit offset measured so the frame's CSS maxHeight tracks the chrome above it.
+  useEffect(() => {
+    measurePageOffset();
+    window.addEventListener('resize', measurePageOffset);
+    return () => window.removeEventListener('resize', measurePageOffset);
+  }, [measurePageOffset]);
 
   // Sync drawing mode + brush when tool/color/width changes
   useEffect(() => {
@@ -303,11 +353,29 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
     return () => { canvas.off('mouse:down', handleEraserMouseDown); };
   }, [activeTool, refreshHistory, saveNow]);
 
-  // Reload on set/page change
+  // Soft page/set swap (Story 24): when the route re-renders with a new page (or the user
+  // switches set), the Fabric instance is NOT disposed — we flush any pending edits of the
+  // OUTGOING (set, page) to its own page number, then load the new page's background image +
+  // canvas_json into the existing canvas. This replaces the old dispose/recreate flash.
   useEffect(() => {
     const canvas = fabricRef.current;
-    if (canvas && selectedSetId) loadAnnotation(canvas, selectedSetId, pageNum);
-  }, [selectedSetId, pageNum, loadAnnotation]);
+    if (!canvas || !selectedSetId) return;
+
+    const prev = loadedKeyRef.current;
+    const changed = !prev || prev.setId !== selectedSetId || prev.page !== pageNum;
+    loadedKeyRef.current = { setId: selectedSetId, page: pageNum };
+
+    const run = async () => {
+      // Flush the outgoing page first so a pending debounce/edit is not lost when we
+      // swap objects in place (no dispose-time save fires any more on page change).
+      if (changed && prev) {
+        if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
+        if (user && prev.setId) await saveCanvas(canvas, prev.setId, prev.page);
+      }
+      await loadAnnotation(canvas, selectedSetId, pageNum);
+    };
+    void run();
+  }, [selectedSetId, pageNum, loadAnnotation, saveCanvas, user]);
 
   // Shape + text drawing
   useEffect(() => {
@@ -444,7 +512,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
   return {
     containerRef, wrapperRef, canvasRef,
     selectedSetId, saving, activeTool, activeColor, opacity, penWidth,
-    canUndo, canRedo, canvasReady, canvasSize, hoveredTool, hoverPos,
+    canUndo, canRedo, canvasReady, canvasSize, pageMaxHeightOffset, hoveredTool, hoverPos,
     setSelectedSetId, setActiveColor, setOpacity, setPenWidth,
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,

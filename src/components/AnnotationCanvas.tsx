@@ -19,7 +19,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
   const {
     containerRef, wrapperRef, canvasRef,
     selectedSetId, saving, activeTool, activeColor, opacity, penWidth,
-    canUndo, canRedo, canvasReady, canvasSize, hoveredTool, hoverPos,
+    canUndo, canRedo, canvasReady, canvasSize, pageMaxHeightOffset, hoveredTool, hoverPos,
     setSelectedSetId, setActiveColor, setOpacity, setPenWidth,
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,
@@ -81,7 +81,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
             saving={saving}
             onSetChange={id => { setSelectedSetId(id); updateSelectedSetInUrl(id); }}
           />
-          <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={96} ready={canvasReady}>
+          <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady}>
             <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
           </PageDisplayFrame>
         </div>

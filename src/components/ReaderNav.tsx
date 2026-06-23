@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import styles from './ReaderNav.module.css';
 
-export default function ReaderNav({ currentPage }: { currentPage: number }) {
+export default function ReaderNav({ currentPage, onOpenSurah }: { currentPage: number; onOpenSurah?: () => void }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [jumpInput, setJumpInput] = useState('');
@@ -24,8 +24,9 @@ export default function ReaderNav({ currentPage }: { currentPage: number }) {
   const go = (page: number) => {
     const clamped = clampPage(page);
     const params = new URLSearchParams(searchParams.toString());
-    params.set('page', String(clamped));
-    router.push(`/reader?${params.toString()}`, { scroll: false });
+    params.delete('page');
+    const qs = params.toString();
+    router.push(`/reader/${clamped}${qs ? `?${qs}` : ''}`, { scroll: false });
     setJumpInput('');
   };
 
@@ -47,6 +48,24 @@ export default function ReaderNav({ currentPage }: { currentPage: number }) {
         </Link>
 
         <div className={styles.navigator}>
+          {onOpenSurah && (
+            <button
+              type="button"
+              onClick={onOpenSurah}
+              title="Open surah list"
+              aria-label="Open surah list"
+              className={styles.surahButton}
+            >
+              <svg className={styles.navIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <line x1="8" y1="6" x2="21" y2="6" />
+                <line x1="8" y1="12" x2="21" y2="12" />
+                <line x1="8" y1="18" x2="21" y2="18" />
+                <line x1="3" y1="6" x2="3.01" y2="6" />
+                <line x1="3" y1="12" x2="3.01" y2="12" />
+                <line x1="3" y1="18" x2="3.01" y2="18" />
+              </svg>
+            </button>
+          )}
           <button
             onClick={() => go(currentPage - 1)}
             disabled={currentPage === 1}

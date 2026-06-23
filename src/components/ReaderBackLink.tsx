@@ -9,7 +9,7 @@ export default function ReaderBackLink() {
     if (last) setHref(`/reader/${last}`);
   }, []);
   return (
-    <Link href={href} className="btn btn-ghost" style={{ fontSize: '12px' }}>
+    <Link href={href} className="btn btn-ghost" style={{ fontSize: '12px', minHeight: '44px' }}>
       ← Back to Reader
     </Link>
   );

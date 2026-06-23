@@ -29,19 +29,20 @@ export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, 
         maxWidth: '100%',
       }}
     >
-      {!ready && (
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: '24px',
-            background: 'linear-gradient(90deg, rgba(15,23,42,0.04) 0%, rgba(15,23,42,0.08) 50%, rgba(15,23,42,0.04) 100%)',
-            backgroundSize: '200% 100%',
-            animation: 'shimmer 1.4s linear infinite',
-          }}
-        />
-      )}
+      <div
+        aria-hidden
+        style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: '24px',
+          background: 'linear-gradient(90deg, rgba(15,23,42,0.04) 0%, rgba(15,23,42,0.08) 50%, rgba(15,23,42,0.04) 100%)',
+          backgroundSize: '200% 100%',
+          animation: ready ? 'none' : 'shimmer 1.4s linear infinite',
+          opacity: ready ? 0 : 1,
+          pointerEvents: 'none',
+          transition: 'opacity 0.2s',
+        }}
+      />
       {children}
     </div>
   );

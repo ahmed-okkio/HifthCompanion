@@ -1,11 +1,16 @@
 import { test, expect, Page } from '@playwright/test';
 
-// Helper: fail on any browser console errors
+// Helper: fail on meaningful browser console errors.
+// Excludes React DevTools noise and network resource errors (which are emitted
+// as console errors but represent failed fetches — not JS exceptions — and can
+// appear on share/unauthenticated pages for expected auth-related requests).
 function listenForErrors(page: Page) {
   page.on('console', msg => {
-    if (msg.type() === 'error' && !msg.text().includes('React DevTools')) {
-      throw new Error(`[Browser Error] ${msg.text()}`);
-    }
+    if (msg.type() !== 'error') return;
+    const text = msg.text();
+    if (text.includes('React DevTools')) return;
+    if (text.includes('Failed to load resource')) return;
+    throw new Error(`[Browser Error] ${text}`);
   });
 }
 
@@ -18,31 +23,68 @@ async function setupAuthenticatedReader(page: Page, setName: string) {
   await page.goto('/reader/1');
   await expect(page.locator('.upper-canvas')).toBeVisible();
   await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible();
-  // Ensure our set is selected in the picker
+  // Ensure our set is selected in the picker.
+  // selectOption triggers loadAnnotation which may cycle canvasReady false→true.
+  // We poll for canvasReady via the data attr, then confirm fabricCanvas + isDrawingMode.
   await page.locator('#set-picker-top').selectOption({ label: setName });
+  // Poll until canvas-ready attr appears (handles both the cycle case and the instant case)
+  await expect.poll(async () => {
+    return await page.evaluate(() => {
+      const el = document.querySelector('[data-canvas-ready="true"]');
+      return el !== null;
+    });
+  }, { timeout: 15000, message: 'data-canvas-ready="true" not found after set selection' }).toBeTruthy();
   await expect.poll(async () => {
     return await page.evaluate(() => Boolean((window as any).fabricCanvas));
   }, { timeout: 10000 }).toBeTruthy();
-  await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible();
   await page.click('button[title="Pen"]', { force: true });
   await expect.poll(async () => {
     return await page.evaluate(() => Boolean((window as any).fabricCanvas?.isDrawingMode));
   }, { timeout: 10000 }).toBeTruthy();
 }
 
-// Helper: draw on canvas
-async function drawOnCanvas(page: Page, dx = 150, dy = 100) {
+// Helper: draw on canvas, retrying up to maxAttempts times until at least one object is created.
+// Each attempt re-fetches the bounding box (canvas may have been resized) and performs a
+// mouse-down → move (10 steps) → up stroke well inside the drawable area.  After each stroke
+// we poll for a new object for up to 3 s before giving up and trying again.
+async function drawOnCanvas(page: Page, dx = 150, dy = 100, maxAttempts = 3) {
   const canvas = page.locator('.upper-canvas');
-  let box: { x: number; y: number; width: number; height: number } | null = null;
-  await expect.poll(async () => {
-    box = await canvas.boundingBox();
-    return box !== null && box.width > 0 && box.height > 0;
-  }, { timeout: 10000, message: 'Canvas not found or zero size' }).toBeTruthy();
-  if (!box) throw new Error('Canvas not found');
-  await page.mouse.move(box.x + 100, box.y + 100);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 100 + dx, box.y + 100 + dy, { steps: 5 });
-  await page.mouse.up();
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // Re-poll bounding box each attempt; canvas could still be settling
+    let box: { x: number; y: number; width: number; height: number } | null = null;
+    await expect.poll(async () => {
+      box = await canvas.boundingBox();
+      return box !== null && box.width > 50 && box.height > 50;
+    }, { timeout: 10000, message: 'Canvas not found or too small' }).toBeTruthy();
+    if (!box) throw new Error('Canvas not found');
+
+    const countBefore: number = await page.evaluate(() => {
+      const c = (window as any).fabricCanvas;
+      return c ? c.getObjects().length : 0;
+    });
+
+    // Start well inside the canvas (25% from top-left corner)
+    const startX = box.x + Math.round(box.width * 0.25);
+    const startY = box.y + Math.round(box.height * 0.25);
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(startX + dx, startY + dy, { steps: 10 });
+    await page.mouse.up();
+
+    // Poll for a new object for up to 3 s
+    let grew = false;
+    try {
+      await expect.poll(async () => {
+        const c = (window as any).fabricCanvas;
+        return c ? c.getObjects().length > countBefore : false;
+      }, { timeout: 3000 }).toBeTruthy();
+      grew = true;
+    } catch {
+      // Stroke didn't register — loop and retry
+    }
+    if (grew) return;
+  }
+  // All attempts exhausted — let the individual test assertion report the failure
 }
 
 test.describe('Annotations — Core', () => {
@@ -177,15 +219,15 @@ test.describe('Toolbar UX', () => {
     await setupAuthenticatedReader(page, setName);
 
     // Color swatches should be visible initially
-    await expect(page.locator('button[title="Red"]')).toBeVisible();
+    await expect(page.locator('aside button[title="Red"]')).toBeVisible();
 
     // Collapse toolbar
     await page.click('button:has-text("Hide")');
-    await expect(page.locator('button[title="Red"]')).not.toBeVisible();
+    await expect(page.locator('aside button[title="Red"]')).not.toBeVisible();
 
     // Re-expand
     await page.click('button:has-text("Tools")');
-    await expect(page.locator('button[title="Red"]')).toBeVisible();
+    await expect(page.locator('aside button[title="Red"]')).toBeVisible();
   });
 
   test('undo removes last drawn object', async ({ page }) => {

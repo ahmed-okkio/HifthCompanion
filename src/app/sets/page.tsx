@@ -15,7 +15,7 @@ export default async function SetsPage() {
   const sets = await getAnnotationSets();
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
+    <div className="min-h-screen overflow-x-hidden" style={{ background: 'var(--bg-base)' }}>
       {/* Header */}
       <header className="glass sticky top-0 z-50 border-b"
               style={{ borderColor: 'var(--border-subtle)', borderRadius: 0 }}>
@@ -46,6 +46,12 @@ export default async function SetsPage() {
         </div>
         <SetsList initialSets={sets} />
       </main>
+      <footer
+        className="w-full text-center text-xs tracking-wider uppercase border-t"
+        style={{ padding: '10px 0', color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
+      >
+        HifthCompanion © 2026
+      </footer>
     </div>
   );
 }

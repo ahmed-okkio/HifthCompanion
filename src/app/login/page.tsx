@@ -21,7 +21,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4"
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 overflow-x-hidden"
          style={{ background: 'var(--bg-base)' }}>
       <div className="w-full max-w-sm animate-fade-in-scale">
         {/* Brand */}
@@ -37,7 +37,7 @@ export default function LoginPage() {
         </div>
 
         {/* Card */}
-        <div className="card" style={{ padding: '32px' }}>
+        <div className="card p-6 sm:p-8">
           <div className="flex flex-col gap-4">
             <div>
               <label className="block text-xs font-semibold mb-1.5"
@@ -46,6 +46,8 @@ export default function LoginPage() {
               </label>
               <input
                 type="email"
+                inputMode="email"
+                autoComplete="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleLogin()}
@@ -62,6 +64,7 @@ export default function LoginPage() {
               </label>
               <input
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleLogin()}
@@ -84,8 +87,8 @@ export default function LoginPage() {
             <button
               onClick={handleLogin}
               disabled={loading || !email || !password}
-              className="btn btn-primary w-full"
-              style={{ padding: '10px 16px', fontSize: '14px', marginTop: '4px' }}
+              className="btn btn-primary w-full min-h-[44px]"
+              style={{ fontSize: '14px', marginTop: '4px' }}
             >
               {loading ? (
                 <span className="flex items-center gap-2">

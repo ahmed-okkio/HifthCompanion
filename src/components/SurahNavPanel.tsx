@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SURAH_FIRST_PAGES } from '@/lib/quran';
 
@@ -146,6 +146,8 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
   const [query, setQuery] = useState('');
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
   const hasAutoScrolledRef = useRef(false);
+  const scrollListRef = useRef<HTMLDivElement | null>(null);
+  const SCROLL_STORAGE_KEY = 'surahPanelScrollTop';
 
   const router = useRouter();
   const pathname = usePathname();
@@ -214,10 +216,97 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     hasAutoScrolledRef.current = true;
   }, [activePage, query]);
 
+  // The panel lives in the persistent reader shell, so it does NOT remount on page
+  // navigation. We track the last user-driven scroll position in a ref (and mirror it
+  // to sessionStorage so a full reload / share view also restores), then re-pin it
+  // after each navigation to defeat the late, async scroll reset the new page triggers.
+  const lastScrollTopRef = useRef<number>(0);
+  const pinningRef = useRef<boolean>(false);
+  const pendingTargetRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const el = scrollListRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      // While re-pinning after a navigation, ignore scroll events: they are either our
+      // own reassertions or the page's spurious reset-to-0, neither of which should
+      // overwrite the user's saved position.
+      if (pinningRef.current) return;
+      lastScrollTopRef.current = el.scrollTop;
+      sessionStorage.setItem(SCROLL_STORAGE_KEY, String(el.scrollTop));
+    };
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [SCROLL_STORAGE_KEY]);
+
+  // Restore once on first mount (covers full reload / share view, where state is fresh).
+  useLayoutEffect(() => {
+    const el = scrollListRef.current;
+    if (!el) return;
+    const saved = Number(sessionStorage.getItem(SCROLL_STORAGE_KEY) ?? '0');
+    if (saved > 0) {
+      lastScrollTopRef.current = saved;
+      el.scrollTop = saved;
+      // Prevent the auto-scroll-to-active effect from overriding the restored position.
+      hasAutoScrolledRef.current = true;
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on mount
+
+  // Re-pin the saved position after every navigation. The new page commits and then
+  // asynchronously resets the (persistent) list's scrollTop, so we reassert across a
+  // short window of frames, bailing the moment the user scrolls themselves.
+  useEffect(() => {
+    const el = scrollListRef.current;
+    if (!el) return;
+    // Prefer the position frozen at navigation start (handleSelect); fall back to the
+    // last tracked scroll for navigations that bypass it (e.g. page jumper, back/forward).
+    const target = pendingTargetRef.current ?? lastScrollTopRef.current;
+    pendingTargetRef.current = null;
+    if (target <= 0) return;
+
+    let cancelled = false;
+    pinningRef.current = true;
+    const stop = () => { cancelled = true; pinningRef.current = false; };
+    el.addEventListener('wheel', stop, { passive: true });
+    el.addEventListener('touchmove', stop, { passive: true });
+    el.addEventListener('keydown', stop);
+
+    const start = performance.now();
+    const pin = () => {
+      if (cancelled) return;
+      if (Math.abs(el.scrollTop - target) > 1) el.scrollTop = target;
+      if (performance.now() - start < 600) {
+        requestAnimationFrame(pin);
+      } else {
+        pinningRef.current = false;
+      }
+    };
+    requestAnimationFrame(pin);
+
+    return () => {
+      stop();
+      el.removeEventListener('wheel', stop);
+      el.removeEventListener('touchmove', stop);
+      el.removeEventListener('keydown', stop);
+    };
+  }, [currentPage]);
+
   const handleSelect = async (group: SurahPageGroup) => {
+    // Freeze the current list scroll position up front and guard it: flushing the canvas
+    // and the route change both reset this (persistent, non-remounting) list to 0, so we
+    // must capture before awaiting anything and ignore the intervening resets.
+    const el = scrollListRef.current;
+    if (el && el.scrollTop > 0) {
+      pendingTargetRef.current = el.scrollTop;
+      lastScrollTopRef.current = el.scrollTop;
+      pinningRef.current = true;
+    }
+
     const flush = (window as any).__hifthFlushReaderCanvas as undefined | (() => Promise<void>);
     await flush?.();
     onSelect?.(group.surahs[0]?.number ?? 1);
+
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page');
     const query = params.toString();
@@ -225,7 +314,12 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     const targetHref = query ? `${targetPath}?${query}` : targetPath;
     const currentHref = query ? `${pathname}?${query}` : pathname;
 
-    if (targetHref === currentHref) return;
+    if (targetHref === currentHref) {
+      // No navigation will occur; release the guard so normal tracking resumes.
+      pendingTargetRef.current = null;
+      pinningRef.current = false;
+      return;
+    }
 
     router.push(targetHref, { scroll: false });
   };
@@ -234,10 +328,10 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
   const panel = (
     <aside
       data-testid="surah-panel"
-      className="panel-surface w-72"
+      className="panel-surface w-72 flex flex-col"
       style={{
         height: '100%',
-        overflowY: 'auto',
+        overflow: 'hidden',
         borderLeft: 'none',
         borderTop: 'none',
         borderBottom: 'none',
@@ -245,7 +339,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
       }}
     >
 
-      <div className="px-3 py-3">
+      <div className="flex-shrink-0 px-3 py-3">
         <div className="rounded-2xl border border-[var(--border-subtle)] bg-white/80 px-3 py-3 shadow-sm">
           <div className="flex items-center gap-3">
             <button className="flex-1 rounded-full bg-[var(--accent-solid)] py-2 text-sm font-semibold text-white shadow-sm">Surahs</button>
@@ -270,7 +364,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
         </div>
       </div>
 
-      <div data-testid="surah-scroll-list" className="overflow-auto px-2 pb-4 pt-1 h-[calc(100vh-248px)] thin-scroll">
+      <div ref={scrollListRef} data-testid="surah-scroll-list" className="flex-1 min-h-0 overflow-y-auto px-2 pb-4 pt-1 thin-scroll">
         <ul className="space-y-1">
           {filtered.map(group => {
             const active = activePage === group.page;

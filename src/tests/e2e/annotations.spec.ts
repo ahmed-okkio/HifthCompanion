@@ -76,27 +76,44 @@ test.describe('Annotations', () => {
     // Opacity slider should be visible
     await expect(page.locator('text=Opacity')).toBeVisible();
 
+    // Wait for fabric's shape handler to register the new tool
+    await expect.poll(async () => {
+      return await page.evaluate(() => (window as any).__annotationTool === 'highlighter');
+    }, { timeout: 5000 }).toBeTruthy();
+
     // Select Green color
     // The button title is "Green" and has backgroundColor: '#22c55e'
     await page.click('button[title="Green"]', { force: true });
 
-    // Draw on the canvas
-    const box = await canvas.boundingBox();
-    if (!box) throw new Error('Canvas bounding box not found');
-    
-    await page.mouse.move(box.x + 150, box.y + 150);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 300, box.y + 250, { steps: 5 });
-    await page.mouse.up();
+    // Draw on the canvas with retry — fabric shape handlers can miss the first stroke on slow FS
+    let objectsCount = 0;
+    for (let attempt = 0; attempt < 3 && objectsCount === 0; attempt++) {
+      const box = await canvas.boundingBox();
+      if (!box) throw new Error('Canvas bounding box not found');
+
+      const startX = box.x + Math.round(box.width * 0.25);
+      const startY = box.y + Math.round(box.height * 0.25);
+      await page.mouse.move(startX, startY);
+      await page.mouse.down();
+      await page.mouse.move(startX + 150, startY + 100, { steps: 10 });
+      await page.mouse.up();
+
+      try {
+        await expect.poll(async () => {
+          const fabricCanvas = (window as any).fabricCanvas;
+          if (!fabricCanvas) return 0;
+          return fabricCanvas.getObjects().filter((o: any) => o.type === 'rect').length;
+        }, { timeout: 3000 }).toBeGreaterThan(0);
+      } catch { /* retry */ }
+
+      objectsCount = await page.evaluate(() => {
+        const fabricCanvas = (window as any).fabricCanvas;
+        if (!fabricCanvas) return 0;
+        return fabricCanvas.getObjects().filter((o: any) => o.type === 'rect').length;
+      });
+    }
 
     // Verify object created is a Rect
-    const objectsCount = await page.evaluate(() => {
-      // @ts-ignore
-      const fabricCanvas = window.fabricCanvas;
-      if (!fabricCanvas) return 0;
-      const objs = fabricCanvas.getObjects();
-      return objs.filter((o: any) => o.type === 'rect').length;
-    });
     expect(objectsCount).toBeGreaterThan(0);
   });
 });

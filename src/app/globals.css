@@ -279,6 +279,44 @@
   }
 }
 
+/* Mobile fixed-chrome offset — compensates for the fixed nav height.
+   --nav-h is set as an inline CSS var on the element from JS (ResizeObserver).
+   At lg+ breakpoint the nav is in-flow inside the flex shell; no offset needed. */
+.mobile-nav-offset {
+  padding-top: var(--nav-h, 72px);
+}
+@media (min-width: 1024px) {
+  .mobile-nav-offset {
+    padding-top: 0;
+  }
+}
+
+/* Mobile bottom toolbar offset — adds padding-bottom so content scrolls
+   clear of the fixed MobileAnnotationBar.
+   Bar content height: 44px buttons + 6px*2 padding = 56px.
+   Plus env(safe-area-inset-bottom) for notched phones.
+   Story 12: consolidated from Story 8 provisional 72px → measured 56px.
+   lg: resets to 0 because the desktop toolbar is in-flow (no fixed bar). */
+.mobile-bar-offset {
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 1024px) {
+  .mobile-bar-offset {
+    padding-bottom: 0;
+  }
+}
+
+/* Mobile page-display-frame height: on mobile the page sits in scrolling
+   document flow — no viewport-height cap. The inline maxHeight (set from JS
+   for desktop fit-to-viewport) is overridden here so the page renders at its
+   natural width-derived height and the user scrolls to see all of it.
+   Desktop retains the inline style (no override). */
+@media (max-width: 1023px) {
+  .page-display-frame {
+    max-height: none !important;
+  }
+}
+
 /* Thin modern scrollbar for panels — light-theme colors.
    (Previously rgba(255,255,255,*), invisible against light panel surfaces.) */
 .thin-scroll {
@@ -301,6 +339,22 @@
 }
 .thin-scroll::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, rgba(2,6,23,0.26), rgba(2,6,23,0.16));
+}
+
+/* Sets page — action buttons (Rename / Delete).
+   On pointer devices (desktop) hide until row is hovered → clean look.
+   On touch devices (hover: none) always show → buttons reachable without hover. */
+.sets-actions {
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.group:hover .sets-actions {
+  opacity: 1;
+}
+@media (hover: none) {
+  .sets-actions {
+    opacity: 1;
+  }
 }
 
 /* Fabric.js canvas layers - ensure proper fit */

@@ -50,6 +50,18 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
     }
   });
 
+  // The fixed nav must reserve its full height: page content starts below it, not behind it.
+  test('(a) fixed nav does not cover the page content', async ({ page }) => {
+    listenForErrors(page);
+    await page.waitForSelector('[data-canvas-ready="true"]', { timeout: 15000 });
+    const m = await page.evaluate(() => {
+      const nav = document.querySelector('nav')!.getBoundingClientRect();
+      const firstContent = (document.querySelector('#set-picker-top') ?? document.querySelector('.page-display-frame'))!.getBoundingClientRect();
+      return { navBottom: Math.round(nav.bottom), contentTop: Math.round(firstContent.top) };
+    });
+    expect(m.contentTop, 'first content must start at/below the fixed nav').toBeGreaterThanOrEqual(m.navBottom - 2);
+  });
+
   // (a) Tapping surah button opens bottom-sheet
   test('(a) tapping surah button opens the bottom-sheet', async ({ page }) => {
     listenForErrors(page);

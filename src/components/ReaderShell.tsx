@@ -40,15 +40,20 @@ export default function ReaderShell({ children, user, sets }: ReaderShellProps) 
   const [surahOpen, setSurahOpen] = useState(false);
 
   useEffect(() => {
-    const el = navRef.current;
-    if (!el) return;
+    const wrap = navRef.current;
+    if (!wrap) return;
+    // Measure the <nav> itself, not its wrapper: on mobile the nav is position:fixed (out of
+    // flow), so the wrapper collapses to 0 height. Using the wrapper there left --nav-h at the
+    // fallback and the fixed nav covered the top of the page. The nav element keeps its real
+    // (possibly multi-row) height in both layouts.
+    const navEl = wrap.querySelector('nav') ?? wrap;
     const measure = () => {
-      const height = el.getBoundingClientRect().height;
+      const height = navEl.getBoundingClientRect().height;
       if (height > 0) setNavHeight(height);
     };
     measure();
     const ro = new ResizeObserver(measure);
-    ro.observe(el);
+    ro.observe(navEl);
     return () => ro.disconnect();
   }, []);
 

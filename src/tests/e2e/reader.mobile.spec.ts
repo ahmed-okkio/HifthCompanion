@@ -214,6 +214,35 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
       expect(barBottom, 'annotation bar must stay at viewport bottom').toBeGreaterThanOrEqual(viewport.height - 4);
     }
   });
+
+  // Compact toolbar (Option A): no horizontal overflow; tool + color open via popovers.
+  test('compact toolbar fits and opens tool / color popovers', async ({ page }) => {
+    listenForErrors(page);
+    await page.waitForLoadState('networkidle');
+
+    // The control row must fit the viewport — no horizontal scroll/clip.
+    const rowFits = await page.evaluate(() => {
+      const bar = document.querySelector('[data-testid="mobile-annotation-bar"]');
+      const row = bar?.querySelector('div[style*="space-around"]') as HTMLElement | null;
+      return row ? row.scrollWidth <= row.clientWidth + 1 : false;
+    });
+    expect(rowFits, 'toolbar row must not overflow horizontally').toBe(true);
+
+    // Tool popover opens; selecting a tool applies it and closes the popover.
+    // JS-dispatch the triggers (the Next dev indicator overlaps the leftmost button in dev).
+    await page.evaluate(() => (document.querySelector('button[aria-label="Tools"]') as HTMLButtonElement)?.click());
+    await expect(page.getByRole('menu', { name: 'Tools' })).toBeVisible();
+    await page.evaluate(() => {
+      const grid = document.querySelector('[role="menu"][aria-label="Tools"]');
+      (grid?.querySelector('button[aria-label="Highlighter"]') as HTMLButtonElement)?.click();
+    });
+    await expect(page.getByRole('menu', { name: 'Tools' })).toBeHidden();
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __annotationTool?: string }).__annotationTool)).toBe('highlighter');
+
+    // Color popover opens and shows the preset swatches.
+    await page.evaluate(() => (document.querySelector('button[aria-label="Color"]') as HTMLButtonElement)?.click());
+    await expect(page.getByRole('menu', { name: 'Colors' })).toBeVisible();
+  });
 });
 
 test.describe('Mobile share view (Pixel 5)', () => {

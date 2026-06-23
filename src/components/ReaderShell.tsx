@@ -81,7 +81,11 @@ export default function ReaderShell({ children, user, sets }: ReaderShellProps) 
           className="lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col"
           style={{ flex: 1, minWidth: 0 }}
         >
-          <main className="w-full flex-grow px-4 py-6 sm:px-6 sm:py-8 mobile-bar-offset animate-fade-in lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden">
+          {/* No transform-based animation here: the mobile annotation bar inside this
+              subtree is position:fixed and a transformed ancestor (e.g. animate-fade-in,
+              which keeps a computed matrix via animation-fill-mode: both) would make it the
+              containing block, pinning the fixed bar to <main> instead of the viewport. */}
+          <main className="w-full flex-grow px-4 py-6 sm:px-6 sm:py-8 mobile-bar-offset lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden">
             <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-6 items-start lg:h-full lg:min-h-0 lg:items-start lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] lg:justify-center">
 
               <div className="flex min-w-0 flex-col gap-4">

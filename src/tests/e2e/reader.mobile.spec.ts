@@ -187,15 +187,27 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
 
     // Get the annotation bar by its testid (data-testid="mobile-annotation-bar")
     const mobileBar = page.locator('[data-testid="mobile-annotation-bar"]');
+    await expect(mobileBar).toBeVisible();
 
     const viewport = page.viewportSize();
     expect(viewport).not.toBeNull();
+
+    // The bar is position:fixed — it must be fixed to the VIEWPORT, not to a transformed
+    // ancestor. A transformed ancestor (e.g. an animate-fade-in on <main>, which keeps a
+    // computed matrix via animation-fill-mode:both) would become its containing block and
+    // pin it to that element instead of the viewport. offsetParent === null proves the
+    // nearest positioned/transformed ancestor is the viewport.
+    const offsetParentTag = await mobileBar.evaluate(
+      (el) => (el as HTMLElement).offsetParent?.tagName ?? null,
+    );
+    expect(offsetParentTag, 'fixed annotation bar must not be trapped by a transformed ancestor').toBeNull();
 
     // Scroll down
     await page.evaluate(() => window.scrollBy(0, 300));
     await page.waitForTimeout(200);
 
     const barBox = await mobileBar.boundingBox();
+    expect(barBox).not.toBeNull();
     if (barBox && viewport) {
       // Bar bottom must be at or near viewport bottom (fixed bottom:0)
       const barBottom = barBox.y + barBox.height;

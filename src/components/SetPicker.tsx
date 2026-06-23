@@ -11,15 +11,15 @@ interface Props {
 
 export default function SetPicker({ user, sets, selectedSetId, saving, onSetChange }: Props) {
   return (
-    <div className="mb-3 flex items-center justify-between rounded-2xl border border-[var(--border-subtle)] bg-white/72 px-3 py-2 shadow-sm backdrop-blur">
+    <div className="mb-3 flex items-center gap-2 justify-between rounded-2xl border border-[var(--border-subtle)] bg-white/72 px-3 py-2 shadow-sm backdrop-blur min-h-[52px] lg:min-h-0">
       {user ? (
         sets.length > 0 ? (
           <select
             id="set-picker-top"
             value={selectedSetId}
             onChange={e => onSetChange(e.target.value)}
-            className="input input-sm"
-            style={{ minWidth: '180px' }}
+            className="input input-sm min-h-[44px] lg:min-h-0"
+            style={{ minWidth: '0', maxWidth: '100%', flex: '1 1 0' }}
           >
             {sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>

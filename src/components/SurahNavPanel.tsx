@@ -1,6 +1,5 @@
 'use client';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SURAH_FIRST_PAGES } from '@/lib/quran';
 
@@ -145,7 +144,6 @@ interface Props {
 
 export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, onSelect, currentPage: currentPageProp, basePath, topOffset = 72 }: Props) {
   const [query, setQuery] = useState('');
-  const [mounted, setMounted] = useState(false);
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
   const hasAutoScrolledRef = useRef(false);
 
@@ -205,8 +203,6 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     ));
   }, [groupedSurahs, query]);
 
-  useEffect(() => { setMounted(true); }, []);
-
   useEffect(() => {
     if (query.trim()) return;
     if (hasAutoScrolledRef.current) return;
@@ -223,12 +219,13 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     await flush?.();
     onSelect?.(group.surahs[0]?.number ?? 1);
     const params = new URLSearchParams(searchParams.toString());
-    params.set('page', String(group.page));
-    const base = basePath ?? '/reader';
-    const targetHref = `${base}?${params.toString()}`;
-    const currentPage = parseInt(searchParams.get('page') ?? '', 10);
+    params.delete('page');
+    const query = params.toString();
+    const targetPath = `${basePath ?? '/reader'}/${group.page}`;
+    const targetHref = query ? `${targetPath}?${query}` : targetPath;
+    const currentHref = query ? `${pathname}?${query}` : pathname;
 
-    if (currentPage === group.page) return;
+    if (targetHref === currentHref) return;
 
     router.push(targetHref, { scroll: false });
   };
@@ -237,16 +234,10 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
   const panel = (
     <aside
       data-testid="surah-panel"
-      className="panel-surface w-72 overflow-hidden"
+      className="panel-surface w-72"
       style={{
-        position: 'fixed',
-        left: 0,
-        top: `${topOffset}px`,
-        height: `calc(100vh - ${topOffset}px)`,
-        overflow: 'auto',
-        zIndex: 40,
-        margin: 0,
-        transform: 'none',
+        height: '100%',
+        overflowY: 'auto',
         borderLeft: 'none',
         borderTop: 'none',
         borderBottom: 'none',
@@ -320,6 +311,5 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     </aside>
   );
 
-  if (!mounted) return null;
-  return createPortal(panel, document.body);
+  return panel;
 }

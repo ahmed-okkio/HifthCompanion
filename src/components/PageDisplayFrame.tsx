@@ -18,6 +18,7 @@ export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, 
       data-canvas-ready={ready ? 'true' : undefined}
       className="page-display-frame mx-auto flex items-center justify-center overflow-hidden"
       style={{
+        position: 'relative',
         background: 'linear-gradient(180deg, #fff 0%, #fbfaf6 100%)',
         borderRadius: '24px',
         border: '1px solid rgba(15,23,42,0.08)',
@@ -28,6 +29,19 @@ export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, 
         maxWidth: '100%',
       }}
     >
+      {!ready && (
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '24px',
+            background: 'linear-gradient(90deg, rgba(15,23,42,0.04) 0%, rgba(15,23,42,0.08) 50%, rgba(15,23,42,0.04) 100%)',
+            backgroundSize: '200% 100%',
+            animation: 'shimmer 1.4s linear infinite',
+          }}
+        />
+      )}
       {children}
     </div>
   );

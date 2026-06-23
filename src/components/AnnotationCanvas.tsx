@@ -1,7 +1,9 @@
 'use client';
+import { useEffect } from 'react';
 import type { AnnotationSet } from '@/types';
 import PageDisplayFrame from '@/components/PageDisplayFrame';
 import AnnotationToolbar from '@/components/AnnotationToolbar';
+import MobileAnnotationBar from '@/components/MobileAnnotationBar';
 import ToolHoverPopover from '@/components/ToolHoverPopover';
 import SetPicker from '@/components/SetPicker';
 import { useAnnotationCanvas } from '@/hooks/useAnnotationCanvas';
@@ -23,10 +25,31 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,
   } = useAnnotationCanvas({ pageNum, imageUrl, sets, user });
 
+  useEffect(() => {
+    localStorage.setItem('hifth:lastPage', String(pageNum));
+  }, [pageNum]);
+
   return (
     <div className="flex w-full justify-center">
       <div className="grid w-full grid-cols-1 items-start gap-4 sm:gap-5 lg:grid-cols-[72px_minmax(0,1fr)_72px]">
-        <AnnotationToolbar
+        <div className="hidden lg:block">
+          <AnnotationToolbar
+            activeTool={activeTool}
+            activeColor={activeColor}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            saving={saving}
+            onToolClick={handleToolClick}
+            onColorChange={setActiveColor}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onClear={handleClear}
+            onHoverEnter={onHoverEnter}
+            onHoverLeave={onHoverLeave}
+          />
+        </div>
+
+        <MobileAnnotationBar
           activeTool={activeTool}
           activeColor={activeColor}
           canUndo={canUndo}
@@ -37,8 +60,6 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
           onUndo={handleUndo}
           onRedo={handleRedo}
           onClear={handleClear}
-          onHoverEnter={onHoverEnter}
-          onHoverLeave={onHoverLeave}
         />
 
         <ToolHoverPopover
@@ -52,7 +73,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
           onMouseLeave={onHoverLeave}
         />
 
-        <div ref={wrapperRef} className="min-w-0 w-full lg:col-start-2 lg:w-full">
+        <div ref={wrapperRef} className="min-w-0 w-full lg:col-start-2 lg:w-full pb-[72px] lg:pb-0">
           <SetPicker
             user={user}
             sets={sets}

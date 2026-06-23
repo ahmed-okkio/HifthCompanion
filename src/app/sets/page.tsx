@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import SetsList from '@/components/SetsList';
 import { getAnnotationSets } from '@/lib/services/annotationSets';
 import Link from 'next/link';
+import ReaderBackLink from '@/components/ReaderBackLink';
 
 export default async function SetsPage() {
   const supabase = await createClient();
@@ -27,9 +28,7 @@ export default async function SetsPage() {
               HifthCompanion
             </span>
           </Link>
-          <Link href="/reader/1" className="btn btn-ghost" style={{ fontSize: '12px' }}>
-            ← Back to Reader
-          </Link>
+          <ReaderBackLink />
         </div>
       </header>
 

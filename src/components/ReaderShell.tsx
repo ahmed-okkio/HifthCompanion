@@ -3,6 +3,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import ReaderNav from './ReaderNav';
 import SurahNavPanel from './SurahNavPanel';
+import MobileSurahDrawer from './MobileSurahDrawer';
 
 const FALLBACK_NAV_HEIGHT = 72;
 
@@ -17,48 +18,52 @@ export default function ReaderShell({ children }: { children: React.ReactNode })
     if (match) return parseInt(match[1] || match[2], 10);
     return 1;
   })();
+
   const navRef = useRef<HTMLDivElement>(null);
   const [navHeight, setNavHeight] = useState(FALLBACK_NAV_HEIGHT);
 
-  // Measure the navbar's real rendered height instead of assuming a fixed
-  // 72px. SurahNavPanel positions itself with `top: ${topOffset}px` and
-  // `height: calc(100vh - ${topOffset}px)` — if that number doesn't match
-  // the navbar's actual height, the panel ends up clipped under (or with a
-  // gap below) the navbar. A ResizeObserver keeps this correct even if the
-  // navbar's height changes (responsive styles, font loading, etc).
   useEffect(() => {
     const el = navRef.current;
     if (!el) return;
-
     const measure = () => {
       const height = el.getBoundingClientRect().height;
       if (height > 0) setNavHeight(height);
     };
-
     measure();
-
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
-      <div className="hidden lg:block">
-        <SurahNavPanel topOffset={navHeight} />
-      </div>
+    <div style={{ background: 'var(--bg-base)' }}>
       <div ref={navRef}>
         <ReaderNav currentPage={pageNum} />
       </div>
-      <div className="flex min-w-0 flex-col" style={{ minHeight: `calc(100vh - ${navHeight}px)` }}>
-        {children}
-        <footer
-          className="w-full py-6 text-center text-xs tracking-wider uppercase border-t"
-          style={{ color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
+      <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+        <div
+          className="hidden lg:block flex-shrink-0"
+          style={{
+            position: 'sticky',
+            top: `${navHeight}px`,
+            height: `calc(100vh - ${navHeight}px)`,
+            width: '288px',
+            overflowY: 'auto',
+          }}
         >
-          HifthCompanion © 2026
-        </footer>
+          <SurahNavPanel topOffset={navHeight} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0, minHeight: `calc(100vh - ${navHeight}px)` }}>
+          {children}
+          <footer
+            className="w-full text-center text-xs tracking-wider uppercase border-t"
+            style={{ padding: '10px 0', color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
+          >
+            HifthCompanion © 2026
+          </footer>
+        </div>
       </div>
+      <MobileSurahDrawer />
     </div>
   );
 }

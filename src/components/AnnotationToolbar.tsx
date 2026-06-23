@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { type Tool, ALL_TOOLS, TOOL_ICONS, TOOL_LABELS, PRESET_COLORS } from '@/lib/canvasTools';
 
 interface Props {
@@ -23,6 +23,14 @@ export default function AnnotationToolbar({
   onHoverEnter, onHoverLeave,
 }: Props) {
   const [toolbarOpen, setToolbarOpen] = useState(true);
+  useEffect(() => {
+    const stored = localStorage.getItem('hifth:toolbarOpen');
+    if (stored !== null) setToolbarOpen(stored !== 'false');
+  }, []);
+  const setToolbarOpenPersisted = (val: boolean) => {
+    localStorage.setItem('hifth:toolbarOpen', String(val));
+    setToolbarOpen(val);
+  };
   const buttonRefs = useRef<Record<Tool, HTMLButtonElement | null>>({} as Record<Tool, HTMLButtonElement | null>);
 
   const handleMouseEnter = (t: Tool) => {
@@ -43,7 +51,7 @@ export default function AnnotationToolbar({
       <aside className="sticky top-24 flex flex-col items-center gap-3 justify-self-start" style={{ width: '72px' }}>
         <div className="flex w-full flex-col items-center rounded-3xl bg-white/82 p-2 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl" style={{ border: '1px solid var(--border-subtle)' }}>
           <button
-            onClick={() => setToolbarOpen(true)}
+            onClick={() => setToolbarOpenPersisted(true)}
             title="Show annotation tools"
             className="w-12 h-12 flex items-center justify-center rounded-2xl transition-colors hover:bg-black/5"
             style={{ color: 'var(--text-muted)' }}
@@ -63,7 +71,7 @@ export default function AnnotationToolbar({
       <div className="flex w-full flex-col items-center rounded-3xl bg-white/82 p-2 shadow-[0_16px_40px_rgba(15,23,42,0.08)] backdrop-blur-xl" style={{ border: '1px solid var(--border-subtle)' }}>
         <div className="w-full flex justify-center pt-1 pb-0.5">
           <button
-            onClick={() => setToolbarOpen(false)}
+            onClick={() => setToolbarOpenPersisted(false)}
             title="Hide toolbar"
             className="w-8 h-8 flex items-center justify-center rounded-xl transition-colors hover:bg-black/5"
             style={{ color: 'var(--text-muted)' }}

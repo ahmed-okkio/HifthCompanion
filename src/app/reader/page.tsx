@@ -1,10 +1,5 @@
-import { Suspense } from 'react';
-import ReaderClient from '@/components/ReaderClient';
+import { redirect } from 'next/navigation';
 
-export default function ReaderPage() {
-  return (
-    <Suspense>
-      <ReaderClient />
-    </Suspense>
-  );
+export default function ReaderIndexPage() {
+  redirect('/reader/1');
 }

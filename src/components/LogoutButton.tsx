@@ -14,7 +14,7 @@ export default function LogoutButton() {
   return (
     <button
       onClick={logout}
-      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150"
+      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 min-h-[44px] lg:min-h-0"
       style={{ color: 'var(--danger)', border: '1px solid rgba(248,113,113,0.2)' }}
       onMouseEnter={e => {
         (e.currentTarget as HTMLElement).style.background = 'var(--danger-muted)';

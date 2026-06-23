@@ -23,7 +23,9 @@ export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, 
         borderRadius: '24px',
         border: '1px solid rgba(15,23,42,0.08)',
         boxShadow: '0 24px 70px rgba(15,23,42,0.12), 0 0 0 8px rgba(255,255,255,0.44)',
-        maxHeight: `calc(100dvh - ${maxHeightOffset}px)`,
+        // No maxHeight cap: `size` already fits the page to the container per-page (desktop is
+        // capped to available height; mobile is full height and scrolls). An inline maxHeight
+        // here previously clipped tall mobile pages (it overrode the responsive CSS rule).
         width: size ? `${size.width}px` : '100%',
         height: size ? `${size.height}px` : 'auto',
         maxWidth: '100%',

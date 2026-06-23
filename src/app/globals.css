@@ -306,11 +306,9 @@
   }
 }
 
-/* Mobile page-display-frame height: on mobile the page sits in scrolling
-   document flow — no viewport-height cap. The inline maxHeight (set from JS
-   for desktop fit-to-viewport) is overridden here so the page renders at its
-   natural width-derived height and the user scrolls to see all of it.
-   Desktop retains the inline style (no override). */
+/* Mobile page-display-frame height: the page sits in scrolling document flow with no
+   viewport-height cap. The frame height now comes from the JS-computed contain-fit size
+   (width-derived on mobile), so this is just a belt-and-braces guard against any cap. */
 @media (max-width: 1023px) {
   .page-display-frame {
     max-height: none !important;

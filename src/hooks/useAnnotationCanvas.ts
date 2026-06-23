@@ -95,15 +95,64 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
     }
   }, []);
 
-  const applyBackground = useCallback((canvas: fabric.Canvas, url: string, width: number) => {
-    return new Promise<void>((resolve) => {
+  // Natural (intrinsic) size of the page image currently shown. Each of the 604 pages can have
+  // different intrinsic dimensions, so we re-read this for every page rather than assuming one.
+  const naturalSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
+
+  // Fit the page's intrinsic size into its container, preserving aspect ratio (object-fit:
+  // contain). Desktop is height-bound (fits the fixed app-shell, no page scroll); mobile is
+  // width-bound (fills the column width, scroll down for the rest). No per-page tuning — just
+  // scale the native image up/down to fit whatever box the layout gives it.
+  const computeFitSize = useCallback((natW: number, natH: number): PageCanvasSize => {
+    const wrapperWidth = wrapperRef.current?.clientWidth || window.innerWidth - 72;
+    const isMobile = window.innerWidth < 1024;
+    const availableHeight = isMobile ? 100000 : Math.max(320, window.innerHeight - measurePageOffset());
+    return calculatePageCanvasSize(natW || 1, natH || 1, Math.max(280, wrapperWidth), availableHeight);
+  }, [measurePageOffset]);
+
+  // Resize the live canvas to the contain-fit box for the given intrinsic size, and publish that
+  // size to the frame. Returns the fit box so callers can rescale objects to match.
+  const sizeCanvasForImage = useCallback((canvas: fabric.Canvas, natW: number, natH: number): PageCanvasSize => {
+    naturalSizeRef.current = { w: natW, h: natH };
+    const fit = computeFitSize(natW, natH);
+    setCanvasSize(fit);
+    canvas.setDimensions({ width: fit.width, height: fit.height });
+    if (canvasRef.current) {
+      canvasRef.current.style.width = `${fit.width}px`;
+      canvasRef.current.style.height = `${fit.height}px`;
+    }
+    return fit;
+  }, [computeFitSize]);
+
+  // Load the page image, size the canvas to it (per-page intrinsic dims), and paint it as the
+  // background scaled to fill that box. Resizing here means changing pages always re-fits.
+  const applyBackground = useCallback((canvas: fabric.Canvas, url: string) => {
+    return new Promise<PageCanvasSize>((resolve) => {
       fabric.Image.fromURL(url, (fbImg) => {
-        fbImg.scaleToWidth(width);
+        const natW = (fbImg.width as number) || 1;
+        const natH = (fbImg.height as number) || 1;
+        const fit = sizeCanvasForImage(canvas, natW, natH);
+        fbImg.scaleToWidth(fit.width);
         canvas.setBackgroundImage(fbImg, () => {
           try { canvas.renderAll(); } catch { /* canvas disposed between request and callback */ }
-          resolve();
+          resolve(fit);
         });
       }, { crossOrigin: 'anonymous' });
+    });
+  }, [sizeCanvasForImage]);
+
+  // Scale every object on the canvas by `ratio` (used when the canvas is resized to a different
+  // page/container, so existing drawings stay aligned to the page).
+  const rescaleObjects = useCallback((canvas: fabric.Canvas, ratio: number) => {
+    if (!ratio || ratio === 1 || !isFinite(ratio)) return;
+    canvas.getObjects().forEach((o) => {
+      o.set({
+        left: (o.left ?? 0) * ratio,
+        top: (o.top ?? 0) * ratio,
+        scaleX: (o.scaleX ?? 1) * ratio,
+        scaleY: (o.scaleY ?? 1) * ratio,
+      });
+      o.setCoords();
     });
   }, []);
 
@@ -166,9 +215,14 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
     if (error) { console.error('[AnnotationCanvas] Load error:', error); return; }
 
     if (data?.canvas_json) {
+      const savedW = (data.canvas_json as { width?: number }).width;
       canvas.loadFromJSON(data.canvas_json, async () => {
         if (activeLoadSetIdRef.current !== setId) return;
-        if (containerRef.current) await applyBackground(canvas, imageUrl, canvas.getWidth());
+        // Re-fit the canvas to THIS page's image, then scale the loaded objects from the size
+        // they were saved at to the current fit — keeps existing drawings aligned to the page.
+        const fit = await applyBackground(canvas, imageUrl);
+        rescaleObjects(canvas, savedW ? fit.width / savedW : 1);
+        canvas.renderAll();
         historyRef.current?.clear();
         historyRef.current?.snapshot();
         refreshHistory();
@@ -177,14 +231,14 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
       });
     } else {
       canvas.clear();
-      if (containerRef.current) await applyBackground(canvas, imageUrl, canvas.getWidth());
+      await applyBackground(canvas, imageUrl);
       historyRef.current?.clear();
       historyRef.current?.snapshot();
       refreshHistory();
       lastLoadedRef.current = { setId, pageNum: page };
       setCanvasReady(true);
     }
-  }, [supabase, imageUrl, applyBackground, refreshHistory]);
+  }, [supabase, imageUrl, applyBackground, rescaleObjects, refreshHistory]);
 
   // Canvas init + resize.
   // Story 24 (soft page swap): this effect creates/disposes the Fabric instance ONCE
@@ -197,31 +251,14 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
     setCanvasSize(null);
     const img = new Image();
     img.src = imageUrlRef.current;
-    let naturalWidth = 0;
-    let naturalHeight = 0;
     let canvas: fabric.Canvas | null = null;
-
-    // Measure stable wrapper (grid cell), not the frame — frame size is derived from this calculation
-    const computeFitSize = () => {
-      const wrapperWidth = wrapperRef.current?.clientWidth || window.innerWidth - 72;
-      // Desktop: cap available height so the page fits in the fixed app-shell without scrolling.
-      // Mobile (< 1024px): document-flow model — no height cap; canvas fills available width at
-      // natural aspect ratio and the user scrolls vertically (Story 8).
-      const isMobile = window.innerWidth < 1024;
-      const offset = measurePageOffset();
-      const availableHeight = isMobile ? 99999 : Math.max(320, window.innerHeight - offset);
-      return calculatePageCanvasSize(
-        naturalWidth, naturalHeight,
-        Math.max(280, wrapperWidth),
-        availableHeight,
-      );
-    };
 
     img.onload = async () => {
       if (!isMounted) return;
-      naturalWidth = img.naturalWidth || 1;
-      naturalHeight = img.naturalHeight || 1;
-      const fitSize = computeFitSize();
+      const natW = img.naturalWidth || 1;
+      const natH = img.naturalHeight || 1;
+      naturalSizeRef.current = { w: natW, h: natH };
+      const fitSize = computeFitSize(natW, natH);
       setCanvasSize(fitSize);
 
       canvas = new fabric.Canvas(canvasRef.current!, {
@@ -250,7 +287,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
       // value stays stable across prev/next/jump/surah-select to a different page.
       (window as any).__hifthFabricCreatedCount = ((window as any).__hifthFabricCreatedCount ?? 0) + 1;
 
-      await applyBackground(canvas, imageUrlRef.current, fitSize.width);
+      await applyBackground(canvas, imageUrlRef.current);
 
       if (selectedSetId && isMounted) {
         loadedKeyRef.current = { setId: selectedSetId, page: pageNumRef.current };
@@ -277,16 +314,16 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
     };
 
     const ro = new ResizeObserver(() => {
-      if (!naturalWidth || !naturalHeight || !canvas) return;
-      const fitSize = computeFitSize();
-      setCanvasSize(fitSize);
-      canvas.setDimensions({ width: fitSize.width, height: fitSize.height });
-      if (canvasRef.current) {
-        canvasRef.current.style.width = `${fitSize.width}px`;
-        canvasRef.current.style.height = `${fitSize.height}px`;
-      }
-      void applyBackground(canvas, imageUrlRef.current, fitSize.width);
-      canvas.renderAll();
+      const c = fabricRef.current;
+      const { w, h } = naturalSizeRef.current;
+      if (!c || !w || !h) return;
+      const prevW = c.getWidth();
+      const fitSize = sizeCanvasForImage(c, w, h);
+      // Keep existing drawings + the background aligned to the new container size.
+      rescaleObjects(c, prevW ? fitSize.width / prevW : 1);
+      const bg = c.backgroundImage as fabric.Image | undefined;
+      if (bg && typeof bg.scaleToWidth === 'function') bg.scaleToWidth(fitSize.width);
+      c.renderAll();
     });
     if (wrapperRef.current) ro.observe(wrapperRef.current);
 

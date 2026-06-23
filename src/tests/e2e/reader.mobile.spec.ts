@@ -249,24 +249,27 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
     listenForErrors(page);
     await page.waitForSelector('[data-canvas-ready="true"]', { timeout: 15000 });
 
-    const upperPE = () => page.evaluate(() => (document.querySelector('canvas.upper-canvas') as HTMLElement)?.style.pointerEvents);
+    // The fabric WRAPPER (.canvas-container) is what must ignore pointer events in Move mode —
+    // otherwise a swipe over the image is swallowed by Fabric's touch-action:none and the page
+    // can't scroll. Asserting the wrapper (not just the upper canvas) guards that.
+    const wrapperPE = () => page.evaluate(() => (document.querySelector('.canvas-container') as HTMLElement)?.style.pointerEvents);
 
-    // Default: Move — the interaction (upper) canvas ignores pointer events so the page scrolls.
-    expect(await upperPE()).toBe('none');
+    // Default: Move — the canvas ignores pointer events so a finger swiping the image scrolls.
+    expect(await wrapperPE()).toBe('none');
 
     // Toggle to Draw — canvas captures touch again.
     await page.evaluate(() => (document.querySelector('button[aria-pressed]') as HTMLButtonElement)?.click());
-    await expect.poll(upperPE).not.toBe('none');
+    await expect.poll(wrapperPE).not.toBe('none');
 
     // Picking a tool also implies Draw.
     await page.evaluate(() => (document.querySelector('button[aria-pressed]') as HTMLButtonElement)?.click()); // back to Move
-    await expect.poll(upperPE).toBe('none');
+    await expect.poll(wrapperPE).toBe('none');
     await page.evaluate(() => (document.querySelector('button[aria-label="Tools"]') as HTMLButtonElement)?.click());
     await page.evaluate(() => {
       const grid = document.querySelector('[role="menu"][aria-label="Tools"]');
       (grid?.querySelector('button[aria-label="Highlighter"]') as HTMLButtonElement)?.click();
     });
-    await expect.poll(upperPE).not.toBe('none');
+    await expect.poll(wrapperPE).not.toBe('none');
   });
 });
 

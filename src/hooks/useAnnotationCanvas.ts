@@ -535,13 +535,25 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
   // (>= 1024px, mouse) always draws. Re-applied on mode change, canvas (re)ready, and resize.
   useEffect(() => {
     const apply = () => {
-      const canvas = fabricRef.current;
-      const upper = (canvas as unknown as { upperCanvasEl?: HTMLCanvasElement })?.upperCanvasEl;
-      if (!upper) return;
+      const canvas = fabricRef.current as unknown as {
+        wrapperEl?: HTMLElement;
+        upperCanvasEl?: HTMLCanvasElement;
+        lowerCanvasEl?: HTMLCanvasElement;
+      } | null;
+      const wrapper = canvas?.wrapperEl;
+      const upper = canvas?.upperCanvasEl;
+      const lower = canvas?.lowerCanvasEl;
+      if (!wrapper && !upper) return;
       const isMobile = window.innerWidth < 1024;
       const allowDraw = !isMobile || interactionMode === 'draw';
-      upper.style.pointerEvents = allowDraw ? '' : 'none';
-      upper.style.touchAction = allowDraw ? 'none' : 'pan-y';
+      // In Move mode the whole canvas wrapper ignores pointer events (and allows vertical
+      // panning), so a finger swiping over the IMAGE scrolls the page through to the document
+      // instead of being swallowed by Fabric's touch-action:none. Draw mode restores capture.
+      for (const el of [wrapper, upper, lower]) {
+        if (!el) continue;
+        el.style.pointerEvents = allowDraw ? '' : 'none';
+        el.style.touchAction = allowDraw ? (el === upper ? 'none' : '') : 'pan-y';
+      }
     };
     apply();
     window.addEventListener('resize', apply);

@@ -243,6 +243,31 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
     await page.evaluate(() => (document.querySelector('button[aria-label="Color"]') as HTMLButtonElement)?.click());
     await expect(page.getByRole('menu', { name: 'Colors' })).toBeVisible();
   });
+
+  // Move/Draw mode: default Move lets a finger scroll (canvas ignores touch); Draw captures it.
+  test('mobile defaults to Move (canvas ignores touch) and Draw toggle enables drawing', async ({ page }) => {
+    listenForErrors(page);
+    await page.waitForSelector('[data-canvas-ready="true"]', { timeout: 15000 });
+
+    const upperPE = () => page.evaluate(() => (document.querySelector('canvas.upper-canvas') as HTMLElement)?.style.pointerEvents);
+
+    // Default: Move — the interaction (upper) canvas ignores pointer events so the page scrolls.
+    expect(await upperPE()).toBe('none');
+
+    // Toggle to Draw — canvas captures touch again.
+    await page.evaluate(() => (document.querySelector('button[aria-pressed]') as HTMLButtonElement)?.click());
+    await expect.poll(upperPE).not.toBe('none');
+
+    // Picking a tool also implies Draw.
+    await page.evaluate(() => (document.querySelector('button[aria-pressed]') as HTMLButtonElement)?.click()); // back to Move
+    await expect.poll(upperPE).toBe('none');
+    await page.evaluate(() => (document.querySelector('button[aria-label="Tools"]') as HTMLButtonElement)?.click());
+    await page.evaluate(() => {
+      const grid = document.querySelector('[role="menu"][aria-label="Tools"]');
+      (grid?.querySelector('button[aria-label="Highlighter"]') as HTMLButtonElement)?.click();
+    });
+    await expect.poll(upperPE).not.toBe('none');
+  });
 });
 
 test.describe('Mobile share view (Pixel 5)', () => {

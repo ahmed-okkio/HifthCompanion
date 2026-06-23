@@ -63,6 +63,10 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
   const [pageMaxHeightOffset, setPageMaxHeightOffset] = useState(FALLBACK_PAGE_OFFSET);
   const [hoveredTool, setHoveredTool] = useState<Tool | null>(null);
   const [hoverPos, setHoverPos] = useState<{ top: number; left: number } | null>(null);
+  // Mobile only: 'move' lets a finger scroll the page (canvas ignores touch); 'draw' captures
+  // touch to annotate. Default 'move' so users don't draw by accident when scrolling. Desktop
+  // (mouse) always draws regardless of this — the gating effect below is width-scoped.
+  const [interactionMode, setInteractionMode] = useState<'move' | 'draw'>('move');
 
   useEffect(() => {
     const setFromUrl = searchParams.get('set');
@@ -522,7 +526,27 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
 
   const handleToolClick = useCallback((t: Tool) => {
     setActiveTool(prev => prev === t ? 'pen' : t);
+    // Choosing a tool means "I want to draw" — enter draw mode (mobile; no-op effect on desktop).
+    setInteractionMode('draw');
   }, []);
+
+  // Mobile move/draw gating: in 'move' mode (and below the lg breakpoint) the Fabric upper
+  // canvas ignores pointer events so a finger scrolls the page instead of drawing. Desktop
+  // (>= 1024px, mouse) always draws. Re-applied on mode change, canvas (re)ready, and resize.
+  useEffect(() => {
+    const apply = () => {
+      const canvas = fabricRef.current;
+      const upper = (canvas as unknown as { upperCanvasEl?: HTMLCanvasElement })?.upperCanvasEl;
+      if (!upper) return;
+      const isMobile = window.innerWidth < 1024;
+      const allowDraw = !isMobile || interactionMode === 'draw';
+      upper.style.pointerEvents = allowDraw ? '' : 'none';
+      upper.style.touchAction = allowDraw ? 'none' : 'pan-y';
+    };
+    apply();
+    window.addEventListener('resize', apply);
+    return () => window.removeEventListener('resize', apply);
+  }, [interactionMode, canvasReady]);
 
   const updateSelectedSetInUrl = useCallback((setId: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -550,6 +574,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
     containerRef, wrapperRef, canvasRef,
     selectedSetId, saving, activeTool, activeColor, opacity, penWidth,
     canUndo, canRedo, canvasReady, canvasSize, pageMaxHeightOffset, hoveredTool, hoverPos,
+    interactionMode, setInteractionMode,
     setSelectedSetId, setActiveColor, setOpacity, setPenWidth,
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,

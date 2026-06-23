@@ -20,6 +20,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
     containerRef, wrapperRef, canvasRef,
     selectedSetId, saving, activeTool, activeColor, opacity, penWidth,
     canUndo, canRedo, canvasReady, canvasSize, pageMaxHeightOffset, hoveredTool, hoverPos,
+    interactionMode, setInteractionMode,
     setSelectedSetId, setActiveColor, setOpacity, setPenWidth,
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,
@@ -55,6 +56,8 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
           canUndo={canUndo}
           canRedo={canRedo}
           saving={saving}
+          mode={interactionMode}
+          onModeChange={setInteractionMode}
           onToolClick={handleToolClick}
           onColorChange={setActiveColor}
           onUndo={handleUndo}

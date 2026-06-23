@@ -8,6 +8,8 @@ interface Props {
   canUndo: boolean;
   canRedo: boolean;
   saving: boolean;
+  mode: 'move' | 'draw';
+  onModeChange: (m: 'move' | 'draw') => void;
   onToolClick: (t: Tool) => void;
   onColorChange: (c: string) => void;
   onUndo: () => void;
@@ -43,8 +45,9 @@ const triggerStyle: React.CSSProperties = {
 
 export default function MobileAnnotationBar({
   activeTool, activeColor, canUndo, canRedo, saving,
-  onToolClick, onColorChange, onUndo, onRedo, onClear,
+  mode, onModeChange, onToolClick, onColorChange, onUndo, onRedo, onClear,
 }: Props) {
+  const drawing = mode === 'draw';
   const [open, setOpen] = useState<Popover>(null);
   const toggle = (p: Popover) => setOpen(cur => (cur === p ? null : p));
   const close = () => setOpen(null);
@@ -150,6 +153,42 @@ export default function MobileAnnotationBar({
 
       {/* The bar row — five evenly-spaced controls, always fits (no horizontal scroll). */}
       <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '5px 8px', gap: 4 }}>
+        {/* Move / Draw toggle — default Move lets a finger scroll the page; tap to draw. */}
+        <button
+          onClick={() => onModeChange(drawing ? 'move' : 'draw')}
+          title={drawing ? 'Drawing — tap to scroll' : 'Scrolling — tap to draw'}
+          aria-label={drawing ? 'Drawing mode, tap to switch to scroll' : 'Scroll mode, tap to switch to draw'}
+          aria-pressed={drawing}
+          className="[&>svg]:h-5 [&>svg]:w-5"
+          style={{
+            ...triggerStyle,
+            width: 'auto',
+            paddingInline: 10,
+            gap: 4,
+            fontSize: 13,
+            fontWeight: 700,
+            ...(drawing
+              ? { background: 'var(--accent-solid)', color: '#fff' }
+              : { background: 'transparent', color: 'var(--text-muted)', boxShadow: 'inset 0 0 0 1px var(--border-subtle)' }),
+          }}
+        >
+          {drawing ? (
+            // pencil
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12 20h9" />
+              <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+            </svg>
+          ) : (
+            // hand / move
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M18 11V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2M14 10V4a2 2 0 0 0-2-2 2 2 0 0 0-2 2v2" />
+              <path d="M10 10.5V6a2 2 0 0 0-2-2 2 2 0 0 0-2 2v8" />
+              <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+            </svg>
+          )}
+          <span>{drawing ? 'Draw' : 'Move'}</span>
+        </button>
+
         {/* Tool selector — shows active tool + chevron */}
         <button
           onClick={() => toggle('tools')}

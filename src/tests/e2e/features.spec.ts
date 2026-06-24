@@ -213,21 +213,16 @@ test.describe('Toolbar tools', () => {
 });
 
 test.describe('Toolbar UX', () => {
-  test('toolbar collapses and expands', async ({ page }) => {
+  test('toolbar is always visible (not closable) on desktop', async ({ page }) => {
     listenForErrors(page);
     const setName = `TB-${Date.now()}`;
     await setupAuthenticatedReader(page, setName);
 
-    // Color swatches should be visible initially
+    // Tools + swatches are visible, and there is no Hide/collapse affordance any more.
     await expect(page.locator('aside button[title="Red"]')).toBeVisible();
-
-    // Collapse toolbar
-    await page.click('button:has-text("Hide")');
-    await expect(page.locator('aside button[title="Red"]')).not.toBeVisible();
-
-    // Re-expand
-    await page.click('button:has-text("Tools")');
-    await expect(page.locator('aside button[title="Red"]')).toBeVisible();
+    await expect(page.locator('aside button[title="Pen"]')).toBeVisible();
+    // No collapse/Hide affordance inside the toolbar aside any more (Notes card has its own Hide).
+    await expect(page.locator('aside button:has-text("Hide")')).toHaveCount(0);
   });
 
   test('undo removes last drawn object', async ({ page }) => {
@@ -314,7 +309,7 @@ test.describe('Notes Panel', () => {
     await setupAuthenticatedReader(page, setName);
 
     // Notes panel should be visible
-    await expect(page.locator('text=📝 Notes')).toBeVisible();
+    await expect(page.getByTestId('notes-card')).toBeVisible();
 
     // Add a note
     await page.fill('textarea[placeholder="Add a note about this page…"]', 'Test note content');
@@ -347,10 +342,10 @@ test.describe('Notes Panel', () => {
 
     await expect(page.locator('textarea[placeholder="Add a note about this page…"]')).toBeVisible();
 
-    await page.locator('aside').filter({ hasText: '📝 Notes' }).getByRole('button', { name: /Hide/ }).click();
+    await page.getByTestId('notes-card').getByRole('button', { name: /Hide/ }).click();
     await expect(page.locator('textarea[placeholder="Add a note about this page…"]')).not.toBeVisible();
 
-    await page.locator('aside').filter({ hasText: '📝 Notes' }).getByRole('button', { name: /Show/ }).click();
+    await page.getByTestId('notes-card').getByRole('button', { name: /Show/ }).click();
     await expect(page.locator('textarea[placeholder="Add a note about this page…"]')).toBeVisible();
   });
 });

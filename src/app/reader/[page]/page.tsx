@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
 import { TOTAL_PAGES } from '@/lib/quran';
 import { notFound } from 'next/navigation';
-import ShareButton from '@/components/ShareButton';
+import ShareCard from '@/components/ShareCard';
 import NotesPanel from '@/components/NotesPanel';
+import TagsCard from '@/components/TagsCard';
 import { getNotes } from '@/lib/services/notes';
 
 interface Props {
@@ -37,23 +38,13 @@ export default async function ReaderPage({ params }: Props) {
     : [];
 
   return (
+    /* V3 Story 13 — Context panel order: Notes (top) → Share → Tags (Stories 14–15 follow).
+       Notes card is always rendered first so it sits at the top of the 320px right panel. */
     <div className="flex min-w-0 flex-col gap-4 lg:self-stretch lg:min-h-0 lg:max-h-full lg:overflow-y-auto lg:pr-1">
-      {user && (sets ?? []).length > 0 && (
-        <div className="card p-5 flex flex-col gap-3 animate-fade-in-scale" style={{ animationDelay: '100ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>
-          <div>
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Share Page</h3>
-            <p className="text-xs mt-1.5 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-              Generate a read-only link to share your annotations and notes with others.
-            </p>
-          </div>
-          <div className="flex justify-end mt-1">
-            <ShareButton userId={user.id} pageNum={pageNum} sets={sets ?? []} />
-          </div>
-        </div>
-      )}
 
+      {/* ── 1. NOTES (top) ── */}
       {user && firstSetId ? (
-        <div className="animate-fade-in-scale" style={{ animationDelay: '200ms' }}>
+        <div className="animate-fade-in-scale" style={{ animationDelay: '100ms' }}>
           <NotesPanel setId={firstSetId} pageNum={pageNum} initialNotes={initialNotes} />
         </div>
       ) : !user ? (
@@ -66,7 +57,7 @@ export default async function ReaderPage({ params }: Props) {
           <a href="/login" className="btn btn-primary mt-6">Log in / Sign up</a>
         </div>
       ) : (
-        <div className="card p-6 text-center animate-fade-in-scale" style={{ animationDelay: '200ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>
+        <div className="card p-6 text-center animate-fade-in-scale" style={{ animationDelay: '100ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>
           <div className="text-3xl mb-3 opacity-50">📂</div>
           <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>No annotation sets</h3>
           <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
@@ -75,6 +66,19 @@ export default async function ReaderPage({ params }: Props) {
           <a href="/sets" className="btn btn-outline mt-4">Create Set</a>
         </div>
       )}
+
+      {/* ── 2. SHARE (Story 14) — dedicated card, white surface / radius-lg / neutral-200 border / shadow-e1 ── */}
+      {user && (sets ?? []).length > 0 && (
+        <div className="animate-fade-in-scale" style={{ animationDelay: '200ms' }}>
+          <ShareCard userId={user.id} pageNum={pageNum} sets={sets ?? []} />
+        </div>
+      )}
+
+      {/* ── 3. TAGS placeholder (Story 15) — inert chip display, no backend ── */}
+      <div className="animate-fade-in-scale" style={{ animationDelay: '300ms' }}>
+        <TagsCard />
+      </div>
+
     </div>
   );
 }

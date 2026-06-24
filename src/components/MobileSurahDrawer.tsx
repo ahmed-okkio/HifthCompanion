@@ -247,7 +247,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
         />
       )}
 
-      {/* Bottom sheet */}
+      {/* Bottom sheet — V3 Story 16: white surface (--surface-main), token radius, e3 shadow */}
       <div
         role="dialog"
         aria-modal="true"
@@ -259,10 +259,10 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
           right: 0,
           zIndex: 50,
           height: '85vh',
-          background: 'var(--bg-base)',
-          borderTopLeftRadius: '20px',
-          borderTopRightRadius: '20px',
-          boxShadow: 'var(--shadow-panel)',
+          background: 'var(--surface-main)',
+          borderTopLeftRadius: 'var(--radius-max)',   /* 20px token */
+          borderTopRightRadius: 'var(--radius-max)',
+          boxShadow: 'var(--shadow-e3)',
           flexDirection: 'column',
           transform: open ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
@@ -284,24 +284,24 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
             style={{
               width: '36px',
               height: '4px',
-              borderRadius: '9999px',
-              background: 'var(--border-subtle)',
+              borderRadius: 'var(--radius-full)',   /* pill — drag handle only */
+              background: 'var(--neutral-300)',
             }}
           />
         </div>
 
         {/* Header */}
-        <div style={{ padding: '8px 12px 12px', flexShrink: 0 }}>
+        <div style={{ padding: 'var(--space-8) var(--space-12) var(--space-12)', flexShrink: 0 }}>
           <div
             style={{
-              borderRadius: '16px',
+              borderRadius: 'var(--radius-lg-px)',  /* 18px token */
               border: '1px solid var(--border-subtle)',
-              background: 'var(--bg-card)',
-              padding: '12px',
+              background: 'var(--surface-app)',     /* neutral app bg inside drawer header */
+              padding: 'var(--space-12)',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-12)' }}>
+              <span style={{ fontSize: 'var(--type-heading-m-size)', fontWeight: 'var(--type-heading-m-weight)' as React.CSSProperties['fontWeight'], color: 'var(--text-primary)' }}>
                 Surahs
               </span>
               <button
@@ -314,8 +314,8 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                   justifyContent: 'center',
                   width: '28px',
                   height: '28px',
-                  borderRadius: '50%',
-                  background: 'var(--bg-glass)',
+                  borderRadius: 'var(--radius-sm-px)',   /* 10px token */
+                  background: 'var(--surface-main)',
                   border: '1px solid var(--border-subtle)',
                   cursor: 'pointer',
                   color: 'var(--text-muted)',
@@ -370,18 +370,19 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                     onClick={() => { void handleSelect(group); }}
                     style={{
                       width: '100%',
-                      borderRadius: '16px',
+                      /* V3 Story 16: token radius + token colors */
+                      borderRadius: 'var(--radius-lg-px)',    /* 18px */
                       padding: isMultiSurah ? '14px 12px' : '10px 12px',
                       textAlign: 'left',
-                      border: active ? '1px solid #6ee7b7' : '1px solid transparent',
-                      background: active ? '#ecfdf5' : 'rgba(255,255,255,0.45)',
+                      border: active ? '1px solid var(--border-accent)' : '1px solid transparent',
+                      background: active ? 'var(--green-soft)' : 'var(--surface-main)',
                       cursor: 'pointer',
-                      transition: 'all 0.15s',
+                      transition: 'all var(--duration-fast) var(--ease-out)',
                     }}
                   >
-                    <div style={{ display: 'flex', flexDirection: isMultiSurah ? 'column' : 'row', gap: isMultiSurah ? '8px' : '0' }}>
+                    <div style={{ display: 'flex', flexDirection: isMultiSurah ? 'column' : 'row', gap: isMultiSurah ? 'var(--space-8)' : '0' }}>
                       {group.surahs.map(surah => (
-                        <div key={surah.number} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div key={surah.number} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-12)' }}>
                           <span
                             style={{
                               display: 'inline-flex',
@@ -389,15 +390,15 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                               justifyContent: 'center',
                               minWidth: '28px',
                               height: '28px',
-                              borderRadius: '10px',
+                              borderRadius: 'var(--radius-sm-px)',  /* 10px token */
                               padding: '0 6px',
-                              fontSize: '12px',
+                              fontSize: 'var(--type-caption-size)',  /* 12px */
                               fontWeight: 700,
                               fontVariantNumeric: 'tabular-nums',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
-                              background: active ? '#fff' : '#ecfdf5',
-                              color: active ? '#059669' : '#065f46',
-                              outline: active ? '1px solid #a7f3d0' : '1px solid #a7f3d0',
+                              boxShadow: 'var(--shadow-e1)',
+                              background: active ? 'var(--surface-main)' : 'var(--green-soft)',
+                              color: 'var(--green-600)',
+                              outline: '1px solid var(--border-accent)',
                               flexShrink: 0,
                             }}
                           >
@@ -405,13 +406,13 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                           </span>
                           <span
                             style={{
-                              fontSize: '14px',
+                              fontSize: 'var(--type-body-size)',  /* 14px */
                               fontWeight: 600,
                               lineHeight: 1.3,
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap',
-                              color: active ? '#064e3b' : 'var(--text-primary)',
+                              color: active ? 'var(--text-accent)' : 'var(--text-primary)',
                             }}
                           >
                             {surah.name}
@@ -421,11 +422,11 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                     </div>
                     <div
                       style={{
-                        marginTop: '6px',
+                        marginTop: 'var(--space-4)',
                         paddingLeft: '40px',
-                        fontSize: '12px',
+                        fontSize: 'var(--type-caption-size)',  /* 12px */
                         fontWeight: 500,
-                        color: active ? '#047857' : 'var(--text-muted)',
+                        color: active ? 'var(--text-accent)' : 'var(--text-muted)',
                       }}
                     >
                       Page {group.page}{group.surahs.length > 1 ? ` · ${group.surahs.length} surahs` : ''}

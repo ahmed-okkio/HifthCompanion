@@ -17,8 +17,9 @@ export default async function SetsPage() {
   return (
     <div className="min-h-screen overflow-x-hidden" style={{ background: 'var(--bg-base)' }}>
       {/* Header */}
-      <header className="glass sticky top-0 z-50 border-b"
-              style={{ borderColor: 'var(--border-subtle)', borderRadius: 0 }}>
+      {/* V3 Story 2: crisp white header on neutral background — tokens, not glass */}
+      <header className="sticky top-0 z-50 border-b"
+              style={{ background: 'var(--surface-main)', borderColor: 'var(--border-subtle)', borderRadius: 0, boxShadow: 'var(--shadow-e1)' }}>
         <div className="mx-auto flex items-center justify-between px-4 py-3 max-w-2xl">
           <Link href="/reader/1" className="flex items-center gap-2">
             <span className="text-base font-bold" style={{ color: 'var(--text-accent)' }}>

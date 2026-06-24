@@ -9,6 +9,11 @@ import { CanvasHistory } from '@/lib/canvasHistory';
 import { type Tool, getToolCursor } from '@/lib/canvasTools';
 
 const SAVE_DELAY_MS = 1500;
+// Supersample factor: render the canvas backing store above the display resolution, then let
+// the browser downscale it to the CSS fit box — the page image reads noticeably crisper. This
+// multiplies fabric's retina scaling only (backing pixels), NOT the canvas coordinate space, so
+// annotation coordinates and saved canvas_json are unaffected.
+const SUPERSAMPLE = 1.5;
 // Bottom breathing room below the page-display-frame inside the desktop app-shell.
 const PAGE_BOTTOM_GAP = 24;
 // Fallback offset before the chrome above the page can be measured (≈ nav + padding + set-picker).
@@ -265,9 +270,16 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
       const fitSize = computeFitSize(natW, natH);
       setCanvasSize(fitSize);
 
+      // Supersample: raise fabric's device-pixel ratio so the backing store renders above the
+      // display resolution and downscales crisp. Coordinate space stays at the CSS fit box.
+      (fabric as unknown as { devicePixelRatio: number }).devicePixelRatio =
+        (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1) * SUPERSAMPLE;
+
       canvas = new fabric.Canvas(canvasRef.current!, {
         width: fitSize.width,
         height: fitSize.height,
+        enableRetinaScaling: true,
+        imageSmoothingEnabled: true,
         isDrawingMode: !!user && !!selectedSetId && activeTool === 'pen',
         defaultCursor: getToolCursor(activeTool),
         hoverCursor: getToolCursor(activeTool),

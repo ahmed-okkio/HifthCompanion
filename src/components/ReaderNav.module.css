@@ -1,15 +1,17 @@
+/* V3 Story 6 — single top workspace bar.
+   72px bar: logo + context-selector slot (left) | centered page navigator |
+   account controls + Search/Theme placeholders (right). Calm, legible, token-driven.
+   No hard-coded hex/radius/shadow; radius tops out at --radius-max (20px), no pills. */
+
 .navbar {
   position: sticky;
   top: 0;
   z-index: 50;
   width: 100%;
   color: var(--text-primary);
-  background:
-    linear-gradient(180deg, #ffffff, #f9fbf8),
-    radial-gradient(circle at top left, rgba(16, 185, 129, 0.12), transparent 38%),
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 34%);
+  background: var(--surface-main);
   border-bottom: 1px solid var(--border-subtle);
-  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+  box-shadow: var(--shadow-e1);
 }
 
 /* Mobile: nav is fixed chrome at top; desktop shell handles it via flex */
@@ -25,122 +27,156 @@
 .inner {
   position: relative;
   z-index: 1;
-  max-width: 80rem;
-  margin: 0 auto;
-  min-height: 4.5rem;
-  padding: 0.875rem 1rem;
+  height: 72px;
+  min-height: 72px;
+  padding: 0 var(--space-16);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 1rem;
+  gap: var(--space-16);
+}
+
+/* ---- Left: brand + context-selector slot (Story 7) ---- */
+.left {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-width: 0;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.875rem;
+  gap: var(--space-12);
   min-width: 0;
   text-decoration: none;
   color: inherit;
 }
 
+/* Bug 1 fix (Story 8.5): top-bar logo is a green OUTLINE book glyph — no filled green
+   background block. The filled green square lives only in NavRail (LogoBlock). This way
+   top-bar mark and rail logo are visually distinct and never look like duplicates. */
 .brandIcon {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
   flex: 0 0 auto;
-  padding: 0.55rem;
-  border-radius: 9999px;
-  color: var(--accent-solid);
-  background: rgba(16, 185, 129, 0.1);
-  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* No background, no border-radius fill — outline book only */
+  color: var(--green-600);
+}
+
+.brandIcon svg {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .brandText {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: 0.1rem;
 }
 
 .brandTitle {
   font-size: 1rem;
   line-height: 1.1;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   white-space: nowrap;
 }
 
+/* Context selector slot — Story 7 fills this with the "Juz — › Surah" breadcrumb. */
+.contextSlot {
+  min-width: 0;
+}
+
+/* Story 7: "Juz — › Surah" breadcrumb — inert label, desktop only.
+   No hard-coded hex; consumes design tokens only.
+   Juz part is a static placeholder (no page→Juz mapping in src/lib). */
+.contextBreadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: var(--space-4) var(--space-12);
+  border-radius: var(--radius-sm-px);
+  /* Same colour as the nav bar (white) with a light grey outline (no shadow). */
+  border: 1px solid var(--neutral-200);
+  background: var(--surface-main);
+  white-space: nowrap;
+  max-width: 22ch;
+  overflow: hidden;
+}
+
+.contextJuz {
+  font-size: 0.8125rem;   /* 13px — "Small" in type scale */
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.contextSep {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  opacity: 0.5;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.contextSurah {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- Center: page navigator (~220px) ---- */
 .navigator {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
+  gap: var(--space-4);
   justify-self: center;
-  padding: 0.375rem;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.58);
-  border: 1px solid var(--border-subtle);
-  box-shadow: 0 8px 24px rgba(2, 6, 23, 0.05);
+  width: 220px;
+  justify-content: center;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  /* Same colour as the nav bar (white surface) lifted by a light drop shadow. */
+  background: var(--surface-main);
+  box-shadow: var(--shadow-e1);
 }
 
 .navButton,
 .pageButton,
-.loginButton {
+.loginButton,
+.iconStub {
   border: 0;
   appearance: none;
   cursor: pointer;
   transition:
-    transform 160ms var(--ease-out),
     background-color 160ms var(--ease-out),
     color 160ms var(--ease-out),
     box-shadow 160ms var(--ease-out);
 }
 
 .navButton {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 9999px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text-muted);
 }
 
-.surahButton {
-  width: 2.5rem;
-  height: 2.5rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9999px;
-  border: 0;
-  appearance: none;
-  cursor: pointer;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--accent-solid);
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05);
-  transition:
-    transform 160ms var(--ease-out),
-    background-color 160ms var(--ease-out),
-    box-shadow 160ms var(--ease-out);
-}
-
-.surahButton:hover {
-  background: #fff;
-  transform: translateY(-1px);
-}
-
-/* Surah trigger is mobile-only; desktop uses the persistent left panel */
-@media (min-width: 1024px) {
-  .surahButton {
-    display: none;
-  }
-}
-
 .navButton:hover:not(:disabled) {
-  background: rgba(15, 23, 42, 0.05);
+  background: var(--neutral-100);
   color: var(--text-primary);
-  transform: translateY(-1px);
 }
 
 .navButton:disabled {
@@ -153,36 +189,61 @@
   height: 1rem;
 }
 
+.surahButton {
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 0;
+  appearance: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--accent-solid);
+  transition: background-color 160ms var(--ease-out);
+}
+
+.surahButton:hover {
+  background: var(--neutral-100);
+}
+
+/* Surah trigger is mobile-only; desktop uses the persistent left panel */
+@media (min-width: 1024px) {
+  .surahButton {
+    display: none;
+  }
+}
+
 .pageShell {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 5.75rem;
-  padding: 0 0.125rem;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .pageButton {
-  min-width: 5.75rem;
+  width: 100%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
-  padding: 0.55rem 0.8rem;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.9);
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-8);
+  border-radius: var(--radius-sm);
+  background: transparent;
   color: var(--text-primary);
-  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05);
 }
 
 .pageButton:hover {
-  background: #fff;
-  transform: translateY(-1px);
+  background: var(--surface-main);
 }
 
 .pageCurrent {
   font-size: 0.95rem;
   font-weight: 700;
-  color: var(--accent-solid);
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -191,24 +252,24 @@
 }
 
 .pageTotal {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
 .pageInput {
-  width: 5.75rem;
-  padding: 0.55rem 0.8rem;
+  width: 100%;
+  padding: var(--space-4) var(--space-8);
   border: 0;
   outline: none;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.96);
+  border-radius: var(--radius-sm);
+  background: var(--surface-main);
   color: var(--text-primary);
   text-align: center;
   font-size: 0.95rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.2);
+  box-shadow: inset 0 0 0 1px var(--accent-solid);
   caret-color: var(--accent);
 }
 
@@ -217,83 +278,162 @@
   opacity: 0.8;
 }
 
+/* ---- Right: account controls + Search/Theme stubs ---- */
 .actions {
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.75rem;
+  gap: var(--space-8);
   min-width: 0;
 }
 
 .skeleton {
   width: 5.5rem;
-  height: 2.5rem;
-  border-radius: 9999px;
-  background: linear-gradient(90deg, rgba(15, 23, 42, 0.06), rgba(15, 23, 42, 0.1), rgba(15, 23, 42, 0.06));
+  height: 2.25rem;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--neutral-100), var(--neutral-200), var(--neutral-100));
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
 
 .actionIcon {
-  width: 0.95rem;
-  height: 0.95rem;
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+/* ---- Story 8 (Sonnet) — Search affordance + Theme toggle — INERT PLACEHOLDERS ----
+   Search: fake input field (white, border --neutral-200, radius ≤20px, icon + placeholder text).
+   Theme: icon button (sun icon, 36×36, same ghost-button style as navButton).
+   Both: no handlers, tabIndex={-1}, aria-disabled, data-placeholder attr in JSX.
+   Neither is wired to any backend. Theme does NOT implement dark mode.
+   ------------------------------------------------------------------------------------- */
+
+/* Search affordance wrapper — looks like a real search input, is not.
+   radius capped at --radius-max (20px) per PRD constraint (no pills). */
+.searchStub {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
+  padding: 0 var(--space-12);
+  height: 2.25rem;
+  min-width: 160px;
+  border-radius: var(--radius-max);
+  border: 1px solid var(--neutral-200);
+  background: var(--surface-main);
+  color: var(--text-muted);
+  cursor: default;
+  pointer-events: none;   /* inert — captures no mouse events */
+  user-select: none;
+  flex: 0 0 auto;
+}
+
+.searchIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+/* Disabled input inside the search affordance — never accepts focus/input */
+.searchInput {
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 0.8125rem;   /* 13px — "Small" type scale */
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: -0.02em;
+  cursor: default;
+  pointer-events: none;
+  width: 100%;
+}
+
+.searchInput::placeholder {
+  color: var(--neutral-400);
+}
+
+/* Theme toggle — ghost icon button, same proportions as navButton.
+   Sun icon; does NOT toggle dark mode (future feature). */
+.themeStub {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 0;
+  appearance: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: default;
+  pointer-events: none;   /* inert — captures no mouse events */
+}
+
+/* Legacy stub class — kept so any stray references don't break; unused by Story 8. */
+.iconStub {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: default;
 }
 
 .secondaryAction {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  padding: 0.72rem 0.95rem;
-  min-height: 2.5rem;
-  border-radius: 9999px;
+  gap: var(--space-8);
+  padding: 0 var(--space-12);
+  height: 2.25rem;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
-  background: rgba(255, 255, 255, 0.54);
+  background: var(--surface-main);
   color: var(--text-secondary);
   font-size: 0.875rem;
   font-weight: 600;
   text-decoration: none;
-  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.04);
 }
 
 .secondaryAction:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.82);
-  transform: translateY(-1px);
+  background: var(--neutral-100);
 }
 
 .loginButton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.72rem 1rem;
-  min-height: 2.5rem;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.14), rgba(14, 165, 233, 0.1));
-  color: var(--text-primary);
+  padding: 0 var(--space-16);
+  height: 2.25rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-solid);
+  color: #fff;
   font-size: 0.875rem;
   font-weight: 700;
   text-decoration: none;
-  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.14);
 }
 
 .loginButton:hover {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(14, 165, 233, 0.14));
-  transform: translateY(-1px);
-  box-shadow:
-    inset 0 0 0 1px rgba(16, 185, 129, 0.18),
-    0 12px 24px rgba(2, 6, 23, 0.08);
+  background: var(--accent-hover);
 }
 
+/* ---- Responsive: collapse to a two-row stack on narrow widths ---- */
 @media (max-width: 900px) {
   .inner {
     grid-template-columns: 1fr auto;
     grid-template-rows: auto auto;
+    height: auto;
     min-height: unset;
-    padding-block: 0.625rem;
-    gap: 0.5rem 0.75rem;
+    padding-block: var(--space-8);
+    gap: var(--space-8) var(--space-12);
   }
 
-  .brand {
+  .left {
     grid-column: 1;
     grid-row: 1;
   }
@@ -302,7 +442,7 @@
     grid-column: 1 / -1;
     grid-row: 2;
     justify-self: stretch;
-    justify-content: center;
+    width: auto;
   }
 
   .actions {
@@ -314,37 +454,16 @@
 
 @media (max-width: 640px) {
   .inner {
-    padding-inline: 0.75rem;
-    gap: 0.375rem 0.5rem;
-  }
-
-  .brandIcon {
-    width: 2.25rem;
-    height: 2.25rem;
+    padding-inline: var(--space-12);
+    gap: var(--space-4) var(--space-8);
   }
 
   .brandText {
     display: none;
   }
 
-  .navigator {
-    gap: 0.25rem;
-    padding: 0.3rem;
-  }
-
   .navButton {
     width: 2.75rem;
     height: 2.75rem;
-    min-width: 2.75rem;
-  }
-
-  .pageButton {
-    min-width: 5rem;
-    height: 2.75rem;
-    padding-inline: 0.65rem;
-  }
-
-  .actions {
-    gap: 0.5rem;
   }
 }

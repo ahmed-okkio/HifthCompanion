@@ -16,7 +16,8 @@ type SurahPageGroup = {
 };
 
 // Hard-coded list of 114 surahs (names only). Verse counts are omitted for brevity.
-const SURAH_LIST: Surah[] = [
+// Exported so other components (e.g. ReaderNav breadcrumb) can look up a surah name.
+export const SURAH_LIST: Surah[] = [
   { number: 1, name: "Al-Fatihah" },
   { number: 2, name: "Al-Baqarah" },
   { number: 3, name: "Aal-i-Imran" },
@@ -328,7 +329,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
   const panel = (
     <aside
       data-testid="surah-panel"
-      className="panel-surface w-72 flex flex-col"
+      className="panel-surface w-full flex flex-col"
       style={{
         height: '100%',
         overflow: 'hidden',
@@ -339,68 +340,122 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
       }}
     >
 
-      <div className="flex-shrink-0 px-3 py-3">
-        <div className="rounded-2xl border border-[var(--border-subtle)] bg-white/80 px-3 py-3 shadow-sm">
-          <div className="flex items-center gap-3">
-            <button className="flex-1 rounded-full bg-[var(--accent-solid)] py-2 text-sm font-semibold text-white shadow-sm">Surahs</button>
-          </div>
+      <div className="flex-shrink-0 px-4 pt-4 pb-3">
+        <h2
+          className="font-semibold"
+          style={{ color: 'var(--text-primary)', fontSize: 'var(--type-heading-m-size)' }}
+        >
+          Surahs
+        </h2>
 
-          <div className="mt-3">
-            <div className="relative">
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35" />
-                <circle cx="11" cy="11" r="6" strokeWidth={2} />
-              </svg>
-              <input
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Search Surah"
-                className="w-full input input-sm"
-                aria-label="Search Surah"
-                style={{ background: 'transparent', paddingLeft: '3rem' }}
-              />
-            </div>
+        <div className="mt-3">
+          <div className="relative">
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35" />
+              <circle cx="11" cy="11" r="6" strokeWidth={2} />
+            </svg>
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search Surah"
+              className="w-full input input-sm"
+              aria-label="Search Surah"
+              style={{ background: 'var(--surface-main)', paddingLeft: '3rem' }}
+            />
           </div>
         </div>
       </div>
 
-      <div ref={scrollListRef} data-testid="surah-scroll-list" className="flex-1 min-h-0 overflow-y-auto px-2 pb-4 pt-1 thin-scroll">
-        <ul className="space-y-1">
+      <div ref={scrollListRef} data-testid="surah-scroll-list" className="flex-1 min-h-0 overflow-y-auto thin-scroll">
+        <ul>
           {filtered.map(group => {
             const active = activePage === group.page;
-            const primarySurah = group.surahs[0];
-            const isMultiSurah = group.surahs.length > 1;
+            const title = group.surahs.map(s => s.name).join(' · ');
             return (
-              <li key={group.page} className="px-2 py-1.5">
+              <li key={group.page}>
                 <button
                   ref={active ? activeButtonRef : undefined}
                   type="button"
                   onClick={() => { void handleSelect(group); }}
-                  className={`w-full rounded-2xl border px-3 text-left transition-all duration-150 active:scale-[0.985] ${isMultiSurah ? 'py-4' : 'py-3'} ${active ? 'border-emerald-200 bg-emerald-50 text-emerald-950 shadow-sm shadow-emerald-900/5 ring-1 ring-emerald-100' : 'border-transparent bg-white/45 text-[var(--text-primary)] hover:border-emerald-100 hover:bg-white/90 hover:shadow-sm'}`}
+                  className="group flex w-full items-center gap-3 px-4 text-left transition-colors duration-150"
+                  style={{
+                    minHeight: '72px',
+                    background: active ? 'var(--green-soft)' : 'transparent',
+                    borderLeft: active
+                      ? '4px solid var(--green-600)'
+                      : '4px solid transparent',
+                  }}
                 >
-                  <div className="min-w-0">
-                    <div className={isMultiSurah ? 'flex flex-col gap-2' : ''}>
-                        {group.surahs.map(surah => (
-                          <div key={surah.number} className="flex items-center gap-3">
-                            <span className={`inline-flex h-7 min-w-7 shrink-0 items-center justify-center rounded-xl px-2 text-[12px] font-bold tabular-nums shadow-sm ${active ? 'bg-white text-emerald-700 ring-1 ring-emerald-100' : 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-100'}`}>
-                              {surah.number}
-                              
-                            </span>
-                            <span className={`min-w-0 truncate text-sm font-semibold leading-snug ${active ? 'text-emerald-950' : 'text-[var(--text-primary)]'}`}>
-                              {surah.name}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                      <div className={`mt-2 pl-10 text-[12px] font-medium ${active ? 'text-emerald-700' : 'text-[var(--text-muted)]'}`}>
-                        Page {group.page}{group.surahs.length > 1 ? ` · ${group.surahs.length} surahs` : primarySurah?.verses ? ` · ${primarySurah.verses} verses` : ''}
-                      </div>
-                  </div>
+                  <span
+                    className="inline-flex shrink-0 items-center justify-center tabular-nums"
+                    style={{
+                      height: '32px',
+                      minWidth: '32px',
+                      padding: '0 6px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 'var(--type-caption-size)',
+                      fontWeight: 700,
+                      background: active ? 'var(--surface-main)' : 'var(--neutral-100)',
+                      color: active ? 'var(--green-600)' : 'var(--text-secondary)',
+                    }}
+                  >
+                    {group.surahs.map(s => s.number).join('·')}
+                  </span>
+
+                  <span className="min-w-0 flex-1 flex items-center">
+                    <span
+                      className="block truncate leading-snug"
+                      style={{
+                        fontSize: 'var(--type-body-size)',
+                        fontWeight: active ? 600 : 500,
+                        color: active ? 'var(--green-800)' : 'var(--text-primary)',
+                      }}
+                    >
+                      {title}
+                    </span>
+                  </span>
+
+                  <span
+                    className="shrink-0 tabular-nums"
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: 'var(--type-meta-size)',
+                      fontWeight: 600,
+                      background: active ? 'var(--surface-main)' : 'var(--neutral-100)',
+                      color: active ? 'var(--green-600)' : 'var(--text-muted)',
+                    }}
+                  >
+                    Page {group.page}
+                  </span>
                 </button>
               </li>
             );
           })}
         </ul>
+      </div>
+
+      <div className="flex-shrink-0 px-4 py-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+        <button
+          type="button"
+          aria-disabled="true"
+          title="Add to My Sets (coming soon)"
+          className="flex w-full items-center justify-center gap-2 font-semibold opacity-60 cursor-default"
+          style={{
+            minHeight: '44px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border-subtle)',
+            background: 'var(--surface-main)',
+            color: 'var(--text-secondary)',
+            fontSize: 'var(--type-small-size)',
+          }}
+          onClick={e => e.preventDefault()}
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M5 12h14" />
+          </svg>
+          Add to My Sets
+        </button>
       </div>
     </aside>
   );

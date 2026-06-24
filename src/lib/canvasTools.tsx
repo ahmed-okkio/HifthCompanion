@@ -5,46 +5,47 @@ export type Tool = 'pen' | 'highlighter' | 'circle' | 'underline' | 'text' | 'er
 export const ALL_TOOLS: Tool[] = ['pen', 'highlighter', 'circle', 'underline', 'text', 'eraser'];
 
 export const PRESET_COLORS = [
-  { name: 'Red', value: '#ef4444' },
+  { name: 'Red',    value: '#ef4444' },
   { name: 'Orange', value: '#f97316' },
-  { name: 'Yellow', value: '#eab308' },
-  { name: 'Green', value: '#22c55e' },
-  { name: 'Blue', value: '#3b82f6' },
+  { name: 'Green',  value: '#22c55e' },
+  { name: 'Blue',   value: '#3b82f6' },
+  { name: 'Purple', value: '#8b5cf6' },
+  { name: 'Black',  value: '#111827' },
 ];
 
 export const TOOL_ICONS: Record<Tool, ReactNode> = {
   pen: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <svg style={{ width: '22px', height: '22px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
     </svg>
   ),
   highlighter: (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <svg style={{ width: '22px', height: '22px' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4 15.5L15.5 4 20 8.5 8.5 20H4v-4.5z" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M13.5 6l4.5 4.5" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M3.5 21h9" />
     </svg>
   ),
   circle: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <svg style={{ width: '22px', height: '22px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <circle cx={12} cy={12} r={7.5} strokeWidth={2.4} />
     </svg>
   ),
   underline: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <svg style={{ width: '22px', height: '22px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.25} d="M7.5 5.5v6.25a4.5 4.5 0 009 0V5.5" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6.5 19.5h11" />
     </svg>
   ),
   text: (
-    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <svg style={{ width: '22px', height: '22px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.35} d="M5.5 6.5h13" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.35} d="M12 6.5v12" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.35} d="M9.5 18.5h5" />
     </svg>
   ),
   eraser: (
-    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <svg style={{ width: '22px', height: '22px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M4.5 15.5L14 6a2 2 0 012.8 0l2.7 2.7a2 2 0 010 2.8L12 19H8l-3.5-3.5z" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M11.5 8.5l4 4" />
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 19h7.5" />

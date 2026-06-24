@@ -39,11 +39,18 @@ export default function ReadOnlyCanvas({ pageNum, imageUrl, canvasJson }: Props)
      );
      setCanvasSize(fitSize);
 
+     // Supersample the read-only share view too, so the shared page renders as crisp as the
+     // editable reader. Backing-store resolution only; coordinate space stays at the fit box.
+     (fabric as unknown as { devicePixelRatio: number }).devicePixelRatio =
+       (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1) * 1.5;
+
      const canvas = new fabric.Canvas(canvasRef.current!, {
        width: fitSize.width,
        height: fitSize.height,
        isDrawingMode: false,
        selection: false,
+       enableRetinaScaling: true,
+       imageSmoothingEnabled: true,
      });
      canvas.setDimensions({ width: fitSize.width, height: fitSize.height });
 

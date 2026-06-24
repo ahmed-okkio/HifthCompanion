@@ -8,10 +8,43 @@ function listenForErrors(page: Page) {
   });
 }
 
+// Helper: create a set and navigate to the reader (mirrors features.spec.ts pattern).
+async function setupAuthenticatedReader(page: Page, setName: string) {
+  await page.goto('/sets');
+  await page.fill('input[placeholder="New set name..."]', setName);
+  await page.click('button:has-text("Create")');
+  await expect(page.locator(`text=${setName}`)).toBeVisible();
+  await page.goto('/reader/1');
+  await expect(page.locator('.upper-canvas')).toBeVisible();
+  await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible();
+  await page.locator('#set-picker-top').selectOption({ label: setName });
+  await expect.poll(async () => {
+    return page.evaluate(() => document.querySelector('[data-canvas-ready="true"]') !== null);
+  }, { timeout: 15000, message: 'data-canvas-ready="true" not found after set selection' }).toBeTruthy();
+}
+
 test.describe('Surah panel and toolbar layout', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/reader/1');
     await page.waitForLoadState('networkidle');
+  });
+
+  test('desktop shell shows three regions: icon rail, surah panel, context panel (Story 3)', async ({ page }) => {
+    await expect(page.locator('[data-testid="nav-rail-slot"]')).toBeVisible();
+    await expect(page.locator('[data-testid="surah-panel"]')).toBeVisible();
+    await expect(page.locator('[data-testid="context-panel"]')).toBeVisible();
+
+    // Left-to-right order: icon rail, then surah panel, then context panel.
+    const rail = await page.locator('[data-testid="nav-rail-slot"]').boundingBox();
+    const surah = await page.locator('[data-testid="surah-panel"]').boundingBox();
+    const ctx = await page.locator('[data-testid="context-panel"]').boundingBox();
+    expect(rail && surah && ctx).toBeTruthy();
+    if (rail && surah && ctx) {
+      expect(rail.x).toBeLessThan(surah.x);
+      expect(surah.x).toBeLessThan(ctx.x);
+      // Context panel is a fixed-width right column (~320px).
+      expect(Math.round(ctx.width)).toBe(320);
+    }
   });
 
   test('clicking a surah navigates on the first click', async ({ page }) => {
@@ -129,7 +162,10 @@ test.describe('Surah panel and toolbar layout', () => {
     await expect(combinedButton).toHaveCount(1);
 
     await expect.poll(async () => scrollList.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
-    await expect(combinedButton).toHaveClass(/bg-emerald-50/);
+    // Selected state is now token-driven inline style (Story 5): green-soft bg + green left border.
+    await expect
+      .poll(async () => combinedButton.evaluate((el) => getComputedStyle(el).borderLeftWidth))
+      .toBe('4px');
   });
 
   test('surah navigation preserves the selected annotation set', async ({ page, context }) => {
@@ -167,11 +203,21 @@ test.describe('Surah panel and toolbar layout', () => {
     // take a debug screenshot for verification
     await page.screenshot({ path: 'test-results/surah-panel-debug.png', fullPage: false });
 
+    // Story 3: the left navigation REGION now leads with a 72px icon rail; the surah panel
+    // sits immediately to its right (after the 24px app gutter). Assert the icon-rail slot
+    // hugs the viewport left, and the surah panel follows directly after the rail — i.e. the
+    // navigation region is left-anchored, not floating mid-workspace.
+    const rail = page.locator('[data-testid="nav-rail-slot"]');
+    await expect(rail).toBeVisible();
+    const railBox = await rail.boundingBox();
     const box = await panel.boundingBox();
-    // Allow small offset; assert that the panel's left edge is near the viewport left (<= 8px)
+    expect(railBox).not.toBeNull();
     expect(box).not.toBeNull();
-    if (box) {
-      expect(box.x).toBeLessThanOrEqual(8);
+    if (railBox && box) {
+      // Icon rail anchored at the left within the 24px app gutter (not floating mid-workspace).
+      expect(railBox.x).toBeLessThanOrEqual(24 + 2);
+      // Surah panel begins right where the 72px rail ends (no gap, small tolerance).
+      expect(Math.abs(box.x - (railBox.x + railBox.width))).toBeLessThanOrEqual(8);
     }
   });
 
@@ -321,5 +367,80 @@ test.describe('Surah panel and toolbar layout', () => {
     const swatches = page.locator('aside').locator('button[title]');
     const count = await swatches.count();
     expect(count).toBeGreaterThan(2);
+  });
+});
+
+// Story 17 — V3 shell structure assertions (chromium / desktop only).
+// Light structural guards: three regions present, icon rail visible,
+// context panel present, right-panel cards render with a set active,
+// and the inert zoom-control is rendered below the page.
+test.describe('V3 shell structure (Story 17)', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/reader/1');
+    await page.waitForLoadState('networkidle');
+  });
+
+  test('icon rail (nav-rail) is visible at desktop width', async ({ page }) => {
+    listenForErrors(page);
+    // nav-rail is the canonical testid inside NavRail; nav-rail-slot is the outer
+    // wrapper in ReaderShell — both must be present at desktop width (lg:flex).
+    await expect(page.locator('[data-testid="nav-rail"]')).toBeVisible();
+    await expect(page.locator('[data-testid="nav-rail-slot"]')).toBeVisible();
+  });
+
+  test('context panel is present (in DOM) at desktop width', async ({ page }) => {
+    listenForErrors(page);
+    // context-panel is always in the DOM; at desktop it becomes a 320px flex column.
+    const panel = page.locator('[data-testid="context-panel"]');
+    await expect(panel).toBeAttached();
+    const box = await panel.boundingBox();
+    expect(box, 'context-panel must have a bounding box at desktop').not.toBeNull();
+    if (box) {
+      // Right column is ~320px wide at desktop.
+      expect(box.width).toBeGreaterThanOrEqual(300);
+    }
+  });
+
+  test('three regions present: icon rail, surah panel, context panel', async ({ page }) => {
+    listenForErrors(page);
+    // All three landmark regions are visible and left-to-right ordered.
+    await expect(page.locator('[data-testid="nav-rail"]')).toBeVisible();
+    await expect(page.locator('[data-testid="surah-panel"]')).toBeVisible();
+
+    const railBox = await page.locator('[data-testid="nav-rail"]').boundingBox();
+    const surahBox = await page.locator('[data-testid="surah-panel"]').boundingBox();
+    const ctxBox = await page.locator('[data-testid="context-panel"]').boundingBox();
+
+    expect(railBox).not.toBeNull();
+    expect(surahBox).not.toBeNull();
+    expect(ctxBox).not.toBeNull();
+
+    if (railBox && surahBox && ctxBox) {
+      // Left-to-right order: rail < surah panel < context panel.
+      expect(railBox.x).toBeLessThan(surahBox.x);
+      expect(surahBox.x).toBeLessThan(ctxBox.x);
+    }
+  });
+
+  test('zoom-control is present in the DOM at desktop width', async ({ page }) => {
+    listenForErrors(page);
+    // zoom-control is an inert placeholder rendered inside AnnotationCanvas
+    // (hidden on mobile via hidden lg:flex — so it must be attached at desktop).
+    const zoom = page.locator('[data-testid="zoom-control"]');
+    await expect(zoom).toBeAttached();
+  });
+
+  test('right-panel cards (notes-card, share-card, tags-card) render when a set is active', async ({ page, context }) => {
+    listenForErrors(page);
+    // Use the same auth/set pattern as features.spec.ts.
+    await context.addCookies([{ name: 'sb-access-token', value: 'dummy-token', domain: 'localhost', path: '/' }]);
+    await context.setExtraHTTPHeaders({ 'x-e2e-test': 'true' });
+    const setName = `Shell17-${Date.now()}`;
+    await setupAuthenticatedReader(page, setName);
+
+    // All three right-panel cards must be present in the DOM (context panel renders them).
+    await expect(page.getByTestId('notes-card')).toBeAttached();
+    await expect(page.getByTestId('share-card')).toBeAttached();
+    await expect(page.getByTestId('tags-card')).toBeAttached();
   });
 });

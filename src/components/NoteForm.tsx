@@ -1,16 +1,20 @@
 'use client';
+import { RefObject } from 'react';
 
 interface Props {
   value: string;
   isPending: boolean;
   onChange: (v: string) => void;
   onSubmit: () => void;
+  /** Optional ref forwarded from NotesPanel so the "New Note" CTA can focus the textarea. */
+  textareaRef?: RefObject<HTMLTextAreaElement | null>;
 }
 
-export default function NoteForm({ value, isPending, onChange, onSubmit }: Props) {
+export default function NoteForm({ value, isPending, onChange, onSubmit, textareaRef }: Props) {
   return (
-    <div className="px-4 py-3" style={{ background: 'var(--bg-elevated)' }}>
+    <div style={{ padding: 'var(--space-12) var(--space-16)', background: 'var(--surface-main)', borderTop: '1px solid var(--neutral-200)' }}>
       <textarea
+        ref={textareaRef}
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder="Add a note about this page…"
@@ -20,7 +24,7 @@ export default function NoteForm({ value, isPending, onChange, onSubmit }: Props
         onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onSubmit(); }}
       />
       <div className="flex items-center justify-between mt-2">
-        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Ctrl+Enter to save</span>
+        <span style={{ fontSize: 'var(--type-meta-size)', color: 'var(--text-muted)' }}>Ctrl+Enter to save</span>
         <button
           onClick={onSubmit}
           disabled={!value.trim() || isPending}

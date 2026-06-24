@@ -7,6 +7,7 @@ import ReaderNav from './ReaderNav';
 import SurahNavPanel from './SurahNavPanel';
 import MobileSurahDrawer from './MobileSurahDrawer';
 import AnnotationCanvas from './AnnotationCanvas';
+import NavRail from './NavRail';
 
 const FALLBACK_NAV_HEIGHT = 72;
 
@@ -67,31 +68,59 @@ export default function ReaderShell({ children, user, sets }: ReaderShellProps) 
       </div>
       {/* On mobile the nav is position:fixed so content starts at top-0;
           --nav-h drives the mobile padding-top via CSS; lg: resets it to 0. */}
+      {/* V3 Story 3 — desktop three-region workspace shell:
+            [icon rail 72px + surah sidebar 260px] | flexible workspace | context panel 320px,
+          24px gutters, against the fixed 100dvh app-shell. The left sidebar and the right
+          context panel scroll internally; the workspace centers the canvas and does NOT scroll
+          (lg:overflow-hidden preserves the no-document-scroll behavior). Mobile is unchanged:
+          everything collapses to the single stacked column it was before. */}
       <div
-        className="lg:flex-1 lg:min-h-0 mobile-nav-offset"
-        style={{ display: 'flex', alignItems: 'flex-start', ['--nav-h' as string]: `${navHeight}px` } as React.CSSProperties}
+        className="flex flex-col mobile-nav-offset lg:flex-1 lg:min-h-0 lg:flex-row lg:items-stretch lg:gap-6 lg:pr-6"
+        style={{ ['--nav-h' as string]: `${navHeight}px`, background: 'var(--surface-app)' } as React.CSSProperties}
         suppressHydrationWarning
       >
+        {/* REGION 1 — left navigation + surah sidebar.
+            Icon rail (72px) is an empty placeholder column for now (Story 4 fills it); the
+            surah sidebar (260px) carries the existing SurahNavPanel and its scroll logic. */}
         <div
-          className="hidden lg:flex lg:flex-col flex-shrink-0"
-          style={{
-            height: '100%',
-            width: '288px',
-            overflow: 'hidden',
-          }}
+          className="hidden lg:flex flex-shrink-0"
+          style={{ height: '100%', overflow: 'hidden', zIndex: 1 }}
         >
-          <SurahNavPanel currentPage={pageNum} topOffset={navHeight} />
+          {/* Story 4 — Icon rail (72px). nav-rail-slot kept for backwards-compat with
+              existing E2E selectors; nav-rail is the new canonical testid. */}
+          <div
+            data-testid="nav-rail-slot"
+            className="flex-shrink-0"
+            style={{ width: '72px', height: '100%' }}
+          >
+            <NavRail activeView="surahs" />
+          </div>
+          {/* Surah sidebar — 260px. */}
+          <div
+            className="flex flex-col flex-shrink-0"
+            style={{
+              width: '260px',
+              height: '100%',
+              overflow: 'hidden',
+              background: 'var(--surface-main)',
+              boxShadow: 'var(--shadow-e2)',
+            }}
+          >
+            <SurahNavPanel currentPage={pageNum} topOffset={navHeight} />
+          </div>
         </div>
+
+        {/* REGION 2 — centered Quran workspace. Does not scroll on desktop. */}
         <div
-          className="lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col"
-          style={{ flex: 1, minWidth: 0 }}
+          className="lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col lg:flex-1 lg:min-w-0"
+          style={{ flex: 1, minWidth: 0, background: 'var(--surface-app)' }}
         >
           {/* No transform-based animation here: the mobile annotation bar inside this
               subtree is position:fixed and a transformed ancestor (e.g. animate-fade-in,
               which keeps a computed matrix via animation-fill-mode: both) would make it the
               containing block, pinning the fixed bar to <main> instead of the viewport. */}
-          <main className="w-full flex-grow px-4 py-6 sm:px-6 sm:py-8 mobile-bar-offset lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden">
-            <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-6 items-start lg:h-full lg:min-h-0 lg:items-start lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] lg:justify-center">
+          <main className="w-full flex-grow px-4 pt-6 pb-2 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:py-0">
+            <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
 
               <div className="flex min-w-0 flex-col gap-4">
                 <div className="mx-auto w-full">
@@ -105,14 +134,29 @@ export default function ReaderShell({ children, user, sets }: ReaderShellProps) 
                 </div>
               </div>
 
-              {/* The notes / share column is the per-page route segment; it remounts on page
-                  change so its SSR-fetched notes swap cleanly. */}
-              {children}
-
             </div>
           </main>
+        </div>
+
+        {/* REGION 3 — right context panel. Holds the per-page notes / share column (the route
+            children, rendered exactly once so the single NotesPanel/canvas stay mounted).
+            Desktop: a 320px column that scrolls internally. Mobile: full-width, in normal
+            document flow below the workspace (the layout it had before this story), carrying
+            the fixed-bottom-bar offset. Card contents are restyled in Stories 13–15; here it
+            scaffolds the slot. */}
+        {/* V3 Story 16: mobile-context-panel testid added (context-panel preserved for desktop E2E) */}
+        <div
+          data-testid="context-panel"
+          data-mobile-testid="mobile-context-panel"
+          className="w-full px-4 pb-[calc(56px+env(safe-area-inset-bottom,0px))] sm:px-6 lg:flex lg:flex-col lg:flex-shrink-0 lg:w-[320px] lg:px-0 lg:pb-0 lg:h-full lg:min-h-0 lg:overflow-y-auto thin-scroll"
+          style={{ paddingTop: 'var(--space-24)' }}
+        >
+          {/* Sets card portal target — AnnotationCanvas renders the SetsCard here (top of the
+              right panel) so the set selector + "New set" share the canvas state. */}
+          <div id="sets-card-portal" className="mb-4 empty:mb-0" />
+          {children}
           <footer
-            className="lg:hidden w-full text-center text-xs tracking-wider uppercase border-t"
+            className="lg:hidden w-full text-center text-xs tracking-wider uppercase border-t mt-6"
             style={{ padding: '10px 0', color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
           >
             HifthCompanion © 2026

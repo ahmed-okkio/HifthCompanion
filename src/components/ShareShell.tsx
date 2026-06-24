@@ -53,9 +53,10 @@ export default function ShareShell({ userId, pageNum, setId, setName, children }
       {/* On mobile the header is position:fixed (see ShareShell.module.css); on
           desktop it sits in-flow at the top of the flex column. */}
       <div ref={navRef} className={`${shareStyles.headerWrap} lg:flex-shrink-0`}>
+        {/* V3 Story 2: crisp white header */}
         <header
-          className="glass w-full"
-          style={{ borderBottom: '1px solid var(--border-subtle)', borderRadius: 0 }}
+          className="w-full"
+          style={{ background: 'var(--surface-main)', borderBottom: '1px solid var(--border-subtle)', borderRadius: 0, boxShadow: 'var(--shadow-e1)' }}
         >
           <div className="mx-auto flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 sm:px-4 sm:py-2.5 max-w-4xl lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
             <div className="flex min-w-0 flex-1 items-center justify-start gap-2 sm:gap-3 lg:flex-initial">

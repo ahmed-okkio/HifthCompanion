@@ -1,56 +1,144 @@
 @import "tailwindcss";
 
-/* ===== Design Tokens (Light theme) ===== */
+/* ============================================================================
+   DESIGN TOKEN LAYER — V3 "knowledge workspace" refresh (PRD 0002, Story 1)
+   ----------------------------------------------------------------------------
+   This is the single source of truth. Two sections:
+     A. Raw scales — palette / neutrals / surfaces / radius / shadow / spacing
+        / type. These are the only place hex/px values live. Names follow the
+        PRD: --green-600, --neutral-200, --surface-app, --radius-md,
+        --shadow-e2, --space-16.
+     B. Semantic aliases — the names existing components already consume
+        (--accent-solid, --text-primary, --border-subtle, …). They are NOT
+        renamed; they are RE-POINTED at the raw scale so every component shifts
+        to the new look automatically. Later PRD stories refine components.
+   ========================================================================== */
 :root {
+  /* ---- A. RAW SCALES ---- */
+
+  /* Greens / brand */
+  --green-600: #0F8A67; /* primary */
+  --green-700: #0D7A5B; /* hover */
+  --green-800: #0B694E; /* pressed */
+  --green-soft: #ECFDF5; /* soft green background (active states) */
+
+  /* Status */
+  --success: #10B981;
+  --danger-500: #EF4444;
+  --warning: #F59E0B;
+  --blue-500: #3B82F6;
+  --purple-500: #8B5CF6;
+
+  /* Neutrals 950 → 50 */
+  --neutral-950: #0F172A;
+  --neutral-900: #111827;
+  --neutral-800: #1F2937;
+  --neutral-700: #374151;
+  --neutral-600: #4B5563;
+  --neutral-500: #6B7280;
+  --neutral-400: #9CA3AF;
+  --neutral-300: #D1D5DB;
+  --neutral-200: #E5E7EB;
+  --neutral-100: #F3F4F6;
+  --neutral-50:  #F8FAFC;
+
   /* Surfaces */
-  --bg-base: #f5f7f4; /* page background */
-  --bg-elevated: #ffffff; /* panel header */
-  --bg-card: #ffffff; /* card surfaces */
-  --bg-card-hover: #f1f5f9;
-  --bg-input: #ffffff;
+  --surface-app: #F7F8FA;       /* app background */
+  --surface-main: #FFFFFF;      /* main / cards / panels */
+  --surface-workspace: #FCFCFD; /* workspace column */
+  --surface-canvas: #F6F1D9;    /* reader cream canvas */
+
+  /* Radius (max 20px — no pills) */
+  --radius-sm-px: 10px;
+  --radius-btn-px: 12px;   /* tool buttons (Story 10 spec) */
+  --radius-md-px: 14px;
+  --radius-lg-px: 18px;
+  --radius-max: 20px;
+  /* Reader-canvas hero radius. PRD 0002 Story 11 sanctions 24px for THIS frame
+     only — a deliberate exception above the global 20px max. Tokenized so no
+     bare >20 literal lives in component code. */
+  --radius-canvas: 24px;
+
+  /* Page-image corner radius — kept small/sharp per design feedback (was --radius-md 14). */
+  --radius-page: 6px;
+
+  /* Shadows */
+  --shadow-e1: 0 1px 2px rgba(0,0,0,.05);
+  --shadow-e2: 0 4px 16px rgba(0,0,0,.06);
+  --shadow-e3: 0 12px 32px rgba(0,0,0,.08);
+  /* Reader-canvas hero shadow (PRD 0002 Story 11). */
+  --shadow-canvas: 0 8px 24px rgba(0,0,0,.05);
+
+  /* Spacing scale */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
+
+  /* Type scale (size / weight) */
+  --type-xl-size: 32px;       --type-xl-weight: 700;
+  --type-heading-l-size: 24px; --type-heading-l-weight: 700;
+  --type-heading-m-size: 20px; --type-heading-m-weight: 600;
+  --type-body-size: 14px;     --type-body-weight: 500;
+  --type-small-size: 13px;    --type-small-weight: 500;
+  --type-caption-size: 12px;  --type-caption-weight: 500;
+  --type-meta-size: 11px;     --type-meta-weight: 500;
+
+  /* ---- B. SEMANTIC ALIASES (re-pointed at the raw scale) ---- */
+
+  /* Surfaces */
+  --bg-base: var(--surface-app);      /* page background */
+  --bg-elevated: var(--surface-main); /* panel header */
+  --bg-card: var(--surface-main);     /* card surfaces */
+  --bg-card-hover: var(--neutral-100);
+  --bg-input: var(--surface-main);
   --bg-glass: rgba(255, 255, 255, 0.7);
 
   /* Borders */
-  --border-subtle: rgba(2,6,23,0.06);
-  --border-default: rgba(2,6,23,0.08);
-  --border-strong: rgba(2,6,23,0.12);
-  --border-accent: rgba(16,185,129,0.12);
+  --border-subtle: var(--neutral-200);
+  --border-default: var(--neutral-300);
+  --border-strong: var(--neutral-400);
+  --border-accent: rgba(15,138,103,0.18);
 
   /* Text */
-  --text-primary: #0b1220;
-  --text-secondary: #475569;
-  --text-muted: #6b7280;
-  --text-accent: #10b981;
+  --text-primary: var(--neutral-900);
+  --text-secondary: var(--neutral-600);
+  --text-muted: var(--neutral-500);
+  --text-accent: var(--green-600);
 
-  /* Accent palette */
-  --accent: #10b981;
-  --accent-hover: #34d399;
-  --accent-muted: rgba(16,185,129,0.08);
-  --accent-glow: rgba(16,185,129,0.12);
-  --accent-solid: #059669;
+  /* Accent palette (greens) */
+  --accent: var(--green-600);
+  --accent-hover: var(--green-700);
+  --accent-muted: rgba(15,138,103,0.08);
+  --accent-glow: rgba(15,138,103,0.12);
+  --accent-solid: var(--green-600);
 
   /* Danger */
-  --danger: #ef4444;
+  --danger: var(--danger-500);
   --danger-hover: #f87171;
   --danger-muted: rgba(239,68,68,0.08);
 
-  /* Shadows (lighter) */
-  --shadow-sm: 0 1px 6px rgba(2,6,23,0.06);
-  --shadow-md: 0 6px 20px rgba(2,6,23,0.08);
-  --shadow-lg: 0 12px 40px rgba(2,6,23,0.10);
-  --shadow-glow: 0 0 18px rgba(16,185,129,0.06);
+  /* Shadows (mapped to the e1/e2/e3 elevation scale) */
+  --shadow-sm: var(--shadow-e1);
+  --shadow-md: var(--shadow-e2);
+  --shadow-lg: var(--shadow-e3);
+  --shadow-glow: 0 0 18px rgba(15,138,103,0.06);
 
-  /* Symmetric "floating panel" shadow — used for fixed/sticky surfaces like
-     the surah nav panel and top navbar instead of one-sided directional
-     shadows, which read as smudges/haze on a flat light background rather
-     than as elevation. */
-  --shadow-panel: 0 1px 2px rgba(2,6,23,0.04), 0 8px 24px rgba(2,6,23,0.06);
+  /* Symmetric "floating panel" shadow for fixed/sticky surfaces (surah nav
+     panel, top navbar) — elevation, not a one-sided smudge. */
+  --shadow-panel: var(--shadow-e1), var(--shadow-e2);
 
-  /* Radii */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  /* Radii — re-pointed at the new radius scale (max 20px) */
+  --radius-sm: var(--radius-sm-px);
+  --radius-md: var(--radius-md-px);
+  --radius-lg: var(--radius-lg-px);
+  --radius-xl: var(--radius-max);
   --radius-full: 9999px;
 
   /* Transitions */
@@ -68,11 +156,12 @@
 
   body {
     @apply min-h-screen font-sans antialiased;
-    background:
-      radial-gradient(circle at 18% 8%, rgba(16, 185, 129, 0.13), transparent 28rem),
-      radial-gradient(circle at 86% 18%, rgba(14, 165, 233, 0.10), transparent 26rem),
-      linear-gradient(180deg, #fbfdf9 0%, var(--bg-base) 42%, #eef5ef 100%);
+    /* V3 Story 2: flat soft neutral background — no decorative gradients.
+       --surface-app (#F7F8FA) is the calm base the workspace sits on. */
+    background: var(--surface-app);
     color: var(--text-primary);
+    /* V3: Inter, tightened tracking for the workspace look. */
+    letter-spacing: -0.02em;
   }
 
   /* Smooth scrollbar — light-theme colors. (Previously these were
@@ -149,15 +238,13 @@
 }
 
 /* ===== Fixed/sticky panel surface =====
-   For panels that float above page content (surah nav panel, top navbar).
-   Symmetric shadow + hairline border instead of a one-sided directional
-   shadow, which reads as a smudge rather than elevation on this palette. */
+   V3 Story 2: crisp white panels (--surface-main) with elevation shadow.
+   The sidebar, surah panel, and sticky elements sit on the neutral app
+   background and use white + e2 shadow to establish hierarchy. */
 .panel-surface {
-  background: var(--bg-glass);
-  backdrop-filter: blur(16px) saturate(1.3);
-  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  background: var(--surface-main);
   border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-panel);
+  box-shadow: var(--shadow-e2);
 }
 
 /* ===== Buttons ===== */
@@ -304,6 +391,16 @@
   .mobile-bar-offset {
     padding-bottom: 0;
   }
+}
+
+/* Cream hero surround removed per design feedback — the page now sits directly on the
+   workspace with no cream/orange outline. Wrapper kept purely for centering (the per-page
+   contain-fit and the .page-display-frame canvas-fill guard are unaffected by zero padding). */
+.reader-canvas-hero {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
 }
 
 /* Mobile page-display-frame height: the page sits in scrolling document flow with no

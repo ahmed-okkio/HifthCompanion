@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Inter, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-// V3 design refresh (Story 1): Inter is the UI typeface. We keep the existing
-// --font-geist-sans / --font-geist-mono variable names so nothing downstream
-// has to change — Inter just backs the sans variable now.
-const inter = Inter({
+// UI typeface: Plus Jakarta Sans — a modern, geometric sans for a premium feel.
+// We keep the existing --font-geist-sans / --font-geist-mono variable names so nothing
+// downstream has to change — Plus Jakarta Sans just backs the sans variable now.
+const sans = Plus_Jakarta_Sans({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${geistMono.variable}`}>
       <body className="font-sans">
         {children}
       </body>

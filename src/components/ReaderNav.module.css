@@ -104,7 +104,7 @@
   border: 1px solid var(--neutral-200);
   background: var(--surface-main);
   white-space: nowrap;
-  max-width: 22ch;
+  max-width: 34ch;
   overflow: hidden;
 }
 

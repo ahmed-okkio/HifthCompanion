@@ -42,3 +42,11 @@
   background: #fff;
   transform: translateY(-1px);
 }
+
+/* Surah trigger is mobile-only; desktop uses the persistent left panel (mirrors ReaderNav).
+   Without this the module's display:inline-flex overrides the Tailwind lg:hidden utility. */
+@media (min-width: 1024px) {
+  .surahButton {
+    display: none;
+  }
+}

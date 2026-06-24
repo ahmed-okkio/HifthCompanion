@@ -377,6 +377,8 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
                   ref={active ? activeButtonRef : undefined}
                   type="button"
                   onClick={() => { void handleSelect(group); }}
+                  onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-50)'; }}
+                  onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
                   className="group flex w-full items-center gap-3 px-4 text-left transition-colors duration-150"
                   style={{
                     minHeight: '72px',

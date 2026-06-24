@@ -5,6 +5,7 @@ import { TOTAL_PAGES, clampPage } from '@/lib/quran';
 import SurahNavPanel from './SurahNavPanel';
 import MobileSurahDrawer from './MobileSurahDrawer';
 import shareStyles from './ShareShell.module.css';
+import navStyles from './ReaderNav.module.css';
 
 const FALLBACK_NAV_HEIGHT = 56;
 
@@ -53,21 +54,23 @@ export default function ShareShell({ userId, pageNum, setId, setName, children }
       {/* On mobile the header is position:fixed (see ShareShell.module.css); on
           desktop it sits in-flow at the top of the flex column. */}
       <div ref={navRef} className={`${shareStyles.headerWrap} lg:flex-shrink-0`}>
-        {/* V3 Story 2: crisp white header */}
+        {/* V3 — read-only header mirrors ReaderNav (brand left, centered page navigator pill,
+            actions right) using the same ReaderNav.module.css so the style matches the reader. */}
         <header
           className="w-full"
           style={{ background: 'var(--surface-main)', borderBottom: '1px solid var(--border-subtle)', borderRadius: 0, boxShadow: 'var(--shadow-e1)' }}
         >
-          <div className="mx-auto flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2 sm:px-4 sm:py-2.5 max-w-4xl lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
-            <div className="flex min-w-0 flex-1 items-center justify-start gap-2 sm:gap-3 lg:flex-initial">
+          <div className={navStyles.inner}>
+
+            <div className={navStyles.left}>
               <button
                 type="button"
                 onClick={() => setSurahOpen(true)}
                 title="Open surah list"
                 aria-label="Open surah list"
-                className={`${shareStyles.surahButton} lg:hidden`}
+                className={navStyles.surahButton}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <svg width="16" height="16" className={navStyles.navIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                   <line x1="8" y1="6" x2="21" y2="6" />
                   <line x1="8" y1="12" x2="21" y2="12" />
                   <line x1="8" y1="18" x2="21" y2="18" />
@@ -76,51 +79,62 @@ export default function ShareShell({ userId, pageNum, setId, setName, children }
                   <line x1="3" y1="18" x2="3.01" y2="18" />
                 </svg>
               </button>
-              <Link href={`/share/${userId}/${prevPage}?set=${setId}`}>
-                <button
-                  disabled={pageNum === 1}
-                  className="btn btn-ghost flex items-center gap-1"
-                  style={{ padding: '4px 10px', fontSize: '12px' }}
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              <Link href="/reader/1" className={navStyles.brand}>
+                <span className={navStyles.brandIcon}>
+                  <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} />
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} />
                   </svg>
-                  Prev
-                </button>
+                </span>
+                <span className={navStyles.brandText}>
+                  <span className={navStyles.brandTitle}>Hifth Companion</span>
+                </span>
+              </Link>
+              <span className={navStyles.contextBreadcrumb}>
+                <span className={navStyles.contextSurah}>{setName}</span>
+                <span className={navStyles.contextSep} aria-hidden>·</span>
+                <span className={navStyles.contextJuz}>Read-only</span>
+              </span>
+            </div>
+
+            <div className={navStyles.navigator}>
+              <Link
+                href={`/share/${userId}/${prevPage}?set=${setId}`}
+                title="Previous page"
+                aria-disabled={pageNum === 1}
+                className={navStyles.navButton}
+                style={pageNum === 1 ? { pointerEvents: 'none', opacity: 0.35 } : undefined}
+              >
+                <svg width="16" height="16" className={navStyles.navIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                </svg>
               </Link>
 
-              <div className="flex items-center gap-1.5 tabular-nums text-sm font-bold"
-                   style={{ color: 'var(--text-primary)' }}>
-                <span>{pageNum}</span>
-                <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>/</span>
-                <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>{TOTAL_PAGES}</span>
+              <div className={navStyles.pageShell}>
+                <span className={navStyles.pageButton} style={{ cursor: 'default' }}>
+                  <span className={navStyles.pageCurrent}>{pageNum}</span>
+                  <span className={navStyles.pageDivider}>/</span>
+                  <span className={navStyles.pageTotal}>{TOTAL_PAGES}</span>
+                </span>
               </div>
 
-              <Link href={`/share/${userId}/${nextPage}?set=${setId}`}>
-                <button
-                  disabled={pageNum === TOTAL_PAGES}
-                  className="btn btn-ghost flex items-center gap-1"
-                  style={{ padding: '4px 10px', fontSize: '12px' }}
-                >
-                  Next
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
+              <Link
+                href={`/share/${userId}/${nextPage}?set=${setId}`}
+                title="Next page"
+                aria-disabled={pageNum === TOTAL_PAGES}
+                className={navStyles.navButton}
+                style={pageNum === TOTAL_PAGES ? { pointerEvents: 'none', opacity: 0.35 } : undefined}
+              >
+                <svg width="16" height="16" className={navStyles.navIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                </svg>
               </Link>
             </div>
 
-            <div className="flex min-w-0 items-center justify-start gap-2.5 lg:justify-center">
-              <span className="badge max-w-[40vw] truncate sm:max-w-none">{setName}</span>
-              <span className="badge badge-muted flex-shrink-0">Read-only</span>
-            </div>
-
-            <div className="flex min-w-0 flex-1 items-center justify-end lg:flex-initial">
-              <Link href="/reader/1"
-                    className="btn btn-outline flex items-center gap-1"
-                    style={{ padding: '4px 12px', fontSize: '12px' }}>
-                Open Reader
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <div className={navStyles.actions}>
+              <Link href="/reader/1" className={navStyles.secondaryAction}>
+                <span>Open Reader</span>
+                <svg width="16" height="16" className={navStyles.actionIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
               </Link>

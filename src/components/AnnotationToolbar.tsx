@@ -15,6 +15,9 @@ interface Props {
   onClear: () => void;
   onHoverEnter: (t: Tool, pos: { top: number; left: number }) => void;
   onHoverLeave: () => void;
+  // Desktop Move/pan tool: when active, dragging pans the (zoomed) page instead of drawing.
+  moveActive: boolean;
+  onMoveToggle: () => void;
 }
 
 // Vertical divider between groups in the horizontal bar.
@@ -30,7 +33,7 @@ function Divider() {
 export default function AnnotationToolbar({
   activeTool, activeColor, canUndo, canRedo,
   onToolClick, onColorChange, onUndo, onRedo, onClear,
-  onHoverEnter, onHoverLeave,
+  onHoverEnter, onHoverLeave, moveActive, onMoveToggle,
 }: Props) {
   const buttonRefs = useRef<Record<Tool, HTMLButtonElement | null>>({} as Record<Tool, HTMLButtonElement | null>);
 
@@ -73,6 +76,28 @@ export default function AnnotationToolbar({
           boxShadow: 'var(--shadow-e2)',
         }}
       >
+        {/* Move/pan tool — left of the drawing tools. Active = drag pans the zoomed page. */}
+        <button
+          type="button"
+          onClick={onMoveToggle}
+          title="Move"
+          className="flex flex-col items-center justify-center gap-1"
+          style={{
+            ...cellBase,
+            background: moveActive ? 'var(--green-soft)' : 'transparent',
+            color: moveActive ? 'var(--text-accent)' : 'var(--text-muted)',
+          }}
+          onMouseEnter={e => { if (!moveActive) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
+          onMouseLeave={e => { if (!moveActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px' }}>
+            <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20" />
+            </svg>
+          </span>
+          <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>Move</span>
+        </button>
+
         {/* Tools — equal-width cells filling the bar height */}
         {ALL_TOOLS.map(t => (
           <button
@@ -83,15 +108,15 @@ export default function AnnotationToolbar({
             className="flex flex-col items-center justify-center gap-1"
             style={{
               ...cellBase,
-              background: activeTool === t ? 'var(--green-soft)' : 'transparent',
-              color: activeTool === t ? 'var(--text-accent)' : 'var(--text-muted)',
+              background: (activeTool === t && !moveActive) ? 'var(--green-soft)' : 'transparent',
+              color: (activeTool === t && !moveActive) ? 'var(--text-accent)' : 'var(--text-muted)',
             }}
             onMouseEnter={e => {
-              if (activeTool !== t) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)';
+              if (!(activeTool === t && !moveActive)) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)';
               handleMouseEnter(t);
             }}
             onMouseLeave={e => {
-              if (activeTool !== t) (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+              if (!(activeTool === t && !moveActive)) (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
               onHoverLeave();
             }}
           >

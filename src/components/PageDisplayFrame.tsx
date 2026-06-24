@@ -55,10 +55,25 @@ export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, 
             animation: ready ? 'none' : 'shimmer 1.4s linear infinite',
             opacity: ready ? 0 : 1,
             pointerEvents: 'none',
-            transition: 'opacity 0.2s',
+            transition: 'opacity 0.25s ease',
           }}
         />
-        {children}
+        {/* Page animates in once the canvas is ready: skeleton (above) fades out, page fades +
+            scales up. */}
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: ready ? 1 : 0,
+            transform: ready ? 'scale(1)' : 'scale(0.985)',
+            transition: 'opacity 0.35s ease, transform 0.35s var(--ease-out, ease)',
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

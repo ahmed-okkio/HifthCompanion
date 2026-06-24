@@ -14,8 +14,9 @@ const SAVE_DELAY_MS = 1500;
 // multiplies fabric's retina scaling only (backing pixels), NOT the canvas coordinate space, so
 // annotation coordinates and saved canvas_json are unaffected.
 const SUPERSAMPLE = 1.5;
-// Bottom breathing room below the page-display-frame inside the desktop app-shell.
-const PAGE_BOTTOM_GAP = 24;
+// Bottom breathing room below the page-display-frame inside the desktop app-shell. Reserves
+// space for the floating zoom control that sits below the page (kept off the no-doc-scroll path).
+const PAGE_BOTTOM_GAP = 92;
 // Fallback offset before the chrome above the page can be measured (≈ nav + padding + set-picker).
 const FALLBACK_PAGE_OFFSET = 200;
 

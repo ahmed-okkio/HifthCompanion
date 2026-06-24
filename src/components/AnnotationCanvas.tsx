@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { AnnotationSet } from '@/types';
 import PageDisplayFrame from '@/components/PageDisplayFrame';
@@ -38,6 +38,32 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
     setSetsSlot(document.getElementById('sets-card-portal'));
   }, []);
 
+  // Zoom (desktop): a transform scale on the page, 50%–200%, stepped by 10. Reset returns to
+  // 100% (the per-page contain-fit size). Drawing is best at 100%; this is primarily for reading.
+  const [zoom, setZoom] = useState(100);
+  const clampZoom = (z: number) => Math.min(200, Math.max(50, z));
+  // Pan offset while zoomed in (drag the page around). Reset with zoom.
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const dragRef = useRef<{ sx: number; sy: number; bx: number; by: number } | null>(null);
+  // Desktop Move tool: when on, dragging pans the (zoomed) page and drawing is suspended.
+  const [moveTool, setMoveTool] = useState(false);
+  const resetView = () => { setZoom(100); setPan({ x: 0, y: 0 }); setMoveTool(false); };
+
+  // Changing pages while zoomed used to push the toolbar/zoom-control off-screen. Reset the view
+  // on every page change so navigation always lands at the clean 100% contain-fit.
+  useEffect(() => { resetView(); }, [pageNum]);
+
+  const onPanDown = (e: React.MouseEvent) => {
+    dragRef.current = { sx: e.clientX, sy: e.clientY, bx: pan.x, by: pan.y };
+    setDragging(true);
+  };
+  const onPanMove = (e: React.MouseEvent) => {
+    if (!dragRef.current || zoom <= 100) return;
+    setPan({ x: dragRef.current.bx + (e.clientX - dragRef.current.sx), y: dragRef.current.by + (e.clientY - dragRef.current.sy) });
+  };
+  const endPan = () => { dragRef.current = null; setDragging(false); };
+
   return (
     <div className="flex w-full justify-center">
       {/* V3 Story 9 — single workspace column: horizontal annotation bar ABOVE the page,
@@ -53,13 +79,15 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
             canUndo={canUndo}
             canRedo={canRedo}
             saving={saving}
-            onToolClick={handleToolClick}
+            onToolClick={t => { setMoveTool(false); handleToolClick(t); }}
             onColorChange={setActiveColor}
             onUndo={handleUndo}
             onRedo={handleRedo}
             onClear={handleClear}
             onHoverEnter={onHoverEnter}
             onHoverLeave={onHoverLeave}
+            moveActive={moveTool}
+            onMoveToggle={() => setMoveTool(m => !m)}
           />
         </div>
 
@@ -109,129 +137,94 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
               and is clipped by the workspace overflow:hidden if viewport is very short.
               INERT PLACEHOLDER: aria-disabled on every interactive child; no click handlers;
               pointerEvents:none on buttons. Fabric zoom deferred to future Opus story. */}
-          <div className="relative">
-            <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady}>
-              <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
-            </PageDisplayFrame>
+          <div className="relative flex flex-col items-center">
+            {/* transform: scale zooms the page from its center (contain-fit size = 100% baseline).
+                The clip wrapper is sized to the un-scaled page (transform doesn't change layout),
+                so a zoomed-in page is cropped to its own box and never overflows onto the zoom
+                control below. Drawing is best at 100% (the default). */}
+            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-page)' }}>
+              <div style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom / 100})`, transformOrigin: 'center center', transition: dragging ? 'none' : 'transform 120ms var(--ease-out, ease)' }}>
+                <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady}>
+                  <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
+                </PageDisplayFrame>
+              </div>
 
-            {/* Zoom control — INERT. Absolutely positioned, zero layout height impact. */}
+              {/* Pan overlay — present while the Move tool is active. Captures drag to move the
+                  zoomed page (and blocks drawing); absent otherwise so annotation drawing works. */}
+              {moveTool && (
+                <div
+                  aria-label="Drag to move the page"
+                  onMouseDown={onPanDown}
+                  onMouseMove={onPanMove}
+                  onMouseUp={endPan}
+                  onMouseLeave={endPan}
+                  style={{ position: 'absolute', inset: 0, zIndex: 3, cursor: dragging ? 'grabbing' : 'grab' }}
+                />
+              )}
+            </div>
+
+            {/* Zoom control — floats just below the page (desktop). Reserved space is provided by
+                PAGE_BOTTOM_GAP so it never forces document scroll. */}
             <div
               data-testid="zoom-control"
-              aria-label="Zoom controls (coming soon)"
-              className="hidden lg:flex items-center justify-center gap-0"
+              aria-label="Zoom controls"
+              className="hidden lg:flex items-center justify-center"
               style={{
-                position: 'absolute',
-                bottom: '-68px',   /* 56px height + 12px gap */
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: 'fit-content',
-                height: '56px',
+                marginTop: 'var(--space-12)',
+                height: '52px',
                 background: 'var(--surface-main)',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: 'var(--shadow-e1)',
-                padding: '0 var(--space-4)',
+                borderRadius: 'var(--radius-lg-px)',
+                border: '1px solid rgba(15, 23, 42, 0.05)',
+                boxShadow: 'var(--shadow-e2)',
+                padding: '0 var(--space-8)',
                 userSelect: 'none',
-                zIndex: 1,
               }}
             >
-              {/* [-] button — inert */}
               <button
                 type="button"
                 aria-label="Zoom out"
-                aria-disabled="true"
-                tabIndex={-1}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 'var(--radius-sm)',
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'default',
-                  color: 'var(--neutral-500)',
-                  fontSize: '20px',
-                  fontWeight: 500,
-                  pointerEvents: 'none',
-                }}
+                onClick={() => setZoom(z => clampZoom(z - 10))}
+                disabled={zoom <= 50}
+                className="flex items-center justify-center"
+                style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: zoom <= 50 ? 'default' : 'pointer', color: 'var(--neutral-600)', fontSize: '20px', fontWeight: 500, opacity: zoom <= 50 ? 0.4 : 1 }}
+                onMouseEnter={e => { if (zoom > 50) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
               >
                 −
               </button>
 
-              {/* current zoom level display — inert */}
-              <span
-                style={{
-                  minWidth: '52px',
-                  textAlign: 'center',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  color: 'var(--text-primary)',
-                  padding: '0 var(--space-4)',
-                }}
-              >
-                100%
+              <span style={{ minWidth: '52px', textAlign: 'center', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+                {zoom}%
               </span>
 
-              {/* [+] button — inert */}
               <button
                 type="button"
                 aria-label="Zoom in"
-                aria-disabled="true"
-                tabIndex={-1}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 'var(--radius-sm)',
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'default',
-                  color: 'var(--neutral-500)',
-                  fontSize: '20px',
-                  fontWeight: 500,
-                  pointerEvents: 'none',
-                }}
+                onClick={() => setZoom(z => clampZoom(z + 10))}
+                disabled={zoom >= 200}
+                className="flex items-center justify-center"
+                style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: zoom >= 200 ? 'default' : 'pointer', color: 'var(--neutral-600)', fontSize: '20px', fontWeight: 500, opacity: zoom >= 200 ? 0.4 : 1 }}
+                onMouseEnter={e => { if (zoom < 200) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
               >
                 +
               </button>
 
-              {/* divider */}
-              <div
-                aria-hidden="true"
-                style={{
-                  width: '1px',
-                  height: '24px',
-                  background: 'var(--border-subtle)',
-                  margin: '0 var(--space-4)',
-                }}
-              />
+              <div aria-hidden="true" style={{ width: '1px', height: '24px', background: 'var(--border-subtle)', margin: '0 var(--space-8)' }} />
 
-              {/* Fit to width button — inert */}
               <button
                 type="button"
-                aria-label="Fit to width"
-                aria-disabled="true"
-                tabIndex={-1}
-                style={{
-                  height: '40px',
-                  padding: '0 var(--space-12)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  borderRadius: 'var(--radius-sm)',
-                  border: 'none',
-                  background: 'transparent',
-                  cursor: 'default',
-                  fontSize: '13px',
-                  fontWeight: 500,
-                  color: 'var(--neutral-500)',
-                  pointerEvents: 'none',
-                  whiteSpace: 'nowrap',
-                }}
+                aria-label="Reset zoom"
+                onClick={resetView}
+                className="flex items-center gap-2"
+                style={{ height: '38px', padding: '0 var(--space-12)', borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: 'var(--neutral-600)', whiteSpace: 'nowrap' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
               >
-                Fit to width
+                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M20 9a8 8 0 00-14.9-3M4 15a8 8 0 0014.9 3" />
+                </svg>
+                Reset
               </button>
             </div>
           </div>

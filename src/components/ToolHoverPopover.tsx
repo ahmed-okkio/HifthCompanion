@@ -24,30 +24,40 @@ export default function ToolHoverPopover({
     <div
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      style={{ position: 'fixed', left: hoverPos.left, top: hoverPos.top, transform: 'translateY(-50%)', width: 260, zIndex: 60 }}
+      style={{ position: 'fixed', left: hoverPos.left, top: hoverPos.top, width: 260, zIndex: 60 }}
       className="hidden lg:block"
     >
-      <div className="bg-[var(--bg-elevated)] rounded-md p-3 shadow-lg" style={{ border: '1px solid var(--border-subtle)' }}>
+      <div
+        style={{
+          background: 'var(--surface-main)',
+          border: '1px solid var(--neutral-200)',
+          borderRadius: 'var(--radius-md-px)',
+          boxShadow: 'var(--shadow-e3)',
+          padding: 'var(--space-12) var(--space-16)',
+        }}
+      >
         {(hoveredTool === 'pen' || hoveredTool === 'circle' || hoveredTool === 'underline') && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Size</span>
+          <div className="flex items-center gap-3" style={{ minHeight: '28px' }}>
+            <span style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)' }}>Size</span>
             <input
               type="range" min="1" max="40" step="1" value={penWidth}
               onChange={e => onPenWidthChange(Number(e.target.value))}
-              className="w-full h-1 rounded-lg cursor-pointer accent-emerald-500"
+              className="w-full cursor-pointer accent-[var(--green-600)]"
+              style={{ height: '4px' }}
             />
-            <span className="text-sm font-mono w-8">{penWidth}</span>
+            <span style={{ minWidth: '36px', textAlign: 'right', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{penWidth}</span>
           </div>
         )}
         {hoveredTool === 'highlighter' && (
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Opacity</span>
+          <div className="flex items-center gap-3" style={{ minHeight: '28px' }}>
+            <span style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)' }}>Opacity</span>
             <input
               type="range" min="0.1" max="0.9" step="0.05" value={opacity}
               onChange={e => onOpacityChange(parseFloat(e.target.value))}
-              className="w-full h-1 rounded-lg cursor-pointer accent-emerald-500"
+              className="w-full cursor-pointer accent-[var(--green-600)]"
+              style={{ height: '4px' }}
             />
-            <span className="text-sm font-mono w-8">{Math.round(opacity * 100)}%</span>
+            <span style={{ minWidth: '36px', textAlign: 'right', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{Math.round(opacity * 100)}%</span>
           </div>
         )}
       </div>

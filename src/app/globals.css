@@ -385,7 +385,8 @@
    Story 12: consolidated from Story 8 provisional 72px → measured 56px.
    lg: resets to 0 because the desktop toolbar is in-flow (no fixed bar). */
 .mobile-bar-offset {
-  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  /* 56px bar + 16px lift + 16px breathing room so content clears the floating bar. */
+  padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
 }
 @media (min-width: 1024px) {
   .mobile-bar-offset {

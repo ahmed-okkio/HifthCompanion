@@ -148,7 +148,7 @@ export default function ReaderShell({ children, user, sets }: ReaderShellProps) 
         <div
           data-testid="context-panel"
           data-mobile-testid="mobile-context-panel"
-          className="w-full px-4 pb-[calc(56px+env(safe-area-inset-bottom,0px))] sm:px-6 lg:flex lg:flex-col lg:flex-shrink-0 lg:w-[320px] lg:px-0 lg:pb-0 lg:h-full lg:min-h-0 lg:overflow-y-auto thin-scroll"
+          className="w-full px-4 pb-[calc(88px+env(safe-area-inset-bottom,0px))] sm:px-6 lg:flex lg:flex-col lg:flex-shrink-0 lg:w-[320px] lg:px-0 lg:pb-0 lg:h-full lg:min-h-0 lg:overflow-y-auto thin-scroll"
           style={{ paddingTop: 'var(--space-24)' }}
         >
           {/* Sets card portal target — AnnotationCanvas renders the SetsCard here (top of the

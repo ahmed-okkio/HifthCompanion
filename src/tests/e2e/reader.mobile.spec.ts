@@ -221,9 +221,10 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
     const barBox = await mobileBar.boundingBox();
     expect(barBox).not.toBeNull();
     if (barBox && viewport) {
-      // Bar bottom must be at or near viewport bottom (fixed bottom:0)
+      // Bar is a floating pill lifted ~12px off the bottom (+ safe-area) — still pinned near the
+      // viewport bottom, not scrolled away with the content.
       const barBottom = barBox.y + barBox.height;
-      expect(barBottom, 'annotation bar must stay at viewport bottom').toBeGreaterThanOrEqual(viewport.height - 4);
+      expect(barBottom, 'annotation bar must stay near viewport bottom').toBeGreaterThanOrEqual(viewport.height - 40);
     }
   });
 

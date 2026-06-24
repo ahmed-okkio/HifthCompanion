@@ -144,9 +144,11 @@
   justify-content: center;
   padding: var(--space-4);
   border-radius: var(--radius-md);
-  /* Same colour as the nav bar (white surface) lifted by a light drop shadow. */
+  /* Same colour as the nav bar (white surface) with a thin light-grey outline (like the Juz
+     breadcrumb) lifted by a pronounced drop shadow so it reads as a floating/hovering control. */
   background: var(--surface-main);
-  box-shadow: var(--shadow-e1);
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  box-shadow: var(--shadow-e2);
 }
 
 .navButton,

@@ -58,17 +58,20 @@ export default function MobileAnnotationBar({
       className="lg:hidden"
       style={{
         position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
+        /* Floating: lifted off the bottom edge and inset from the sides so all four rounded
+           corners are visible (a hovering pill, not a flush-to-edge bar). */
+        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+        left: 14,
+        right: 14,
         zIndex: 45,
-        /* V3 Story 16 — glass bar: white-tinted glass + 16px backdrop blur + e2 shadow */
+        /* V3 Story 16 — glass bar: white-tinted glass + 16px backdrop blur. Lifted off the
+           bottom with a deep shadow so it clearly hovers above the page. */
         background: 'var(--bg-glass)',
         backdropFilter: 'blur(16px) saturate(1.4)',
         WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
-        borderTop: '1px solid var(--border-subtle)',
-        boxShadow: 'var(--shadow-e2)',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 'var(--radius-max)',
+        boxShadow: '0 14px 36px rgba(15, 23, 42, 0.22)',
       }}
     >
       {saving && (

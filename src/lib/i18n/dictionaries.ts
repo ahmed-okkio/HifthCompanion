@@ -1,0 +1,112 @@
+import type { Locale } from './config';
+
+// Flat key → string maps. Keep keys grouped by feature with dotted prefixes.
+// Config-defined labels (log types / statuses) are NOT translated here — they
+// are free text in the teacher's language per the PRD.
+const en = {
+  'common.appName': 'HifthCompanion',
+  'common.save': 'Save',
+  'common.cancel': 'Cancel',
+  'common.delete': 'Delete',
+  'common.edit': 'Edit',
+  'common.back': 'Back',
+  'common.loading': 'Loading…',
+
+  'lang.label': 'Language',
+  'lang.en': 'English',
+  'lang.ar': 'العربية',
+
+  'tracker.title': 'Progress Tracker',
+  'tracker.teaching': 'Halaqat I teach',
+  'tracker.enrolled': 'Halaqat I joined',
+  'tracker.createHalaqah': 'Create halaqah',
+  'tracker.joinHalaqah': 'Join with code',
+  'tracker.inviteCode': 'Invite code',
+  'tracker.rotateCode': 'Rotate code',
+  'tracker.roster': 'Roster',
+  'tracker.noStudents': 'No students yet',
+  'tracker.inviteByEmail': 'Invite by email',
+  'tracker.remove': 'Remove',
+  'tracker.block': 'Block',
+  'tracker.archive': 'Archive',
+  'tracker.reactivate': 'Reactivate',
+
+  'log.new': 'Log today',
+  'log.pageRange': 'Pages',
+  'log.from': 'From',
+  'log.to': 'To',
+  'log.type': 'Type',
+  'log.selfStatus': 'How did it go?',
+  'log.note': 'Note (optional)',
+  'log.date': 'Date',
+  'log.attachPage': 'Attach page',
+  'log.submit': 'Submit',
+  'log.streak': 'day streak',
+  'log.pickHalaqah': 'Class',
+  'log.sharedSet': 'Shared set',
+
+  'grade.title': 'Review',
+  'grade.status': 'Grade',
+  'grade.comment': 'Comment',
+  'grade.markReviewed': 'Mark reviewed',
+  'grade.pending': 'pending',
+  'grade.reviewed': 'Reviewed',
+} as const;
+
+export type MessageKey = keyof typeof en;
+
+const ar: Record<MessageKey, string> = {
+  'common.appName': 'رفيق الحفظ',
+  'common.save': 'حفظ',
+  'common.cancel': 'إلغاء',
+  'common.delete': 'حذف',
+  'common.edit': 'تعديل',
+  'common.back': 'رجوع',
+  'common.loading': 'جارٍ التحميل…',
+
+  'lang.label': 'اللغة',
+  'lang.en': 'English',
+  'lang.ar': 'العربية',
+
+  'tracker.title': 'متابعة التقدّم',
+  'tracker.teaching': 'الحلقات التي أُدرّسها',
+  'tracker.enrolled': 'الحلقات التي انضممت إليها',
+  'tracker.createHalaqah': 'إنشاء حلقة',
+  'tracker.joinHalaqah': 'الانضمام برمز',
+  'tracker.inviteCode': 'رمز الدعوة',
+  'tracker.rotateCode': 'تغيير الرمز',
+  'tracker.roster': 'قائمة الطلاب',
+  'tracker.noStudents': 'لا يوجد طلاب بعد',
+  'tracker.inviteByEmail': 'دعوة بالبريد',
+  'tracker.remove': 'إزالة',
+  'tracker.block': 'حظر',
+  'tracker.archive': 'أرشفة',
+  'tracker.reactivate': 'إعادة تفعيل',
+
+  'log.new': 'تسجيل اليوم',
+  'log.pageRange': 'الصفحات',
+  'log.from': 'من',
+  'log.to': 'إلى',
+  'log.type': 'النوع',
+  'log.selfStatus': 'كيف كان الأداء؟',
+  'log.note': 'ملاحظة (اختياري)',
+  'log.date': 'التاريخ',
+  'log.attachPage': 'إرفاق صفحة',
+  'log.submit': 'إرسال',
+  'log.streak': 'يوم متتالٍ',
+  'log.pickHalaqah': 'الحلقة',
+  'log.sharedSet': 'المجموعة المشتركة',
+
+  'grade.title': 'مراجعة',
+  'grade.status': 'التقييم',
+  'grade.comment': 'تعليق',
+  'grade.markReviewed': 'تحديد كمُراجَع',
+  'grade.pending': 'قيد المراجعة',
+  'grade.reviewed': 'تمت المراجعة',
+};
+
+export const dictionaries: Record<Locale, Record<MessageKey, string>> = { en, ar };
+
+export function getDictionary(locale: Locale): Record<MessageKey, string> {
+  return dictionaries[locale];
+}

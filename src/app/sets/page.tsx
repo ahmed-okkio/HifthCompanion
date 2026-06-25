@@ -29,7 +29,12 @@ export default async function SetsPage() {
               HifthCompanion
             </span>
           </Link>
-          <ReaderBackLink />
+          <div className="flex items-center gap-3">
+            <Link href="/tracker" className="text-xs font-semibold" style={{ color: 'var(--text-accent)' }}>
+              Tracker
+            </Link>
+            <ReaderBackLink />
+          </div>
         </div>
       </header>
 

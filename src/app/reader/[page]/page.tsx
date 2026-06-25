@@ -8,14 +8,17 @@ import { getNotes } from '@/lib/services/notes';
 
 interface Props {
   params: Promise<{ page: string }>;
+  // `set` lets a teacher view a student's shared set (RLS-gated, read-only).
+  searchParams: Promise<{ set?: string }>;
 }
 
 // The reader app-shell (persistent layout) owns the page navigation chrome and the Fabric
 // annotation canvas, so they survive page-to-page navigation without remounting (Story 24).
 // This route segment renders only the per-page notes / share column, which is allowed to
 // remount so its server-fetched notes swap cleanly with the page.
-export default async function ReaderPage({ params }: Props) {
+export default async function ReaderPage({ params, searchParams }: Props) {
   const { page } = await params;
+  const { set: requestedSet } = await searchParams;
   const pageNum = parseInt(page, 10);
 
   if (isNaN(pageNum) || pageNum < 1 || pageNum > TOTAL_PAGES) {
@@ -25,16 +28,21 @@ export default async function ReaderPage({ params }: Props) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // The reader's own chrome (set list, ShareCard) only ever shows the user's own
+  // sets — cross-user RLS would otherwise mix in students' shared sets.
   const { data: sets } = user
     ? await supabase
         .from('annotation_sets')
         .select('id, name')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
     : { data: [] };
 
-  const firstSetId = (sets ?? [])[0]?.id;
-  const initialNotes = user && firstSetId
-    ? await getNotes(firstSetId, pageNum).catch(() => [])
+  // Notes view: an explicit `?set=` (teacher viewing a shared set) wins; RLS
+  // enforces read access. Otherwise the user's own first set.
+  const viewSetId = requestedSet ?? (sets ?? [])[0]?.id;
+  const initialNotes = user && viewSetId
+    ? await getNotes(viewSetId, pageNum).catch(() => [])
     : [];
 
   return (
@@ -43,9 +51,9 @@ export default async function ReaderPage({ params }: Props) {
     <div className="flex min-w-0 flex-col gap-4 lg:self-stretch lg:min-h-0 lg:max-h-full lg:overflow-y-auto lg:pr-1">
 
       {/* ── 1. NOTES (top) ── */}
-      {user && firstSetId ? (
+      {user && viewSetId ? (
         <div className="animate-fade-in-scale" style={{ animationDelay: '100ms' }}>
-          <NotesPanel setId={firstSetId} pageNum={pageNum} initialNotes={initialNotes} />
+          <NotesPanel setId={viewSetId} pageNum={pageNum} initialNotes={initialNotes} />
         </div>
       ) : !user ? (
         <div className="card p-8 text-center flex flex-col items-center justify-center animate-fade-in-scale" style={{ animationDelay: '100ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>

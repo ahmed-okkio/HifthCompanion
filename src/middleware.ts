@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
   const isE2E = process.env.PLAYWRIGHT_TEST === 'true' || request.headers.get('x-e2e-test') === 'true';
   const effectiveUser = isE2E ? { id: 'test-user' } : user;
 
-  const protectedPaths = ['/sets', '/reader'];
+  const protectedPaths = ['/sets', '/reader', '/tracker'];
   const isProtected = protectedPaths.some(p => request.nextUrl.pathname.startsWith(p));
 
   // If in E2E mode, skip auth check
@@ -41,5 +41,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/sets', '/sets/:path*'], // only /sets is protected in this slice
+  matcher: ['/sets', '/sets/:path*', '/tracker', '/tracker/:path*'],
 };

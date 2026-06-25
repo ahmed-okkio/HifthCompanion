@@ -38,6 +38,10 @@ const en = {
   'log.type': 'Type',
   'log.selfStatus': 'How did it go?',
   'log.note': 'Note (optional)',
+  'log.refineAyah': 'Refine by ayah (optional)',
+  'log.surah': 'Surah',
+  'log.ayahFrom': 'Ayah from',
+  'log.ayahTo': 'Ayah to',
   'log.date': 'Date',
   'log.attachPage': 'Attach page',
   'log.submit': 'Submit',
@@ -51,6 +55,17 @@ const en = {
   'grade.markReviewed': 'Mark reviewed',
   'grade.pending': 'pending',
   'grade.reviewed': 'Reviewed',
+
+  'analytics.title': 'Analytics',
+  'analytics.pages': 'Pages',
+  'analytics.juz': 'Juz',
+  'analytics.logs': 'Logs',
+  'analytics.heatmap': 'Consistency',
+  'analytics.weakest': 'Needs attention',
+  'analytics.noGraded': 'No graded logs yet.',
+  'analytics.coverage': 'Mushaf coverage',
+  'analytics.memorized': 'Memorized',
+  'analytics.revised': 'Revised',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -90,6 +105,10 @@ const ar: Record<MessageKey, string> = {
   'log.type': 'النوع',
   'log.selfStatus': 'كيف كان الأداء؟',
   'log.note': 'ملاحظة (اختياري)',
+  'log.refineAyah': 'تحديد بالآية (اختياري)',
+  'log.surah': 'سورة',
+  'log.ayahFrom': 'من آية',
+  'log.ayahTo': 'إلى آية',
   'log.date': 'التاريخ',
   'log.attachPage': 'إرفاق صفحة',
   'log.submit': 'إرسال',
@@ -103,6 +122,17 @@ const ar: Record<MessageKey, string> = {
   'grade.markReviewed': 'تحديد كمُراجَع',
   'grade.pending': 'قيد المراجعة',
   'grade.reviewed': 'تمت المراجعة',
+
+  'analytics.title': 'التحليلات',
+  'analytics.pages': 'الصفحات',
+  'analytics.juz': 'الأجزاء',
+  'analytics.logs': 'السجلات',
+  'analytics.heatmap': 'الانتظام',
+  'analytics.weakest': 'يحتاج اهتمامًا',
+  'analytics.noGraded': 'لا توجد سجلات مُقيَّمة بعد.',
+  'analytics.coverage': 'تغطية المصحف',
+  'analytics.memorized': 'محفوظ',
+  'analytics.revised': 'مُراجَع',
 };
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { en, ar };

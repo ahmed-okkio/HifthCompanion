@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type { AnnotationSet, Halaqah, Membership, ProgressLog } from '@/types';
 import { setSharedSet } from '@/lib/services/membership';
 import { createLog, deleteLog } from '@/lib/services/progressLog';
 import { computeStreak } from '@/lib/streak';
+import { getSurahForPage, getAyahsOnPage } from '@/lib/quran';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -33,6 +34,34 @@ export default function StudentHalaqah({
   const [note, setNote] = useState('');
   const [logDate, setLogDate] = useState(today());
 
+  // Optional ayah refinement (M1-7b). Surah derived from page; ayahs bounded
+  // to those actually present on the logged page range.
+  const [refine, setRefine] = useState(false);
+  const [ayahStart, setAyahStart] = useState(1);
+  const [ayahEnd, setAyahEnd] = useState(1);
+
+  const refineSurah = useMemo(() => getSurahForPage(pageStart), [pageStart]);
+  const ayahOptions = useMemo(() => {
+    const lo = Math.min(pageStart, pageEnd);
+    const hi = Math.max(pageStart, pageEnd);
+    const set = new Set<number>();
+    for (let p = lo; p <= hi; p++) {
+      for (const a of getAyahsOnPage(p)) {
+        if (a.surah === refineSurah) set.add(a.ayah);
+      }
+    }
+    return Array.from(set).sort((a, b) => a - b);
+  }, [pageStart, pageEnd, refineSurah]);
+
+  // Snap ayah range into the available options when page range / surah changes.
+  useEffect(() => {
+    if (ayahOptions.length === 0) return;
+    const first = ayahOptions[0];
+    const last = ayahOptions[ayahOptions.length - 1];
+    setAyahStart((v) => (ayahOptions.includes(v) ? v : first));
+    setAyahEnd((v) => (ayahOptions.includes(v) ? v : last));
+  }, [ayahOptions]);
+
   const streak = useMemo(() => computeStreak(logs), [logs]);
 
   async function handleShare(id: string) {
@@ -51,6 +80,9 @@ export default function StudentHalaqah({
         log_type: logType,
         page_start: pageStart,
         page_end: pageEnd,
+        surah: refine ? refineSurah : null,
+        ayah_start: refine ? Math.min(ayahStart, ayahEnd) : null,
+        ayah_end: refine ? Math.max(ayahStart, ayahEnd) : null,
         student_status: status,
         student_notes: note || null,
       });
@@ -97,6 +129,23 @@ export default function StudentHalaqah({
           </label>
         </div>
 
+        {/* Optional ayah refinement (M1-7b) */}
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <input type="checkbox" checked={refine} onChange={(e) => setRefine(e.target.checked)} />
+            {t('log.refineAyah')}
+          </label>
+          {refine && ayahOptions.length > 0 && (
+            <div className="flex items-end gap-2">
+              <span className="text-xs" style={{ color: 'var(--text-muted)', paddingBottom: 10 }}>
+                {t('log.surah')} {refineSurah}
+              </span>
+              <AyahSelect label={t('log.ayahFrom')} value={ayahStart} options={ayahOptions} onChange={setAyahStart} />
+              <AyahSelect label={t('log.ayahTo')} value={ayahEnd} options={ayahOptions} onChange={setAyahEnd} />
+            </div>
+          )}
+        </div>
+
         <ChipRow label={t('log.selfStatus')} options={halaqah.student_statuses.map((s) => s.label)} value={status} onChange={setStatus} />
 
         <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('log.note')}
@@ -115,6 +164,7 @@ export default function StudentHalaqah({
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                 {l.log_type} · p{l.page_start}–{l.page_end}
+                {l.surah && l.ayah_start ? ` · ${l.surah}:${l.ayah_start}${l.ayah_end && l.ayah_end !== l.ayah_start ? `–${l.ayah_end}` : ''}` : ''}
               </span>
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{l.log_date}</span>
             </div>
@@ -159,6 +209,22 @@ function ChipRow({
         ))}
       </div>
     </div>
+  );
+}
+
+function AyahSelect({
+  label, value, options, onChange,
+}: {
+  label: string; value: number; options: number[]; onChange: (v: number) => void;
+}) {
+  return (
+    <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+      {label}
+      <select value={value} onChange={(e) => onChange(Number(e.target.value))}
+              className="input input-sm" style={{ minHeight: 40 }}>
+        {options.map((a) => <option key={a} value={a}>{a}</option>)}
+      </select>
+    </label>
   );
 }
 

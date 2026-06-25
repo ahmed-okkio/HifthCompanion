@@ -1,9 +1,31 @@
 import surahFirstPagesData from '@/data/surahFirstPages.json';
+import ayahCountsData from '@/data/ayahCountsBySurah.json';
+import juzStartPagesData from '@/data/juzStartPages.json';
+import pageFirstAyahData from '@/data/pageFirstAyah.json';
 
 export const TOTAL_PAGES = 604;
+export const TOTAL_JUZ = 30;
+export const TOTAL_SURAHS = 114;
 
 export const SURAH_FIRST_PAGES: Record<number, number> = Object.fromEntries(
   Object.entries(surahFirstPagesData).map(([k, v]) => [Number(k), v])
+);
+
+/** Ayah count per surah (Hafs / Madani Mushaf, 6236 total). */
+export const AYAH_COUNTS: Record<number, number> = Object.fromEntries(
+  Object.entries(ayahCountsData).map(([k, v]) => [Number(k), v as number])
+);
+
+/** First page (1–604) of each juz (1–30), Madani Mushaf layout. */
+export const JUZ_START_PAGES: Record<number, number> = Object.fromEntries(
+  Object.entries(juzStartPagesData).map(([k, v]) => [Number(k), v as number])
+);
+
+export type AyahRef = { surah: number; ayah: number };
+
+/** First ayah present on each page (1–604). */
+export const PAGE_FIRST_AYAH: Record<number, AyahRef> = Object.fromEntries(
+  Object.entries(pageFirstAyahData).map(([k, v]) => [Number(k), v as AyahRef])
 );
 
 /**
@@ -35,4 +57,78 @@ export function getPageImageUrl(page: number): string {
 
 export function clampPage(page: number): number {
   return Math.max(1, Math.min(TOTAL_PAGES, page));
+}
+
+/** Number of ayahs in a surah (1–114). */
+export function getAyahCount(surah: number): number {
+  return AYAH_COUNTS[surah] ?? 0;
+}
+
+/** First page of a juz (1–30). */
+export function getJuzStartPage(juz: number): number {
+  return JUZ_START_PAGES[juz] ?? 1;
+}
+
+/** Juz number (1–30) containing the given page. */
+export function getJuzForPage(page: number): number {
+  const p = clampPage(page);
+  let result = 1;
+  for (let juz = 1; juz <= TOTAL_JUZ; juz++) {
+    if (JUZ_START_PAGES[juz] <= p) result = juz;
+    else break;
+  }
+  return result;
+}
+
+// Cumulative ayahs before each surah → 1-based global ayah index across the Mushaf.
+const AYAHS_BEFORE_SURAH: Record<number, number> = (() => {
+  const acc: Record<number, number> = {};
+  let total = 0;
+  for (let s = 1; s <= TOTAL_SURAHS; s++) {
+    acc[s] = total;
+    total += getAyahCount(s);
+  }
+  return acc;
+})();
+
+/** 1-based global ayah index (1–6236) for a surah:ayah ref. */
+export function globalAyahIndex(surah: number, ayah: number): number {
+  return (AYAHS_BEFORE_SURAH[surah] ?? 0) + ayah;
+}
+
+/** The page (1–604) that contains a given surah:ayah. */
+export function getPageForAyah(surah: number, ayah: number): number {
+  const g = globalAyahIndex(surah, ayah);
+  let result = 1;
+  for (let p = 1; p <= TOTAL_PAGES; p++) {
+    if (globalAyahIndex(PAGE_FIRST_AYAH[p].surah, PAGE_FIRST_AYAH[p].ayah) <= g) result = p;
+    else break;
+  }
+  return result;
+}
+
+/**
+ * All ayahs present on a page, in order. Derived from PAGE_FIRST_AYAH: a page
+ * spans from its first ayah up to (but excluding) the next page's first ayah.
+ */
+export function getAyahsOnPage(page: number): AyahRef[] {
+  const p = clampPage(page);
+  const startG = globalAyahIndex(PAGE_FIRST_AYAH[p].surah, PAGE_FIRST_AYAH[p].ayah);
+  const endG =
+    p < TOTAL_PAGES
+      ? globalAyahIndex(PAGE_FIRST_AYAH[p + 1].surah, PAGE_FIRST_AYAH[p + 1].ayah) - 1
+      : globalAyahIndex(TOTAL_SURAHS, getAyahCount(TOTAL_SURAHS));
+  const out: AyahRef[] = [];
+  let surah = PAGE_FIRST_AYAH[p].surah;
+  let ayah = PAGE_FIRST_AYAH[p].ayah;
+  for (let g = startG; g <= endG; g++) {
+    out.push({ surah, ayah });
+    if (ayah >= getAyahCount(surah)) {
+      surah += 1;
+      ayah = 1;
+    } else {
+      ayah += 1;
+    }
+  }
+  return out;
 }

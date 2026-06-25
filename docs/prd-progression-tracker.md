@@ -131,7 +131,9 @@ Source these (e.g., QuranHub / known datasets) before M1 ayah features and M2 an
 
 Ordered by milestone. **DATA** ticket is a *dependency gate*, not a priority — sequence it right before M2 (and before any ayah/juz feature pulls it in). M1 ships on existing data.
 
-### M1 — Core loop (no new data files)
+**Board state (2026-06-26):** M1, DATA, M1-7b, M2 ✅ shipped to `master`. Next up: M3 (sessions & attendance). Caveat: tracker UI has unit + component-test coverage only; full teacher↔student e2e blocked by single-user mock client (see §14).
+
+### M1 — Core loop (no new data files) ✅ DONE
 - **M1-1** DB: `halaqah`, `membership` tables + RLS (owner-only preserved).
 - **M1-2** DB: `halaqah_config` (log_types/statuses w/ role+polarity flags) + seeded defaults on halaqah create.
 - **M1-3** DB: `progress_log` table + RLS (student write own / teacher grade own halaqat).
@@ -145,18 +147,20 @@ Ordered by milestone. **DATA** ticket is a *dependency gate*, not a priority —
 - **M1-11** i18n framework + `dir=rtl` + EN/AR app chrome + language switcher.
 - **M1-12** Offboarding: membership → inactive revokes teacher Set access; logs retained.
 
-### DATA — Quran reference data (gate before M2 + ayah features)
-- **DATA-1** Juz boundaries by page → juz totals/logging.
-- **DATA-2** Ayah-per-page map → ayah-level precision + coverage map.
-- **DATA-3** Ayah counts per surah → ranges + weakest-surah aggregation.
-- **M1-7b** (depends DATA) optional ayah-range refinement in log form.
+### DATA — Quran reference data (gate before M2 + ayah features) ✅ DONE
+Sourced from alquran.cloud `/v1/meta` (Hafs/Madani); cross-checked 0 mismatches vs existing `surahFirstPages.json`. Files in `src/data/`, helpers in `src/lib/quran.ts`.
+- **DATA-1** ✅ Juz boundaries by page (`juzStartPages.json`) → `getJuzStartPage`, `getJuzForPage`.
+- **DATA-2** ✅ Ayah-per-page map (`pageFirstAyah.json`) → `getAyahsOnPage`, `getPageForAyah`, `globalAyahIndex`.
+- **DATA-3** ✅ Ayah counts per surah (`ayahCountsBySurah.json`, sums 6236) → `getAyahCount`. Bonus: `surahNames.json` (en/ar) + `getSurahName`.
+- **M1-7b** ✅ Optional ayah-range refinement in log form (`StudentHalaqah.tsx`); surah auto-derived from page, ayah pickers bounded to ayahs on the range.
 
-### M2 — Analytics (depends DATA)
-- **M2-1** Calendar consistency heatmap.
-- **M2-2** Cumulative pages + juz totals.
-- **M2-3** Weakest-surah (negative teacher_status ratio over graded logs).
-- **M2-4** Mushaf coverage map (memorize paints; revise = recency; read excluded).
-- **M2-5** Teacher roll-up analytics.
+### M2 — Analytics (depends DATA) ✅ DONE
+Logic in `src/lib/analytics.ts` (unit-tested); per-student UI `StudentAnalytics.tsx`; roll-up in `TeacherHalaqah.tsx`.
+- **M2-1** ✅ Calendar consistency heatmap.
+- **M2-2** ✅ Cumulative pages + juz totals.
+- **M2-3** ✅ Weakest-surah (negative teacher_status ratio over graded logs).
+- **M2-4** ✅ Mushaf coverage map (memorize paints; revise = recency; read excluded).
+- **M2-5** ✅ Teacher roll-up (per-student pages/juz/pending in roster).
 
 ### M3 — Sessions & attendance
 - **M3-1** DB: `session` + recurrence rule on halaqah; auto-generate sessions.
@@ -191,3 +195,9 @@ Ordered by milestone. **DATA** ticket is a *dependency gate*, not a priority —
 
 ## 13. Remaining Open Questions
 - None blocking. Confirm seeded-default labels & polarity/role mappings at build time (e.g., Sabaq→memorize, Re-do→negative).
+
+## 14. Known Gaps / Test Debt (2026-06-26)
+- **Tracker e2e gap.** Full teacher↔student-analytics flow not e2e-reachable: server components read the mock client via the process global (not browser localStorage, so Playwright can't seed data), and the single mock user can't be both teacher and student. Analytics covered by unit (`analytics.test.ts`) + component-render (`StudentAnalytics.test.tsx`) instead. To unblock real e2e: add a multi-user mock + a server-reachable seed path.
+- **Teacher shared-set WRITE migration** (`20260625000005_teacher_shared_set_write.sql`) still **not pushed to remote** (needs per-push consent). Teacher edits of a student's set won't persist until `npx supabase db push`.
+- **Pre-existing red (not tracker):** `NotesPanel.test.tsx` (9 fail — constructs a real `@supabase/ssr` client at import, no URL/key in test env); tsc errors in `AnnotationToolbar.test.tsx` + `e2e/features.spec.ts`.
+- **Mock client** (`src/lib/supabase/mock.ts`) does not implement analytics-specific query paths; fine because analytics compute client-side from logs it already serves.

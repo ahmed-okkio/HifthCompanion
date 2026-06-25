@@ -1,0 +1,146 @@
+import { describe, it, expect } from 'vitest';
+import {
+  buildHeatmap,
+  cumulativeTotals,
+  weakestSurahs,
+  coverageMap,
+  rollup,
+} from '../lib/analytics';
+import type { Halaqah, ProgressLog } from '../types';
+
+const today = () => new Date().toISOString().slice(0, 10);
+const daysAgo = (n: number) => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+};
+
+function log(p: Partial<ProgressLog>): ProgressLog {
+  return {
+    id: Math.random().toString(36).slice(2),
+    membership_id: 'm1',
+    log_date: today(),
+    log_type: 'Sabaq',
+    page_start: 1,
+    page_end: 1,
+    surah: null,
+    ayah_start: null,
+    ayah_end: null,
+    student_status: null,
+    student_notes: null,
+    teacher_status: null,
+    teacher_comment: null,
+    reviewed_at: null,
+    created_at: today(),
+    updated_at: today(),
+    ...p,
+  };
+}
+
+const halaqah: Pick<Halaqah, 'log_types' | 'teacher_statuses'> = {
+  log_types: [
+    { label: 'Sabaq', role: 'memorize' },
+    { label: 'Sabqi', role: 'revise' },
+    { label: 'Reading', role: 'read' },
+  ],
+  teacher_statuses: [
+    { label: 'Excellent', polarity: 'positive' },
+    { label: 'Needs work', polarity: 'negative' },
+    { label: 'OK', polarity: 'neutral' },
+  ],
+};
+
+describe('buildHeatmap', () => {
+  it('returns one entry per day, oldest first, ending today', () => {
+    const hm = buildHeatmap([], 7);
+    expect(hm).toHaveLength(7);
+    expect(hm[6].date).toBe(today());
+    expect(hm[0].date).toBe(daysAgo(6));
+  });
+
+  it('counts logs by log_date', () => {
+    const hm = buildHeatmap([log({ log_date: today() }), log({ log_date: today() }), log({ log_date: daysAgo(1) })], 7);
+    expect(hm[6].count).toBe(2);
+    expect(hm[5].count).toBe(1);
+    expect(hm[0].count).toBe(0);
+  });
+});
+
+describe('cumulativeTotals', () => {
+  it('counts distinct pages and juz, dedupes overlaps', () => {
+    const t = cumulativeTotals([
+      log({ page_start: 1, page_end: 3 }),
+      log({ page_start: 2, page_end: 4 }), // overlaps 2,3
+    ]);
+    expect(t.pages).toBe(4); // 1,2,3,4
+    expect(t.juz).toBe(1); // all juz 1
+    expect(t.logs).toBe(2);
+  });
+
+  it('counts juz across boundaries', () => {
+    const t = cumulativeTotals([log({ page_start: 21, page_end: 22 })]); // juz1 + juz2
+    expect(t.pages).toBe(2);
+    expect(t.juz).toBe(2);
+  });
+});
+
+describe('weakestSurahs', () => {
+  it('ignores ungraded logs', () => {
+    const scores = weakestSurahs([log({ surah: 2, teacher_status: 'Needs work' })], halaqah);
+    expect(scores).toHaveLength(0); // not reviewed
+  });
+
+  it('scores negative ratio per surah, weakest first', () => {
+    const scores = weakestSurahs(
+      [
+        log({ surah: 2, reviewed_at: today(), teacher_status: 'Needs work' }),
+        log({ surah: 2, reviewed_at: today(), teacher_status: 'Excellent' }),
+        log({ surah: 3, reviewed_at: today(), teacher_status: 'Needs work' }),
+      ],
+      halaqah,
+    );
+    expect(scores[0]).toMatchObject({ surah: 3, ratio: 1 });
+    expect(scores[1]).toMatchObject({ surah: 2, graded: 2, negative: 1, ratio: 0.5 });
+  });
+
+  it('derives surah from page range when surah field absent', () => {
+    const scores = weakestSurahs(
+      [log({ page_start: 2, page_end: 2, reviewed_at: today(), teacher_status: 'Needs work' })],
+      halaqah,
+    );
+    expect(scores[0].surah).toBe(2); // page 2 = Al-Baqara
+  });
+});
+
+describe('coverageMap', () => {
+  it('memorize paints, revise records recency, read excluded', () => {
+    const cov = coverageMap(
+      [
+        log({ log_type: 'Sabaq', page_start: 5, page_end: 5 }),
+        log({ log_type: 'Sabqi', page_start: 5, page_end: 5, log_date: daysAgo(2) }),
+        log({ log_type: 'Sabqi', page_start: 5, page_end: 5, log_date: today() }),
+        log({ log_type: 'Reading', page_start: 10, page_end: 10 }),
+      ],
+      halaqah,
+    );
+    expect(cov[5].memorized).toBe(true);
+    expect(cov[5].lastRevised).toBe(today()); // most recent revise wins
+    expect(cov[10].memorized).toBe(false); // read excluded
+    expect(cov[10].lastRevised).toBeNull();
+  });
+});
+
+describe('rollup', () => {
+  it('summarizes per membership, sorted by pages, counts pending', () => {
+    const byM = new Map<string, ProgressLog[]>([
+      ['a', [log({ page_start: 1, page_end: 1 })]],
+      ['b', [log({ page_start: 1, page_end: 5 }), log({ page_start: 6, page_end: 6, reviewed_at: today() })]],
+    ]);
+    const r = rollup(byM);
+    expect(r[0].membershipId).toBe('b');
+    expect(r[0].totals.pages).toBe(6);
+    expect(r[0].pending).toBe(1);
+    expect(r[1].pending).toBe(1);
+  });
+});

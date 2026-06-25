@@ -2,6 +2,7 @@ import surahFirstPagesData from '@/data/surahFirstPages.json';
 import ayahCountsData from '@/data/ayahCountsBySurah.json';
 import juzStartPagesData from '@/data/juzStartPages.json';
 import pageFirstAyahData from '@/data/pageFirstAyah.json';
+import surahNamesData from '@/data/surahNames.json';
 
 export const TOTAL_PAGES = 604;
 export const TOTAL_JUZ = 30;
@@ -62,6 +63,13 @@ export function clampPage(page: number): number {
 /** Number of ayahs in a surah (1–114). */
 export function getAyahCount(surah: number): number {
   return AYAH_COUNTS[surah] ?? 0;
+}
+
+const SURAH_NAMES = surahNamesData as { en: Record<string, string>; ar: Record<string, string> };
+
+/** Surah name in the given locale (defaults English). */
+export function getSurahName(surah: number, locale: 'en' | 'ar' = 'en'): string {
+  return SURAH_NAMES[locale]?.[String(surah)] ?? `Surah ${surah}`;
 }
 
 /** First page of a juz (1–30). */

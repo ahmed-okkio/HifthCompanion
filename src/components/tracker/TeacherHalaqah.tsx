@@ -7,6 +7,7 @@ import type { Halaqah, Membership, ProgressLog } from '@/types';
 import { rotateInviteCode } from '@/lib/services/halaqah';
 import { inviteByEmail, setMembershipStatus } from '@/lib/services/membership';
 import { gradeLog } from '@/lib/services/progressLog';
+import { rollup } from '@/lib/analytics';
 
 export default function TeacherHalaqah({
   halaqah,
@@ -28,6 +29,17 @@ export default function TeacherHalaqah({
     () => new Map(members.map((m) => [m.id, m])),
     [members],
   );
+
+  // M2-5 roll-up: per-student totals + pending count, from the full feed.
+  const rollupById = useMemo(() => {
+    const byMembership = new Map<string, ProgressLog[]>();
+    for (const l of feed) {
+      const arr = byMembership.get(l.membership_id) ?? [];
+      arr.push(l);
+      byMembership.set(l.membership_id, arr);
+    }
+    return new Map(rollup(byMembership).map((r) => [r.membershipId, r]));
+  }, [feed]);
 
   async function handleRotate() {
     setCode(await rotateInviteCode(halaqah.id));
@@ -95,8 +107,18 @@ export default function TeacherHalaqah({
         {members.map((m) => (
           <div key={m.id} className="card flex items-center justify-between gap-3" style={{ padding: '12px 16px' }}>
             <Link href={`/tracker/${halaqah.id}/student/${m.id}`}
-                  className="text-sm" style={{ color: 'var(--text-primary)', opacity: m.status === 'active' ? 1 : 0.5 }}>
-              {m.user_id.slice(0, 8)} · <span className="badge">{m.status}</span>
+                  className="flex flex-col gap-1" style={{ opacity: m.status === 'active' ? 1 : 0.5 }}>
+              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                {m.user_id.slice(0, 8)} · <span className="badge">{m.status}</span>
+                {(rollupById.get(m.id)?.pending ?? 0) > 0 && (
+                  <span className="badge" style={{ background: 'var(--accent)', color: '#fff', marginInlineStart: 6 }}>
+                    {rollupById.get(m.id)!.pending} {t('grade.pending')}
+                  </span>
+                )}
+              </span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {rollupById.get(m.id)?.totals.pages ?? 0} {t('analytics.pages')} · {rollupById.get(m.id)?.totals.juz ?? 0} {t('analytics.juz')}
+              </span>
             </Link>
             <div className="flex gap-1">
               {m.status === 'active' ? (

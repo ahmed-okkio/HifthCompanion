@@ -3,7 +3,7 @@
    serve cached navigations when the network is unavailable. We do NOT cache
    quran-pages images or bulk data here — that is deferred (M4-3). */
 
-const CACHE_VERSION = "hc-shell-v1";
+const CACHE_VERSION = "hc-shell-v2";
 const SHELL_URLS = ["/", "/offline"];
 
 self.addEventListener("install", (event) => {
@@ -45,16 +45,21 @@ self.addEventListener("fetch", (event) => {
   // Never cache the heavy page imagery or data — out of M4-1 scope.
   if (url.pathname.startsWith("/quran-pages/")) return;
 
-  // Navigation (app shell) requests: cache-first, fall back to network, then
-  // to the cached shell when offline.
+  // Navigation requests: NETWORK-FIRST. Always serve the live page so route
+  // changes and updated build chunks load correctly; only fall back to the
+  // cached shell when the network is unavailable. (Cache-first here caused an
+  // infinite reload loop: a stale cached "/" referenced old build chunks, Next
+  // forced a version-mismatch reload, which re-served the same stale "/".)
   if (request.mode === "navigate") {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request).catch(
-          () => caches.match("/offline") || caches.match("/")
-        );
-      })
+      fetch(request)
+        .then((response) => {
+          // Refresh the offline fallback copy of the app shell in the background.
+          const copy = response.clone();
+          caches.open(CACHE_VERSION).then((cache) => cache.put("/", copy)).catch(() => {});
+          return response;
+        })
+        .catch(() => caches.match("/offline").then((m) => m || caches.match("/")))
     );
     return;
   }

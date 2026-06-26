@@ -8,6 +8,16 @@ import { useEffect } from "react";
 export function ServiceWorkerRegister() {
   useEffect(() => {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+
+    // Never run the SW in development: Next's dev server serves freshly-hashed
+    // chunks on every load, which a caching SW will fight with (reload loops).
+    if (process.env.NODE_ENV !== "production") {
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        regs.forEach((r) => r.unregister());
+      });
+      return;
+    }
+
     navigator.serviceWorker.register("/sw.js").catch(() => {
       // Registration failure must never break the app — swallow silently.
     });

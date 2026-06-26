@@ -20,8 +20,8 @@ test.describe('Progression Tracker (Authenticated)', () => {
     await expect(page.locator('h1')).toContainText('Progress Tracker');
 
     const name = `Fajr Circle ${Date.now()}`;
-    await page.getByPlaceholder('Create halaqah').fill(name);
-    await page.getByRole('button', { name: 'Create halaqah' }).click();
+    await page.getByPlaceholder('Name your halqah…').fill(name);
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
 
     // Appears under "Halaqat I teach" as a card link.
     const card = page.getByRole('link', { name: new RegExp(name) });
@@ -73,8 +73,8 @@ test.describe('Progression Tracker (Two-actor)', () => {
     const teacher = await teacherCtx.newPage();
     await teacher.goto('/tracker');
     const name = `Two Actor ${Date.now()}`;
-    await teacher.getByPlaceholder('Create halaqah').fill(name);
-    await teacher.getByRole('button', { name: 'Create halaqah' }).click();
+    await teacher.getByPlaceholder('Name your halqah…').fill(name);
+    await teacher.getByRole('button', { name: 'Create', exact: true }).click();
     const card = teacher.getByRole('link', { name: new RegExp(name) });
     await expect(card).toBeVisible();
     await card.click();
@@ -88,7 +88,7 @@ test.describe('Progression Tracker (Two-actor)', () => {
     const student = await studentCtx.newPage();
     await student.goto('/tracker');
     await student.getByPlaceholder('Invite code').fill(inviteCode);
-    await student.getByRole('button', { name: 'Join with code' }).click();
+    await student.getByRole('button', { name: 'Join', exact: true }).click();
     const enrolled = student.getByRole('link', { name: new RegExp(name) });
     await expect(enrolled).toBeVisible();
     await enrolled.click();
@@ -105,7 +105,7 @@ test.describe('Progression Tracker (Two-actor)', () => {
     await expect(teacher.getByText(/^Reviewed/).first()).toBeVisible();
 
     // 5) Teacher opens the student profile → analytics reflect graded log.
-    const roster = teacher.getByRole('link', { name: new RegExp(STUDENT_ID.slice(0, 8)) });
+    const roster = teacher.getByRole('link', { name: new RegExp(STUDENT_ID.slice(0, 6)) });
     await roster.first().click();
     await expect(teacher).toHaveURL(new RegExp(`/student/[^/]+$`));
     await expect(teacher.getByText(/Sabaq/).first()).toBeVisible();

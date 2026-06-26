@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type { AnnotationSet, Halaqah, Membership, ProgressLog } from '@/types';
 import { setSharedSet } from '@/lib/services/membership';
@@ -54,14 +54,11 @@ export default function StudentHalaqah({
     return Array.from(set).sort((a, b) => a - b);
   }, [pageStart, pageEnd, refineSurah]);
 
-  // Snap ayah range into the available options when page range / surah changes.
-  useEffect(() => {
-    if (ayahOptions.length === 0) return;
-    const first = ayahOptions[0];
-    const last = ayahOptions[ayahOptions.length - 1];
-    setAyahStart((v) => (ayahOptions.includes(v) ? v : first));
-    setAyahEnd((v) => (ayahOptions.includes(v) ? v : last));
-  }, [ayahOptions]);
+  // Snap the chosen ayah range into the available options without an effect:
+  // derive the effective value each render (clamp a stale selection to the
+  // first/last option when the page range / surah shifts the option set).
+  const effAyahStart = ayahOptions.includes(ayahStart) ? ayahStart : (ayahOptions[0] ?? 1);
+  const effAyahEnd = ayahOptions.includes(ayahEnd) ? ayahEnd : (ayahOptions[ayahOptions.length - 1] ?? 1);
 
   const streak = useMemo(() => computeStreak(logs), [logs]);
   const atRisk = useMemo(() => isStreakAtRisk(logs), [logs]);
@@ -83,8 +80,8 @@ export default function StudentHalaqah({
         page_start: pageStart,
         page_end: pageEnd,
         surah: refine ? refineSurah : null,
-        ayah_start: refine ? Math.min(ayahStart, ayahEnd) : null,
-        ayah_end: refine ? Math.max(ayahStart, ayahEnd) : null,
+        ayah_start: refine ? Math.min(effAyahStart, effAyahEnd) : null,
+        ayah_end: refine ? Math.max(effAyahStart, effAyahEnd) : null,
         student_status: status,
         student_notes: note || null,
       });
@@ -161,8 +158,8 @@ export default function StudentHalaqah({
               <span className="text-xs" style={{ color: 'var(--text-muted)', paddingBottom: 10 }}>
                 {t('log.surah')} {refineSurah}
               </span>
-              <AyahSelect label={t('log.ayahFrom')} value={ayahStart} options={ayahOptions} onChange={setAyahStart} />
-              <AyahSelect label={t('log.ayahTo')} value={ayahEnd} options={ayahOptions} onChange={setAyahEnd} />
+              <AyahSelect label={t('log.ayahFrom')} value={effAyahStart} options={ayahOptions} onChange={setAyahStart} />
+              <AyahSelect label={t('log.ayahTo')} value={effAyahEnd} options={ayahOptions} onChange={setAyahEnd} />
             </div>
           )}
         </div>

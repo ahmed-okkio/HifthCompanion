@@ -8,7 +8,7 @@ import { getLogsForMembership } from '@/lib/services/progressLog';
 import { getAttendanceForMembership } from '@/lib/services/attendance';
 import { computeStreak } from '@/lib/streak';
 import StudentAnalytics from '@/components/tracker/StudentAnalytics';
-import { Avatar, shortId } from '@/components/tracker/ui';
+import { Avatar } from '@/components/tracker/ui';
 
 export default async function StudentProfilePage({
   params,
@@ -40,7 +40,7 @@ export default async function StudentProfilePage({
             <Avatar seed={member.user_id} size={44} />
             <div className="flex flex-col min-w-0">
               <h1 className="text-base font-bold font-mono truncate" style={{ color: 'var(--text-primary)' }}>
-                #{shortId(member.user_id)}
+                #{member.user_id.slice(0, 6)}
               </h1>
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 {member.status}

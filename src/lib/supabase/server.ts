@@ -1,31 +1,37 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies, headers } from 'next/headers';
-import { MockSupabaseClient } from './mock';
+import { MockSupabaseClient, MOCK_USER_ID } from './mock';
 
 async function getE2EStatus() {
   const cookieStore = await cookies();
   const headerStore = await headers();
-  
-  const isE2E = process.env.PLAYWRIGHT_TEST === 'true' || 
+
+  const isE2E = process.env.PLAYWRIGHT_TEST === 'true' ||
                 cookieStore.get('x-e2e-test')?.value === 'true' ||
                 headerStore.get('x-e2e-test') === 'true';
 
-  if (!isE2E) return { isE2E: false, authenticated: false };
+  if (!isE2E) return { isE2E: false, authenticated: false, userId: MOCK_USER_ID };
 
   let authenticated = false;
+  let userId = MOCK_USER_ID;
   try {
-    if (cookieStore.get('sb-access-token')?.value === 'dummy-token' ||
-        cookieStore.get('sb-auth-token')) {
+    const authCookie = cookieStore.get('sb-auth-token');
+    if (cookieStore.get('sb-access-token')?.value === 'dummy-token' || authCookie) {
       authenticated = true;
     }
+    // Multi-user: the auth cookie carries the acting identity ({"sub": uuid}).
+    if (authCookie?.value) {
+      const sub = JSON.parse(authCookie.value)?.sub;
+      if (typeof sub === 'string' && sub) userId = sub;
+    }
   } catch {}
-  return { isE2E: true, authenticated };
+  return { isE2E: true, authenticated, userId };
 }
 
 export async function createClient() {
-  const { isE2E, authenticated } = await getE2EStatus();
+  const { isE2E, authenticated, userId } = await getE2EStatus();
   if (isE2E) {
-    return new MockSupabaseClient(authenticated) as any;
+    return new MockSupabaseClient(authenticated, userId) as any;
   }
 
   const cookieStore = await cookies();
@@ -42,9 +48,9 @@ export async function createClient() {
 }
 
 export async function createClientAction() {
-  const { isE2E, authenticated } = await getE2EStatus();
+  const { isE2E, authenticated, userId } = await getE2EStatus();
   if (isE2E) {
-    return new MockSupabaseClient(authenticated) as any;
+    return new MockSupabaseClient(authenticated, userId) as any;
   }
 
   const cookieStore = await cookies();

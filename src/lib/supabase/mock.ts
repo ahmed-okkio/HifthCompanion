@@ -26,7 +26,7 @@ interface MockNote {
   updated_at: string;
 }
 
-const MOCK_USER_ID = '52345ff6-3348-40d5-b6d8-1234567890ab';
+export const MOCK_USER_ID = '52345ff6-3348-40d5-b6d8-1234567890ab';
 
 // Global server-side DB
 const globalForDb = global as unknown as {
@@ -161,6 +161,7 @@ function saveAnnotations(annos: MockAnnotation[]) {
 
 class MockQueryBuilder {
   private table: string;
+  private userId: string;
   private filters: { field: string; value: any }[] = [];
   private inFilters: { field: string; values: any[] }[] = [];
   private selectColumns = '';
@@ -168,12 +169,13 @@ class MockQueryBuilder {
   private orderAscending = true;
   private isSingle = false;
   private isMaybeSingle = false;
-  
+
   private op: 'select' | 'insert' | 'update' | 'delete' | 'upsert' = 'select';
   private opValues: any = null;
 
-  constructor(table: string) {
+  constructor(table: string, userId: string = MOCK_USER_ID) {
     this.table = table;
+    this.userId = userId;
   }
 
   select(columns?: string) {
@@ -248,7 +250,7 @@ class MockQueryBuilder {
         const sets = getSets();
         const newSet = {
           id: Math.random().toString(36).substring(2, 9),
-          user_id: '52345ff6-3348-40d5-b6d8-1234567890ab',
+          user_id: this.userId,
           name: this.opValues?.name ?? '',
           created_at: new Date().toISOString(),
           ...this.opValues,
@@ -419,7 +421,7 @@ class MockQueryBuilder {
       if (table === 'halaqah') {
         row = {
           invite_code: rid().slice(0, 12),
-          teacher_id: MOCK_USER_ID,
+          teacher_id: this.userId,
           schedule: null,
           log_types: SEED_LOG_TYPES,
           student_statuses: SEED_STUDENT_STATUSES,
@@ -429,7 +431,7 @@ class MockQueryBuilder {
         };
       } else if (table === 'membership') {
         row = {
-          user_id: MOCK_USER_ID,
+          user_id: this.userId,
           role: 'student',
           shared_set_id: null,
           status: 'active',
@@ -462,7 +464,16 @@ class MockQueryBuilder {
 
     // select
     let result = this.sortRows(this.applyFilters(rows));
-    // Embed: membership.select('*, halaqah:halaqah_id(*)')
+    // Embed: membership.select('*, halaqah:halaqah_id(*)') is the "my memberships"
+    // landing query — RLS scopes it to the current user. Mirror that here when no
+    // explicit halaqah_id filter is present (teacher roster reads keep that filter).
+    if (
+      table === 'membership' &&
+      this.selectColumns.includes('halaqah') &&
+      !this.filters.some((f) => f.field === 'halaqah_id')
+    ) {
+      result = result.filter((m: any) => m.user_id === this.userId);
+    }
     if (table === 'membership' && this.selectColumns.includes('halaqah')) {
       const halaqat = trackerGet('halaqah');
       result = result.map((m: any) => ({
@@ -486,9 +497,11 @@ class MockQueryBuilder {
 
 export class MockSupabaseClient {
   private authenticated = false;
+  private userId: string;
 
-  constructor(authenticated: boolean) {
+  constructor(authenticated: boolean, userId: string = MOCK_USER_ID) {
     this.authenticated = authenticated;
+    this.userId = userId;
   }
 
   auth = {
@@ -498,10 +511,7 @@ export class MockSupabaseClient {
       }
       return {
         data: {
-          user: {
-            id: '52345ff6-3348-40d5-b6d8-1234567890ab',
-            email: 'test@example.com',
-          },
+          user: { id: this.userId, email: emailForUser(this.userId) },
         },
         error: null,
       };
@@ -512,12 +522,7 @@ export class MockSupabaseClient {
       }
       return {
         data: {
-          session: {
-            user: {
-              id: '52345ff6-3348-40d5-b6d8-1234567890ab',
-              email: 'test@example.com',
-            },
-          },
+          session: { user: { id: this.userId, email: emailForUser(this.userId) } },
         },
         error: null,
       };
@@ -525,15 +530,62 @@ export class MockSupabaseClient {
   };
 
   from(table: string) {
-    return new MockQueryBuilder(table);
+    return new MockQueryBuilder(table, this.userId);
   }
 
   async rpc(fn: string, args?: Record<string, any>) {
     if (fn === 'user_id_by_email') {
-      // Mock: only the seeded test user resolves.
+      // Mock: resolve any known e2e identity by email (teacher/student fixtures).
       const email = (args?._email ?? '').toLowerCase();
-      return { data: email === 'test@example.com' ? MOCK_USER_ID : null, error: null };
+      return { data: userIdForEmail(email), error: null };
     }
     return { data: null, error: null };
   }
+}
+
+// --- E2E multi-user fixtures -------------------------------------------------
+// Deterministic teacher/student identities so a two-actor flow can be exercised.
+// Test-only: reached only when the mock client is active (E2E env gate upstream).
+export const E2E_USERS: Record<string, string> = {
+  'teacher@example.com': MOCK_USER_ID,
+  'student@example.com': '6a1b2c3d-4e5f-6789-abcd-0123456789ef',
+  'test@example.com': MOCK_USER_ID,
+};
+function userIdForEmail(email: string): string | null {
+  return E2E_USERS[email.toLowerCase()] ?? null;
+}
+function emailForUser(userId: string): string {
+  for (const [email, id] of Object.entries(E2E_USERS)) {
+    if (id === userId) return email;
+  }
+  return 'test@example.com';
+}
+
+// --- Test-only server-store seed/reset --------------------------------------
+// The server reads tracker tables from a process global. Playwright runs in the
+// browser and cannot touch that global, so a test-only route handler POSTs here
+// to seed/reset deterministic fixtures. Guarded upstream by the E2E env gate.
+export function __resetMockStore() {
+  globalForDb.mockSets = [];
+  globalForDb.mockAnnotations = [];
+  globalForDb.mockNotes = [];
+  globalForDb.mockHalaqah = [];
+  globalForDb.mockMembership = [];
+  globalForDb.mockProgressLog = [];
+  globalForDb.mockSession = [];
+  globalForDb.mockAttendance = [];
+}
+
+export function __seedMockStore(payload: Partial<{
+  halaqah: any[];
+  membership: any[];
+  progress_log: any[];
+  session: any[];
+  attendance: any[];
+}>) {
+  if (payload.halaqah) globalForDb.mockHalaqah!.push(...payload.halaqah);
+  if (payload.membership) globalForDb.mockMembership!.push(...payload.membership);
+  if (payload.progress_log) globalForDb.mockProgressLog!.push(...payload.progress_log);
+  if (payload.session) globalForDb.mockSession!.push(...payload.session);
+  if (payload.attendance) globalForDb.mockAttendance!.push(...payload.attendance);
 }

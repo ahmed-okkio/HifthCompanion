@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { computeStreak } from '@/lib/streak';
+import { computeStreak, isStreakAtRisk } from '@/lib/streak';
 
 const day = (offset: number) => {
   const d = new Date();
@@ -33,5 +33,30 @@ describe('computeStreak', () => {
 
   it('dedupes multiple logs on the same day', () => {
     expect(computeStreak([{ log_date: day(0) }, { log_date: day(0) }, { log_date: day(-1) }])).toBe(2);
+  });
+});
+
+describe('isStreakAtRisk', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('is false with no logs', () => {
+    expect(isStreakAtRisk([], day(0))).toBe(false);
+  });
+
+  it('is false when there is a log today (streak already extended)', () => {
+    expect(isStreakAtRisk([{ log_date: day(0) }, { log_date: day(-1) }], day(0))).toBe(false);
+  });
+
+  it('is true when streak alive (logged yesterday) but nothing today', () => {
+    expect(isStreakAtRisk([{ log_date: day(-1) }, { log_date: day(-2) }], day(0))).toBe(true);
+  });
+
+  it('is false when streak is dead (latest log older than yesterday)', () => {
+    expect(isStreakAtRisk([{ log_date: day(-3) }, { log_date: day(-4) }], day(0))).toBe(false);
+  });
+
+  it('defaults today to the current day', () => {
+    expect(isStreakAtRisk([{ log_date: day(-1) }])).toBe(true);
+    expect(isStreakAtRisk([{ log_date: day(0) }])).toBe(false);
   });
 });

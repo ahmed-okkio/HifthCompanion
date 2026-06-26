@@ -41,6 +41,9 @@ export default function TeacherHalaqah({
     return new Map(rollup(byMembership).map((r) => [r.membershipId, r]));
   }, [feed]);
 
+  // M4-2: total pending reviews across the roster (logs awaiting teacher review).
+  const totalPending = useMemo(() => feed.filter((l) => !l.reviewed_at).length, [feed]);
+
   async function handleRotate() {
     setCode(await rotateInviteCode(halaqah.id));
   }
@@ -96,9 +99,21 @@ export default function TeacherHalaqah({
 
       {/* Roster */}
       <div className="flex flex-col gap-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-          {t('tracker.roster')}
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+            {t('tracker.roster')}
+          </h2>
+          {totalPending > 0 && (
+            <span
+              className="badge"
+              role="status"
+              aria-label={`${totalPending} ${t('grade.pendingTotal')}`}
+              style={{ background: 'var(--accent)', color: '#fff' }}
+            >
+              {totalPending} {t('grade.pendingTotal')}
+            </span>
+          )}
+        </div>
         {members.length === 0 && (
           <div className="card text-center" style={{ padding: '24px', color: 'var(--text-muted)', fontSize: 13 }}>
             {t('tracker.noStudents')}

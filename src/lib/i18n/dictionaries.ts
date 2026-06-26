@@ -46,6 +46,8 @@ const en = {
   'log.attachPage': 'Attach page',
   'log.submit': 'Submit',
   'log.streak': 'day streak',
+  'log.streakAtRisk': 'Log today to keep your streak',
+  'log.streakAtRiskShort': 'Streak at risk',
   'log.pickHalaqah': 'Class',
   'log.sharedSet': 'Shared set',
 
@@ -54,6 +56,7 @@ const en = {
   'grade.comment': 'Comment',
   'grade.markReviewed': 'Mark reviewed',
   'grade.pending': 'pending',
+  'grade.pendingTotal': 'pending review',
   'grade.reviewed': 'Reviewed',
 
   'analytics.title': 'Analytics',
@@ -133,6 +136,8 @@ const ar: Record<MessageKey, string> = {
   'log.attachPage': 'إرفاق صفحة',
   'log.submit': 'إرسال',
   'log.streak': 'يوم متتالٍ',
+  'log.streakAtRisk': 'سجّل اليوم للحفاظ على تتابعك',
+  'log.streakAtRiskShort': 'التتابع في خطر',
   'log.pickHalaqah': 'الحلقة',
   'log.sharedSet': 'المجموعة المشتركة',
 
@@ -141,6 +146,7 @@ const ar: Record<MessageKey, string> = {
   'grade.comment': 'تعليق',
   'grade.markReviewed': 'تحديد كمُراجَع',
   'grade.pending': 'قيد المراجعة',
+  'grade.pendingTotal': 'بانتظار المراجعة',
   'grade.reviewed': 'تمت المراجعة',
 
   'analytics.title': 'التحليلات',

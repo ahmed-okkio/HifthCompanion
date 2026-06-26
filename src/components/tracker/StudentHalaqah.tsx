@@ -5,7 +5,7 @@ import { useI18n } from '@/components/I18nProvider';
 import type { AnnotationSet, Halaqah, Membership, ProgressLog } from '@/types';
 import { setSharedSet } from '@/lib/services/membership';
 import { createLog, deleteLog } from '@/lib/services/progressLog';
-import { computeStreak } from '@/lib/streak';
+import { computeStreak, isStreakAtRisk } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage } from '@/lib/quran';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -63,6 +63,7 @@ export default function StudentHalaqah({
   }, [ayahOptions]);
 
   const streak = useMemo(() => computeStreak(logs), [logs]);
+  const atRisk = useMemo(() => isStreakAtRisk(logs), [logs]);
 
   async function handleShare(id: string) {
     const next = id || null;
@@ -102,7 +103,20 @@ export default function StudentHalaqah({
     <div className="flex flex-col gap-6">
       {/* Streak + shared set */}
       <div className="flex items-center justify-between gap-3">
-        <div className="badge">{streak} {t('log.streak')}</div>
+        <div className="flex items-center gap-2">
+          <div className="badge">{streak} {t('log.streak')}</div>
+          {atRisk && (
+            <span
+              className="badge"
+              role="status"
+              aria-label={t('log.streakAtRisk')}
+              title={t('log.streakAtRisk')}
+              style={{ background: 'var(--danger, #dc2626)', color: '#fff' }}
+            >
+              ⚠ {t('log.streakAtRiskShort')}
+            </span>
+          )}
+        </div>
         <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
           {t('log.sharedSet')}
           <select value={sharedSetId ?? ''} onChange={(e) => handleShare(e.target.value)}

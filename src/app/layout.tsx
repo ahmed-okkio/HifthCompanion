@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { I18nProvider } from "@/components/I18nProvider";
+import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { dirFor } from "@/lib/i18n/config";
 import { getLocale } from "@/lib/i18n/server";
 
@@ -21,6 +22,21 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "HifthCompanion — Quran Annotation & Study",
   description: "Read, annotate, and study the Quran with powerful drawing tools and shareable annotations.",
+  // manifest.ts is auto-linked by Next; appleWebApp + apple-touch-icon make the
+  // app installable on iOS (M4-1).
+  appleWebApp: {
+    capable: true,
+    title: "HifthCompanion",
+    statusBarStyle: "default",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+// themeColor belongs in the viewport export in Next 16. Matches --green-600.
+export const viewport: Viewport = {
+  themeColor: "#0F8A67",
 };
 
 export default async function RootLayout({
@@ -33,6 +49,7 @@ export default async function RootLayout({
     <html lang={locale} dir={dirFor(locale)} className={`${sans.variable} ${geistMono.variable}`}>
       <body className="font-sans">
         <I18nProvider locale={locale}>{children}</I18nProvider>
+        <ServiceWorkerRegister />
       </body>
     </html>
   );

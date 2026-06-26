@@ -131,7 +131,7 @@ Source these (e.g., QuranHub / known datasets) before M1 ayah features and M2 an
 
 Ordered by milestone. **DATA** ticket is a *dependency gate*, not a priority — sequence it right before M2 (and before any ayah/juz feature pulls it in). M1 ships on existing data.
 
-**Board state (2026-06-26):** M1, DATA, M1-7b, M2, M3 ✅ shipped to `master`. Next up: M4 (engagement & polish: PWA + notification badges). Caveat: tracker UI has unit + component-test coverage only; full teacher↔student e2e blocked by single-user mock client (see §14). M3 migration `20260626000001_create_sessions_attendance.sql` pushed to remote 2026-06-26.
+**Board state (2026-06-26):** M1, DATA, M1-7b, M2, M3, M4 (M4-1+M4-2) ✅ shipped to `master`. Remaining: M4-3 (PWA push only — email dropped), plus test-debt (multi-user e2e mock §14) and pre-existing red cleanup. Caveat: tracker UI has unit + component-test coverage only; full teacher↔student e2e blocked by single-user mock client (see §14). M3 migration `20260626000001_create_sessions_attendance.sql` pushed to remote 2026-06-26.
 
 ### M1 — Core loop (no new data files) ✅ DONE
 - **M1-1** DB: `halaqah`, `membership` tables + RLS (owner-only preserved).
@@ -169,17 +169,17 @@ Migration `20260626000001_create_sessions_attendance.sql`; recurrence logic `src
 - **M3-3** ✅ DB: `attendance` table + RLS (teacher manages, student reads own); mark per student per session (upsert on `session_id,membership_id`), statuses present/absent/late/excused.
 - **M3-4** ✅ Attendance feeds analytics — `attendanceStats` (late counts as attended; excused leaves denominator) surfaced in `StudentAnalytics`.
 
-### M4 — Engagement & polish
-- **M4-1** PWA manifest + installable + offline app shell.
-- **M4-2** In-app notification badges (student streak-at-risk, teacher pending count).
-- **M4-3** (later) email digest / PWA push.
+### M4 — Engagement & polish ✅ DONE (M4-1, M4-2 — 2026-06-26, commit `c4874ff`)
+- **M4-1** ✅ PWA manifest (`src/app/manifest.ts`) + placeholder icons + installable + offline app-shell service worker (`public/sw.js`, registered via `ServiceWorkerRegister.tsx`). Quran-pages excluded from cache. No DB change.
+- **M4-2** ✅ In-app notification badges — student streak-at-risk (`isStreakAtRisk` in `streak.ts`) in `StudentHalaqah`; teacher aggregate pending-review count in `TeacherHalaqah`. Reuses already-fetched data. EN/AR keys.
+- **M4-3** (later) PWA push only. **Email digest dropped** (product decision 2026-06-26 — no email sending). Push needs VAPID keys in env before it can send.
 
 ## 10. Phasing (summary)
 
 - **M1 — Core loop:** roles, halaqah + invite/join, configurable log types & statuses, page-primary logging (+optional ayah), student edit/streak, teacher roster + daily feed + grading, shared-Set link + cross-user RLS, EN/AR RTL. *(Needs juz/ayah data for ayah refinement.)*
 - **M2 — Analytics suite:** streak (carried), heatmap, pages/juz totals, weakest-surah, coverage map.
 - **M3 — Sessions & attendance:** recurrence engine, sessions, attendance, attendance analytics.
-- **M4 — Engagement & polish:** PWA install/offline shell, in-app notification badges → later email digest / PWA push.
+- **M4 — Engagement & polish:** PWA install/offline shell, in-app notification badges → later PWA push (email digest dropped 2026-06-26 — no email).
 
 ## 11. Success Metrics
 - **DAU**: % registered students completing a daily log.

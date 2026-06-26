@@ -10,6 +10,24 @@ vi.mock('@/lib/services/notes', () => ({
   deleteNote: vi.fn(),
 }));
 
+// useNotes constructs a real @supabase/ssr browser client at runtime (createClient).
+// In jsdom there is no SUPABASE_URL/ANON_KEY, so stub createClient with a thenable
+// query builder that resolves to an empty result (notes come via initialNotes prop).
+vi.mock('@/lib/supabase/client', () => ({
+  createClient: vi.fn(() => {
+    const builder: any = {
+      from: () => builder,
+      select: () => builder,
+      eq: () => builder,
+      order: () => builder,
+      // No-op thenable: leaves the effect's promise unresolved so the panel keeps
+      // its `initialNotes` prop instead of being overwritten by a fetch result.
+      then: () => {},
+    };
+    return builder;
+  }),
+}));
+
 const makeNote = (overrides: Partial<Note> = {}): Note => ({
   id: 'note-1',
   set_id: 'set-1',

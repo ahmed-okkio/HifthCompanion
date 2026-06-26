@@ -56,6 +56,7 @@ async function drawOnCanvas(page: Page, dx = 150, dy = 100, maxAttempts = 3) {
       box = await canvas.boundingBox();
       return box !== null && box.width > 50 && box.height > 50;
     }, { timeout: 10000, message: 'Canvas not found or too small' }).toBeTruthy();
+    box = await canvas.boundingBox();
     if (!box) throw new Error('Canvas not found');
 
     const countBefore: number = await page.evaluate(() => {
@@ -200,6 +201,7 @@ test.describe('Toolbar tools', () => {
       textBox = await canvas.boundingBox();
       return textBox !== null && textBox.width > 0 && textBox.height > 0;
     }, { timeout: 10000 }).toBeTruthy();
+    textBox = await canvas.boundingBox();
     if (!textBox) throw new Error('Canvas not found');
     await page.mouse.click(textBox.x + 200, textBox.y + 200);
 

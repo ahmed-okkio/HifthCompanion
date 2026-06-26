@@ -17,6 +17,8 @@ const defaultProps = {
   onClear: vi.fn(),
   onHoverEnter: vi.fn(),
   onHoverLeave: vi.fn(),
+  moveActive: false,
+  onMoveToggle: vi.fn(),
 };
 
 describe('AnnotationToolbar', () => {

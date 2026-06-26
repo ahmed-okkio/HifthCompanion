@@ -9,13 +9,15 @@ import {
 } from '../lib/analytics';
 import type { Halaqah, ProgressLog } from '../types';
 
-const today = () => new Date().toISOString().slice(0, 10);
+// Mirror buildHeatmap's date derivation (local midnight -> toISOString) so the
+// comparison is timezone-stable: buildHeatmap's last cell is daysAgo(0).
 const daysAgo = (n: number) => {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - n);
   return d.toISOString().slice(0, 10);
 };
+const today = () => daysAgo(0);
 
 function log(p: Partial<ProgressLog>): ProgressLog {
   return {

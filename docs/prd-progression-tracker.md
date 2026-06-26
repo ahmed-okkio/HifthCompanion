@@ -131,7 +131,7 @@ Source these (e.g., QuranHub / known datasets) before M1 ayah features and M2 an
 
 Ordered by milestone. **DATA** ticket is a *dependency gate*, not a priority — sequence it right before M2 (and before any ayah/juz feature pulls it in). M1 ships on existing data.
 
-**Board state (2026-06-26):** M1, DATA, M1-7b, M2, M3, M4 (M4-1+M4-2) ✅ shipped to `master`. Remaining: M4-3 (PWA push only — email dropped), plus test-debt (multi-user e2e mock §14) and pre-existing red cleanup. Caveat: tracker UI has unit + component-test coverage only; full teacher↔student e2e blocked by single-user mock client (see §14). M3 migration `20260626000001_create_sessions_attendance.sql` pushed to remote 2026-06-26.
+**Board state (2026-06-26):** M1, DATA, M1-7b, M2, M3, M4 (M4-1, M4-2, M4-3 scaffold) ✅ shipped to `master`. Test-debt (multi-user e2e §14) ✅ and pre-existing red cleanup ✅ done. Only HUMAN TODO left: VAPID + service-role env keys to turn push on, and (later) wire a cron trigger. Caveat: tracker UI has unit + component-test coverage only; full teacher↔student e2e blocked by single-user mock client (see §14). M3 migration `20260626000001_create_sessions_attendance.sql` pushed to remote 2026-06-26.
 
 ### M1 — Core loop (no new data files) ✅ DONE
 - **M1-1** DB: `halaqah`, `membership` tables + RLS (owner-only preserved).
@@ -197,8 +197,9 @@ Migration `20260626000001_create_sessions_attendance.sql`; recurrence logic `src
 ## 13. Remaining Open Questions
 - None blocking. Confirm seeded-default labels & polarity/role mappings at build time (e.g., Sabaq→memorize, Re-do→negative).
 
-## 14. Known Gaps / Test Debt (2026-06-26)
-- **Tracker e2e gap.** Full teacher↔student-analytics flow not e2e-reachable: server components read the mock client via the process global (not browser localStorage, so Playwright can't seed data), and the single mock user can't be both teacher and student. Analytics covered by unit (`analytics.test.ts`) + component-render (`StudentAnalytics.test.tsx`) instead. To unblock real e2e: add a multi-user mock + a server-reachable seed path.
-- **Teacher shared-set WRITE migration** (`20260625000005_teacher_shared_set_write.sql`) still **not pushed to remote** (needs per-push consent). Teacher edits of a student's set won't persist until `npx supabase db push`.
-- **Pre-existing red (not tracker):** `NotesPanel.test.tsx` (9 fail — constructs a real `@supabase/ssr` client at import, no URL/key in test env); tsc errors in `AnnotationToolbar.test.tsx` + `e2e/features.spec.ts`.
+## 14. Known Gaps / Test Debt (updated 2026-06-26)
+- ✅ **Tracker e2e gap RESOLVED.** Multi-user mock (acting identity from `sb-auth-token` cookie sub) + E2E-gated seed/reset route (`src/app/api/test/tracker/route.ts`) added; two-actor test in `tracker.spec.ts` (student logs → teacher grades → student analytics reflect it). `npx playwright test tracker` = 4 passed. All test-only paths behind existing E2E gate (404 in prod).
+- ✅ **Pre-existing red RESOLVED.** `NotesPanel.test.tsx` now mocks `@/lib/supabase/client`; `AnnotationToolbar.test.tsx` props fixed; `e2e/features.spec.ts` CFA fixed; `analytics.test.ts` heatmap made tz-stable. Full suite 135/135, `tsc --noEmit` 0 errors.
+- **Teacher shared-set WRITE migration** (`20260625000005_teacher_shared_set_write.sql`) — per memory was confirmed pushed to remote 2026-06-26; verify if in doubt.
+- **M4-3 push — HUMAN TODO:** fill env (VAPID keypair + `SUPABASE_SERVICE_ROLE_KEY`, see `.env.example`) to enable sending; no cron/trigger wired yet (documented stub in `src/lib/push/send.ts` usage).
 - **Mock client** (`src/lib/supabase/mock.ts`) does not implement analytics-specific query paths; fine because analytics compute client-side from logs it already serves.

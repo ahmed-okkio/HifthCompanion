@@ -1,7 +1,8 @@
 'use server';
 
 import { createClient, createClientAction } from '@/lib/supabase/server';
-import type { Halaqah, Membership } from '@/types';
+import type { Halaqah, Membership, MemberWithProfile } from '@/types';
+import { getProfilesByIds } from '@/lib/services/profile';
 
 export type MembershipWithHalaqah = Membership & { halaqah: Halaqah };
 
@@ -41,6 +42,18 @@ export async function getHalaqahMembers(halaqahId: string): Promise<Membership[]
 
   if (error) throw error;
   return data ?? [];
+}
+
+/** Halaqah roster enriched with each member's display name (when readable). */
+export async function getHalaqahMembersWithProfiles(
+  halaqahId: string,
+): Promise<MemberWithProfile[]> {
+  const members = await getHalaqahMembers(halaqahId);
+  const profiles = await getProfilesByIds(members.map((m) => m.user_id));
+  return members.map((m) => {
+    const p = profiles.get(m.user_id);
+    return { ...m, first_name: p?.first_name, last_name: p?.last_name };
+  });
 }
 
 /** Join a halaqah by id as a student (M1-6). */

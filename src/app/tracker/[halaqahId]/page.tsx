@@ -6,7 +6,7 @@ import TeacherHalaqah from '@/components/tracker/TeacherHalaqah';
 import TeacherSessions from '@/components/tracker/TeacherSessions';
 import StudentHalaqah from '@/components/tracker/StudentHalaqah';
 import { getHalaqah } from '@/lib/services/halaqah';
-import { getHalaqahMembers } from '@/lib/services/membership';
+import { getHalaqahMembers, getHalaqahMembersWithProfiles } from '@/lib/services/membership';
 import { getLogsForMembership, getLogsForMemberships } from '@/lib/services/progressLog';
 import { getSessions } from '@/lib/services/sessions';
 import { getAttendanceForSessions } from '@/lib/services/attendance';
@@ -26,7 +26,10 @@ export default async function HalaqahPage({
   if (!halaqah) notFound();
 
   const isTeacher = halaqah.teacher_id === user.id;
-  const members = await getHalaqahMembers(halaqahId);
+  // Teachers see named rosters; a student only needs their own membership row.
+  const members = isTeacher
+    ? await getHalaqahMembersWithProfiles(halaqahId)
+    : await getHalaqahMembers(halaqahId);
   const activeStudents = members.filter((m) => m.role === 'student' && m.status === 'active');
 
   let sessions: Awaited<ReturnType<typeof getSessions>> = [];

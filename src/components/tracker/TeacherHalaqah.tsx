@@ -3,12 +3,13 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useI18n } from '@/components/I18nProvider';
-import type { Halaqah, Membership, ProgressLog } from '@/types';
+import type { Halaqah, Membership, MemberWithProfile, ProgressLog } from '@/types';
+import { displayName } from '@/lib/displayName';
 import { rotateInviteCode } from '@/lib/services/halaqah';
 import { inviteByEmail, setMembershipStatus } from '@/lib/services/membership';
 import { gradeLog } from '@/lib/services/progressLog';
 import { rollup } from '@/lib/analytics';
-import { SectionTitle, EmptyState, Avatar, shortId } from './ui';
+import { SectionTitle, EmptyState, Avatar } from './ui';
 
 export default function TeacherHalaqah({
   halaqah,
@@ -16,7 +17,7 @@ export default function TeacherHalaqah({
   initialFeed,
 }: {
   halaqah: Halaqah;
-  initialMembers: Membership[];
+  initialMembers: MemberWithProfile[];
   initialFeed: ProgressLog[];
 }) {
   const { t } = useI18n();
@@ -139,10 +140,10 @@ export default function TeacherHalaqah({
               <Link href={`/tracker/${halaqah.id}/student/${m.id}`}
                     className="flex items-center gap-3 min-w-0 flex-1"
                     style={{ opacity: m.status === 'active' ? 1 : 0.5 }}>
-                <Avatar seed={m.user_id} />
+                <Avatar seed={displayName(m)} />
                 <div className="flex flex-col gap-1 min-w-0">
                   <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    <span className="font-mono">#{shortId(m.user_id)}</span>
+                    <span className="truncate">{displayName(m)}</span>
                     {m.status !== 'active' && <span className="badge badge-muted">{m.status}</span>}
                     {(r?.pending ?? 0) > 0 && (
                       <span className="badge" style={{ background: 'var(--accent)', color: '#fff' }}>

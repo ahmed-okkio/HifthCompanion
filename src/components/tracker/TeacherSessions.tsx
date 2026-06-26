@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
-import type { Attendance, AttendanceStatus, Halaqah, Membership, Recurrence, Session } from '@/types';
+import type { Attendance, AttendanceStatus, Halaqah, MemberWithProfile, Recurrence, Session } from '@/types';
+import { displayName } from '@/lib/displayName';
 import {
   createAdhocSession,
   generateSessions,
@@ -21,7 +22,7 @@ export default function TeacherSessions({
   initialAttendance,
 }: {
   halaqah: Halaqah;
-  students: Membership[];
+  students: MemberWithProfile[];
   initialSessions: Session[];
   initialAttendance: Attendance[];
 }) {
@@ -143,7 +144,7 @@ export default function TeacherSessions({
                   const cur = attBySession.get(s.id)?.get(m.id)?.status;
                   return (
                     <div key={m.id} className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-mono" style={{ color: 'var(--text-secondary)' }}>{m.user_id.slice(0, 8)}</span>
+                      <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{displayName(m)}</span>
                       <div className="flex gap-1">
                         {ATT_STATUSES.map((st) => (
                           <button key={st} onClick={() => handleMark(s.id, m.id, st)}

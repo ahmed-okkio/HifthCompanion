@@ -94,6 +94,19 @@ export interface Membership {
   joined_at: string;
 }
 
+export interface Profile {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
+/** A membership enriched with the member's display name (when a profile row is
+ *  readable). Used by teacher-facing roster / timeline views. */
+export type MemberWithProfile = Membership & {
+  first_name?: string;
+  last_name?: string;
+};
+
 export interface ProgressLog {
   id: string;
   membership_id: string;

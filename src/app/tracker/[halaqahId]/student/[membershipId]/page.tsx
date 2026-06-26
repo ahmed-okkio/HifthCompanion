@@ -3,7 +3,8 @@ import { redirect, notFound } from 'next/navigation';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import AppHeader from '@/components/AppHeader';
 import { getHalaqah } from '@/lib/services/halaqah';
-import { getHalaqahMembers } from '@/lib/services/membership';
+import { getHalaqahMembersWithProfiles } from '@/lib/services/membership';
+import { displayName } from '@/lib/displayName';
 import { getLogsForMembership } from '@/lib/services/progressLog';
 import { getAttendanceForMembership } from '@/lib/services/attendance';
 import { computeStreak } from '@/lib/streak';
@@ -23,7 +24,7 @@ export default async function StudentProfilePage({
   const halaqah = await getHalaqah(halaqahId);
   if (!halaqah || halaqah.teacher_id !== user.id) notFound();
 
-  const member = (await getHalaqahMembers(halaqahId)).find((m) => m.id === membershipId);
+  const member = (await getHalaqahMembersWithProfiles(halaqahId)).find((m) => m.id === membershipId);
   if (!member) notFound();
 
   const logs = await getLogsForMembership(membershipId);
@@ -37,10 +38,10 @@ export default async function StudentProfilePage({
       <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in flex flex-col gap-4">
         <div className="card flex items-center justify-between gap-3" style={{ padding: '14px 16px' }}>
           <div className="flex items-center gap-3 min-w-0">
-            <Avatar seed={member.user_id} size={44} />
+            <Avatar seed={displayName(member)} size={44} />
             <div className="flex flex-col min-w-0">
-              <h1 className="text-base font-bold font-mono truncate" style={{ color: 'var(--text-primary)' }}>
-                #{member.user_id.slice(0, 6)}
+              <h1 className="text-base font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                {displayName(member)}
               </h1>
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 {member.status}

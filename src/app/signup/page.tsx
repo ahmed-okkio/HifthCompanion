@@ -5,19 +5,29 @@ import Link from 'next/link';
 
 export default function SignupPage() {
   const supabase = createClient();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const ready = !!firstName.trim() && !!lastName.trim() && !!email && !!password;
+
   async function handleSignup() {
+    if (!ready) return;
     setLoading(true);
     setMessage('');
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${location.origin}/auth/callback` },
+      options: {
+        emailRedirectTo: `${location.origin}/auth/callback`,
+        // Mirrored into a public.profiles row by the on_auth_user_created
+        // trigger so tracker rosters can show real display names.
+        data: { first_name: firstName.trim(), last_name: lastName.trim() },
+      },
     });
     if (error) { setMessage(error.message); setIsError(true); }
     else { setMessage('Check your email to confirm your account.'); setIsError(false); }
@@ -43,6 +53,40 @@ export default function SignupPage() {
         {/* Card */}
         <div className="card p-6 sm:p-8">
           <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1.5"
+                       style={{ color: 'var(--text-secondary)' }}>
+                  First name
+                </label>
+                <input
+                  type="text"
+                  autoComplete="given-name"
+                  value={firstName}
+                  onChange={e => setFirstName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSignup()}
+                  placeholder="Aisha"
+                  className="input"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5"
+                       style={{ color: 'var(--text-secondary)' }}>
+                  Last name
+                </label>
+                <input
+                  type="text"
+                  autoComplete="family-name"
+                  value={lastName}
+                  onChange={e => setLastName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSignup()}
+                  placeholder="Rahman"
+                  className="input"
+                />
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-semibold mb-1.5"
                      style={{ color: 'var(--text-secondary)' }}>
@@ -57,7 +101,6 @@ export default function SignupPage() {
                 onKeyDown={e => e.key === 'Enter' && handleSignup()}
                 placeholder="you@example.com"
                 className="input"
-                autoFocus
               />
             </div>
 
@@ -90,7 +133,7 @@ export default function SignupPage() {
 
             <button
               onClick={handleSignup}
-              disabled={loading || !email || !password}
+              disabled={loading || !ready}
               className="btn btn-primary w-full min-h-[44px]"
               style={{ fontSize: '14px', marginTop: '4px' }}
             >

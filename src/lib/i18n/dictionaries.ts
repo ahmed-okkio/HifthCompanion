@@ -89,6 +89,10 @@ const en = {
   'att.absent': 'Absent',
   'att.late': 'Late',
   'att.excused': 'Excused',
+
+  'push.enable': 'Enable notifications',
+  'push.disable': 'Disable notifications',
+  'push.denied': 'Notifications blocked in browser settings',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -179,6 +183,10 @@ const ar: Record<MessageKey, string> = {
   'att.absent': 'غائب',
   'att.late': 'متأخر',
   'att.excused': 'بعذر',
+
+  'push.enable': 'تفعيل الإشعارات',
+  'push.disable': 'إيقاف الإشعارات',
+  'push.denied': 'الإشعارات محظورة في إعدادات المتصفح',
 };
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { en, ar };

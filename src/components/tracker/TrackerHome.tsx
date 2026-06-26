@@ -7,6 +7,7 @@ import type { MembershipWithHalaqah } from '@/lib/services/membership';
 import { createHalaqah } from '@/lib/services/halaqah';
 import { joinHalaqah } from '@/lib/services/membership';
 import { getHalaqahByCode } from '@/lib/services/halaqah';
+import PushToggle from '@/components/PushToggle';
 
 export default function TrackerHome({
   initialMemberships,
@@ -114,6 +115,10 @@ export default function TrackerHome({
 
       <Section title={t('tracker.teaching')} memberships={teaching} hrefBase="/tracker" />
       <Section title={t('tracker.enrolled')} memberships={enrolled} hrefBase="/tracker" />
+
+      {/* M4-3: opt into web push. Renders nothing on unsupported browsers or
+          when NEXT_PUBLIC_VAPID_PUBLIC_KEY is unset. */}
+      <PushToggle />
     </div>
   );
 }

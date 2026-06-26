@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
-import Link from 'next/link';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import AppHeader from '@/components/AppHeader';
 import TeacherHalaqah from '@/components/tracker/TeacherHalaqah';
 import TeacherSessions from '@/components/tracker/TeacherSessions';
 import StudentHalaqah from '@/components/tracker/StudentHalaqah';
@@ -38,20 +38,11 @@ export default async function HalaqahPage({
 
   return (
     <div className="min-h-screen overflow-x-hidden" style={{ background: 'var(--bg-base)' }}>
-      <header className="sticky top-0 z-50 border-b"
-              style={{ background: 'var(--surface-main)', borderColor: 'var(--border-subtle)', boxShadow: 'var(--shadow-e1)' }}>
-        <div className="mx-auto flex items-center justify-between px-4 py-3 max-w-2xl">
-          <Link href="/tracker" className="flex items-center gap-2">
-            <span className="text-base font-bold" style={{ color: 'var(--text-accent)' }}>←</span>
-            <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{halaqah.name}</span>
-          </Link>
-          <LanguageSwitcher />
-        </div>
-      </header>
+      <AppHeader breadcrumb={halaqah.name} right={<LanguageSwitcher />} />
 
-      <main className="max-w-2xl mx-auto px-4 py-8 animate-fade-in">
+      <main className={`mx-auto px-4 py-8 sm:py-10 animate-fade-in ${isTeacher ? 'max-w-5xl' : 'max-w-2xl'}`}>
         {isTeacher ? (
-          <div className="flex flex-col gap-8">
+          <div className="grid gap-8 lg:grid-cols-2 items-start">
             <TeacherHalaqah
               halaqah={halaqah}
               initialMembers={members.filter((m) => m.role === 'student')}

@@ -172,6 +172,7 @@ function Section({
       <SectionTitle trailing={<span className="badge-muted badge">{memberships.length}</span>}>
         {title}
       </SectionTitle>
+      <div className="grid gap-2 sm:grid-cols-2">
       {memberships.map((m) => (
         <Link
           key={m.id}
@@ -192,6 +193,7 @@ function Section({
           <Chevron />
         </Link>
       ))}
+      </div>
     </div>
   );
 }

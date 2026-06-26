@@ -7,6 +7,7 @@ import { setSharedSet } from '@/lib/services/membership';
 import { createLog, deleteLog } from '@/lib/services/progressLog';
 import { computeStreak, isStreakAtRisk } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage } from '@/lib/quran';
+import { SectionTitle, EmptyState } from './ui';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -101,17 +102,23 @@ export default function StudentHalaqah({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Streak + shared set */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="badge">{streak} {t('log.streak')}</div>
+      {/* Streak hero + shared set */}
+      <div className="card flex items-center justify-between gap-3 flex-wrap" style={{ padding: '16px 18px' }}>
+        <div className="flex items-center gap-3">
+          <span aria-hidden style={{ fontSize: 28, lineHeight: 1 }}>🔥</span>
+          <div className="flex flex-col">
+            <span className="font-bold leading-none" style={{ color: 'var(--text-accent)', fontSize: 28 }}>
+              {streak}
+            </span>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('log.streak')}</span>
+          </div>
           {atRisk && (
             <span
               className="badge"
               role="status"
               aria-label={t('log.streakAtRisk')}
               title={t('log.streakAtRisk')}
-              style={{ background: 'var(--danger, #dc2626)', color: '#fff' }}
+              style={{ background: 'var(--danger)', color: '#fff', marginInlineStart: 4 }}
             >
               ⚠ {t('log.streakAtRiskShort')}
             </span>
@@ -173,6 +180,10 @@ export default function StudentHalaqah({
 
       {/* My logs */}
       <div className="flex flex-col gap-2">
+        <SectionTitle trailing={<span className="badge badge-muted">{logs.length}</span>}>
+          {t('log.mine')}
+        </SectionTitle>
+        {logs.length === 0 && <EmptyState>{t('log.empty')}</EmptyState>}
         {logs.map((l) => (
           <div key={l.id} className="card" style={{ padding: '12px 16px' }}>
             <div className="flex items-center justify-between gap-2">

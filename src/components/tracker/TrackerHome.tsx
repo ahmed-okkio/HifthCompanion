@@ -8,6 +8,7 @@ import { createHalaqah } from '@/lib/services/halaqah';
 import { joinHalaqah } from '@/lib/services/membership';
 import { getHalaqahByCode } from '@/lib/services/halaqah';
 import PushToggle from '@/components/PushToggle';
+import { PageHeader, SectionTitle, EmptyState, Avatar, Chevron } from './ui';
 
 export default function TrackerHome({
   initialMemberships,
@@ -69,35 +70,48 @@ export default function TrackerHome({
     }
   }
 
+  const empty = teaching.length === 0 && enrolled.length === 0;
+
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-        {t('tracker.title')}
-      </h1>
+    <div className="flex flex-col gap-8">
+      <PageHeader title={t('tracker.title')} subtitle={t('tracker.subtitle')} />
 
       {error && (
-        <div className="card" style={{ padding: '10px 14px', color: 'var(--danger, #dc2626)', fontSize: 13 }}>
+        <div
+          className="card"
+          role="alert"
+          style={{
+            padding: '10px 14px',
+            color: 'var(--danger)',
+            background: 'var(--danger-muted)',
+            borderColor: 'var(--danger-muted)',
+            fontSize: 13,
+          }}
+        >
           {error}
         </div>
       )}
 
       {/* Create + join actions */}
-      <div className="flex flex-col gap-3">
-        <div className="card flex gap-2 items-center" style={{ padding: '12px 16px' }}>
+      <div className="card flex flex-col gap-4" style={{ padding: '18px 18px' }}>
+        <Field label={t('tracker.createHalaqah')}>
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-            placeholder={t('tracker.createHalaqah')}
+            placeholder={t('tracker.createHalaqahHint')}
             className="input"
             style={{ flex: 1, minWidth: 0 }}
           />
           <button onClick={handleCreate} disabled={!newName.trim() || busy}
                   className="btn btn-primary" style={{ flexShrink: 0, minHeight: 44 }}>
-            {t('tracker.createHalaqah')}
+            {t('common.create')}
           </button>
-        </div>
-        <div className="card flex gap-2 items-center" style={{ padding: '12px 16px' }}>
+        </Field>
+
+        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+
+        <Field label={t('tracker.joinHalaqah')}>
           <input
             value={code}
             onChange={(e) => setCode(e.target.value)}
@@ -107,11 +121,18 @@ export default function TrackerHome({
             style={{ flex: 1, minWidth: 0 }}
           />
           <button onClick={handleJoin} disabled={!code.trim() || busy}
-                  className="btn btn-ghost" style={{ flexShrink: 0, minHeight: 44 }}>
-            {t('tracker.joinHalaqah')}
+                  className="btn btn-outline" style={{ flexShrink: 0, minHeight: 44 }}>
+            {t('common.join')}
           </button>
-        </div>
+        </Field>
       </div>
+
+      {empty && (
+        <EmptyState>
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{t('tracker.emptyTitle')}</span>
+          <span>{t('tracker.emptyHint')}</span>
+        </EmptyState>
+      )}
 
       <Section title={t('tracker.teaching')} memberships={teaching} hrefBase="/tracker" />
       <Section title={t('tracker.enrolled')} memberships={enrolled} hrefBase="/tracker" />
@@ -120,6 +141,18 @@ export default function TrackerHome({
           when NEXT_PUBLIC_VAPID_PUBLIC_KEY is unset. */}
       <PushToggle />
     </div>
+  );
+}
+
+/** Labelled input + button row used by the create/join actions card. */
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-2">
+      <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+        {label}
+      </span>
+      <div className="flex gap-2 items-center">{children}</div>
+    </label>
   );
 }
 
@@ -132,20 +165,31 @@ function Section({
   memberships: MembershipWithHalaqah[];
   hrefBase: string;
 }) {
+  const { t } = useI18n();
   if (memberships.length === 0) return null;
   return (
     <div className="flex flex-col gap-2">
-      <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+      <SectionTitle trailing={<span className="badge-muted badge">{memberships.length}</span>}>
         {title}
-      </h2>
+      </SectionTitle>
       {memberships.map((m) => (
-        <Link key={m.id} href={`${hrefBase}/${m.halaqah_id}`} className="card group" style={{ padding: '14px 18px' }}>
-          <div className="flex items-center justify-between gap-3">
-            <span className="font-medium text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+        <Link
+          key={m.id}
+          href={`${hrefBase}/${m.halaqah_id}`}
+          className="card group flex items-center gap-3"
+          style={{ padding: '14px 16px' }}
+        >
+          <Avatar seed={m.halaqah.name} />
+          <div className="flex flex-col min-w-0 flex-1">
+            <span className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>
               {m.halaqah.name}
             </span>
-            <span className="badge">{m.role}</span>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {t(m.role === 'teacher' ? 'tracker.roleTeacher' : 'tracker.roleStudent')}
+            </span>
           </div>
+          <span className="badge">{t(m.role === 'teacher' ? 'tracker.roleTeacher' : 'tracker.roleStudent')}</span>
+          <Chevron />
         </Link>
       ))}
     </div>

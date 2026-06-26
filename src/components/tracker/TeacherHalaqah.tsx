@@ -8,6 +8,7 @@ import { rotateInviteCode } from '@/lib/services/halaqah';
 import { inviteByEmail, setMembershipStatus } from '@/lib/services/membership';
 import { gradeLog } from '@/lib/services/progressLog';
 import { rollup } from '@/lib/analytics';
+import { SectionTitle, EmptyState, Avatar, shortId } from './ui';
 
 export default function TeacherHalaqah({
   halaqah,
@@ -72,7 +73,8 @@ export default function TeacherHalaqah({
   return (
     <div className="flex flex-col gap-6">
       {error && (
-        <div className="card" style={{ padding: '10px 14px', color: 'var(--danger, #dc2626)', fontSize: 13 }}>
+        <div className="card" role="alert"
+             style={{ padding: '10px 14px', color: 'var(--danger)', background: 'var(--danger-muted)', borderColor: 'var(--danger-muted)', fontSize: 13 }}>
           {error}
         </div>
       )}
@@ -80,86 +82,104 @@ export default function TeacherHalaqah({
       {/* Invite */}
       <div className="card flex flex-col gap-3" style={{ padding: '16px 18px' }}>
         <div className="flex items-center justify-between gap-3">
-          <div className="flex flex-col">
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('tracker.inviteCode')}</span>
-            <code className="text-sm font-mono" style={{ color: 'var(--text-primary)' }}>{code}</code>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              {t('tracker.inviteCode')}
+            </span>
+            <code
+              className="text-sm font-mono font-semibold"
+              style={{
+                color: 'var(--text-accent)',
+                letterSpacing: '0.12em',
+                background: 'var(--accent-muted)',
+                padding: '4px 10px',
+                borderRadius: 'var(--radius-sm)',
+                alignSelf: 'flex-start',
+              }}
+            >
+              {code}
+            </code>
           </div>
           <button onClick={handleRotate} className="btn btn-ghost" style={{ minHeight: 40, fontSize: 13 }}>
             {t('tracker.rotateCode')}
           </button>
         </div>
+        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
         <div className="flex gap-2 items-center">
           <input value={email} onChange={(e) => setEmail(e.target.value)} type="email"
                  placeholder={t('tracker.inviteByEmail')} className="input" style={{ flex: 1, minWidth: 0 }} />
-          <button onClick={handleInvite} disabled={!email.trim()} className="btn btn-ghost" style={{ minHeight: 44 }}>
-            {t('tracker.inviteByEmail')}
+          <button onClick={handleInvite} disabled={!email.trim()} className="btn btn-outline" style={{ minHeight: 44 }}>
+            {t('common.create')}
           </button>
         </div>
       </div>
 
       {/* Roster */}
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-            {t('tracker.roster')}
-          </h2>
-          {totalPending > 0 && (
-            <span
-              className="badge"
-              role="status"
-              aria-label={`${totalPending} ${t('grade.pendingTotal')}`}
-              style={{ background: 'var(--accent)', color: '#fff' }}
-            >
-              {totalPending} {t('grade.pendingTotal')}
-            </span>
-          )}
-        </div>
-        {members.length === 0 && (
-          <div className="card text-center" style={{ padding: '24px', color: 'var(--text-muted)', fontSize: 13 }}>
-            {t('tracker.noStudents')}
-          </div>
-        )}
-        {members.map((m) => (
-          <div key={m.id} className="card flex items-center justify-between gap-3" style={{ padding: '12px 16px' }}>
-            <Link href={`/tracker/${halaqah.id}/student/${m.id}`}
-                  className="flex flex-col gap-1" style={{ opacity: m.status === 'active' ? 1 : 0.5 }}>
-              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                {m.user_id.slice(0, 8)} · <span className="badge">{m.status}</span>
-                {(rollupById.get(m.id)?.pending ?? 0) > 0 && (
-                  <span className="badge" style={{ background: 'var(--accent)', color: '#fff', marginInlineStart: 6 }}>
-                    {rollupById.get(m.id)!.pending} {t('grade.pending')}
+        <SectionTitle
+          trailing={
+            totalPending > 0 ? (
+              <span className="badge" role="status"
+                    aria-label={`${totalPending} ${t('grade.pendingTotal')}`}
+                    style={{ background: 'var(--accent)', color: '#fff' }}>
+                {totalPending} {t('grade.pendingTotal')}
+              </span>
+            ) : (
+              <span className="badge badge-muted">{members.length}</span>
+            )
+          }
+        >
+          {t('tracker.roster')}
+        </SectionTitle>
+        {members.length === 0 && <EmptyState>{t('tracker.noStudents')}</EmptyState>}
+        {members.map((m) => {
+          const r = rollupById.get(m.id);
+          return (
+            <div key={m.id} className="card flex items-center gap-3" style={{ padding: '12px 14px' }}>
+              <Link href={`/tracker/${halaqah.id}/student/${m.id}`}
+                    className="flex items-center gap-3 min-w-0 flex-1"
+                    style={{ opacity: m.status === 'active' ? 1 : 0.5 }}>
+                <Avatar seed={m.user_id} />
+                <div className="flex flex-col gap-1 min-w-0">
+                  <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    <span className="font-mono">#{shortId(m.user_id)}</span>
+                    {m.status !== 'active' && <span className="badge badge-muted">{m.status}</span>}
+                    {(r?.pending ?? 0) > 0 && (
+                      <span className="badge" style={{ background: 'var(--accent)', color: '#fff' }}>
+                        {r!.pending} {t('grade.pending')}
+                      </span>
+                    )}
                   </span>
+                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {r?.totals.pages ?? 0} {t('analytics.pages')} · {r?.totals.juz ?? 0} {t('analytics.juz')}
+                  </span>
+                </div>
+              </Link>
+              <div className="flex gap-1 shrink-0">
+                {m.status === 'active' ? (
+                  <>
+                    <button onClick={() => handleStatus(m.id, 'inactive')} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 12 }}>
+                      {t('tracker.archive')}
+                    </button>
+                    <button onClick={() => handleStatus(m.id, 'blocked')} className="btn btn-danger-ghost" style={{ minHeight: 36, fontSize: 12 }}>
+                      {t('tracker.block')}
+                    </button>
+                  </>
+                ) : (
+                  <button onClick={() => handleStatus(m.id, 'active')} className="btn btn-outline" style={{ minHeight: 36, fontSize: 12 }}>
+                    {t('tracker.reactivate')}
+                  </button>
                 )}
-              </span>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                {rollupById.get(m.id)?.totals.pages ?? 0} {t('analytics.pages')} · {rollupById.get(m.id)?.totals.juz ?? 0} {t('analytics.juz')}
-              </span>
-            </Link>
-            <div className="flex gap-1">
-              {m.status === 'active' ? (
-                <>
-                  <button onClick={() => handleStatus(m.id, 'inactive')} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 12 }}>
-                    {t('tracker.archive')}
-                  </button>
-                  <button onClick={() => handleStatus(m.id, 'blocked')} className="btn btn-danger-ghost" style={{ minHeight: 36, fontSize: 12 }}>
-                    {t('tracker.block')}
-                  </button>
-                </>
-              ) : (
-                <button onClick={() => handleStatus(m.id, 'active')} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 12 }}>
-                  {t('tracker.reactivate')}
-                </button>
-              )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Daily feed */}
       <div className="flex flex-col gap-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-          {t('grade.title')}
-        </h2>
+        <SectionTitle>{t('grade.title')}</SectionTitle>
+        {feed.length === 0 && <EmptyState>{t('grade.emptyFeed')}</EmptyState>}
         {feed.map((log) => (
           <FeedRow
             key={log.id}

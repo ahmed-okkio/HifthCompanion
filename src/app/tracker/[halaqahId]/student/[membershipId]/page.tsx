@@ -8,6 +8,7 @@ import { getLogsForMembership } from '@/lib/services/progressLog';
 import { getAttendanceForMembership } from '@/lib/services/attendance';
 import { computeStreak } from '@/lib/streak';
 import StudentAnalytics from '@/components/tracker/StudentAnalytics';
+import { Avatar, shortId } from '@/components/tracker/ui';
 
 export default async function StudentProfilePage({
   params,
@@ -43,11 +44,19 @@ export default async function StudentProfilePage({
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-8 animate-fade-in flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-            {member.user_id.slice(0, 8)}
-          </h1>
-          <span className="badge">{streak} day streak</span>
+        <div className="card flex items-center justify-between gap-3" style={{ padding: '14px 16px' }}>
+          <div className="flex items-center gap-3 min-w-0">
+            <Avatar seed={member.user_id} size={44} />
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-base font-bold font-mono truncate" style={{ color: 'var(--text-primary)' }}>
+                #{shortId(member.user_id)}
+              </h1>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {member.status}
+              </span>
+            </div>
+          </div>
+          <span className="badge" style={{ background: 'var(--accent-muted)' }}>🔥 {streak}</span>
         </div>
 
         <StudentAnalytics halaqah={halaqah} logs={logs} attendance={attendance} />

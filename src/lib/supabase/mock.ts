@@ -36,6 +36,8 @@ const globalForDb = global as unknown as {
   mockHalaqah?: any[];
   mockMembership?: any[];
   mockProgressLog?: any[];
+  mockSession?: any[];
+  mockAttendance?: any[];
 };
 
 if (!globalForDb.mockSets) {
@@ -50,6 +52,8 @@ if (!globalForDb.mockNotes) {
 if (!globalForDb.mockHalaqah) globalForDb.mockHalaqah = [];
 if (!globalForDb.mockMembership) globalForDb.mockMembership = [];
 if (!globalForDb.mockProgressLog) globalForDb.mockProgressLog = [];
+if (!globalForDb.mockSession) globalForDb.mockSession = [];
+if (!globalForDb.mockAttendance) globalForDb.mockAttendance = [];
 
 // Seeded config defaults mirroring the halaqah migration.
 const SEED_LOG_TYPES = [
@@ -73,11 +77,15 @@ const TRACKER_STORAGE: Record<string, string> = {
   halaqah: 'mock_supabase_halaqah',
   membership: 'mock_supabase_membership',
   progress_log: 'mock_supabase_progress_log',
+  session: 'mock_supabase_session',
+  attendance: 'mock_supabase_attendance',
 };
-const TRACKER_GLOBAL: Record<string, 'mockHalaqah' | 'mockMembership' | 'mockProgressLog'> = {
+const TRACKER_GLOBAL: Record<string, 'mockHalaqah' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockAttendance'> = {
   halaqah: 'mockHalaqah',
   membership: 'mockMembership',
   progress_log: 'mockProgressLog',
+  session: 'mockSession',
+  attendance: 'mockAttendance',
 };
 function trackerGet(table: string): any[] {
   if (IS_SERVER) return (globalForDb as any)[TRACKER_GLOBAL[table]]!;
@@ -357,7 +365,7 @@ class MockQueryBuilder {
       }
       if (this.isSingle) return notes[0] ?? null;
       return notes;
-    } else if (this.table === 'halaqah' || this.table === 'membership' || this.table === 'progress_log') {
+    } else if (this.table in TRACKER_GLOBAL) {
       return this.executeTracker();
     }
     return [];
@@ -376,8 +384,37 @@ class MockQueryBuilder {
     const table = this.table;
     const rows = trackerGet(table);
 
-    if (this.op === 'insert') {
+    if (this.op === 'insert' || this.op === 'upsert') {
       const now = new Date().toISOString();
+      // upsert: replace existing row matching the conflict keys, else insert.
+      const rowsToWrite = Array.isArray(this.opValues) ? this.opValues : [this.opValues];
+      if (this.op === 'upsert') {
+        const written: any[] = [];
+        for (const v of rowsToWrite) {
+          const idx = rows.findIndex(
+            (r: any) => r.session_id === v.session_id && r.membership_id === v.membership_id,
+          );
+          if (idx >= 0) {
+            Object.assign(rows[idx], v);
+            written.push(rows[idx]);
+          } else {
+            const r = { id: rid(), status: 'present', created_at: now, updated_at: now, ...v };
+            rows.push(r);
+            written.push(r);
+          }
+        }
+        trackerSave(table, rows);
+        return written.length === 1 ? written[0] : written;
+      }
+      if (Array.isArray(this.opValues)) {
+        const inserted = rowsToWrite.map((v: any) => {
+          const r = { id: rid(), created_at: now, ...v };
+          rows.push(r);
+          return r;
+        });
+        trackerSave(table, rows);
+        return inserted;
+      }
       let row: any = { id: rid(), ...this.opValues };
       if (table === 'halaqah') {
         row = {
@@ -399,6 +436,8 @@ class MockQueryBuilder {
           joined_at: now,
           ...row,
         };
+      } else if (table === 'session') {
+        row = { is_adhoc: false, canceled: false, created_at: now, ...row };
       } else {
         row = { log_date: now.slice(0, 10), created_at: now, updated_at: now, reviewed_at: null, ...row };
       }

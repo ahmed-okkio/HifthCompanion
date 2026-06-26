@@ -131,7 +131,7 @@ Source these (e.g., QuranHub / known datasets) before M1 ayah features and M2 an
 
 Ordered by milestone. **DATA** ticket is a *dependency gate*, not a priority — sequence it right before M2 (and before any ayah/juz feature pulls it in). M1 ships on existing data.
 
-**Board state (2026-06-26):** M1, DATA, M1-7b, M2 ✅ shipped to `master`. Next up: M3 (sessions & attendance). Caveat: tracker UI has unit + component-test coverage only; full teacher↔student e2e blocked by single-user mock client (see §14).
+**Board state (2026-06-26):** M1, DATA, M1-7b, M2, M3 ✅ shipped to `master`. Next up: M4 (engagement & polish: PWA + notification badges). Caveat: tracker UI has unit + component-test coverage only; full teacher↔student e2e blocked by single-user mock client (see §14). M3 migration `20260626000001_create_sessions_attendance.sql` pushed to remote 2026-06-26.
 
 ### M1 — Core loop (no new data files) ✅ DONE
 - **M1-1** DB: `halaqah`, `membership` tables + RLS (owner-only preserved).
@@ -162,11 +162,12 @@ Logic in `src/lib/analytics.ts` (unit-tested); per-student UI `StudentAnalytics.
 - **M2-4** ✅ Mushaf coverage map (memorize paints; revise = recency; read excluded).
 - **M2-5** ✅ Teacher roll-up (per-student pages/juz/pending in roster).
 
-### M3 — Sessions & attendance
-- **M3-1** DB: `session` + recurrence rule on halaqah; auto-generate sessions.
-- **M3-2** Teacher add/cancel ad-hoc sessions.
-- **M3-3** DB: `attendance` + RLS; mark per student per session.
-- **M3-4** Attendance feeds analytics.
+### M3 — Sessions & attendance ✅ DONE
+Migration `20260626000001_create_sessions_attendance.sql`; recurrence logic `src/lib/recurrence.ts` (unit-tested); services `sessions.ts` + `attendance.ts`; teacher UI `TeacherSessions.tsx` wired into halaqah page; attendance analytics in `analytics.ts`/`StudentAnalytics.tsx`.
+- **M3-1** ✅ DB: `session` table + RLS; recurrence rule stored on `halaqah.schedule` jsonb (`{weekdays:[0-6],time:"HH:MM"}`); idempotent generation over rolling horizon (`missingSlots`).
+- **M3-2** ✅ Teacher add ad-hoc session + cancel/reinstate (`is_adhoc`/`canceled`).
+- **M3-3** ✅ DB: `attendance` table + RLS (teacher manages, student reads own); mark per student per session (upsert on `session_id,membership_id`), statuses present/absent/late/excused.
+- **M3-4** ✅ Attendance feeds analytics — `attendanceStats` (late counts as attended; excused leaves denominator) surfaced in `StudentAnalytics`.
 
 ### M4 — Engagement & polish
 - **M4-1** PWA manifest + installable + offline app shell.

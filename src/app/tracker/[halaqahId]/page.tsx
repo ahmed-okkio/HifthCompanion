@@ -3,10 +3,13 @@ import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import TeacherHalaqah from '@/components/tracker/TeacherHalaqah';
+import TeacherSessions from '@/components/tracker/TeacherSessions';
 import StudentHalaqah from '@/components/tracker/StudentHalaqah';
 import { getHalaqah } from '@/lib/services/halaqah';
 import { getHalaqahMembers } from '@/lib/services/membership';
 import { getLogsForMembership, getLogsForMemberships } from '@/lib/services/progressLog';
+import { getSessions } from '@/lib/services/sessions';
+import { getAttendanceForSessions } from '@/lib/services/attendance';
 import { getAnnotationSets } from '@/lib/services/annotationSets';
 
 export default async function HalaqahPage({
@@ -24,6 +27,14 @@ export default async function HalaqahPage({
 
   const isTeacher = halaqah.teacher_id === user.id;
   const members = await getHalaqahMembers(halaqahId);
+  const activeStudents = members.filter((m) => m.role === 'student' && m.status === 'active');
+
+  let sessions: Awaited<ReturnType<typeof getSessions>> = [];
+  let attendance: Awaited<ReturnType<typeof getAttendanceForSessions>> = [];
+  if (isTeacher) {
+    sessions = await getSessions(halaqahId);
+    attendance = await getAttendanceForSessions(sessions.map((s) => s.id));
+  }
 
   return (
     <div className="min-h-screen overflow-x-hidden" style={{ background: 'var(--bg-base)' }}>
@@ -40,13 +51,21 @@ export default async function HalaqahPage({
 
       <main className="max-w-2xl mx-auto px-4 py-8 animate-fade-in">
         {isTeacher ? (
-          <TeacherHalaqah
-            halaqah={halaqah}
-            initialMembers={members.filter((m) => m.role === 'student')}
-            initialFeed={await getLogsForMemberships(
-              members.filter((m) => m.role === 'student').map((m) => m.id),
-            )}
-          />
+          <div className="flex flex-col gap-8">
+            <TeacherHalaqah
+              halaqah={halaqah}
+              initialMembers={members.filter((m) => m.role === 'student')}
+              initialFeed={await getLogsForMemberships(
+                members.filter((m) => m.role === 'student').map((m) => m.id),
+              )}
+            />
+            <TeacherSessions
+              halaqah={halaqah}
+              students={activeStudents}
+              initialSessions={sessions}
+              initialAttendance={attendance}
+            />
+          </div>
         ) : (
           <StudentHalaqah
             halaqah={halaqah}

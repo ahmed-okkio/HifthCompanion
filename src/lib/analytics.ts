@@ -1,4 +1,4 @@
-import type { Halaqah, LogRole, Polarity, ProgressLog } from '@/types';
+import type { Attendance, Halaqah, LogRole, Polarity, ProgressLog } from '@/types';
 import { getJuzForPage, getSurahForPage, TOTAL_JUZ, TOTAL_PAGES } from '@/lib/quran';
 
 // ---------------------------------------------------------------------------
@@ -152,6 +152,33 @@ export function rollup(byMembership: Map<string, ProgressLog[]>): StudentRollup[
     out.push({ membershipId, totals: cumulativeTotals(logs), pending });
   }
   return out.sort((a, b) => b.totals.pages - a.totals.pages);
+}
+
+// --- M3-4: attendance analytics ----------------------------------------------
+
+export type AttendanceStats = {
+  marked: number; // sessions with an attendance row
+  attended: number; // present + late
+  absent: number;
+  excused: number;
+  rate: number; // attended / (marked - excused), 0 when denominator is 0
+};
+
+/**
+ * Attendance summary for one student's rows. `excused` is removed from the
+ * denominator (a justified absence shouldn't lower the rate); `late` counts as
+ * attended. Rate is 0 when there is nothing countable.
+ */
+export function attendanceStats(rows: Pick<Attendance, 'status'>[]): AttendanceStats {
+  let attended = 0, absent = 0, excused = 0;
+  for (const r of rows) {
+    if (r.status === 'present' || r.status === 'late') attended++;
+    else if (r.status === 'absent') absent++;
+    else if (r.status === 'excused') excused++;
+  }
+  const marked = rows.length;
+  const denom = marked - excused;
+  return { marked, attended, absent, excused, rate: denom > 0 ? attended / denom : 0 };
 }
 
 export { TOTAL_JUZ };

@@ -2,8 +2,9 @@
 
 import { useMemo } from 'react';
 import { useI18n } from '@/components/I18nProvider';
-import type { Halaqah, ProgressLog } from '@/types';
+import type { Attendance, Halaqah, ProgressLog } from '@/types';
 import {
+  attendanceStats,
   buildHeatmap,
   coverageMap,
   cumulativeTotals,
@@ -15,9 +16,11 @@ import { getSurahName, TOTAL_JUZ, TOTAL_PAGES } from '@/lib/quran';
 export default function StudentAnalytics({
   halaqah,
   logs,
+  attendance = [],
 }: {
   halaqah: Halaqah;
   logs: ProgressLog[];
+  attendance?: Attendance[];
 }) {
   const { t, locale } = useI18n();
 
@@ -25,6 +28,7 @@ export default function StudentAnalytics({
   const totals = useMemo(() => cumulativeTotals(logs), [logs]);
   const weak = useMemo(() => weakestSurahs(logs, halaqah).slice(0, 5), [logs, halaqah]);
   const coverage = useMemo(() => coverageMap(logs, halaqah), [logs, halaqah]);
+  const att = useMemo(() => attendanceStats(attendance), [attendance]);
 
   const maxCount = Math.max(1, ...heatmap.map((d) => d.count));
   // 7 rows (weekdays) x N columns; column-major fill so each column is a week.
@@ -38,6 +42,15 @@ export default function StudentAnalytics({
         <Stat label={t('analytics.juz')} value={`${totals.juz} / ${TOTAL_JUZ}`} />
         <Stat label={t('analytics.logs')} value={String(totals.logs)} />
       </div>
+
+      {/* M3-4 attendance */}
+      {att.marked > 0 && (
+        <div className="grid grid-cols-3 gap-3">
+          <Stat label={t('analytics.attendanceRate')} value={`${Math.round(att.rate * 100)}%`} />
+          <Stat label={t('att.present')} value={String(att.attended)} />
+          <Stat label={t('att.absent')} value={String(att.absent)} />
+        </div>
+      )}
 
       {/* M2-1 heatmap */}
       <section className="card flex flex-col gap-2" style={{ padding: '16px 18px' }}>

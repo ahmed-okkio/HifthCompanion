@@ -5,6 +5,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { getHalaqah } from '@/lib/services/halaqah';
 import { getHalaqahMembers } from '@/lib/services/membership';
 import { getLogsForMembership } from '@/lib/services/progressLog';
+import { getAttendanceForMembership } from '@/lib/services/attendance';
 import { computeStreak } from '@/lib/streak';
 import StudentAnalytics from '@/components/tracker/StudentAnalytics';
 
@@ -25,6 +26,7 @@ export default async function StudentProfilePage({
   if (!member) notFound();
 
   const logs = await getLogsForMembership(membershipId);
+  const attendance = await getAttendanceForMembership(membershipId);
   const streak = computeStreak(logs);
 
   return (
@@ -48,7 +50,7 @@ export default async function StudentProfilePage({
           <span className="badge">{streak} day streak</span>
         </div>
 
-        <StudentAnalytics halaqah={halaqah} logs={logs} />
+        <StudentAnalytics halaqah={halaqah} logs={logs} attendance={attendance} />
 
         {logs.map((l) => (
           <div key={l.id} className="card flex flex-col gap-1" style={{ padding: '12px 16px' }}>

@@ -5,6 +5,7 @@ import {
   weakestSurahs,
   coverageMap,
   rollup,
+  attendanceStats,
 } from '../lib/analytics';
 import type { Halaqah, ProgressLog } from '../types';
 
@@ -142,5 +143,24 @@ describe('rollup', () => {
     expect(r[0].totals.pages).toBe(6);
     expect(r[0].pending).toBe(1);
     expect(r[1].pending).toBe(1);
+  });
+});
+
+describe('attendanceStats (M3-4)', () => {
+  const a = (status: string) => ({ status } as any);
+
+  it('counts present and late as attended; excused leaves the denominator', () => {
+    const s = attendanceStats([a('present'), a('late'), a('absent'), a('excused')]);
+    expect(s.marked).toBe(4);
+    expect(s.attended).toBe(2);
+    expect(s.absent).toBe(1);
+    expect(s.excused).toBe(1);
+    // denom = 4 - 1 excused = 3; attended 2 -> 0.666…
+    expect(s.rate).toBeCloseTo(2 / 3);
+  });
+
+  it('rate is 0 when nothing countable', () => {
+    expect(attendanceStats([]).rate).toBe(0);
+    expect(attendanceStats([a('excused')]).rate).toBe(0);
   });
 });

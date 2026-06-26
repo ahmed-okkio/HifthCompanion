@@ -66,6 +66,26 @@ const en = {
   'analytics.coverage': 'Mushaf coverage',
   'analytics.memorized': 'Memorized',
   'analytics.revised': 'Revised',
+  'analytics.attendance': 'Attendance',
+  'analytics.attendanceRate': 'Attendance rate',
+
+  'sessions.title': 'Sessions',
+  'sessions.schedule': 'Weekly schedule',
+  'sessions.time': 'Time',
+  'sessions.saveSchedule': 'Save schedule',
+  'sessions.generate': 'Generate sessions',
+  'sessions.addAdhoc': 'Add session',
+  'sessions.cancel': 'Cancel',
+  'sessions.reinstate': 'Reinstate',
+  'sessions.canceled': 'Canceled',
+  'sessions.adhoc': 'Ad-hoc',
+  'sessions.none': 'No upcoming sessions',
+  'sessions.markAttendance': 'Attendance',
+  'sessions.noSchedule': 'No weekly schedule set',
+  'att.present': 'Present',
+  'att.absent': 'Absent',
+  'att.late': 'Late',
+  'att.excused': 'Excused',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -133,6 +153,26 @@ const ar: Record<MessageKey, string> = {
   'analytics.coverage': 'تغطية المصحف',
   'analytics.memorized': 'محفوظ',
   'analytics.revised': 'مُراجَع',
+  'analytics.attendance': 'الحضور',
+  'analytics.attendanceRate': 'نسبة الحضور',
+
+  'sessions.title': 'الجلسات',
+  'sessions.schedule': 'الجدول الأسبوعي',
+  'sessions.time': 'الوقت',
+  'sessions.saveSchedule': 'حفظ الجدول',
+  'sessions.generate': 'توليد الجلسات',
+  'sessions.addAdhoc': 'إضافة جلسة',
+  'sessions.cancel': 'إلغاء',
+  'sessions.reinstate': 'إعادة',
+  'sessions.canceled': 'ملغاة',
+  'sessions.adhoc': 'استثنائية',
+  'sessions.none': 'لا جلسات قادمة',
+  'sessions.markAttendance': 'الحضور',
+  'sessions.noSchedule': 'لا يوجد جدول أسبوعي',
+  'att.present': 'حاضر',
+  'att.absent': 'غائب',
+  'att.late': 'متأخر',
+  'att.excused': 'بعذر',
 };
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { en, ar };

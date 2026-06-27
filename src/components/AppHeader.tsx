@@ -16,11 +16,14 @@ import type { ReactNode } from 'react';
 export default function AppHeader({
   breadcrumb,
   right,
+  onOpenNav,
 }: {
   /** Optional context label shown after the brand (e.g. a halaqah name). */
   breadcrumb?: string;
   /** Right-aligned actions (language switcher, nav links, …). */
   right?: ReactNode;
+  /** When set, renders a mobile-only hamburger that opens the nav drawer. */
+  onOpenNav?: () => void;
 }) {
   return (
     <header
@@ -36,6 +39,21 @@ export default function AppHeader({
         style={{ height: 64, padding: '0 var(--space-16)' }}
       >
         <div className="flex items-center gap-3 min-w-0">
+          {onOpenNav && (
+            <button
+              type="button"
+              onClick={onOpenNav}
+              aria-label="Open navigation"
+              className="lg:hidden flex items-center justify-center shrink-0"
+              style={{ width: 40, height: 40, marginInlineStart: -8, borderRadius: 'var(--radius-sm-px)', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+          )}
           <Link href="/reader/1" className="flex items-center gap-3 min-w-0" style={{ textDecoration: 'none' }}>
             <span
               className="inline-flex items-center justify-center shrink-0"

@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-import AppHeader from '@/components/AppHeader';
+import AppShell from '@/components/AppShell';
 import { getHalaqah } from '@/lib/services/halaqah';
 import { getHalaqahMembersWithProfiles } from '@/lib/services/membership';
 import { displayName } from '@/lib/displayName';
+import { getMyChrome } from '@/lib/services/profile';
 import { getLogsForMembership } from '@/lib/services/progressLog';
 import { getAttendanceForMembership } from '@/lib/services/attendance';
 import { computeStreak } from '@/lib/streak';
@@ -31,10 +31,10 @@ export default async function StudentProfilePage({
   const attendance = await getAttendanceForMembership(membershipId);
   const streak = computeStreak(logs);
 
-  return (
-    <div className="min-h-screen overflow-x-hidden" style={{ background: 'var(--bg-base)' }}>
-      <AppHeader breadcrumb={halaqah.name} right={<LanguageSwitcher />} />
+  const account = await getMyChrome(user);
 
+  return (
+    <AppShell breadcrumb={halaqah.name} user={account}>
       <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in flex flex-col gap-4">
         <div className="card flex items-center justify-between gap-3" style={{ padding: '14px 16px' }}>
           <div className="flex items-center gap-3 min-w-0">
@@ -77,6 +77,6 @@ export default async function StudentProfilePage({
           </div>
         ))}
       </main>
-    </div>
+    </AppShell>
   );
 }

@@ -1,7 +1,27 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { displayName } from '@/lib/displayName';
 import type { Profile } from '@/types';
+
+/**
+ * Chrome summary (display name + email) for the account menu, built from the
+ * auth user the caller already loaded — avoids a second getUser() round-trip.
+ * Name falls back to a short-id tag via displayName() when no profile row is
+ * readable.
+ */
+export async function getMyChrome(
+  user: { id: string; email?: string | null },
+): Promise<{ name: string; email: string }> {
+  const profiles = await getProfilesByIds([user.id]);
+  const p = profiles.get(user.id);
+  const name = displayName({
+    user_id: user.id,
+    first_name: p?.first_name,
+    last_name: p?.last_name,
+  });
+  return { name, email: user.email ?? '' };
+}
 
 /**
  * Profiles for the given user ids, keyed by id. RLS only returns rows the

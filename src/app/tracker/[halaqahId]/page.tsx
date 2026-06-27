@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-import AppHeader from '@/components/AppHeader';
+import AppShell from '@/components/AppShell';
+import { getMyChrome } from '@/lib/services/profile';
 import TeacherHalaqah from '@/components/tracker/TeacherHalaqah';
 import TeacherSessions from '@/components/tracker/TeacherSessions';
 import StudentHalaqah from '@/components/tracker/StudentHalaqah';
@@ -39,10 +39,10 @@ export default async function HalaqahPage({
     attendance = await getAttendanceForSessions(sessions.map((s) => s.id));
   }
 
-  return (
-    <div className="min-h-screen overflow-x-hidden" style={{ background: 'var(--bg-base)' }}>
-      <AppHeader breadcrumb={halaqah.name} right={<LanguageSwitcher />} />
+  const account = await getMyChrome(user);
 
+  return (
+    <AppShell breadcrumb={halaqah.name} user={account}>
       <main className={`mx-auto px-4 py-8 sm:py-10 animate-fade-in ${isTeacher ? 'max-w-5xl' : 'max-w-2xl'}`}>
         {isTeacher ? (
           <div className="grid gap-8 lg:grid-cols-2 items-start">
@@ -71,6 +71,6 @@ export default async function HalaqahPage({
           />
         )}
       </main>
-    </div>
+    </AppShell>
   );
 }

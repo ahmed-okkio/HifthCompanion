@@ -5,6 +5,7 @@ import ReadOnlyCanvas from '@/components/ReadOnlyCanvas';
 import ShareShell from '@/components/ShareShell';
 import { getNotes } from '@/lib/services/notes';
 import NotesPanel from '@/components/NotesPanel';
+import { getMyChrome } from '@/lib/services/profile';
 
 interface Props {
   params: Promise<{ userId: string; page: string }>;
@@ -24,6 +25,11 @@ export default async function SharePage({ params, searchParams }: Props) {
   const isE2E = process.env.PLAYWRIGHT_TEST === 'true';
 
   const supabase = await createClient();
+
+  // Auth-conditional chrome: a signed-in visitor gets the profile menu, a guest
+  // viewer gets a Log In link (ADR 0002 D4).
+  const { data: { user } } = await supabase.auth.getUser();
+  const account = user ? await getMyChrome(user) : null;
 
   let annotationSet: { id: string; name: string; user_id: string } | null = null;
 
@@ -53,7 +59,7 @@ export default async function SharePage({ params, searchParams }: Props) {
   const imageUrl = getPageImageUrl(pageNum);
 
   return (
-    <ShareShell userId={userId} pageNum={pageNum} setId={setId} setName={annotationSet!.name}>
+    <ShareShell userId={userId} pageNum={pageNum} setId={setId} setName={annotationSet!.name} account={account}>
       <main className="w-full flex-grow px-4 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-8 sm:pb-8 animate-fade-in lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:pb-8">
         <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-6 items-start lg:h-full lg:min-h-0 lg:items-start lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] lg:justify-center">
 

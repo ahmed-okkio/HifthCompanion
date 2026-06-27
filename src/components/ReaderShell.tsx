@@ -6,6 +6,7 @@ import { getPageImageUrl, clampPage } from '@/lib/quran';
 import ReaderNav from './ReaderNav';
 import SurahNavPanel from './SurahNavPanel';
 import MobileSurahDrawer from './MobileSurahDrawer';
+import MobileNavDrawer from './MobileNavDrawer';
 import AnnotationCanvas from './AnnotationCanvas';
 import NavRail from './NavRail';
 
@@ -23,9 +24,11 @@ interface ReaderShellProps {
   children: React.ReactNode;
   user: { id: string } | null;
   sets: Pick<AnnotationSet, 'id' | 'name'>[];
+  /** Signed-in user's chrome summary (name + email), or null when logged out. */
+  account?: { name: string; email: string } | null;
 }
 
-export default function ReaderShell({ children, user, sets }: ReaderShellProps) {
+export default function ReaderShell({ children, user, sets, account = null }: ReaderShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   // Soft page swap (Story 24): the page number is derived from the URL inside this
@@ -39,6 +42,7 @@ export default function ReaderShell({ children, user, sets }: ReaderShellProps) 
   const navRef = useRef<HTMLDivElement>(null);
   const [navHeight, setNavHeight] = useState(FALLBACK_NAV_HEIGHT);
   const [surahOpen, setSurahOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     const wrap = navRef.current;
@@ -64,7 +68,12 @@ export default function ReaderShell({ children, user, sets }: ReaderShellProps) 
       style={{ background: 'var(--bg-base)' }}
     >
       <div ref={navRef} className="lg:flex-shrink-0">
-        <ReaderNav currentPage={pageNum} onOpenSurah={() => setSurahOpen(true)} />
+        <ReaderNav
+          currentPage={pageNum}
+          onOpenSurah={() => setSurahOpen(true)}
+          onOpenNav={() => setNavOpen(true)}
+          account={account}
+        />
       </div>
       {/* On mobile the nav is position:fixed so content starts at top-0;
           --nav-h drives the mobile padding-top via CSS; lg: resets it to 0. */}
@@ -93,7 +102,7 @@ export default function ReaderShell({ children, user, sets }: ReaderShellProps) 
             className="flex-shrink-0"
             style={{ width: '72px', height: '100%' }}
           >
-            <NavRail activeView="surahs" />
+            <NavRail />
           </div>
           {/* Surah sidebar — 260px. */}
           <div
@@ -164,6 +173,7 @@ export default function ReaderShell({ children, user, sets }: ReaderShellProps) 
         </div>
       </div>
       <MobileSurahDrawer open={surahOpen} onOpenChange={setSurahOpen} />
+      <MobileNavDrawer open={navOpen} onOpenChange={setNavOpen} />
     </div>
   );
 }

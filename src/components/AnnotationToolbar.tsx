@@ -65,16 +65,34 @@ export default function AnnotationToolbar({
   };
 
   return (
-    <aside className="sticky top-24 z-10 flex w-full items-center" style={{ minHeight: '88px' }}>
+    <aside
+      className="sticky top-24 z-10 flex w-full items-center"
+      style={{
+        minHeight: '88px',
+        /* Shadow lives on the outer (unclipped) element — clip-path on the inner
+           wrapper would otherwise cut the box-shadow off at the border box. */
+        borderRadius: 'var(--radius-lg-px)',
+        boxShadow: 'var(--shadow-e2)',
+      }}
+    >
+      {/* Rounded wrapper clips the scroll edge — a reserved (classic) scrollbar's
+          corner is NOT clipped by plain overflow:hidden on Windows, so we use
+          clip-path (geometry-based, platform-independent) to hard-clip the box,
+          scrollbar included, to the rounded rect. */}
       <div
-        className="relative flex w-full items-stretch gap-2 overflow-x-auto p-3"
+        className="relative w-full"
         style={{
           minHeight: '88px',
           background: 'var(--surface-main)',
           borderRadius: 'var(--radius-lg-px)',
           border: '1px solid var(--border-subtle)',
-          boxShadow: 'var(--shadow-e2)',
+          overflow: 'hidden',
+          clipPath: 'inset(0 round var(--radius-lg-px))',
         }}
+      >
+      <div
+        className="relative flex w-full items-stretch gap-2 overflow-x-auto p-3"
+        style={{ minHeight: '88px' }}
       >
         {/* Move/pan tool — left of the drawing tools. Active = drag pans the zoomed page. */}
         <button
@@ -216,6 +234,7 @@ export default function AnnotationToolbar({
             />
           ))}
         </div>
+      </div>
       </div>
     </aside>
   );

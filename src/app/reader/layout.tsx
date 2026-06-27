@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import ReaderShell from '@/components/ReaderShell';
+import { getMyChrome } from '@/lib/services/profile';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,8 +22,10 @@ export default async function ReaderLayout({
         .order('created_at', { ascending: false })
     : { data: [] };
 
+  const account = user ? await getMyChrome(user) : null;
+
   return (
-    <ReaderShell user={user} sets={sets ?? []}>
+    <ReaderShell user={user} sets={sets ?? []} account={account}>
       {children}
     </ReaderShell>
   );

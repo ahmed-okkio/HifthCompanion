@@ -1,26 +1,28 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { TOTAL_PAGES, clampPage, getSurahForPage } from '@/lib/quran';
 import { SURAH_LIST } from './SurahNavPanel';
-import LogoutButton from './LogoutButton';
-import { createClient } from '@/lib/supabase/client';
+import ProfileMenu from './ProfileMenu';
 import Link from 'next/link';
 import styles from './ReaderNav.module.css';
 
-export default function ReaderNav({ currentPage, onOpenSurah }: { currentPage: number; onOpenSurah?: () => void }) {
+export default function ReaderNav({
+  currentPage,
+  onOpenSurah,
+  onOpenNav,
+  account,
+}: {
+  currentPage: number;
+  onOpenSurah?: () => void;
+  onOpenNav?: () => void;
+  /** Signed-in user's chrome summary, or null when logged out. */
+  account?: { name: string; email: string } | null;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [jumpInput, setJumpInput] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [jumpFocused, setJumpFocused] = useState(false);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getSession().then((res: any) => {
-      setIsLoggedIn(!!res.data?.session);
-    });
-  }, []);
 
   const go = (page: number) => {
     const clamped = clampPage(page);
@@ -38,6 +40,21 @@ export default function ReaderNav({ currentPage, onOpenSurah }: { currentPage: n
       <div className={styles.inner}>
 
         <div className={styles.left}>
+          {onOpenNav && (
+            <button
+              type="button"
+              onClick={onOpenNav}
+              aria-label="Open navigation"
+              className="lg:hidden"
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, marginInlineStart: -6, marginInlineEnd: 2, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+          )}
           <Link href="/reader/1" className={styles.brand}>
             <span className={styles.brandIcon}>
               {/* Bug 1 fix: outline book, stroke green-600 (color: var(--green-600) from CSS).
@@ -191,42 +208,8 @@ export default function ReaderNav({ currentPage, onOpenSurah }: { currentPage: n
             />
           </div>
 
-          {/* Theme toggle — icon button, desktop only.
-              INERT PLACEHOLDER: dark mode not implemented (PRD 0002, out of scope).
-              Shows sun icon. No onClick. aria-disabled prevents assistive interaction.
-              data-placeholder="theme" marks it as a future affordance. */}
-          <button
-            type="button"
-            tabIndex={-1}
-            aria-disabled="true"
-            data-placeholder="theme"
-            className={`${styles.themeStub} hide-mobile`}
-            title="Theme (coming soon)"
-          >
-            {/* Sun icon — represents light/dark toggle affordance */}
-            {/* Bug 2 fix: explicit width/height on theme toggle sun icon */}
-            <svg width="17" height="17" className={styles.actionIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <circle cx="12" cy="12" r="4" strokeWidth={2} />
-              <path strokeLinecap="round" strokeWidth={2} d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-            </svg>
-          </button>
-
-          {isLoggedIn === null ? (
-            <div className={styles.skeleton} />
-          ) : isLoggedIn ? (
-            <>
-              <Link
-                href="/sets"
-                className={`${styles.secondaryAction} hide-mobile`}
-              >
-                {/* Bug 2 fix: explicit width/height on My Sets icon */}
-                <svg width="17" height="17" className={styles.actionIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-                <span>My Sets</span>
-              </Link>
-              <LogoutButton />
-            </>
+          {account ? (
+            <ProfileMenu name={account.name} email={account.email} />
           ) : (
             <Link
               href="/login"

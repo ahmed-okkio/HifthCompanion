@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { TOTAL_PAGES, clampPage } from '@/lib/quran';
 import SurahNavPanel from './SurahNavPanel';
 import MobileSurahDrawer from './MobileSurahDrawer';
+import MobileNavDrawer from './MobileNavDrawer';
+import NavRail from './NavRail';
+import ProfileMenu from './ProfileMenu';
 import shareStyles from './ShareShell.module.css';
 import navStyles from './ReaderNav.module.css';
 
@@ -15,6 +18,8 @@ interface Props {
   setId: string;
   setName: string;
   children: React.ReactNode;
+  /** Signed-in visitor's chrome summary, or null for a guest viewer. */
+  account?: { name: string; email: string } | null;
 }
 
 /**
@@ -25,10 +30,11 @@ interface Props {
  * the bottom-sheet (opened from the header). Read-only throughout — no annotation
  * toolbar, so there is no fixed bottom bar to pad against.
  */
-export default function ShareShell({ userId, pageNum, setId, setName, children }: Props) {
+export default function ShareShell({ userId, pageNum, setId, setName, children, account = null }: Props) {
   const navRef = useRef<HTMLDivElement>(null);
   const [navHeight, setNavHeight] = useState(FALLBACK_NAV_HEIGHT);
   const [surahOpen, setSurahOpen] = useState(false);
+  const [navOpen, setNavOpen] = useState(false);
 
   useEffect(() => {
     const el = navRef.current;
@@ -63,6 +69,19 @@ export default function ShareShell({ userId, pageNum, setId, setName, children }
           <div className={navStyles.inner}>
 
             <div className={navStyles.left}>
+              <button
+                type="button"
+                onClick={() => setNavOpen(true)}
+                aria-label="Open navigation"
+                className="lg:hidden"
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, marginInlineStart: -6, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              </button>
               <button
                 type="button"
                 onClick={() => setSurahOpen(true)}
@@ -132,12 +151,13 @@ export default function ShareShell({ userId, pageNum, setId, setName, children }
             </div>
 
             <div className={navStyles.actions}>
-              <Link href="/reader/1" className={navStyles.secondaryAction}>
-                <span>Open Reader</span>
-                <svg width="16" height="16" className={navStyles.actionIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </Link>
+              {account ? (
+                <ProfileMenu name={account.name} email={account.email} />
+              ) : (
+                <Link href="/login" className={navStyles.loginButton}>
+                  Log In
+                </Link>
+              )}
             </div>
           </div>
         </header>
@@ -150,6 +170,9 @@ export default function ShareShell({ userId, pageNum, setId, setName, children }
         style={{ display: 'flex', alignItems: 'flex-start', ['--nav-h' as string]: `${navHeight}px` } as React.CSSProperties}
         suppressHydrationWarning
       >
+        <div className="hidden lg:block flex-shrink-0" style={{ width: '72px', height: '100%' }}>
+          <NavRail />
+        </div>
         <div
           className="hidden lg:flex lg:flex-col flex-shrink-0"
           style={{
@@ -169,6 +192,7 @@ export default function ShareShell({ userId, pageNum, setId, setName, children }
       </div>
 
       <MobileSurahDrawer open={surahOpen} onOpenChange={setSurahOpen} basePath={`/share/${userId}`} />
+      <MobileNavDrawer open={navOpen} onOpenChange={setNavOpen} />
     </div>
   );
 }

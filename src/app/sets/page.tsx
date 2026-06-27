@@ -2,9 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import SetsList from '@/components/SetsList';
 import { getAnnotationSets } from '@/lib/services/annotationSets';
-import Link from 'next/link';
-import ReaderBackLink from '@/components/ReaderBackLink';
-import AppHeader from '@/components/AppHeader';
+import AppShell from '@/components/AppShell';
+import { getMyChrome } from '@/lib/services/profile';
 
 export default async function SetsPage() {
   const supabase = await createClient();
@@ -14,20 +13,10 @@ export default async function SetsPage() {
   }
 
   const sets = await getAnnotationSets();
+  const account = await getMyChrome(user);
 
   return (
-    <div className="min-h-screen overflow-x-hidden" style={{ background: 'var(--bg-base)' }}>
-      <AppHeader
-        right={
-          <>
-            <Link href="/tracker" className="text-xs font-semibold" style={{ color: 'var(--text-accent)' }}>
-              Tracker
-            </Link>
-            <ReaderBackLink />
-          </>
-        }
-      />
-
+    <AppShell user={account}>
       <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -48,6 +37,6 @@ export default async function SetsPage() {
       >
         HifthCompanion © 2026
       </footer>
-    </div>
+    </AppShell>
   );
 }

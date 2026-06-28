@@ -395,7 +395,6 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
         <ul>
           {filtered.map(group => {
             const active = activePage === group.page;
-            const title = group.surahs.map(s => s.name).join(' · ');
             return (
               <li key={group.page}>
                 <button
@@ -429,17 +428,20 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
                     {group.surahs.map(s => s.number).join('·')}
                   </span>
 
-                  <span className="min-w-0 flex-1 flex items-center">
-                    <span
-                      className="block truncate leading-snug"
-                      style={{
-                        fontSize: 'var(--type-body-size)',
-                        fontWeight: active ? 600 : 500,
-                        color: active ? 'var(--green-800)' : 'var(--text-primary)',
-                      }}
-                    >
-                      {title}
-                    </span>
+                  <span className="min-w-0 flex-1 flex flex-col justify-center gap-0.5">
+                    {group.surahs.map(s => (
+                      <span
+                        key={s.number}
+                        className="block truncate leading-snug"
+                        style={{
+                          fontSize: 'var(--type-body-size)',
+                          fontWeight: active ? 600 : 500,
+                          color: active ? 'var(--green-800)' : 'var(--text-primary)',
+                        }}
+                      >
+                        {s.name}
+                      </span>
+                    ))}
                   </span>
 
                   <span

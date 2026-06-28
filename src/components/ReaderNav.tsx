@@ -1,8 +1,6 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import Image from 'next/image';
-import logo from '@/app/assets/logo.png';
 import { TOTAL_PAGES, clampPage } from '@/lib/quran';
 import ProfileMenu from './ProfileMenu';
 import Link from 'next/link';
@@ -58,12 +56,12 @@ export default function ReaderNav({
           )}
           <Link href="/reader/1" className={styles.brand}>
             <span className={styles.brandIcon}>
-              <Image
-                src={logo}
+              {/* Plain <img> from /public — bypasses next/image optimizer (it was
+                  failing to render the logo on Vercel). */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo.png"
                 alt="Hifth Companion logo"
-                width={100}
-                height={100}
-                priority
                 style={{ height: '80%', width: 'auto', objectFit: 'contain' }}
               />
             </span>

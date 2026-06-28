@@ -193,8 +193,9 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     return page;
   }, [currentPage, groupedSurahs, initialSelected]);
 
-  // Show a "jump to current" affordance when the active surah is scrolled out of view.
-  const [showJump, setShowJump] = useState(false);
+  // Show a "jump to current" affordance when the active surah is scrolled out of
+  // view — at the top (arrow up) when it's above, at the bottom (arrow down) below.
+  const [jumpDir, setJumpDir] = useState<'up' | 'down' | null>(null);
   const jumpToActive = () =>
     activeButtonRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
 
@@ -264,9 +265,13 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
   useEffect(() => {
     const root = scrollListRef.current;
     const target = activeButtonRef.current;
-    if (!root || !target) { setShowJump(false); return; }
+    if (!root || !target) { setJumpDir(null); return; }
     const io = new IntersectionObserver(
-      ([e]) => setShowJump(!e.isIntersecting),
+      ([e]) => {
+        if (e.isIntersecting) { setJumpDir(null); return; }
+        const above = e.boundingClientRect.top < (e.rootBounds?.top ?? 0);
+        setJumpDir(above ? 'up' : 'down');
+      },
       { root, threshold: 0.5 },
     );
     io.observe(target);
@@ -465,13 +470,14 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
         </ul>
       </div>
 
-      {showJump && (
+      {jumpDir && (
         <button
           type="button"
           onClick={jumpToActive}
           className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 font-semibold animate-fade-in"
           style={{
-            bottom: '84px',
+            // Top variant clears the header (title + search); bottom clears the footer.
+            ...(jumpDir === 'up' ? { top: '140px' } : { bottom: '84px' }),
             height: '40px',
             borderRadius: 'var(--radius-full)',
             background: 'var(--green-600)',
@@ -484,7 +490,11 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
           }}
         >
           <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M19 12l-7 7-7-7" />
+            {jumpDir === 'up' ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19V5M5 12l7-7 7 7" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M19 12l-7 7-7-7" />
+            )}
           </svg>
           <span className="truncate">{activeSurahName || 'Current surah'}</span>
         </button>

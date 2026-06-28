@@ -23,7 +23,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        emailRedirectTo: `${location.origin}/auth/callback`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || location.origin}/auth/callback`,
         // Mirrored into a public.profiles row by the on_auth_user_created
         // trigger so tracker rosters can show real display names.
         data: { first_name: firstName.trim(), last_name: lastName.trim() },

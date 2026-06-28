@@ -28,28 +28,6 @@ import { usePathname } from 'next/navigation';
 // Logo block — green rounded square with book glyph
 // ---------------------------------------------------------------------------
 
-function LogoBlock() {
-  return (
-    <div
-      aria-hidden="true"
-      style={{
-        width: '44px',
-        height: '44px',
-        borderRadius: 'var(--radius-md-px)',
-        background: 'var(--green-600)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}
-    >
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-      </svg>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Inline SVG icons (22×22, strokeWidth 1.75)
@@ -170,12 +148,8 @@ export default function NavRail({ activeView }: NavRailProps) {
         overflow: 'hidden',
       }}
     >
-      {/* Top section: logo block + main nav items */}
+      {/* Top section: main nav items */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-16)', width: '100%' }}>
-        <Link href="/reader/1" aria-label="Home" style={{ width: '100%', display: 'flex', justifyContent: 'center', paddingBottom: 'var(--space-4)' }}>
-          <LogoBlock />
-        </Link>
-
         <ul role="list" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-4)', width: '100%' }}>
           {RAIL_ITEMS.map((item) => (
             <li key={item.id} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>

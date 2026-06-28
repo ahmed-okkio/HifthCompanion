@@ -31,8 +31,13 @@
   min-height: 72px;
   padding: 0 var(--space-16);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: center;
+  /* Side columns mirror the shell's left region (rail 72 + surah 260) vs right
+     (context 320) so the centre column — and the page navigator in it — lands over
+     the centred page/canvas, not the navbar's own midpoint. R-L = 12 (the residual
+     asymmetry after the gaps/paddings; see ReaderShell). */
+  grid-template-columns: minmax(0, 260px) auto minmax(0, 272px);
+  grid-template-rows: 72px;          /* definite row so child height:100% anchors here */
+  align-items: stretch;              /* let .left fill the row (was center → content-sized) */
   gap: var(--space-16);
 }
 
@@ -72,6 +77,9 @@
 .brandIcon img {
   width: auto;
   height: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .brandText {
@@ -81,16 +89,25 @@
 }
 
 .brandTitle {
-  font-size: 1rem;
+  font-family: var(--font-brand), system-ui, sans-serif;
+  font-size: 1.2rem;
   line-height: 1.1;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-weight: 400;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
 
-/* Context selector slot — Story 7 fills this with the "Juz — › Surah" breadcrumb. */
+/* Context selector slot — "Juz — › Surah" breadcrumb.
+   Pulled out of the brand's flex flow and anchored to the right edge of the left
+   region (rail 72 + surah 260), so it begins where the surah panel ends instead
+   of overlapping the brand. Desktop only (has hide-mobile); .inner is the
+   positioned ancestor. */
 .contextSlot {
   min-width: 0;
+  position: absolute;
+  left: calc(72px + 260px + var(--space-24));
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* Story 7: "Juz — › Surah" breadcrumb — inert label, desktop only.
@@ -143,6 +160,8 @@
   gap: var(--space-4);
   justify-self: center;
   width: 220px;
+  height: 50px;
+  margin:auto;
   justify-content: center;
   padding: var(--space-4);
   border-radius: var(--radius-md);

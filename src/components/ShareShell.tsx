@@ -73,8 +73,8 @@ export default function ShareShell({ userId, pageNum, setId, setName, children, 
                 type="button"
                 onClick={() => setNavOpen(true)}
                 aria-label="Open navigation"
-                className="lg:hidden"
-                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, marginInlineStart: -6, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
+                className="lg:hidden inline-flex items-center justify-center"
+                style={{ width: 40, height: 40, marginInlineStart: -6, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
               >
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
                   <line x1="3" y1="6" x2="21" y2="6" />

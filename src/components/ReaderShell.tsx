@@ -95,8 +95,6 @@ export default function ReaderShell({ children, user, sets, account = null }: Re
           className="hidden lg:flex flex-shrink-0"
           style={{ height: '100%', overflow: 'hidden', zIndex: 1 }}
         >
-          {/* Story 4 — Icon rail (72px). nav-rail-slot kept for backwards-compat with
-              existing E2E selectors; nav-rail is the new canonical testid. */}
           <div
             data-testid="nav-rail-slot"
             className="flex-shrink-0"

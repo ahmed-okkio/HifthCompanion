@@ -193,6 +193,16 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     return page;
   }, [currentPage, groupedSurahs, initialSelected]);
 
+  // Show a "jump to current" affordance when the active surah is scrolled out of view.
+  const [showJump, setShowJump] = useState(false);
+  const jumpToActive = () =>
+    activeButtonRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+
+  const activeSurahName = useMemo(() => {
+    const g = groupedSurahs.find(group => group.page === activePage);
+    return g?.surahs.map(s => s.name).join(' · ') ?? '';
+  }, [groupedSurahs, activePage]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return groupedSurahs;
@@ -213,6 +223,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     activeButtonRef.current.scrollIntoView({
       block: 'center',
       inline: 'nearest',
+      behavior: 'smooth',
     });
     hasAutoScrolledRef.current = true;
   }, [activePage, query]);
@@ -240,19 +251,27 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     return () => el.removeEventListener('scroll', onScroll);
   }, [SCROLL_STORAGE_KEY]);
 
-  // Restore once on first mount (covers full reload / share view, where state is fresh).
+  // On a full reload, jump to the active surah (the page currently open) rather than
+  // restoring a stale saved scroll. Pre-paint so there's no flash.
   useLayoutEffect(() => {
-    const el = scrollListRef.current;
-    if (!el) return;
-    const saved = Number(sessionStorage.getItem(SCROLL_STORAGE_KEY) ?? '0');
-    if (saved > 0) {
-      lastScrollTopRef.current = saved;
-      el.scrollTop = saved;
-      // Prevent the auto-scroll-to-active effect from overriding the restored position.
-      hasAutoScrolledRef.current = true;
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    const btn = activeButtonRef.current;
+    if (!btn) return;
+    btn.scrollIntoView({ block: 'center' });
+    hasAutoScrolledRef.current = true;
   }, []); // run once on mount
+
+  // Track whether the active surah row is visible inside the scroll list.
+  useEffect(() => {
+    const root = scrollListRef.current;
+    const target = activeButtonRef.current;
+    if (!root || !target) { setShowJump(false); return; }
+    const io = new IntersectionObserver(
+      ([e]) => setShowJump(!e.isIntersecting),
+      { root, threshold: 0.5 },
+    );
+    io.observe(target);
+    return () => io.disconnect();
+  }, [activePage, filtered]);
 
   // Re-pin the saved position after every navigation. The new page commits and then
   // asynchronously resets the (persistent) list's scrollTop, so we reassert across a
@@ -337,6 +356,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
         borderTop: 'none',
         borderBottom: 'none',
         borderRadius: 0,
+        position: 'relative',
       }}
     >
 
@@ -347,6 +367,11 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
         >
           Surahs
         </h2>
+        {activeSurahName && (
+          <p className="mt-0.5 truncate" style={{ color: 'var(--text-muted)', fontSize: 'var(--type-small-size)' }}>
+            Juz — · <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{activeSurahName}</span>
+          </p>
+        )}
 
         <div className="mt-3">
           <div className="relative">
@@ -436,6 +461,31 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
           })}
         </ul>
       </div>
+
+      {showJump && (
+        <button
+          type="button"
+          onClick={jumpToActive}
+          className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 font-semibold animate-fade-in"
+          style={{
+            bottom: '84px',
+            height: '40px',
+            borderRadius: 'var(--radius-full)',
+            background: 'var(--green-600)',
+            color: '#fff',
+            fontSize: 'var(--type-small-size)',
+            boxShadow: 'var(--shadow-e3)',
+            whiteSpace: 'nowrap',
+            maxWidth: 'calc(100% - 32px)',
+            cursor: 'pointer',
+          }}
+        >
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M19 12l-7 7-7-7" />
+          </svg>
+          <span className="truncate">{activeSurahName || 'Current surah'}</span>
+        </button>
+      )}
 
       <div className="flex-shrink-0 px-4 py-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
         <button

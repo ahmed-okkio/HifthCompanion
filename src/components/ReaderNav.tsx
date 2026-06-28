@@ -1,10 +1,9 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import Image from "next/image";
-import logo from "@/app/assets/logo.png";
-import { TOTAL_PAGES, clampPage, getSurahForPage } from '@/lib/quran';
-import { SURAH_LIST } from './SurahNavPanel';
+import Image from 'next/image';
+import logo from '@/app/assets/logo.png';
+import { TOTAL_PAGES, clampPage } from '@/lib/quran';
 import ProfileMenu from './ProfileMenu';
 import Link from 'next/link';
 import styles from './ReaderNav.module.css';
@@ -47,8 +46,8 @@ export default function ReaderNav({
               type="button"
               onClick={onOpenNav}
               aria-label="Open navigation"
-              className="lg:hidden"
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, marginInlineStart: -6, marginInlineEnd: 2, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
+              className="lg:hidden inline-flex items-center justify-center"
+              style={{ width: 40, height: 40, marginInlineStart: -6, marginInlineEnd: 2, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
                 <line x1="3" y1="6" x2="21" y2="6" />
@@ -65,6 +64,7 @@ export default function ReaderNav({
                 width={100}
                 height={100}
                 priority
+                style={{ height: '80%', width: 'auto', objectFit: 'contain' }}
               />
             </span>
             <span className={styles.brandText}>
@@ -72,29 +72,6 @@ export default function ReaderNav({
             </span>
           </Link>
 
-          {/*
-            Story 7 (Sonnet) — "Juz — › Surah" bread/...
-            Juz part is a static placeholder ("Juz —"): no page→Juz mapping exists in src/lib.
-            Surah name is derived live from currentPage via getSurahForPage + SURAH_LIST.
-            Non-interactive label; aria-hidden keeps it out of the a11y tree.
-          */}
-          <div
-            className={`${styles.contextSlot} hide-mobile`}
-            data-testid="context-selector-slot"
-            aria-hidden
-          >
-            {(() => {
-              const surahNum = getSurahForPage(currentPage);
-              const surahName = SURAH_LIST.find(s => s.number === surahNum)?.name ?? '';
-              return (
-                <span className={styles.contextBreadcrumb}>
-                  <span className={styles.contextJuz}>Juz —</span>
-                  <span className={styles.contextSep} aria-hidden>›</span>
-                  <span className={styles.contextSurah}>{surahName}</span>
-                </span>
-              );
-            })()}
-          </div>
         </div>
 
         <div className={styles.navigator}>
@@ -176,40 +153,6 @@ export default function ReaderNav({
         </div>
 
         <div className={styles.actions}>
-          {/*
-            Story 8 (Sonnet) — Search affordance + Theme toggle.
-            Both are INERT PLACEHOLDERS: no handlers, tabIndex={-1}, aria-disabled.
-            Search is NOT wired to any search backend.
-            Theme toggle does NOT implement dark mode (future feature, out of scope PRD 0002).
-            Visually present, clearly non-functional; marked with data-placeholder attributes.
-          */}
-
-          {/* Search affordance — fake input field, desktop only.
-              Rendered as a <div role="search"> wrapping a disabled <input> so screen readers
-              understand its intent but it never accepts focus or submits anything.
-              data-placeholder="search" + aria-disabled + tabIndex={-1} on all interactive children. */}
-          <div
-            role="search"
-            aria-disabled="true"
-            data-placeholder="search"
-            className={`${styles.searchStub} hide-mobile`}
-          >
-            {/* Bug 2 fix: explicit width/height — prevents giant magnifier FOUC before CSS loads */}
-            <svg width="14" height="14" className={styles.searchIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <circle cx="11" cy="11" r="7" strokeWidth={2} />
-              <path strokeLinecap="round" strokeWidth={2} d="M21 21l-4.3-4.3" />
-            </svg>
-            {/* disabled input — never focused, never submits */}
-            <input
-              type="search"
-              disabled
-              tabIndex={-1}
-              placeholder="Search"
-              aria-disabled="true"
-              className={styles.searchInput}
-            />
-          </div>
-
           {account ? (
             <ProfileMenu name={account.name} email={account.email} />
           ) : (

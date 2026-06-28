@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Geist_Mono, Outfit } from "next/font/google";
 import "./globals.css";
 import { I18nProvider } from "@/components/I18nProvider";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
@@ -17,6 +17,13 @@ const sans = Plus_Jakarta_Sans({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Brand wordmark only — a modern, light geometric sans for the product name.
+const brand = Outfit({
+  variable: "--font-brand",
+  subsets: ["latin"],
+  weight: ["400"],
 });
 
 export const metadata: Metadata = {
@@ -46,7 +53,7 @@ export default async function RootLayout({
 }>) {
   const locale = await getLocale();
   return (
-    <html lang={locale} dir={dirFor(locale)} className={`${sans.variable} ${geistMono.variable}`}>
+    <html lang={locale} dir={dirFor(locale)} className={`${sans.variable} ${geistMono.variable} ${brand.variable}`}>
       <body className="font-sans">
         <I18nProvider locale={locale}>{children}</I18nProvider>
         <ServiceWorkerRegister />

@@ -35,7 +35,7 @@ function LogoBlock() {
       style={{
         width: '44px',
         height: '44px',
-        borderRadius: 'var(--radius-md-px)',   /* 14px — well under max-20 */
+        borderRadius: 'var(--radius-md-px)',
         background: 'var(--green-600)',
         display: 'flex',
         alignItems: 'center',
@@ -43,18 +43,7 @@ function LogoBlock() {
         flexShrink: 0,
       }}
     >
-      {/* Open-book glyph, white stroke */}
-      <svg
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="#ffffff"
-        strokeWidth="1.75"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
         <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
       </svg>
@@ -117,7 +106,7 @@ export interface RailItemDef {
 export const RAIL_ITEMS: RailItemDef[] = [
   {
     id: 'surahs',
-    label: 'Surahs',
+    label: 'Mushaf',
     icon: (active) => <IconSurahs active={active} />,
     href: '/reader/1',
     matchPrefixes: ['/reader', '/share'],

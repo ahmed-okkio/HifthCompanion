@@ -42,6 +42,7 @@
   align-items: center;
   gap: var(--space-12);
   min-width: 0;
+  height:100%;
 }
 
 .brand {
@@ -51,14 +52,15 @@
   min-width: 0;
   text-decoration: none;
   color: inherit;
+  height:100%;
 }
 
 /* Bug 1 fix (Story 8.5): top-bar logo is a green OUTLINE book glyph — no filled green
    background block. The filled green square lives only in NavRail (LogoBlock). This way
    top-bar mark and rail logo are visually distinct and never look like duplicates. */
 .brandIcon {
-  width: 2.25rem;
-  height: 2.25rem;
+  width: auto;
+  height: 100%;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -67,9 +69,9 @@
   color: var(--green-600);
 }
 
-.brandIcon svg {
-  width: 1.5rem;
-  height: 1.5rem;
+.brandIcon img {
+  width: auto;
+  height: 100%;
 }
 
 .brandText {
@@ -104,7 +106,7 @@
   border: 1px solid var(--neutral-200);
   background: var(--surface-main);
   white-space: nowrap;
-  max-width: 34ch;
+  max-width: 22ch;
   overflow: hidden;
 }
 
@@ -147,8 +149,8 @@
   /* Same colour as the nav bar (white surface) with a thin light-grey outline (like the Juz
      breadcrumb) lifted by a pronounced drop shadow so it reads as a floating/hovering control. */
   background: var(--surface-main);
-  border: 1px solid rgba(15, 23, 42, 0.05);
-  box-shadow: var(--shadow-e2);
+  border: 1px solid var(--neutral-200);
+  box-shadow: var(--shadow-e3);
 }
 
 .navButton,
@@ -438,6 +440,7 @@
   .left {
     grid-column: 1;
     grid-row: 1;
+    height:100%;
   }
 
   .navigator {

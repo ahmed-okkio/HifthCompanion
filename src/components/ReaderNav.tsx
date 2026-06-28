@@ -1,6 +1,8 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+import Image from "next/image";
+import logo from "@/app/assets/logo.png";
 import { TOTAL_PAGES, clampPage, getSurahForPage } from '@/lib/quran';
 import { SURAH_LIST } from './SurahNavPanel';
 import ProfileMenu from './ProfileMenu';
@@ -57,13 +59,13 @@ export default function ReaderNav({
           )}
           <Link href="/reader/1" className={styles.brand}>
             <span className={styles.brandIcon}>
-              {/* Bug 1 fix: outline book, stroke green-600 (color: var(--green-600) from CSS).
-                  No filled green background — that lives only in the NavRail LogoBlock.
-                  Bug 2 fix: explicit width/height so SVG never renders at intrinsic size. */}
-              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden>
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} />
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} />
-              </svg>
+              <Image
+                src={logo}
+                alt="Hifth Companion logo"
+                width={100}
+                height={100}
+                priority
+              />
             </span>
             <span className={styles.brandText}>
               <span className={styles.brandTitle}>Hifth Companion</span>
@@ -71,7 +73,7 @@ export default function ReaderNav({
           </Link>
 
           {/*
-            Story 7 (Sonnet) — "Juz — › Surah" breadcrumb.
+            Story 7 (Sonnet) — "Juz — › Surah" bread/...
             Juz part is a static placeholder ("Juz —"): no page→Juz mapping exists in src/lib.
             Surah name is derived live from currentPage via getSurahForPage + SURAH_LIST.
             Non-interactive label; aria-hidden keeps it out of the a11y tree.

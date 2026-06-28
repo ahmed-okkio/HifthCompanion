@@ -406,40 +406,41 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
                   className="group flex w-full items-center gap-3 px-4 text-left transition-colors duration-150"
                   style={{
                     minHeight: '72px',
+                    paddingBlock: '20px',
                     background: active ? 'var(--green-soft)' : 'transparent',
                     borderLeft: active
                       ? '4px solid var(--green-600)'
                       : '4px solid transparent',
                   }}
                 >
-                  <span
-                    className="inline-flex shrink-0 items-center justify-center tabular-nums"
-                    style={{
-                      height: '32px',
-                      minWidth: '32px',
-                      padding: '0 6px',
-                      borderRadius: 'var(--radius-sm)',
-                      fontSize: 'var(--type-caption-size)',
-                      fontWeight: 700,
-                      background: active ? 'var(--surface-main)' : 'var(--neutral-100)',
-                      color: active ? 'var(--green-600)' : 'var(--text-secondary)',
-                    }}
-                  >
-                    {group.surahs.map(s => s.number).join('·')}
-                  </span>
-
-                  <span className="min-w-0 flex-1 flex flex-col justify-center gap-0.5">
+                  <span className="min-w-0 flex-1 flex flex-col justify-center gap-2">
                     {group.surahs.map(s => (
-                      <span
-                        key={s.number}
-                        className="block truncate leading-snug"
-                        style={{
-                          fontSize: 'var(--type-body-size)',
-                          fontWeight: active ? 600 : 500,
-                          color: active ? 'var(--green-800)' : 'var(--text-primary)',
-                        }}
-                      >
-                        {s.name}
+                      <span key={s.number} className="flex items-center gap-3 min-w-0">
+                        <span
+                          className="inline-flex shrink-0 items-center justify-center tabular-nums"
+                          style={{
+                            height: '32px',
+                            minWidth: '32px',
+                            padding: '0 6px',
+                            borderRadius: 'var(--radius-sm)',
+                            fontSize: 'var(--type-caption-size)',
+                            fontWeight: 700,
+                            background: active ? 'var(--surface-main)' : 'var(--neutral-100)',
+                            color: active ? 'var(--green-600)' : 'var(--text-secondary)',
+                          }}
+                        >
+                          {s.number}
+                        </span>
+                        <span
+                          className="block truncate leading-snug"
+                          style={{
+                            fontSize: 'var(--type-body-size)',
+                            fontWeight: active ? 600 : 500,
+                            color: active ? 'var(--green-800)' : 'var(--text-primary)',
+                          }}
+                        >
+                          {s.name}
+                        </span>
                       </span>
                     ))}
                   </span>

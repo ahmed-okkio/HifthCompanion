@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
-import { TOTAL_PAGES } from '@/lib/quran';
-import { notFound } from 'next/navigation';
+import { TOTAL_PAGES, parseSpread } from '@/lib/quran';
+import { notFound, redirect } from 'next/navigation';
 import ShareCard from '@/components/ShareCard';
 import NotesPanel from '@/components/NotesPanel';
 import TagsCard from '@/components/TagsCard';
@@ -19,7 +19,19 @@ interface Props {
 export default async function ReaderPage({ params, searchParams }: Props) {
   const { page } = await params;
   const { set: requestedSet } = await searchParams;
-  const pageNum = parseInt(page, 10);
+
+  // Spread segment "N-M" (M2/G1): the notes column fetches the LOWER (right) page's
+  // data via the exact same path single mode uses for that page. The second canvas is
+  // lit up by ReaderShell in M3; this route only needs the lower page number here.
+  // A single "3" has no dash → parseSpread isn't called, single behavior is untouched (B4).
+  const spread = page.includes('-') ? parseSpread(page) : null;
+  if (page.includes('-') && !spread) {
+    // Malformed spread ("3-5", "5-3", garbage) → fall back to the first number's single page.
+    const first = parseInt(page, 10);
+    redirect(`/reader/${isNaN(first) ? 1 : first}`);
+  }
+  // ponytail: lower page feeds every existing fetch (G1); swap to per-active-page in M3.
+  const pageNum = spread ? spread[0] : parseInt(page, 10);
 
   if (isNaN(pageNum) || pageNum < 1 || pageNum > TOTAL_PAGES) {
     notFound();

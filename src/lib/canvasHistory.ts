@@ -38,10 +38,29 @@ export class CanvasHistory {
   canUndo() { return this.ptr > 0; }
   canRedo() { return this.ptr < this.stack.length - 1; }
 
+  /** True while an undo/redo is reloading the canvas. loadFromJSON re-adds the restored
+   *  objects, firing fabric object:added/removed events; callers must ignore those so they
+   *  don't register as new user actions (which would corrupt the snapshot stack AND the
+   *  spread shell's cross-page undo ordering). */
+  get restoring() { return this.frozen; }
+
   private restore(onDone?: () => void) {
     this.frozen = true;
-    const json = this.stack[this.ptr];
-    this.canvas.loadFromJSON(JSON.parse(json), () => {
+    const snapshot = JSON.parse(this.stack[this.ptr]);
+    // loadFromJSON internally calls clear() which nukes backgroundImage then restores it
+    // from JSON — but Fabric 5's enlivenObjects is async, so between clear/add the canvas
+    // paints an empty frame (the "undo flash"). Bypass it: swap objects manually with
+    // renderOnAddRemove suppressed so the canvas never paints an intermediate state.
+    this.canvas.renderOnAddRemove = false;
+    const current = this.canvas.getObjects();
+    current.forEach((o) => this.canvas.remove(o));
+    // Fabric 5 Canvas has enlivenObjects on its prototype — use it so tests can mock via
+    // the canvas instance rather than needing the full fabric namespace.
+    const enliven: (objects: any[], cb: (enlivened: fabric.Object[]) => void) => void =
+      (this.canvas as any).enlivenObjects?.bind(this.canvas) ?? fabric.util.enlivenObjects;
+    enliven(snapshot.objects, (enlivened: fabric.Object[]) => {
+      enlivened.forEach((o: fabric.Object) => this.canvas.add(o));
+      this.canvas.renderOnAddRemove = true;
       this.canvas.renderAll();
       this.frozen = false;
       onDone?.();

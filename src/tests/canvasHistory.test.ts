@@ -1,16 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { CanvasHistory } from '../lib/canvasHistory';
 
-function makeMockCanvas(initialJson = '{"objects":[]}') {
-  let currentJson = initialJson;
+function makeMockCanvas(initialObjects: string[] = []) {
+  let objects: string[] = [...initialObjects];
+  let _renderOnAddRemove = true;
   return {
-    toJSON: vi.fn(() => JSON.parse(currentJson)),
-    loadFromJSON: vi.fn((json: any, cb: () => void) => {
-      currentJson = JSON.stringify(json);
-      cb();
-    }),
+    toJSON: vi.fn(() => ({ objects: [...objects] })),
+    getObjects: vi.fn(() => [...objects]),
+    remove: vi.fn((o: string) => { objects = objects.filter(x => x !== o); }),
+    add: vi.fn((o: string) => { objects.push(o); }),
+    // Fabric 5's canvas.enlivenObjects — sync wrapper for tests
+    enlivenObjects: vi.fn((objs: any[], cb: (enlivened: any[]) => void) => { cb([...objs]); }),
     renderAll: vi.fn(),
-    _currentJson: () => currentJson,
+    getWidth: vi.fn(() => 800),
+    getHeight: vi.fn(() => 600),
+    get renderOnAddRemove() { return _renderOnAddRemove; },
+    set renderOnAddRemove(v: boolean) { _renderOnAddRemove = v; },
+    _objects: () => objects,
   };
 }
 
@@ -35,31 +41,38 @@ describe('CanvasHistory', () => {
     expect(history.canRedo()).toBe(false);
   });
 
-  it('undo restores previous snapshot', () => {
-    canvas.toJSON.mockReturnValueOnce({ objects: ['a'] });
+  it('undo removes current objects and enlivens snapshot objects', () => {
+    canvas.add('a');
     history.snapshot();
-    canvas.toJSON.mockReturnValueOnce({ objects: ['a', 'b'] });
+    canvas.add('b');
     history.snapshot();
 
     const done = vi.fn();
     history.undo(done);
 
-    expect(canvas.loadFromJSON).toHaveBeenCalledWith({ objects: ['a'] }, expect.any(Function));
+    // Should have removed current objects
+    expect(canvas.remove).toHaveBeenCalled();
+    // Should have enlivened the snapshot objects ['a']
+    expect(canvas.enlivenObjects).toHaveBeenCalledWith(['a'], expect.any(Function));
+    // renderOnAddRemove suppressed during swap
+    expect(canvas.renderOnAddRemove).toBe(true); // restored after
+    expect(canvas.renderAll).toHaveBeenCalled();
     expect(done).toHaveBeenCalled();
     expect(history.canRedo()).toBe(true);
   });
 
   it('redo restores next snapshot after undo', () => {
-    canvas.toJSON.mockReturnValueOnce({ objects: ['a'] });
+    canvas.add('a');
     history.snapshot();
-    canvas.toJSON.mockReturnValueOnce({ objects: ['a', 'b'] });
+    canvas.add('b');
     history.snapshot();
 
     history.undo();
     history.redo();
 
-    const calls = canvas.loadFromJSON.mock.calls;
-    expect(calls[calls.length - 1][0]).toEqual({ objects: ['a', 'b'] });
+    // Last enlivenObjects call should be for ['a', 'b']
+    const calls = canvas.enlivenObjects.mock.calls;
+    expect(calls[calls.length - 1][0]).toEqual(['a', 'b']);
   });
 
   it('snapshot after undo discards redo stack', () => {
@@ -81,6 +94,28 @@ describe('CanvasHistory', () => {
   it('undo does nothing when at start of stack', () => {
     history.snapshot();
     history.undo();
-    expect(canvas.loadFromJSON).not.toHaveBeenCalled();
+    expect(canvas.enlivenObjects).not.toHaveBeenCalled();
+  });
+
+  it('suppresses renderOnAddRemove during restore', () => {
+    canvas.add('a');
+    history.snapshot();
+    canvas.add('b');
+    history.snapshot();
+
+    const flags: boolean[] = [];
+    // Intercept the renderOnAddRemove setter to track values
+    const desc = Object.getOwnPropertyDescriptor(canvas, 'renderOnAddRemove');
+    let current = true;
+    Object.defineProperty(canvas, 'renderOnAddRemove', {
+      get: () => current,
+      set: (v: boolean) => { current = v; flags.push(v); },
+      configurable: true,
+    });
+
+    history.undo();
+
+    // false during swap, true after
+    expect(flags).toEqual([false, true]);
   });
 });

@@ -9,9 +9,14 @@ interface Props {
   maxHeightOffset: number;
   children: ReactNode;
   ready?: boolean;
+  /** When true, omit mx-auto so the page can be edge-aligned (spread mode). */
+  noAutoMargin?: boolean;
+  /** Spread mode: 'start' = flush-left, 'end' = flush-right. Overrides noAutoMargin. */
+  align?: 'start' | 'end';
 }
 
-export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, children, ready }: Props) {
+export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, children, ready, noAutoMargin, align }: Props) {
+  const marginClass = align === 'start' ? 'mr-auto ml-0' : align === 'end' ? 'ml-auto mr-0' : noAutoMargin ? '' : 'mx-auto';
   return (
     // V3 Story 11 — warm cream reader-canvas hero. The cream surface (#F6F1D9 via
     // --surface-canvas), radius 24 (--radius-canvas, the one PRD-sanctioned >20 value),
@@ -21,7 +26,7 @@ export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, 
     // (mobile canvas keeps full column width, desktop fits viewport height with no doc-scroll)
     // and the .page-display-frame canvas-fill guard (frameH ≈ canvasH) are untouched.
     // No bare hex/radius/shadow literals — all tokens.
-    <div className="reader-canvas-hero mx-auto flex w-fit max-w-full items-center justify-center">
+    <div className={`reader-canvas-hero flex w-fit max-w-full items-center justify-center ${marginClass}`}>
       <div
         ref={containerRef}
         data-canvas-ready={ready ? 'true' : undefined}

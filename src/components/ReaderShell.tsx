@@ -1,13 +1,15 @@
 'use client';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import type { AnnotationSet } from '@/types';
-import { getPageImageUrl, clampPage } from '@/lib/quran';
+import { getPageImageUrl, clampPage, spreadUrl } from '@/lib/quran';
+import { SPREAD_MODE_KEY } from './SpreadToggle';
 import ReaderNav from './ReaderNav';
 import SurahNavPanel from './SurahNavPanel';
 import MobileSurahDrawer from './MobileSurahDrawer';
 import MobileNavDrawer from './MobileNavDrawer';
 import AnnotationCanvas from './AnnotationCanvas';
+import SpreadAnnotation from './SpreadAnnotation';
 import NavRail from './NavRail';
 
 const FALLBACK_NAV_HEIGHT = 72;
@@ -37,6 +39,27 @@ interface ReaderShellProps {
 export default function ReaderShell({ children, user, sets, account = null, lockedSet = false, banner, sharePageBasePath }: ReaderShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Spread mode (M2): `/reader/N-M`. Derived from the same pathname the page number is read
+  // from — no prop plumbing, since this shell lives in the layout and never sees the route
+  // param. M3 reads `spread` here to light up the second canvas. `null` ⇒ single-page mode.
+  const spreadMatch = pathname.match(/\/reader\/(\d+)-(\d+)/);
+  const spread: [number, number] | null = spreadMatch
+    ? [parseInt(spreadMatch[1], 10), parseInt(spreadMatch[2], 10)]
+    : null;
+
+  // E1: on a narrow (sub-lg, <1024px) viewport a spread collapses to the lower/right single
+  // page. Detection is CSS-only in this codebase, so the redirect fires from a client effect.
+  useEffect(() => {
+    if (!spread) return;
+    const mq = window.matchMedia('(max-width: 1023px)');
+    const apply = () => { if (mq.matches) router.replace(`/reader/${spread[0]}`); };
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
   // Soft page swap (Story 24): the page number is derived from the URL inside this
   // persistent layout shell, so navigating between /reader/N pages re-renders the canvas
   // with new props WITHOUT remounting it (the page segment that holds the notes column
@@ -44,6 +67,20 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   // therefore survives navigation and only its background image + objects are swapped.
   const pageNum = clampPage(readPageFromUrl(pathname, searchParams.toString()));
   const imageUrl = getPageImageUrl(pageNum);
+
+  // C3: apply the persisted spread preference on load (and on each /reader nav). Desktop-only —
+  // the >=lg guard makes this disjoint from the mobile redirect (E1, <=1023px), so the two can
+  // never ping-pong: on a narrow screen only the mobile effect runs, on a wide screen only this
+  // one. Share routes never go spread, so skip them. Each branch settles in one hop (toggling to
+  // the target state makes its own condition false on the re-render).
+  useEffect(() => {
+    if (sharePageBasePath) return;
+    if (!window.matchMedia('(min-width: 1024px)').matches) return;
+    const raw = localStorage.getItem(SPREAD_MODE_KEY);
+    if (raw === '1' && !spread) router.replace(`/reader/${spreadUrl(pageNum)}`);
+    else if (raw === '0' && spread) router.replace(`/reader/${spread[0]}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   const navRef = useRef<HTMLDivElement>(null);
   const [navHeight, setNavHeight] = useState(FALLBACK_NAV_HEIGHT);
@@ -80,6 +117,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
           onOpenNav={() => setNavOpen(true)}
           account={account}
           sharePageBasePath={sharePageBasePath}
+          isSpread={!!spread}
         />
       </div>
       {/* On mobile the nav is position:fixed so content starts at top-0;
@@ -120,7 +158,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
               boxShadow: 'var(--shadow-e2)',
             }}
           >
-            <SurahNavPanel currentPage={pageNum} topOffset={navHeight} basePath={sharePageBasePath} />
+            <SurahNavPanel currentPage={pageNum} topOffset={navHeight} basePath={sharePageBasePath} isSpread={!!spread} />
           </div>
         </div>
 
@@ -140,14 +178,30 @@ export default function ReaderShell({ children, user, sets, account = null, lock
 
               <div className="flex min-w-0 flex-col gap-4">
                 <div className="mx-auto w-full">
-                  {/* Persistent across page navigation — Fabric is not torn down (Story 24). */}
-                  <AnnotationCanvas
-                    pageNum={pageNum}
-                    imageUrl={imageUrl}
-                    sets={sets}
-                    user={user}
-                    lockedSet={lockedSet}
-                  />
+                  {/* Persistent across page navigation — Fabric is not torn down (Story 24).
+                      M3: in spread mode (`/reader/N-M`, desktop only — E1 redirects narrow
+                      viewports to single) we mount TWO independent persistent canvases. Each
+                      has its own refs/Fabric instance inside useAnnotationCanvas, so they
+                      soft-swap (background+objects) on spread→spread nav without disposing
+                      (__hifthFabricCreatedCount stays 2). Each saves to its own page_number.
+                      RTL (B2): flex-row-reverse puts the DOM-first lower/odd page on the RIGHT
+                      and the higher/even page on the LEFT, while data stays page-numeric. */}
+                  {spread ? (
+                    <SpreadAnnotation
+                      pages={spread}
+                      sets={sets}
+                      user={user}
+                      lockedSet={lockedSet}
+                    />
+                  ) : (
+                    <AnnotationCanvas
+                      pageNum={pageNum}
+                      imageUrl={imageUrl}
+                      sets={sets}
+                      user={user}
+                      lockedSet={lockedSet}
+                    />
+                  )}
                 </div>
               </div>
 
@@ -180,7 +234,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
           </footer>
         </div>
       </div>
-      <MobileSurahDrawer open={surahOpen} onOpenChange={setSurahOpen} basePath={sharePageBasePath} />
+      <MobileSurahDrawer open={surahOpen} onOpenChange={setSurahOpen} basePath={sharePageBasePath} isSpread={!!spread} />
       <MobileNavDrawer open={navOpen} onOpenChange={setNavOpen} />
     </div>
   );

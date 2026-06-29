@@ -1,7 +1,7 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import { TOTAL_PAGES, clampPage } from '@/lib/quran';
+import { TOTAL_PAGES, clampPage, spreadUrl } from '@/lib/quran';
 import ProfileMenu from './ProfileMenu';
 import Brand from './Brand';
 import Link from 'next/link';
@@ -13,6 +13,7 @@ export default function ReaderNav({
   onOpenNav,
   account,
   sharePageBasePath,
+  isSpread = false,
 }: {
   currentPage: number;
   onOpenSurah?: () => void;
@@ -22,6 +23,8 @@ export default function ReaderNav({
   /** When set (e.g. `/share/{setId}`), page prev/next/jump links are built as
       `${base}/${n}` instead of `/reader/${n}` — used by the collaborator share view. */
   sharePageBasePath?: string;
+  /** M6: when true, prev/next step by 2 and jumps snap to spread URL (D1-D4). */
+  isSpread?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -30,15 +33,16 @@ export default function ReaderNav({
 
   const go = (page: number) => {
     const clamped = clampPage(page);
+    const target = isSpread ? spreadUrl(clamped) : String(clamped);
     if (sharePageBasePath) {
-      router.push(`${sharePageBasePath}/${clamped}`, { scroll: false });
+      router.push(`${sharePageBasePath}/${target}`, { scroll: false });
       setJumpInput('');
       return;
     }
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page');
     const qs = params.toString();
-    router.push(`/reader/${clamped}${qs ? `?${qs}` : ''}`, { scroll: false });
+    router.push(`/reader/${target}${qs ? `?${qs}` : ''}`, { scroll: false });
     setJumpInput('');
   };
 
@@ -89,8 +93,8 @@ export default function ReaderNav({
             </button>
           )}
           <button
-            onClick={() => go(currentPage - 1)}
-            disabled={currentPage === 1}
+            onClick={() => go(currentPage - (isSpread ? 2 : 1))}
+            disabled={isSpread ? currentPage <= 1 : currentPage === 1}
             suppressHydrationWarning
             title="Previous page"
             className={styles.navButton}
@@ -134,8 +138,8 @@ export default function ReaderNav({
           </div>
 
           <button
-            onClick={() => go(currentPage + 1)}
-            disabled={currentPage === TOTAL_PAGES}
+            onClick={() => go(currentPage + (isSpread ? 2 : 1))}
+            disabled={isSpread ? currentPage >= TOTAL_PAGES - 1 : currentPage === TOTAL_PAGES}
             suppressHydrationWarning
             title="Next page"
             className={styles.navButton}

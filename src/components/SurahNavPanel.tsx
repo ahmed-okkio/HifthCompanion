@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { SURAH_FIRST_PAGES } from '@/lib/quran';
+import { SURAH_FIRST_PAGES, spreadUrl } from '@/lib/quran';
 
 export type Surah = {
   number: number;
@@ -141,9 +141,11 @@ interface Props {
   currentPage?: number;
   basePath?: string;
   topOffset?: number;
+  /** M6: when true, surah jumps target the spread URL containing the page (D3). */
+  isSpread?: boolean;
 }
 
-export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, onSelect, currentPage: currentPageProp, basePath, topOffset = 72 }: Props) {
+export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, onSelect, currentPage: currentPageProp, basePath, topOffset = 72, isSpread = false }: Props) {
   const [query, setQuery] = useState('');
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
   const hasAutoScrolledRef = useRef(false);
@@ -335,7 +337,8 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page');
     const query = params.toString();
-    const targetPath = `${basePath ?? '/reader'}/${group.page}`;
+    const pageSeg = isSpread ? spreadUrl(group.page) : String(group.page);
+    const targetPath = `${basePath ?? '/reader'}/${pageSeg}`;
     const targetHref = query ? `${targetPath}?${query}` : targetPath;
     const currentHref = query ? `${pathname}?${query}` : pathname;
 

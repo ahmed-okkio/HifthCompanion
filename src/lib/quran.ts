@@ -88,6 +88,36 @@ export function getJuzForPage(page: number): number {
   return result;
 }
 
+/**
+ * The double-page spread [low, high] containing a page. low is odd, high even.
+ * Pages pair (1,2),(3,4),…,(603,604) — 604 is even so no orphan.
+ */
+export function spreadOf(page: number): [number, number] {
+  const p = clampPage(page);
+  const low = p % 2 === 1 ? p : p - 1;
+  return [low, low + 1];
+}
+
+/** URL segment for a spread, e.g. "3-4". */
+export function spreadUrl(page: number): string {
+  const [low, high] = spreadOf(page);
+  return `${low}-${high}`;
+}
+
+/**
+ * Parse a "low-high" spread segment back to [low, high], or null if it isn't a
+ * valid spread (single page, reversed, out of range, garbage). Never throws.
+ */
+export function parseSpread(seg: string): [number, number] | null {
+  const m = /^(\d+)-(\d+)$/.exec(seg);
+  if (!m) return null;
+  const low = Number(m[1]);
+  const high = Number(m[2]);
+  if (low % 2 !== 1 || high !== low + 1) return null;
+  if (low < 1 || high > TOTAL_PAGES) return null;
+  return [low, high];
+}
+
 // Cumulative ayahs before each surah → 1-based global ayah index across the Mushaf.
 const AYAHS_BEFORE_SURAH: Record<number, number> = (() => {
   const acc: Record<number, number> = {};

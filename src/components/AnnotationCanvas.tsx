@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import type { AnnotationSet } from '@/types';
@@ -8,7 +8,27 @@ import AnnotationToolbar from '@/components/AnnotationToolbar';
 import MobileAnnotationBar from '@/components/MobileAnnotationBar';
 import ToolHoverPopover from '@/components/ToolHoverPopover';
 import SetsCard from '@/components/SetsCard';
-import { useAnnotationCanvas } from '@/hooks/useAnnotationCanvas';
+import ZoomControl from '@/components/ZoomControl';
+import SpreadToggle from '@/components/SpreadToggle';
+import { useAnnotationCanvas, type ToolState } from '@/hooks/useAnnotationCanvas';
+
+/** M4 spread mode: zoom/pan state lifted to the shell so ONE control scales BOTH pages (F3). */
+export interface CanvasView {
+  zoom: number;
+  pan: { x: number; y: number };
+  dragging: boolean;
+  moveTool: boolean;
+  onPanDown: (e: React.MouseEvent) => void;
+  onPanMove: (e: React.MouseEvent) => void;
+  endPan: () => void;
+}
+
+/** Imperative handle the spread shell controller drives for the unified undo timeline (F4). */
+export interface CanvasHandle {
+  undo: () => void;
+  redo: () => void;
+  clear: () => void;
+}
 
 interface Props {
   pageNum: number;
@@ -17,9 +37,26 @@ interface Props {
   user: { id: string } | null;
   /** Collaborator share view: lock to the single shared set and hide the set swapper. */
   lockedSet?: boolean;
+  /** Spread mode mounts two canvases that share the one #sets-card-portal slot; only the
+   *  primary instance renders the SetsCard so it isn't duplicated. */
+  showSetsCard?: boolean;
+  /** M4 spread mode: shared tool state from the shell so a tool chosen once drives both (F2). */
+  tools?: ToolState;
+  /** M4 spread mode: notify the shell controller of a committed action (F4). */
+  onCommit?: () => void;
+  /** M4 spread mode: when present, the canvas is "controlled" — it renders only the page (no
+   *  toolbar / mobile bar / zoom control; those live once in the shell) and uses this shared
+   *  zoom/pan so both pages scale together (F3). */
+  view?: CanvasView;
+  /** Spread mode horizontal alignment: 'start' = flush-left (right page toward center),
+   *  'end' = flush-right (left page toward center). Default 'center' (single mode). */
+  flush?: 'start' | 'end';
 }
 
-export default function AnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet = false }: Props) {
+function AnnotationCanvasInner(
+  { pageNum, imageUrl, sets, user, lockedSet = false, showSetsCard = true, tools, onCommit, view, flush }: Props,
+  ref: React.Ref<CanvasHandle>,
+) {
   const {
     containerRef, wrapperRef, canvasRef,
     selectedSetId, saving, accessRevoked, activeTool, activeColor, opacity, penWidth,
@@ -28,8 +65,17 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user, locked
     setSelectedSetId, setActiveColor, setOpacity, setPenWidth,
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,
-  } = useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet });
+  } = useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet, tools, onCommit });
 
+  // Spread shell drives undo/redo/clear through this handle (F4). clear skips the per-canvas
+  // confirm — the shell shows ONE combined confirm before fanning out.
+  useImperativeHandle(ref, () => ({
+    undo: handleUndo,
+    redo: handleRedo,
+    clear: () => handleClear(true),
+  }), [handleUndo, handleRedo, handleClear]);
+
+  const controlled = !!view;
   const router = useRouter();
 
   // D2: a collaborator's access was revoked mid-session — their next save was rejected by RLS.
@@ -77,8 +123,12 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user, locked
   };
   const endPan = () => { dragRef.current = null; setDragging(false); };
 
+  // Controlled (spread) canvases use the shell's shared zoom/pan so both pages scale as one (F3);
+  // single mode uses the internal state above.
+  const eff: CanvasView = view ?? { zoom, pan, dragging, moveTool, onPanDown, onPanMove, endPan };
+
   return (
-    <div className="flex w-full justify-center">
+    <div className={`flex w-full ${flush === 'end' ? 'justify-end' : flush === 'start' ? 'justify-start' : 'justify-center'}`}>
       {accessRevoked && (
         <div
           role="alert"
@@ -107,6 +157,7 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user, locked
           bar above the page automatically shifts the available height used to fit the page —
           desktop still fits with no document scroll. */}
       <div className="flex w-full flex-col items-stretch gap-4 sm:gap-5">
+        {!controlled && (
         <div className="hidden lg:block">
           <AnnotationToolbar
             activeTool={activeTool}
@@ -125,7 +176,9 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user, locked
             onMoveToggle={() => setMoveTool(m => !m)}
           />
         </div>
+        )}
 
+        {!controlled && (
         <MobileAnnotationBar
           activeTool={activeTool}
           activeColor={activeColor}
@@ -140,7 +193,9 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user, locked
           onRedo={handleRedo}
           onClear={handleClear}
         />
+        )}
 
+        {!controlled && (
         <ToolHoverPopover
           hoveredTool={hoveredTool}
           hoverPos={hoverPos}
@@ -151,10 +206,11 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user, locked
           onMouseEnter={onHoverCancelLeave}
           onMouseLeave={onHoverLeave}
         />
+        )}
 
         {/* Sets card portaled into the right context panel top (replaces the old wide bar).
             Hidden in the locked collaborator share view — only the one shared set is editable. */}
-        {!lockedSet && setsSlot && createPortal(
+        {showSetsCard && !lockedSet && setsSlot && createPortal(
           <SetsCard
             user={user}
             sets={sets}
@@ -173,99 +229,52 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user, locked
               and is clipped by the workspace overflow:hidden if viewport is very short.
               INERT PLACEHOLDER: aria-disabled on every interactive child; no click handlers;
               pointerEvents:none on buttons. Fabric zoom deferred to future Opus story. */}
-          <div className="relative flex flex-col items-center">
+          <div className={`relative flex flex-col${flush ? '' : ' items-center'}`}>
             {/* transform: scale zooms the page from its center (contain-fit size = 100% baseline).
                 The clip wrapper is sized to the un-scaled page (transform doesn't change layout),
                 so a zoomed-in page is cropped to its own box and never overflows onto the zoom
                 control below. Drawing is best at 100% (the default). */}
             <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-page)' }}>
-              <div style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom / 100})`, transformOrigin: 'center center', transition: dragging ? 'none' : 'transform 120ms var(--ease-out, ease)' }}>
-                <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady}>
+              <div style={{ transform: `translate(${eff.pan.x}px, ${eff.pan.y}px) scale(${eff.zoom / 100})`, transformOrigin: 'center center', transition: eff.dragging ? 'none' : 'transform 120ms var(--ease-out, ease)' }}>
+                <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush}>
                   <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
                 </PageDisplayFrame>
               </div>
 
               {/* Pan overlay — present while the Move tool is active. Captures drag to move the
                   zoomed page (and blocks drawing); absent otherwise so annotation drawing works. */}
-              {moveTool && (
+              {eff.moveTool && (
                 <div
                   aria-label="Drag to move the page"
-                  onMouseDown={onPanDown}
-                  onMouseMove={onPanMove}
-                  onMouseUp={endPan}
-                  onMouseLeave={endPan}
-                  style={{ position: 'absolute', inset: 0, zIndex: 3, cursor: dragging ? 'grabbing' : 'grab' }}
+                  onMouseDown={eff.onPanDown}
+                  onMouseMove={eff.onPanMove}
+                  onMouseUp={eff.endPan}
+                  onMouseLeave={eff.endPan}
+                  style={{ position: 'absolute', inset: 0, zIndex: 3, cursor: eff.dragging ? 'grabbing' : 'grab' }}
                 />
               )}
             </div>
 
-            {/* Zoom control — floats just below the page (desktop). Reserved space is provided by
-                PAGE_BOTTOM_GAP so it never forces document scroll. */}
-            <div
-              data-testid="zoom-control"
-              aria-label="Zoom controls"
-              className="hidden lg:flex items-center justify-center"
-              style={{
-                marginTop: 'var(--space-12)',
-                height: '52px',
-                background: 'var(--surface-main)',
-                borderRadius: 'var(--radius-lg-px)',
-                border: '1px solid rgba(15, 23, 42, 0.05)',
-                boxShadow: 'var(--shadow-e2)',
-                padding: '0 var(--space-8)',
-                userSelect: 'none',
-              }}
-            >
-              <button
-                type="button"
-                aria-label="Zoom out"
-                onClick={() => setZoom(z => clampZoom(z - 10))}
-                disabled={zoom <= 50}
-                className="flex items-center justify-center"
-                style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: zoom <= 50 ? 'default' : 'pointer', color: 'var(--neutral-600)', fontSize: '20px', fontWeight: 500, opacity: zoom <= 50 ? 0.4 : 1 }}
-                onMouseEnter={e => { if (zoom > 50) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
-              >
-                −
-              </button>
-
-              <span style={{ minWidth: '52px', textAlign: 'center', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-                {zoom}%
-              </span>
-
-              <button
-                type="button"
-                aria-label="Zoom in"
-                onClick={() => setZoom(z => clampZoom(z + 10))}
-                disabled={zoom >= 200}
-                className="flex items-center justify-center"
-                style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: zoom >= 200 ? 'default' : 'pointer', color: 'var(--neutral-600)', fontSize: '20px', fontWeight: 500, opacity: zoom >= 200 ? 0.4 : 1 }}
-                onMouseEnter={e => { if (zoom < 200) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
-              >
-                +
-              </button>
-
-              <div aria-hidden="true" style={{ width: '1px', height: '24px', background: 'var(--border-subtle)', margin: '0 var(--space-8)' }} />
-
-              <button
-                type="button"
-                aria-label="Reset zoom"
-                onClick={resetView}
-                className="flex items-center gap-2"
-                style={{ height: '38px', padding: '0 var(--space-12)', borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: 'var(--neutral-600)', whiteSpace: 'nowrap' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
-              >
-                <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M20 9a8 8 0 00-14.9-3M4 15a8 8 0 0014.9 3" />
-                </svg>
-                Reset
-              </button>
-            </div>
+            {/* Zoom control — floats just below the page (desktop). In spread mode the shell
+                renders ONE zoom control that scales both pages, so each canvas hides its own. */}
+            {!controlled && (
+              <div className="flex items-center justify-center gap-3">
+                <ZoomControl
+                  zoom={zoom}
+                  onZoomOut={() => setZoom(z => clampZoom(z - 10))}
+                  onZoomIn={() => setZoom(z => clampZoom(z + 10))}
+                  onReset={resetView}
+                />
+                {/* M5 C1: spread toggle sits by the zoom control (single mode → turn spread ON). */}
+                <SpreadToggle page={pageNum} active={false} />
+              </div>
+            )}
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+const AnnotationCanvas = forwardRef(AnnotationCanvasInner);
+export default AnnotationCanvas;

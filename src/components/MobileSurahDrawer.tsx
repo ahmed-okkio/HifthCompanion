@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { SURAH_FIRST_PAGES } from '@/lib/quran';
+import { SURAH_FIRST_PAGES, spreadUrl } from '@/lib/quran';
 
 type Surah = {
   number: number;
@@ -134,9 +134,11 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   basePath?: string;
+  /** M6: when true, surah jumps target the spread URL containing the page (D3). */
+  isSpread?: boolean;
 }
 
-export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/reader' }: Props) {
+export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/reader', isSpread = false }: Props) {
   const [query, setQuery] = useState('');
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
   const hasAutoScrolledRef = useRef(false);
@@ -223,7 +225,8 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page');
     const query = params.toString();
-    const targetPath = `${basePath}/${group.page}`;
+    const pageSeg = isSpread ? spreadUrl(group.page) : String(group.page);
+    const targetPath = `${basePath}/${pageSeg}`;
     const targetHref = query ? `${targetPath}?${query}` : targetPath;
     onOpenChange(false);
     if (currentPage !== group.page) {

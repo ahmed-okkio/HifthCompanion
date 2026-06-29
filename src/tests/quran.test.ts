@@ -15,6 +15,9 @@ import {
   getPageForAyah,
   getAyahsOnPage,
   globalAyahIndex,
+  spreadOf,
+  spreadUrl,
+  parseSpread,
 } from '../lib/quran';
 
 describe('clampPage', () => {
@@ -162,6 +165,57 @@ describe('getPageForAyah', () => {
       const { surah, ayah } = PAGE_FIRST_AYAH[p];
       expect(getPageForAyah(surah, ayah)).toBe(p);
     }
+  });
+});
+
+describe('spreadOf (A1, A2)', () => {
+  it('pairs pages correctly', () => {
+    expect(spreadOf(3)).toEqual([3, 4]);
+    expect(spreadOf(4)).toEqual([3, 4]);
+    expect(spreadOf(1)).toEqual([1, 2]);
+    expect(spreadOf(604)).toEqual([603, 604]);
+  });
+
+  it('every page 1..604 maps to exactly one of 302 spreads, no orphan', () => {
+    const seen = new Set<string>();
+    const pageToSpread: string[] = [];
+    for (let p = 1; p <= TOTAL_PAGES; p++) {
+      const [low, high] = spreadOf(p);
+      expect(high).toBe(low + 1);
+      expect(low % 2).toBe(1);
+      const key = `${low}-${high}`;
+      seen.add(key);
+      pageToSpread[p] = key;
+    }
+    expect(seen.size).toBe(302);
+    // no page in two spreads: each page has exactly one mapping (array dense 1..604)
+    for (let p = 1; p <= TOTAL_PAGES; p++) expect(pageToSpread[p]).toBeDefined();
+  });
+});
+
+describe('spreadUrl (A4)', () => {
+  it('formats low-high', () => {
+    expect(spreadUrl(4)).toBe('3-4');
+    expect(spreadUrl(1)).toBe('1-2');
+  });
+});
+
+describe('parseSpread (A3)', () => {
+  it('parses valid spreads', () => {
+    expect(parseSpread('3-4')).toEqual([3, 4]);
+    expect(parseSpread('1-2')).toEqual([1, 2]);
+    expect(parseSpread('603-604')).toEqual([603, 604]);
+  });
+
+  it('rejects non-spreads without throwing', () => {
+    expect(parseSpread('3')).toBeNull();
+    expect(parseSpread('4-3')).toBeNull();
+    expect(parseSpread('2-3')).toBeNull(); // low must be odd
+    expect(parseSpread('3-5')).toBeNull(); // not adjacent
+    expect(parseSpread('garbage')).toBeNull();
+    expect(parseSpread('')).toBeNull();
+    expect(parseSpread('605-606')).toBeNull(); // out of range
+    expect(parseSpread('-1-0')).toBeNull();
   });
 });
 

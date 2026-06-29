@@ -27,6 +27,24 @@ const PAGE_BOTTOM_GAP = 92;
 // Fallback offset before the chrome above the page can be measured (≈ nav + padding + set-picker).
 const FALLBACK_PAGE_OFFSET = 200;
 
+// M4: the pen/color/width/opacity selection. In single mode each canvas owns its own; in
+// spread mode the SHELL owns ONE ToolState and passes it to BOTH hooks so a tool chosen once
+// applies to both pages (F2).
+export interface ToolState {
+  activeTool: Tool; setActiveTool: React.Dispatch<React.SetStateAction<Tool>>;
+  activeColor: string; setActiveColor: React.Dispatch<React.SetStateAction<string>>;
+  opacity: number; setOpacity: React.Dispatch<React.SetStateAction<number>>;
+  penWidth: number; setPenWidth: React.Dispatch<React.SetStateAction<number>>;
+}
+
+export function useToolState(): ToolState {
+  const [activeTool, setActiveTool] = useState<Tool>('pen');
+  const [activeColor, setActiveColor] = useState<string>('#ef4444');
+  const [opacity, setOpacity] = useState<number>(0.4);
+  const [penWidth, setPenWidth] = useState<number>(6);
+  return { activeTool, setActiveTool, activeColor, setActiveColor, opacity, setOpacity, penWidth, setPenWidth };
+}
+
 interface UseAnnotationCanvasProps {
   pageNum: number;
   imageUrl: string;
@@ -34,9 +52,15 @@ interface UseAnnotationCanvasProps {
   user: { id: string } | null;
   /** Collaborator (locked-set) mode: a save rejected by RLS means access was revoked. */
   lockedSet?: boolean;
+  /** M4 spread mode: external tool state shared across both canvases (F2). Omit ⇒ own state. */
+  tools?: ToolState;
+  /** M4 spread mode: fires ONCE per committed user action so the shell controller can record
+   *  which canvas it hit, building the unified undo ordering (F4). Not called for the baseline
+   *  load snapshot. */
+  onCommit?: () => void;
 }
 
-export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet = false }: UseAnnotationCanvasProps) {
+export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet = false, tools, onCommit }: UseAnnotationCanvasProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -69,10 +93,10 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   const [saving, setSaving] = useState(false);
   const [accessRevoked, setAccessRevoked] = useState(false);
   const accessRevokedRef = useRef(false);
-  const [activeTool, setActiveTool] = useState<Tool>('pen');
-  const [activeColor, setActiveColor] = useState<string>('#ef4444');
-  const [opacity, setOpacity] = useState<number>(0.4);
-  const [penWidth, setPenWidth] = useState<number>(6);
+  // Tool state: shared (spread, passed in) or own (single mode). useToolState is always called
+  // to keep hook order stable; its values are simply ignored when `tools` is provided.
+  const internalTools = useToolState();
+  const { activeTool, setActiveTool, activeColor, setActiveColor, opacity, setOpacity, penWidth, setPenWidth } = tools ?? internalTools;
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
@@ -115,6 +139,30 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
       setCanRedo(h.canRedo());
     }
   }, []);
+
+  // Single chokepoint for every committed user action: snapshot + refresh + notify the shell
+  // controller (F4). Gated by isLoadingRef so the object:added events fired while loading a
+  // page's saved JSON (and the baseline load snapshot) don't register as user actions.
+  const onCommitRef = useRef(onCommit);
+  onCommitRef.current = onCommit;
+  const isLoadingRef = useRef(false);
+  const commit = useCallback((force = false) => {
+    if (isLoadingRef.current) return;
+    // Undo/redo reloads the canvas via loadFromJSON, which re-fires object:added/removed.
+    // Those are NOT user actions: snapshotting or notifying the shell here would re-grow the
+    // stack and re-push onto the cross-page undo order (F4), so the oldest stroke can never be
+    // reached. snapshot() self-guards on `frozen`; this guards the onCommit/refresh side too.
+    if (historyRef.current?.restoring) return;
+    const now = Date.now();
+    if (!force && now - lastSnapshotAtRef.current < 120) return;
+    lastSnapshotAtRef.current = now;
+    historyRef.current?.snapshot();
+    refreshHistory();
+    onCommitRef.current?.();
+  }, [refreshHistory]);
+  // Live ref so the mount-only init effect's handlers always call the current commit.
+  const commitRef = useRef(commit);
+  commitRef.current = commit;
 
   // Natural (intrinsic) size of the page image currently shown. Each of the 604 pages can have
   // different intrinsic dimensions, so we re-read this for every page rather than assuming one.
@@ -222,18 +270,36 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     await saveCanvas(fabricRef.current, selectedSetId, pageNum);
   }, [pageNum, saveCanvas, selectedSetId, user]);
 
+  // The canvas draw/save event handlers are bound ONCE in the mount-only init effect, so a
+  // closure captured there freezes the page/set it was mounted with. After a soft page swap
+  // (Story 24) the handlers would otherwise still save to the OUTGOING page — and worse, when
+  // loadAnnotation clears the canvas to load the new page, the fired object:removed schedules a
+  // debounced save of the now-empty canvas against the old page, wiping it (F6). Route the
+  // handlers through live refs so they always save the CURRENT page/set.
+  const scheduleSaveRef = useRef(scheduleSave);
+  const saveNowRef = useRef(saveNow);
+  scheduleSaveRef.current = scheduleSave;
+  saveNowRef.current = saveNow;
+
+  // Flush-before-nav (surah jump): consumers call window.__hifthFlushReaderCanvas() to persist
+  // pending edits before routing. A spread mounts TWO canvas instances, so this is a registry of
+  // savers (one per live canvas) rather than a single function — otherwise the second instance
+  // would clobber the first and the un-flushed page would lose its debounced edits (F6).
   useEffect(() => {
-    (window as any).__hifthFlushReaderCanvas = saveNow;
+    const w = window as any;
+    const savers: Set<() => Promise<void>> = w.__hifthReaderSavers ?? (w.__hifthReaderSavers = new Set());
+    savers.add(saveNow);
+    w.__hifthFlushReaderCanvas = async () => { await Promise.all([...savers].map((fn) => fn())); };
     return () => {
-      if ((window as any).__hifthFlushReaderCanvas === saveNow) {
-        delete (window as any).__hifthFlushReaderCanvas;
-      }
+      savers.delete(saveNow);
+      if (savers.size === 0) delete w.__hifthFlushReaderCanvas;
     };
   }, [saveNow]);
 
   const loadAnnotation = useCallback(async (canvas: fabric.Canvas, setId: string, page: number) => {
     if (lastLoadedRef.current?.setId === setId && lastLoadedRef.current?.pageNum === page) return;
     activeLoadSetIdRef.current = setId;
+    isLoadingRef.current = true;
     setCanvasReady(false);
 
     const { data, error } = await supabase
@@ -256,6 +322,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
         historyRef.current?.snapshot();
         refreshHistory();
         lastLoadedRef.current = { setId, pageNum: page };
+        isLoadingRef.current = false;
         setCanvasReady(true);
       });
     } else {
@@ -265,6 +332,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
       historyRef.current?.snapshot();
       refreshHistory();
       lastLoadedRef.current = { setId, pageNum: page };
+      isLoadingRef.current = false;
       setCanvasReady(true);
     }
   }, [supabase, imageUrl, applyBackground, rescaleObjects, refreshHistory]);
@@ -318,6 +386,9 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
       historyRef.current = new CanvasHistory(canvas);
       // @ts-ignore
       window.fabricCanvas = canvas;
+      // ponytail: test-only registry so E2E can read EACH spread canvas independently
+      // (window.fabricCanvas is overwritten by the 2nd instance). Keyed by the page it mounted.
+      ((window as any).__hifthCanvasByPage ??= {})[pageNumRef.current] = canvas;
       // Soft-swap proof (Story 24): increment a window counter every time a Fabric
       // instance is actually CREATED. Page navigation must reuse the instance, so this
       // value stays stable across prev/next/jump/surah-select to a different page.
@@ -334,19 +405,11 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
         setCanvasReady(true);
       }
 
-      const snapshotWithDebounce = (force = false) => {
-        const now = Date.now();
-        if (!force && now - lastSnapshotAtRef.current < 120) return;
-        lastSnapshotAtRef.current = now;
-        historyRef.current?.snapshot();
-        refreshHistory();
-      };
-
-      const handleCompletedDraw = () => { snapshotWithDebounce(); void saveNow(); };
+      const handleCompletedDraw = () => { commitRef.current(); void saveNowRef.current(); };
       canvas.on('path:created', handleCompletedDraw);
-      canvas.on('object:modified', () => { snapshotWithDebounce(); scheduleSave(); });
-      canvas.on('object:removed', () => { snapshotWithDebounce(); scheduleSave(); });
-      canvas.on('object:added', () => { snapshotWithDebounce(); });
+      canvas.on('object:modified', () => { commitRef.current(); scheduleSaveRef.current(); });
+      canvas.on('object:removed', () => { commitRef.current(); scheduleSaveRef.current(); });
+      canvas.on('object:added', () => { commitRef.current(); });
     };
 
     const ro = new ResizeObserver(() => {
@@ -412,8 +475,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
         canvas.remove(target);
         canvas.discardActiveObject();
         canvas.renderAll();
-        historyRef.current?.snapshot();
-        refreshHistory();
+        commit(true);
         void saveNow();
       }
     };
@@ -424,7 +486,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
       canvas.selection = true;
     }
     return () => { canvas.off('mouse:down', handleEraserMouseDown); };
-  }, [activeTool, refreshHistory, saveNow]);
+  }, [activeTool, commit, saveNow]);
 
   // Soft page/set swap (Story 24): when the route re-renders with a new page (or the user
   // switches set), the Fabric instance is NOT disposed — we flush any pending edits of the
@@ -474,8 +536,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
         text.enterEditing();
         text.selectAll();
         canvas.renderAll();
-        historyRef.current?.snapshot();
-        refreshHistory();
+        commit(true);
         void saveNow();
         return;
       }
@@ -520,7 +581,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
         else if (obj.type === 'ellipse') tooSmall = (obj.rx ?? 0) < 2 || (obj.ry ?? 0) < 2;
         else if (obj.type === 'line') tooSmall = Math.abs((obj.x2 ?? 0) - (obj.x1 ?? 0)) < 2 && Math.abs((obj.y2 ?? 0) - (obj.y1 ?? 0)) < 2;
         if (tooSmall) { canvas.remove(shape); }
-        else { historyRef.current?.snapshot(); refreshHistory(); void saveNow(); }
+        else { commit(true); void saveNow(); }
         shape = null;
       }
     };
@@ -533,7 +594,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
       canvas.off('mouse:move', handleMouseMove);
       canvas.off('mouse:up', handleMouseUp);
     };
-  }, [activeTool, activeColor, opacity, saveNow, refreshHistory]);
+  }, [activeTool, activeColor, opacity, saveNow, commit]);
 
   const handleUndo = useCallback(() => {
     historyRef.current?.undo(() => { scheduleSave(); refreshHistory(); });
@@ -545,16 +606,19 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     refreshHistory();
   }, [scheduleSave, refreshHistory]);
 
-  const handleClear = useCallback(() => {
+  // skipConfirm must be strictly true to skip the prompt: handleClear is also wired straight to
+  // a button onClick in single mode, which would pass the click event as the first arg — a
+  // truthy object that must NOT bypass the confirm. The spread shell passes literal true after
+  // its own single combined confirm.
+  const handleClear = useCallback((skipConfirm = false) => {
     const canvas = fabricRef.current;
     if (!canvas) return;
-    if (!confirm('Clear all annotations on this page?')) return;
+    if (skipConfirm !== true && !confirm('Clear all annotations on this page?')) return;
     canvas.getObjects().forEach(obj => canvas.remove(obj));
     canvas.renderAll();
-    historyRef.current?.snapshot();
-    refreshHistory();
+    commit(true);
     scheduleSave();
-  }, [refreshHistory, scheduleSave]);
+  }, [commit, scheduleSave]);
 
   const handleToolClick = useCallback((t: Tool) => {
     setActiveTool(prev => prev === t ? 'pen' : t);

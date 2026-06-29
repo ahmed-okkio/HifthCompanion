@@ -13,9 +13,9 @@ import navStyles from './ReaderNav.module.css';
 const FALLBACK_NAV_HEIGHT = 56;
 
 interface Props {
-  userId: string;
+  /** Canonical share base, e.g. `/share/{setId}`. Drives page + surah nav links. */
+  basePath: string;
   pageNum: number;
-  setId: string;
   setName: string;
   children: React.ReactNode;
   /** Signed-in visitor's chrome summary, or null for a guest viewer. */
@@ -30,7 +30,7 @@ interface Props {
  * the bottom-sheet (opened from the header). Read-only throughout — no annotation
  * toolbar, so there is no fixed bottom bar to pad against.
  */
-export default function ShareShell({ userId, pageNum, setId, setName, children, account = null }: Props) {
+export default function ShareShell({ basePath, pageNum, setName, children, account = null }: Props) {
   const navRef = useRef<HTMLDivElement>(null);
   const [navHeight, setNavHeight] = useState(FALLBACK_NAV_HEIGHT);
   const [surahOpen, setSurahOpen] = useState(false);
@@ -118,7 +118,7 @@ export default function ShareShell({ userId, pageNum, setId, setName, children, 
 
             <div className={navStyles.navigator}>
               <Link
-                href={`/share/${userId}/${prevPage}?set=${setId}`}
+                href={`${basePath}/${prevPage}`}
                 title="Previous page"
                 aria-disabled={pageNum === 1}
                 className={navStyles.navButton}
@@ -138,7 +138,7 @@ export default function ShareShell({ userId, pageNum, setId, setName, children, 
               </div>
 
               <Link
-                href={`/share/${userId}/${nextPage}?set=${setId}`}
+                href={`${basePath}/${nextPage}`}
                 title="Next page"
                 aria-disabled={pageNum === TOTAL_PAGES}
                 className={navStyles.navButton}
@@ -181,7 +181,7 @@ export default function ShareShell({ userId, pageNum, setId, setName, children, 
             overflow: 'hidden',
           }}
         >
-          <SurahNavPanel currentPage={pageNum} basePath={`/share/${userId}`} topOffset={navHeight} />
+          <SurahNavPanel currentPage={pageNum} basePath={basePath} topOffset={navHeight} />
         </div>
         <div
           className="lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col"
@@ -191,7 +191,7 @@ export default function ShareShell({ userId, pageNum, setId, setName, children, 
         </div>
       </div>
 
-      <MobileSurahDrawer open={surahOpen} onOpenChange={setSurahOpen} basePath={`/share/${userId}`} />
+      <MobileSurahDrawer open={surahOpen} onOpenChange={setSurahOpen} basePath={basePath} />
       <MobileNavDrawer open={navOpen} onOpenChange={setNavOpen} />
     </div>
   );

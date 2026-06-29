@@ -9,6 +9,13 @@ import { CanvasHistory } from '@/lib/canvasHistory';
 import { type Tool, getToolCursor } from '@/lib/canvasTools';
 
 const SAVE_DELAY_MS = 1500;
+// A Supabase/Postgres error is an access-revoked signal only if it's an RLS/permission
+// denial — code 42501 or a policy/permission message. Network/transient errors lack both.
+function isRlsDenial(error: { code?: string; message?: string }): boolean {
+  if (error?.code === '42501') return true;
+  const m = (error?.message ?? '').toLowerCase();
+  return m.includes('row-level security') || m.includes('permission denied');
+}
 // Supersample factor: render the canvas backing store above the display resolution, then let
 // the browser downscale it to the CSS fit box — the page image reads noticeably crisper. This
 // multiplies fabric's retina scaling only (backing pixels), NOT the canvas coordinate space, so
@@ -25,9 +32,11 @@ interface UseAnnotationCanvasProps {
   imageUrl: string;
   sets: Pick<AnnotationSet, 'id' | 'name'>[];
   user: { id: string } | null;
+  /** Collaborator (locked-set) mode: a save rejected by RLS means access was revoked. */
+  lockedSet?: boolean;
 }
 
-export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnotationCanvasProps) {
+export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet = false }: UseAnnotationCanvasProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -58,6 +67,8 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
 
   const [selectedSetId, setSelectedSetId] = useState<string>(() => searchParams.get('set') ?? sets[0]?.id ?? '');
   const [saving, setSaving] = useState(false);
+  const [accessRevoked, setAccessRevoked] = useState(false);
+  const accessRevokedRef = useRef(false);
   const [activeTool, setActiveTool] = useState<Tool>('pen');
   const [activeColor, setActiveColor] = useState<string>('#ef4444');
   const [opacity, setOpacity] = useState<number>(0.4);
@@ -167,7 +178,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
   }, []);
 
   const saveCanvas = useCallback(async (canvas: fabric.Canvas, setId: string, page: number) => {
-    if (!user || !setId) return;
+    if (!user || !setId || accessRevokedRef.current) return;
     setSaving(true);
     try {
       const json = canvas.toJSON();
@@ -177,17 +188,25 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
         { set_id: setId, page_number: page, canvas_json: canvasJson, updated_at: new Date().toISOString() },
         { onConflict: 'set_id,page_number' }
       );
-      if (error) console.error('[AnnotationCanvas] Save error:', error);
-      else console.log('Save successful');
+      if (error) {
+        console.error('[AnnotationCanvas] Save error:', error);
+        // ponytail: revoke only on RLS denial (42501 / policy message), never on a
+        // transient/network error. An owner (lockedSet false) just logs and retries.
+        if (lockedSet && isRlsDenial(error)) {
+          accessRevokedRef.current = true;
+          setAccessRevoked(true);
+          if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
+        }
+      }
     } catch (err) {
       console.error('[AnnotationCanvas] Unexpected save error:', err);
     } finally {
       setSaving(false);
     }
-  }, [user, supabase]);
+  }, [user, supabase, lockedSet]);
 
   const scheduleSave = useCallback(() => {
-    if (!user || !selectedSetId || !fabricRef.current) return;
+    if (!user || !selectedSetId || !fabricRef.current || accessRevokedRef.current) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       saveCanvas(fabricRef.current!, selectedSetId, pageNum);
@@ -195,7 +214,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
   }, [selectedSetId, pageNum, saveCanvas, user]);
 
   const saveNow = useCallback(async () => {
-    if (!user || !selectedSetId || !fabricRef.current) return;
+    if (!user || !selectedSetId || !fabricRef.current || accessRevokedRef.current) return;
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
@@ -597,7 +616,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user }: UseAnnota
 
   return {
     containerRef, wrapperRef, canvasRef,
-    selectedSetId, saving, activeTool, activeColor, opacity, penWidth,
+    selectedSetId, saving, accessRevoked, activeTool, activeColor, opacity, penWidth,
     canUndo, canRedo, canvasReady, canvasSize, pageMaxHeightOffset, hoveredTool, hoverPos,
     interactionMode, setInteractionMode,
     setSelectedSetId, setActiveColor, setOpacity, setPenWidth,

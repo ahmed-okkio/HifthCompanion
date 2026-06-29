@@ -26,9 +26,15 @@ interface ReaderShellProps {
   sets: Pick<AnnotationSet, 'id' | 'name'>[];
   /** Signed-in user's chrome summary (name + email), or null when logged out. */
   account?: { name: string; email: string } | null;
+  /** Collaborator share view: lock the canvas to the single shared set (hides the swapper). */
+  lockedSet?: boolean;
+  /** Optional banner rendered above the canvas in region 2 (e.g. "Editing X's Mushaf"). */
+  banner?: React.ReactNode;
+  /** When set (e.g. `/share/{setId}`), nav + surah links target the share route instead of /reader. */
+  sharePageBasePath?: string;
 }
 
-export default function ReaderShell({ children, user, sets, account = null }: ReaderShellProps) {
+export default function ReaderShell({ children, user, sets, account = null, lockedSet = false, banner, sharePageBasePath }: ReaderShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   // Soft page swap (Story 24): the page number is derived from the URL inside this
@@ -73,6 +79,7 @@ export default function ReaderShell({ children, user, sets, account = null }: Re
           onOpenSurah={() => setSurahOpen(true)}
           onOpenNav={() => setNavOpen(true)}
           account={account}
+          sharePageBasePath={sharePageBasePath}
         />
       </div>
       {/* On mobile the nav is position:fixed so content starts at top-0;
@@ -113,7 +120,7 @@ export default function ReaderShell({ children, user, sets, account = null }: Re
               boxShadow: 'var(--shadow-e2)',
             }}
           >
-            <SurahNavPanel currentPage={pageNum} topOffset={navHeight} />
+            <SurahNavPanel currentPage={pageNum} topOffset={navHeight} basePath={sharePageBasePath} />
           </div>
         </div>
 
@@ -129,6 +136,8 @@ export default function ReaderShell({ children, user, sets, account = null }: Re
           <main className="w-full flex-grow px-4 pt-6 pb-2 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:py-0">
             <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
 
+              {banner}
+
               <div className="flex min-w-0 flex-col gap-4">
                 <div className="mx-auto w-full">
                   {/* Persistent across page navigation — Fabric is not torn down (Story 24). */}
@@ -137,6 +146,7 @@ export default function ReaderShell({ children, user, sets, account = null }: Re
                     imageUrl={imageUrl}
                     sets={sets}
                     user={user}
+                    lockedSet={lockedSet}
                   />
                 </div>
               </div>
@@ -170,7 +180,7 @@ export default function ReaderShell({ children, user, sets, account = null }: Re
           </footer>
         </div>
       </div>
-      <MobileSurahDrawer open={surahOpen} onOpenChange={setSurahOpen} />
+      <MobileSurahDrawer open={surahOpen} onOpenChange={setSurahOpen} basePath={sharePageBasePath} />
       <MobileNavDrawer open={navOpen} onOpenChange={setNavOpen} />
     </div>
   );

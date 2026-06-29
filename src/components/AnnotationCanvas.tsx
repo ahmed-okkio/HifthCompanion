@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import type { AnnotationSet } from '@/types';
 import PageDisplayFrame from '@/components/PageDisplayFrame';
 import AnnotationToolbar from '@/components/AnnotationToolbar';
@@ -14,18 +15,30 @@ interface Props {
   imageUrl: string;
   sets: Pick<AnnotationSet, 'id' | 'name'>[];
   user: { id: string } | null;
+  /** Collaborator share view: lock to the single shared set and hide the set swapper. */
+  lockedSet?: boolean;
 }
 
-export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Props) {
+export default function AnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet = false }: Props) {
   const {
     containerRef, wrapperRef, canvasRef,
-    selectedSetId, saving, activeTool, activeColor, opacity, penWidth,
+    selectedSetId, saving, accessRevoked, activeTool, activeColor, opacity, penWidth,
     canUndo, canRedo, canvasReady, canvasSize, pageMaxHeightOffset, hoveredTool, hoverPos,
     interactionMode, setInteractionMode,
     setSelectedSetId, setActiveColor, setOpacity, setPenWidth,
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,
-  } = useAnnotationCanvas({ pageNum, imageUrl, sets, user });
+  } = useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet });
+
+  const router = useRouter();
+
+  // D2: a collaborator's access was revoked mid-session — their next save was rejected by RLS.
+  // Show a toast, then bounce them to their own reader.
+  useEffect(() => {
+    if (!accessRevoked) return;
+    const t = setTimeout(() => router.push('/reader/1'), 1500);
+    return () => clearTimeout(t);
+  }, [accessRevoked, router]);
 
   useEffect(() => {
     localStorage.setItem('hifth:lastPage', String(pageNum));
@@ -66,6 +79,28 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
 
   return (
     <div className="flex w-full justify-center">
+      {accessRevoked && (
+        <div
+          role="alert"
+          style={{
+            position: 'fixed',
+            top: 'var(--space-16, 16px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            background: 'var(--surface-main)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 'var(--radius-lg-px)',
+            boxShadow: 'var(--shadow-e2)',
+            padding: 'var(--space-12) var(--space-16)',
+            color: 'var(--text-primary)',
+            fontSize: '13px',
+            fontWeight: 500,
+          }}
+        >
+          Your access to this set was removed
+        </div>
+      )}
       {/* V3 Story 9 — single workspace column: horizontal annotation bar ABOVE the page,
           the contain-fit page BELOW it. (Was a 72px | page | 72px grid with a vertical
           toolbar.) measurePageOffset reads the live top of .page-display-frame, so moving the
@@ -117,8 +152,9 @@ export default function AnnotationCanvas({ pageNum, imageUrl, sets, user }: Prop
           onMouseLeave={onHoverLeave}
         />
 
-        {/* Sets card portaled into the right context panel top (replaces the old wide bar). */}
-        {setsSlot && createPortal(
+        {/* Sets card portaled into the right context panel top (replaces the old wide bar).
+            Hidden in the locked collaborator share view — only the one shared set is editable. */}
+        {!lockedSet && setsSlot && createPortal(
           <SetsCard
             user={user}
             sets={sets}

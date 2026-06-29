@@ -3,15 +3,15 @@
 /**
  * Shared top bar for the non-reader app routes (tracker, sets, …).
  *
- * Mirrors ReaderNav's brand exactly — the same green outline-book glyph and
+ * Mirrors ReaderNav's brand exactly — the same /logo.png mark and Outfit
  * "Hifth Companion" wordmark — so the chrome is identical on every route. The
  * reader's bar additionally carries page-navigation controls; this one keeps
  * the brand + an optional breadcrumb on the left and a free-form actions slot
  * on the right.
  */
 
-import Link from 'next/link';
 import type { ReactNode } from 'react';
+import Brand from './Brand';
 
 export default function AppHeader({
   breadcrumb,
@@ -35,8 +35,8 @@ export default function AppHeader({
       }}
     >
       <div
-        className="mx-auto flex items-center justify-between gap-4 max-w-5xl"
-        style={{ height: 64, padding: '0 var(--space-16)' }}
+        className="flex items-center justify-between gap-4 w-full"
+        style={{ height: 72, padding: '0 var(--space-16)' }}
       >
         <div className="flex items-center gap-3 min-w-0">
           {onOpenNav && (
@@ -54,23 +54,7 @@ export default function AppHeader({
               </svg>
             </button>
           )}
-          <Link href="/reader/1" className="flex items-center gap-3 min-w-0" style={{ textDecoration: 'none' }}>
-            <span
-              className="inline-flex items-center justify-center shrink-0"
-              style={{ width: 36, height: 36, color: 'var(--green-600)' }}
-            >
-              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} />
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} />
-              </svg>
-            </span>
-            <span
-              className="font-bold whitespace-nowrap"
-              style={{ color: 'var(--text-primary)', fontSize: '1rem', letterSpacing: '-0.02em' }}
-            >
-              Hifth Companion
-            </span>
-          </Link>
+          <Brand />
 
           {breadcrumb && (
             <span className="flex items-center gap-2 min-w-0">

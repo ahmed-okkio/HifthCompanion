@@ -3,6 +3,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { TOTAL_PAGES, clampPage } from '@/lib/quran';
 import ProfileMenu from './ProfileMenu';
+import Brand from './Brand';
 import Link from 'next/link';
 import styles from './ReaderNav.module.css';
 
@@ -11,12 +12,16 @@ export default function ReaderNav({
   onOpenSurah,
   onOpenNav,
   account,
+  sharePageBasePath,
 }: {
   currentPage: number;
   onOpenSurah?: () => void;
   onOpenNav?: () => void;
   /** Signed-in user's chrome summary, or null when logged out. */
   account?: { name: string; email: string } | null;
+  /** When set (e.g. `/share/{setId}`), page prev/next/jump links are built as
+      `${base}/${n}` instead of `/reader/${n}` — used by the collaborator share view. */
+  sharePageBasePath?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -25,6 +30,11 @@ export default function ReaderNav({
 
   const go = (page: number) => {
     const clamped = clampPage(page);
+    if (sharePageBasePath) {
+      router.push(`${sharePageBasePath}/${clamped}`, { scroll: false });
+      setJumpInput('');
+      return;
+    }
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page');
     const qs = params.toString();
@@ -54,21 +64,7 @@ export default function ReaderNav({
               </svg>
             </button>
           )}
-          <Link href="/reader/1" className={styles.brand}>
-            <span className={styles.brandIcon}>
-              {/* Plain <img> from /public — bypasses next/image optimizer (it was
-                  failing to render the logo on Vercel). */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/logo.png"
-                alt="Hifth Companion logo"
-                style={{ height: '80%', width: 'auto', objectFit: 'contain' }}
-              />
-            </span>
-            <span className={styles.brandText}>
-              <span className={styles.brandTitle}>Hifth Companion</span>
-            </span>
-          </Link>
+          <Brand />
 
         </div>
 

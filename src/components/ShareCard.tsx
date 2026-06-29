@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { addByEmail, list, remove, type Collaborator } from '@/lib/services/collaborators';
 
 interface Props {
   userId: string;
@@ -18,6 +19,57 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectedSetId, setSelectedSetId] = useState(sets[0]?.id ?? '');
+
+  // Edit-access management. ShareCard renders only in the owner's own reader over
+  // the owner's own sets (see reader page comment), so this section is inherently
+  // owner-only — never shown in any read-only/collaborator/guest view (contract D3).
+  const [email, setEmail] = useState('');
+  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState('');
+  // Client-only: this section's state (email/pending) and its collaborator list are
+  // resolved on the client, so rendering it during SSR causes a hydration mismatch on
+  // the Add button's `disabled`. Gate it to post-mount — it has no SSR value anyway.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const refreshCollaborators = () => {
+    list(selectedSetId).then(setCollaborators).catch(() => {});
+  };
+
+  useEffect(() => {
+    if (!selectedSetId) return;
+    list(selectedSetId).then(setCollaborators).catch(() => setCollaborators([]));
+  }, [selectedSetId]);
+
+  const fullName = (c: { first_name?: string; last_name?: string }) =>
+    [c.first_name, c.last_name].filter(Boolean).join(' ').trim() || 'Someone';
+
+  const handleAdd = async () => {
+    if (!email.trim() || pending) return;
+    setPending(true);
+    setMessage('');
+    try {
+      const r = await addByEmail(selectedSetId, email);
+      const name = fullName(r);
+      setMessage(r.alreadyCollaborator ? `${name} already has access` : `Added ${name}`);
+      setEmail('');
+      refreshCollaborators();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Something went wrong');
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const handleRemove = async (userId: string) => {
+    try {
+      await remove(selectedSetId, userId);
+      refreshCollaborators();
+    } catch {
+      // ponytail: best-effort; list refresh on next add reflects truth
+    }
+  };
 
   if (sets.length === 0) return null;
 
@@ -164,6 +216,71 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
               Close
             </button>
           </div>
+        )}
+
+        {/* People with edit access — owner-only manage section (contract D1/D3) */}
+        {mounted && (
+        <div
+          style={{
+            marginTop: 'var(--space-16)',
+            paddingTop: 'var(--space-16)',
+            borderTop: '1px solid var(--neutral-200)',
+          }}
+        >
+          <h3
+            className="font-semibold"
+            style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: 'var(--space-8)' }}
+          >
+            People with edit access
+          </h3>
+
+          <div className="flex gap-2" style={{ marginBottom: 'var(--space-8)' }}>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAdd()}
+              placeholder="name@example.com"
+              aria-label="Email to grant edit access"
+              disabled={pending}
+              className="input input-sm flex-1"
+              style={{ fontSize: '12px' }}
+            />
+            <button
+              onClick={handleAdd}
+              disabled={pending || !email.trim()}
+              className="btn btn-primary"
+              style={{ fontSize: '12px', padding: '6px 14px', flexShrink: 0 }}
+            >
+              Add
+            </button>
+          </div>
+
+          {message && (
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: 'var(--space-8)' }}>
+              {message}
+            </p>
+          )}
+
+          {collaborators.length === 0 ? (
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)' }}>No one yet.</p>
+          ) : (
+            <ul style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {collaborators.map(c => (
+                <li key={c.user_id} className="flex items-center justify-between">
+                  <span style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{fullName(c)}</span>
+                  <button
+                    onClick={() => handleRemove(c.user_id)}
+                    className="btn btn-ghost"
+                    style={{ fontSize: '11px', padding: '4px 8px' }}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         )}
       </div>
     </section>

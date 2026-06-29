@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import SetsList from '@/components/SetsList';
 import { getAnnotationSets } from '@/lib/services/annotationSets';
+import { sharedWithMe } from '@/lib/services/collaborators';
 import AppShell from '@/components/AppShell';
 import { getMyChrome } from '@/lib/services/profile';
 
@@ -12,7 +13,9 @@ export default async function SetsPage() {
     redirect('/login');
   }
 
+  // E2: getAnnotationSets() is owner-scoped, so shared sets never leak into "My Annotation Sets".
   const sets = await getAnnotationSets();
+  const shared = await sharedWithMe();
   const account = await getMyChrome(user);
 
   return (
@@ -30,6 +33,27 @@ export default async function SetsPage() {
           <span className="badge">{sets.length} sets</span>
         </div>
         <SetsList initialSets={sets} />
+
+        {shared.length > 0 && (
+          <section className="mt-10">
+            <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>
+              Shared with me
+            </h2>
+            <div className="flex flex-col gap-3">
+              {shared.map((set) => (
+                // E1/C2: lands on the editable collaborator share view.
+                <a key={set.id} href={`/share/${set.id}/1`}
+                   className="card flex items-center gap-3"
+                   style={{ padding: '14px 18px' }}>
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />
+                  <span className="font-medium text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                    {set.name}
+                  </span>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
       <footer
         className="w-full text-center text-xs tracking-wider uppercase border-t"

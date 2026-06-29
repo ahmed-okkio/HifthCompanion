@@ -20,7 +20,7 @@ export default async function SetsPage() {
 
   return (
     <AppShell user={account}>
-      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in">
+      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>

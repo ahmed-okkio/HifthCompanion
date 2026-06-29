@@ -84,3 +84,21 @@ export async function setSessionCanceled(
     .eq('id', id);
   if (error) throw error;
 }
+
+/** Cancel all non-adhoc future sessions for a halaqah. Returns count of canceled rows. */
+export async function cancelRecurringSessions(
+  halaqahId: string,
+): Promise<number> {
+  const supabase = await createClientAction();
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('session')
+    .update({ canceled: true })
+    .eq('halaqah_id', halaqahId)
+    .eq('is_adhoc', false)
+    .eq('canceled', false)
+    .gte('scheduled_at', now)
+    .select('id');
+  if (error) throw error;
+  return data?.length ?? 0;
+}

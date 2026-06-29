@@ -15,7 +15,7 @@ export default async function TrackerPage() {
 
   return (
     <AppShell user={account}>
-      <main className="max-w-5xl mx-auto px-4 py-8 sm:py-10 animate-fade-in">
+      <main className="max-w-5xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <TrackerHome initialMemberships={memberships} />
       </main>
     </AppShell>

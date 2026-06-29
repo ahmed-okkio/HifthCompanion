@@ -2,8 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import AppShell from '@/components/AppShell';
 import { getMyChrome } from '@/lib/services/profile';
-import TeacherHalaqah from '@/components/tracker/TeacherHalaqah';
-import TeacherSessions from '@/components/tracker/TeacherSessions';
+import TeacherHalaqahTabs from '@/components/tracker/TeacherHalaqahTabs';
 import StudentHalaqah from '@/components/tracker/StudentHalaqah';
 import { getHalaqah } from '@/lib/services/halaqah';
 import { getHalaqahMembers, getHalaqahMembersWithProfiles } from '@/lib/services/membership';
@@ -43,23 +42,18 @@ export default async function HalaqahPage({
 
   return (
     <AppShell breadcrumb={halaqah.name} user={account}>
-      <main className={`mx-auto px-4 py-8 sm:py-10 animate-fade-in ${isTeacher ? 'max-w-5xl' : 'max-w-2xl'}`}>
+      <main className={`mx-auto px-4 py-6 sm:py-6 animate-fade-in flex flex-col flex-1 min-h-0 ${isTeacher ? 'max-w-5xl w-full' : 'max-w-2xl'}`} style={{ overflow: isTeacher ? 'hidden' : 'auto' }}>
         {isTeacher ? (
-          <div className="grid gap-8 lg:grid-cols-2 items-start">
-            <TeacherHalaqah
-              halaqah={halaqah}
-              initialMembers={members.filter((m) => m.role === 'student')}
-              initialFeed={await getLogsForMemberships(
-                members.filter((m) => m.role === 'student').map((m) => m.id),
-              )}
-            />
-            <TeacherSessions
-              halaqah={halaqah}
-              students={activeStudents}
-              initialSessions={sessions}
-              initialAttendance={attendance}
-            />
-          </div>
+          <TeacherHalaqahTabs
+            halaqah={halaqah}
+            members={members.filter((m) => m.role === 'student')}
+            initialFeed={await getLogsForMemberships(
+              members.filter((m) => m.role === 'student').map((m) => m.id),
+            )}
+            students={activeStudents}
+            sessions={sessions}
+            attendance={attendance}
+          />
         ) : (
           <StudentHalaqah
             halaqah={halaqah}

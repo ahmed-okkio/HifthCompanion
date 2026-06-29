@@ -46,6 +46,7 @@ export default async function HalaqahPage({
         {isTeacher ? (
           <TeacherHalaqahTabs
             halaqah={halaqah}
+            teacher={members.find((m) => m.role === 'teacher')}
             members={members.filter((m) => m.role === 'student')}
             initialFeed={await getLogsForMemberships(
               members.filter((m) => m.role === 'student').map((m) => m.id),

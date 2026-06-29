@@ -13,10 +13,12 @@ import { SectionTitle, EmptyState, Avatar } from './ui';
 
 export default function TeacherHalaqah({
   halaqah,
+  teacher,
   initialMembers,
   initialFeed,
 }: {
   halaqah: Halaqah;
+  teacher?: MemberWithProfile;
   initialMembers: MemberWithProfile[];
   initialFeed: ProgressLog[];
 }) {
@@ -115,7 +117,20 @@ export default function TeacherHalaqah({
         </div>
       </div>
 
-      {/* Roster */}
+      {/* Teacher */}
+      {teacher && (
+        <div className="flex flex-col gap-2">
+          <SectionTitle>{t('tracker.roleTeacher')}</SectionTitle>
+          <div className="card flex items-center gap-3" style={{ padding: '12px 14px' }}>
+            <Avatar seed={displayName(teacher)} />
+            <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+              {displayName(teacher)}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Students */}
       <div className="flex flex-col gap-2">
         <SectionTitle
           trailing={

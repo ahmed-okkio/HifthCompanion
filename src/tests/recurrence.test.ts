@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { recurringSlots, missingSlots } from '../lib/recurrence';
+import { recurringSlots } from '../lib/recurrence';
 import type { Recurrence } from '../types';
 
 // Fixed Monday for determinism: 2026-06-29 is a Monday (getDay() === 1).
@@ -32,21 +32,5 @@ describe('recurringSlots', () => {
     const slots = recurringSlots(rule, MON, 7);
     expect(slots).toHaveLength(1);
     expect(new Date(slots[0]).getHours()).toBe(0);
-  });
-});
-
-describe('missingSlots', () => {
-  it('omits slots already present in existing', () => {
-    const rule: Recurrence = { weekdays: [1], time: '17:00' };
-    const all = recurringSlots(rule, MON, 21); // three Mondays
-    const missing = missingSlots(rule, [all[0]], MON, 21);
-    expect(missing).toHaveLength(2);
-    expect(missing).not.toContain(all[0]);
-  });
-
-  it('is idempotent — nothing missing when all present', () => {
-    const rule: Recurrence = { weekdays: [1, 4], time: '17:00' };
-    const all = recurringSlots(rule, MON, 28);
-    expect(missingSlots(rule, all, MON, 28)).toEqual([]);
   });
 });

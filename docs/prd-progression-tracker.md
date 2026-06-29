@@ -146,6 +146,7 @@ Ordered by milestone. **DATA** ticket is a *dependency gate*, not a priority —
 - **M1-10** Teacher: student profile timeline + view attached annotated page.
 - **M1-11** i18n framework + `dir=rtl` + EN/AR app chrome + language switcher.
 - **M1-12** Offboarding: membership → inactive revokes teacher Set access; logs retained.
+- **M1-13** Teacher: delete a halaqah they own, with confirm. Needs `halaqah` DELETE RLS policy (`is_halaqah_teacher(id)`), `deleteHalaqah` service, danger-button UI. Cascades: verify `membership`/`session`/`attendance`/`progress_log` FKs are `on delete cascade` before shipping so the delete doesn't error on dangling rows.
 
 ### DATA — Quran reference data (gate before M2 + ayah features) ✅ DONE
 Sourced from alquran.cloud `/v1/meta` (Hafs/Madani); cross-checked 0 mismatches vs existing `surahFirstPages.json`. Files in `src/data/`, helpers in `src/lib/quran.ts`.

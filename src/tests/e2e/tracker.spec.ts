@@ -31,7 +31,7 @@ test.describe('Progression Tracker (Authenticated)', () => {
     await card.click();
     await expect(page).toHaveURL(/\/tracker\/[^/]+$/);
     await expect(page.getByText('Invite code')).toBeVisible();
-    await expect(page.getByText('Roster')).toBeVisible();
+    await expect(page.getByText('Students')).toBeVisible();
     await expect(page.getByText('No students yet')).toBeVisible();
   });
 

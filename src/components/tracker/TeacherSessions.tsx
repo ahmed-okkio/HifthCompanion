@@ -1,40 +1,38 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { useI18n } from '@/components/I18nProvider';
-import type { Attendance, AttendanceStatus, Halaqah, MemberWithProfile, Recurrence, Session } from '@/types';
-import { displayName } from '@/lib/displayName';
+import type { Halaqah, Recurrence, Session } from '@/types';
 import {
-  cancelRecurringSessions,
   createAdhocSession,
-  generateSessions,
+  materializeSession,
   setSchedule,
   setSessionCanceled,
 } from '@/lib/services/sessions';
-import { markAttendance } from '@/lib/services/attendance';
+import { recurringSlots } from '@/lib/recurrence';
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const ATT_STATUSES: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'];
+
+// How far ahead virtual recurring slots are computed for the lists/calendar.
+const VIRTUAL_HORIZON_DAYS = 60;
+
+/** A session row, or a virtual recurring slot not yet materialized in the DB. */
+export type Slot = Session & { virtual?: boolean };
 
 export default function TeacherSessions({
   halaqah,
-  students,
-  initialSessions,
-  initialAttendance,
+  sessions,
+  setSessions,
 }: {
   halaqah: Halaqah;
-  students: MemberWithProfile[];
-  initialSessions: Session[];
-  initialAttendance: Attendance[];
+  sessions: Session[];
+  setSessions: Dispatch<SetStateAction<Session[]>>;
 }) {
   const { t } = useI18n();
-  const [sessions, setSessions] = useState(initialSessions);
-  const [attendance, setAttendance] = useState(initialAttendance);
   const [weekdays, setWeekdays] = useState<number[]>(halaqah.schedule?.weekdays ?? []);
   const [time, setTime] = useState(halaqah.schedule?.time ?? '17:00');
   const [adhocDate, setAdhocDate] = useState('');
   const [adhocTime, setAdhocTime] = useState('17:00');
-  const [openId, setOpenId] = useState<string | null>(null);
   const PAGE_SIZE = 4;
   const [viewDate, setViewDate] = useState(() => {
     const d = new Date();
@@ -44,57 +42,74 @@ export default function TeacherSessions({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [page, setPage] = useState(0);
 
-  // session_id -> (membership_id -> attendance row)
-  const attBySession = useMemo(() => {
-    const m = new Map<string, Map<string, Attendance>>();
-    for (const a of attendance) {
-      if (!m.has(a.session_id)) m.set(a.session_id, new Map());
-      m.get(a.session_id)!.set(a.membership_id, a);
-    }
-    return m;
-  }, [attendance]);
-
-  // Group sessions by YYYY-MM-DD for calendar dots
+  // Real DB rows grouped by YYYY-MM-DD — drives the solid calendar dots.
   const sessionsByDate = useMemo(() => {
     const map = new Map<string, Session[]>();
-    for (const s of sessions) {
-      const d = new Date(s.scheduled_at);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      const arr = map.get(key) ?? [];
-      arr.push(s);
-      map.set(key, arr);
-    }
+    for (const s of sessions) map.set(dateKeyOf(s.scheduled_at), [...(map.get(dateKeyOf(s.scheduled_at)) ?? []), s]);
     return map;
   }, [sessions]);
 
-  // Sessions for the selected calendar date
+  // Merge DB rows with virtual recurring slots (real wins on instant collision).
+  // Virtual slots are computed from the schedule and never stored until an
+  // action materializes them.
+  const slots = useMemo(() => {
+    const realInstants = new Set(sessions.map((s) => new Date(s.scheduled_at).getTime()));
+    const rule: Recurrence | null = weekdays.length ? { weekdays, time } : null;
+    const virtual: Slot[] = recurringSlots(rule, new Date(), VIRTUAL_HORIZON_DAYS)
+      .filter((iso) => !realInstants.has(new Date(iso).getTime()))
+      .map((iso) => ({
+        id: `v-${iso}`,
+        halaqah_id: halaqah.id,
+        scheduled_at: iso,
+        is_adhoc: false,
+        canceled: false,
+        created_at: '',
+        virtual: true,
+      }));
+    return [...sessions, ...virtual].sort(byTime);
+  }, [sessions, weekdays, time, halaqah.id]);
+
+  // Slots (real + virtual) grouped by date — drives the selected-date list.
+  const slotsByDate = useMemo(() => {
+    const map = new Map<string, Slot[]>();
+    for (const s of slots) map.set(dateKeyOf(s.scheduled_at), [...(map.get(dateKeyOf(s.scheduled_at)) ?? []), s]);
+    return map;
+  }, [slots]);
+
   const selectedSessions = useMemo(() => {
     if (!selectedDate) return [];
-    return sessionsByDate.get(selectedDate) ?? [];
-  }, [selectedDate, sessionsByDate]);
+    const existing = slotsByDate.get(selectedDate);
+    if (existing) return existing;
+    // No real or recurring slot on this date — show a synthetic one at the
+    // schedule time so the teacher can act on it (materializes on first action).
+    const iso = new Date(`${selectedDate}T${time}:00`).toISOString();
+    return [{
+      id: `v-${iso}`,
+      halaqah_id: halaqah.id,
+      scheduled_at: iso,
+      is_adhoc: false,
+      canceled: false,
+      created_at: '',
+      virtual: true,
+    } satisfies Slot];
+  }, [selectedDate, slotsByDate, time, halaqah.id]);
 
-  // Click a calendar date — auto-generate missing recurring session on demand
-  async function handleSelectDate(dateKey: string) {
+  // Sessions are only editable on their own day.
+  const todayKey = dateKeyOf(new Date().toISOString());
+
+  function handleSelectDate(dateKey: string) {
     setSelectedDate((prev) => (prev === dateKey ? null : dateKey));
     setPage(0);
+  }
 
-    // Already have sessions for this date — nothing to generate
-    if (sessionsByDate.has(dateKey)) return;
-
-    // Check if this date matches the recurring schedule
-    const d = new Date(`${dateKey}T12:00:00`);
-    if (!weekdays.includes(d.getDay())) return;
-
-    // Only generate for future dates (or today)
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    if (d < now) return;
-
-    // Generate sessions up to this date + 1 day
-    const horizonDays = Math.ceil((d.getTime() - Date.now()) / 86400000) + 2;
-    const rule: Recurrence | null = weekdays.length ? { weekdays, time } : null;
-    const fresh = await generateSessions(halaqah.id, rule, sessions, horizonDays);
-    if (fresh.length) setSessions((p) => [...p, ...fresh].sort(byTime));
+  // Materialize a virtual slot into a real row before an action hangs off it.
+  // Idempotent on the DB side; adds the new row to local state so the merge
+  // dedups the virtual twin away.
+  async function ensureReal(slot: Slot): Promise<Session> {
+    if (!slot.virtual) return slot;
+    const row = await materializeSession(halaqah.id, slot.scheduled_at);
+    setSessions((p) => (p.some((x) => x.id === row.id) ? p : [...p, row].sort(byTime)));
+    return row;
   }
 
   function toggleDay(d: number) {
@@ -102,10 +117,8 @@ export default function TeacherSessions({
   }
 
   async function handleSaveSchedule() {
-    const rule: Recurrence | null = weekdays.length ? { weekdays, time } : null;
-    await setSchedule(halaqah.id, rule);
-    const fresh = await generateSessions(halaqah.id, rule, sessions);
-    if (fresh.length) setSessions((p) => [...p, ...fresh].sort(byTime));
+    // Persist the rule only — slots stay virtual, recomputed from weekdays/time.
+    await setSchedule(halaqah.id, weekdays.length ? { weekdays, time } : null);
   }
 
   async function handleAdhoc() {
@@ -117,26 +130,19 @@ export default function TeacherSessions({
     setAdhocTime('17:00');
   }
 
-  async function handleCancel(s: Session) {
+  async function handleCancel(slot: Slot) {
+    // Canceling a virtual slot materializes it as a canceled exception row.
+    const s = await ensureReal(slot);
     await setSessionCanceled(s.id, !s.canceled);
     setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, canceled: !s.canceled } : x)));
   }
 
   async function handleCancelRecurring() {
     if (!confirm(t('sessions.stopRecurringConfirm'))) return;
-    await cancelRecurringSessions(halaqah.id);
-    setSessions((p) =>
-      p.map((x) => (x.is_adhoc ? x : { ...x, canceled: true })),
-    );
-  }
-
-  async function handleMark(sessionId: string, membershipId: string, status: AttendanceStatus) {
-    const row = await markAttendance(sessionId, membershipId, status);
-    setAttendance((p) => {
-      const i = p.findIndex((a) => a.session_id === sessionId && a.membership_id === membershipId);
-      if (i >= 0) { const next = [...p]; next[i] = row; return next; }
-      return [...p, row];
-    });
+    // Clearing the rule makes future virtual slots vanish. Past attendance rows
+    // and any materialized exceptions are left untouched.
+    await setSchedule(halaqah.id, null);
+    setWeekdays([]);
   }
 
   return (
@@ -171,17 +177,17 @@ export default function TeacherSessions({
               onPage={setPage}
               onClose={() => setSelectedDate(null)}
               emptyText={t('sessions.none')}
-              {...{ t, openId, setOpenId, handleCancel, handleMark, students, attBySession }}
+              {...{ t, handleCancel, todayKey }}
             />
           ) : (
             <SessionList
               heading={t('sessions.title')}
-              sessions={sessions.slice(0, 5)}
+              sessions={slots.slice(0, 5)}
               page={0}
               pageSize={5}
               onPage={setPage}
               emptyText={t('sessions.none')}
-              {...{ t, openId, setOpenId, handleCancel, handleMark, students, attBySession }}
+              {...{ t, handleCancel, todayKey }}
             />
           )}
         </div>
@@ -321,8 +327,14 @@ export default function TeacherSessions({
   );
 }
 
-function byTime(a: Session, b: Session) {
+function byTime(a: { scheduled_at: string }, b: { scheduled_at: string }) {
   return a.scheduled_at < b.scheduled_at ? -1 : a.scheduled_at > b.scheduled_at ? 1 : 0;
+}
+
+/** YYYY-MM-DD in local time for an ISO instant — calendar grouping key. */
+export function dateKeyOf(iso: string) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -330,17 +342,14 @@ function byTime(a: Session, b: Session) {
 // ---------------------------------------------------------------------------
 
 function SessionCard({
-  s, t, openId, setOpenId, handleCancel, handleMark, students, attBySession,
+  s, t, handleCancel, todayKey,
 }: {
-  s: Session;
+  s: Slot;
   t: ReturnType<typeof useI18n>['t'];
-  openId: string | null;
-  setOpenId: (id: string | null) => void;
-  handleCancel: (s: Session) => void;
-  handleMark: (sessionId: string, membershipId: string, status: AttendanceStatus) => void;
-  students: MemberWithProfile[];
-  attBySession: Map<string, Map<string, Attendance>>;
+  handleCancel: (s: Slot) => void;
+  todayKey: string;
 }) {
+  const editable = dateKeyOf(s.scheduled_at) === todayKey;
   return (
     <div key={s.id} className="card flex flex-col gap-2" style={{ padding: '12px 16px', opacity: s.canceled ? 0.5 : 1 }}>
       <div className="flex items-center justify-between gap-2">
@@ -351,39 +360,10 @@ function SessionCard({
           {s.is_adhoc && <span className="badge" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
           {s.canceled && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.canceled')}</span>}
         </div>
-        <div className="flex gap-1 shrink-0">
-          <button onClick={() => setOpenId(openId === s.id ? null : s.id)} className="btn btn-ghost" style={{ minHeight: 30, fontSize: 11 }}>
-            {t('sessions.markAttendance')}
-          </button>
-          <button onClick={() => handleCancel(s)} className="btn btn-ghost" style={{ minHeight: 30, fontSize: 11 }}>
-            {s.canceled ? t('sessions.reinstate') : t('sessions.cancel')}
-          </button>
-        </div>
+        <button onClick={() => handleCancel(s)} disabled={!editable} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11, opacity: editable ? 1 : 0.4 }}>
+          {s.canceled ? t('sessions.reinstate') : t('sessions.cancel')}
+        </button>
       </div>
-      {openId === s.id && !s.canceled && (
-        <div className="flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
-          {students.length === 0 && (
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('tracker.noStudents')}</span>
-          )}
-          {students.map((m) => {
-            const cur = attBySession.get(s.id)?.get(m.id)?.status;
-            return (
-              <div key={m.id} className="flex items-center justify-between gap-2">
-                <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{displayName(m)}</span>
-                <div className="flex gap-1">
-                  {ATT_STATUSES.map((st) => (
-                    <button key={st} onClick={() => handleMark(s.id, m.id, st)}
-                            className={cur === st ? 'btn btn-primary' : 'btn btn-ghost'}
-                            style={{ minHeight: 28, fontSize: 10, padding: '0 6px' }}>
-                      {t(`att.${st}` as Parameters<typeof t>[0])}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }
@@ -394,22 +374,18 @@ function SessionCard({
 
 function SessionList({
   heading, sessions, page, pageSize, onPage, onClose, emptyText,
-  t, openId, setOpenId, handleCancel, handleMark, students, attBySession,
+  t, handleCancel, todayKey,
 }: {
   heading: string;
-  sessions: Session[];
+  sessions: Slot[];
   page: number;
   pageSize: number;
   onPage: (p: number) => void;
   onClose?: () => void;
   emptyText: string;
   t: ReturnType<typeof useI18n>['t'];
-  openId: string | null;
-  setOpenId: (id: string | null) => void;
-  handleCancel: (s: Session) => void;
-  handleMark: (sessionId: string, membershipId: string, status: AttendanceStatus) => void;
-  students: MemberWithProfile[];
-  attBySession: Map<string, Map<string, Attendance>>;
+  handleCancel: (s: Slot) => void;
+  todayKey: string;
 }) {
   const totalPages = Math.max(1, Math.ceil(sessions.length / pageSize));
   const p = Math.min(page, totalPages - 1);
@@ -438,7 +414,7 @@ function SessionList({
             </div>
           ) : (
             slice.map((s) => (
-              <SessionCard key={s.id} {...{ s, t, openId, setOpenId, handleCancel, handleMark, students, attBySession }} />
+              <SessionCard key={s.id} {...{ s, t, handleCancel, todayKey }} />
             ))
           )}
         </div>
@@ -573,7 +549,7 @@ function CalendarView({
               }}
             >
               {day}
-              {hasSessions && (
+              {(hasSessions || isRecurringDay) && (
                 <span
                   style={{
                     position: 'absolute',
@@ -584,21 +560,6 @@ function CalendarView({
                     height: 5,
                     borderRadius: 'var(--radius-full)',
                     background: isSelected ? '#fff' : 'var(--accent)',
-                  }}
-                />
-              )}
-              {!hasSessions && isRecurringDay && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    bottom: 2,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: 5,
-                    height: 5,
-                    borderRadius: 'var(--radius-full)',
-                    background: isSelected ? '#fff' : 'var(--border-default)',
-                    opacity: 0.6,
                   }}
                 />
               )}
@@ -615,7 +576,7 @@ function CalendarView({
 // ---------------------------------------------------------------------------
 
 /** "Mon, Jun 29 · 5:00 PM" — no seconds, human-readable. */
-function formatSessionTime(iso: string) {
+export function formatSessionTime(iso: string) {
   const d = new Date(iso);
   const weekday = WEEKDAY_LABELS[d.getDay()];
   const month = MONTHS[d.getMonth()].slice(0, 3);

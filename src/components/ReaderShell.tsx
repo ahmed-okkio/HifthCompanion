@@ -192,6 +192,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
                       sets={sets}
                       user={user}
                       lockedSet={lockedSet}
+                      sharePageBasePath={sharePageBasePath}
                     />
                   ) : (
                     <AnnotationCanvas
@@ -200,6 +201,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
                       sets={sets}
                       user={user}
                       lockedSet={lockedSet}
+                      sharePageBasePath={sharePageBasePath}
                     />
                   )}
                 </div>

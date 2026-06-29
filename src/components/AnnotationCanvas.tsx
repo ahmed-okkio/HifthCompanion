@@ -1,8 +1,9 @@
 'use client';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { AnnotationSet } from '@/types';
+import { TOTAL_PAGES, clampPage } from '@/lib/quran';
 import PageDisplayFrame from '@/components/PageDisplayFrame';
 import AnnotationToolbar from '@/components/AnnotationToolbar';
 import MobileAnnotationBar from '@/components/MobileAnnotationBar';
@@ -51,10 +52,12 @@ interface Props {
   /** Spread mode horizontal alignment: 'start' = flush-left (right page toward center),
    *  'end' = flush-right (left page toward center). Default 'center' (single mode). */
   flush?: 'start' | 'end';
+  /** When set (e.g. `/share/{setId}`), prev/next links target the share route instead of /reader. */
+  sharePageBasePath?: string;
 }
 
 function AnnotationCanvasInner(
-  { pageNum, imageUrl, sets, user, lockedSet = false, showSetsCard = true, tools, onCommit, view, flush }: Props,
+  { pageNum, imageUrl, sets, user, lockedSet = false, showSetsCard = true, tools, onCommit, view, flush, sharePageBasePath }: Props,
   ref: React.Ref<CanvasHandle>,
 ) {
   const {
@@ -77,6 +80,19 @@ function AnnotationCanvasInner(
 
   const controlled = !!view;
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const go = (page: number) => {
+    const clamped = clampPage(page);
+    if (sharePageBasePath) {
+      router.push(`${sharePageBasePath}/${clamped}`, { scroll: false });
+      return;
+    }
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('page');
+    const qs = params.toString();
+    router.push(`/reader/${clamped}${qs ? `?${qs}` : ''}`, { scroll: false });
+  };
 
   // D2: a collaborator's access was revoked mid-session — their next save was rejected by RLS.
   // Show a toast, then bounce them to their own reader.
@@ -234,6 +250,158 @@ function AnnotationCanvasInner(
                 The clip wrapper is sized to the un-scaled page (transform doesn't change layout),
                 so a zoomed-in page is cropped to its own box and never overflows onto the zoom
                 control below. Drawing is best at 100% (the default). */}
+            {controlled ? (
+            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
+              {flush === 'end' && (
+              <button
+                onClick={() => go(pageNum - (controlled ? 2 : 1))}
+                disabled={pageNum <= 1}
+                aria-label="Previous page"
+                style={{
+                  width: 'clamp(50px, 4vw, 120px)', minWidth: 50, flexShrink: 0,
+                  border: 'none',
+                  background: 'transparent', boxShadow: 'none',
+                  cursor: pageNum <= 1 ? 'default' : 'pointer',
+                  borderRadius: 'var(--radius-lg-px)',
+                  transition: 'background 220ms ease, box-shadow 220ms ease, transform 120ms var(--ease-out)',
+                  opacity: pageNum <= 1 ? 0.3 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                onMouseEnter={e => {
+                  if (pageNum <= 1) return;
+                  const el = e.currentTarget;
+                  el.style.background = 'var(--surface-app)';
+                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget;
+                  el.style.background = 'transparent';
+                  el.style.boxShadow = 'none';
+                }}
+                onMouseDown={e => {
+                  if (pageNum <= 1) return;
+                  const el = e.currentTarget;
+                  el.style.transform = 'scale(0.94)';
+                  el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.18)';
+                }}
+                onMouseUp={e => {
+                  const el = e.currentTarget;
+                  el.style.transform = '';
+                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
+                }}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transition: 'color 220ms ease' }}>
+                  <path d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              )}
+            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-page)', flex: 1, minWidth: 0 }}>
+              <div style={{ transform: `translate(${eff.pan.x}px, ${eff.pan.y}px) scale(${eff.zoom / 100})`, transformOrigin: 'center center', transition: eff.dragging ? 'none' : 'transform 120ms var(--ease-out, ease)' }}>
+                <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush}>
+                  <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
+                </PageDisplayFrame>
+              </div>
+
+              {/* Pan overlay — present while the Move tool is active. Captures drag to move the
+                  zoomed page (and blocks drawing); absent otherwise so annotation drawing works. */}
+              {eff.moveTool && (
+                <div
+                  aria-label="Drag to move the page"
+                  onMouseDown={eff.onPanDown}
+                  onMouseMove={eff.onPanMove}
+                  onMouseUp={eff.endPan}
+                  onMouseLeave={eff.endPan}
+                  style={{ position: 'absolute', inset: 0, zIndex: 3, cursor: eff.dragging ? 'grabbing' : 'grab' }}
+                />
+              )}
+            </div>
+              {flush === 'start' && (
+              <button
+                onClick={() => go(pageNum + (controlled ? 2 : 1))}
+                disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
+                aria-label="Next page"
+                style={{
+                  width: 'clamp(50px, 4vw, 120px)', minWidth: 50, flexShrink: 0,
+                  border: 'none',
+                  background: 'transparent', boxShadow: 'none',
+                  cursor: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 'default' : 'pointer',
+                  borderRadius: 'var(--radius-lg-px)',
+                  transition: 'background 220ms ease, box-shadow 220ms ease, transform 120ms var(--ease-out)',
+                  opacity: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 0.3 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                onMouseEnter={e => {
+                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
+                  const el = e.currentTarget;
+                  el.style.background = 'var(--surface-app)';
+                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget;
+                  el.style.background = 'transparent';
+                  el.style.boxShadow = 'none';
+                }}
+                onMouseDown={e => {
+                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
+                  const el = e.currentTarget;
+                  el.style.transform = 'scale(0.94)';
+                  el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.18)';
+                }}
+                onMouseUp={e => {
+                  const el = e.currentTarget;
+                  el.style.transform = '';
+                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
+                }}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transition: 'color 220ms ease' }}>
+                  <path d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              )}
+            </div>
+            ) : (
+            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+              <button
+                onClick={() => go(pageNum - (controlled ? 2 : 1))}
+                disabled={pageNum <= 1}
+                aria-label="Previous page"
+                style={{
+                  position: 'absolute', right: 'calc(100% + 20px)', top: 0, bottom: 0,
+                  width: '16vw', zIndex: 4, border: 'none',
+                  background: 'transparent', boxShadow: 'none',
+                  cursor: pageNum <= 1 ? 'default' : 'pointer',
+                  borderRadius: 'var(--radius-lg-px)',
+                  transition: 'background 220ms ease, box-shadow 220ms ease, transform 120ms var(--ease-out)',
+                  opacity: pageNum <= 1 ? 0.3 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                onMouseEnter={e => {
+                  if (pageNum <= 1) return;
+                  const el = e.currentTarget;
+                  el.style.background = 'var(--surface-app)';
+                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget;
+                  el.style.background = 'transparent';
+                  el.style.boxShadow = 'none';
+                }}
+                onMouseDown={e => {
+                  if (pageNum <= 1) return;
+                  const el = e.currentTarget;
+                  el.style.transform = 'scale(0.94)';
+                  el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.18)';
+                }}
+                onMouseUp={e => {
+                  const el = e.currentTarget;
+                  el.style.transform = '';
+                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
+                }}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transition: 'color 220ms ease' }}>
+                  <path d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
             <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-page)' }}>
               <div style={{ transform: `translate(${eff.pan.x}px, ${eff.pan.y}px) scale(${eff.zoom / 100})`, transformOrigin: 'center center', transition: eff.dragging ? 'none' : 'transform 120ms var(--ease-out, ease)' }}>
                 <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush}>
@@ -254,6 +422,49 @@ function AnnotationCanvasInner(
                 />
               )}
             </div>
+              <button
+                onClick={() => go(pageNum + (controlled ? 2 : 1))}
+                disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
+                aria-label="Next page"
+                style={{
+                  position: 'absolute', left: 'calc(100% + 20px)', top: 0, bottom: 0,
+                  width: '16vw', zIndex: 4, border: 'none',
+                  background: 'transparent', boxShadow: 'none',
+                  cursor: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 'default' : 'pointer',
+                  borderRadius: 'var(--radius-lg-px)',
+                  transition: 'background 220ms ease, box-shadow 220ms ease, transform 120ms var(--ease-out)',
+                  opacity: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 0.3 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                onMouseEnter={e => {
+                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
+                  const el = e.currentTarget;
+                  el.style.background = 'var(--surface-app)';
+                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget;
+                  el.style.background = 'transparent';
+                  el.style.boxShadow = 'none';
+                }}
+                onMouseDown={e => {
+                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
+                  const el = e.currentTarget;
+                  el.style.transform = 'scale(0.94)';
+                  el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.18)';
+                }}
+                onMouseUp={e => {
+                  const el = e.currentTarget;
+                  el.style.transform = '';
+                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
+                }}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transition: 'color 220ms ease' }}>
+                  <path d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            )}
 
             {/* Zoom control — floats just below the page (desktop). In spread mode the shell
                 renders ONE zoom control that scales both pages, so each canvas hides its own. */}

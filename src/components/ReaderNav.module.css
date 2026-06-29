@@ -159,17 +159,17 @@
   align-items: center;
   gap: var(--space-4);
   justify-self: center;
-  width: 220px;
+  width: auto;
   height: 50px;
   margin:auto;
   justify-content: center;
-  padding: var(--space-4);
+  padding: var(--space-8) var(--space-20);
   border-radius: var(--radius-md);
   /* Same colour as the nav bar (white surface) with a thin light-grey outline (like the Juz
-     breadcrumb) lifted by a pronounced drop shadow so it reads as a floating/hovering control. */
+     breadcrumb) lifted by a drop shadow so it reads as a floating/hovering control. */
   background: var(--surface-main);
   border: 1px solid var(--neutral-200);
-  box-shadow: var(--shadow-e3);
+  box-shadow: var(--shadow-e1);
 }
 
 .navButton,
@@ -241,33 +241,33 @@
 
 .pageShell {
   display: inline-flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: center;
+  gap: var(--space-4);
   flex: 1 1 auto;
   min-width: 0;
 }
 
-.pageButton {
-  width: 100%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-8);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-primary);
-}
-
-.pageButton:hover {
-  background: var(--surface-main);
+.pageLabel {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
 }
 
 .pageCurrent {
   font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-weight: 600;
+  color: var(--green-700);
   font-variant-numeric: tabular-nums;
+  cursor: text;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  transition: background 120ms var(--ease-out);
+}
+
+.pageCurrent:hover {
+  background: var(--neutral-100);
 }
 
 .pageDivider {
@@ -275,13 +275,14 @@
 }
 
 .pageTotal {
-  font-size: 0.85rem;
-  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
 }
 
 .pageInput {
-  width: 100%;
+  width: 3.5ch;
   padding: var(--space-4) var(--space-8);
   border: 0;
   outline: none;
@@ -290,10 +291,20 @@
   color: var(--text-primary);
   text-align: center;
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   box-shadow: inset 0 0 0 1px var(--accent-solid);
   caret-color: var(--accent);
+}
+
+.pageInput::-webkit-outer-spin-button,
+.pageInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pageInput[type='number'] {
+  -moz-appearance: textfield;
 }
 
 .pageInput::placeholder {

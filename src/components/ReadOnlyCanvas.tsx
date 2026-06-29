@@ -32,8 +32,8 @@ export default function ReadOnlyCanvas({ pageNum, imageUrl, canvasJson }: Props)
      const widthLimit = Math.max(280, containerRef.current!.clientWidth);
      const heightLimit = Math.max(320, window.innerHeight - 24);
      const fitSize = calculatePageCanvasSize(
-       img.naturalWidth || 1,
-       img.naturalHeight || 1,
+       800,
+       1132,
        widthLimit,
        heightLimit,
      );

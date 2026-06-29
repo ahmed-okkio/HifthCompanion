@@ -172,11 +172,11 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   // contain). Desktop is height-bound (fits the fixed app-shell, no page scroll); mobile is
   // width-bound (fills the column width, scroll down for the rest). No per-page tuning — just
   // scale the native image up/down to fit whatever box the layout gives it.
-  const computeFitSize = useCallback((natW: number, natH: number): PageCanvasSize => {
+  const computeFitSize = useCallback((_natW: number, _natH: number): PageCanvasSize => {
     const wrapperWidth = wrapperRef.current?.clientWidth || window.innerWidth - 72;
     const isMobile = window.innerWidth < 1024;
     const availableHeight = isMobile ? 100000 : Math.max(320, window.innerHeight - measurePageOffset());
-    return calculatePageCanvasSize(natW || 1, natH || 1, Math.max(280, wrapperWidth), availableHeight);
+    return calculatePageCanvasSize(800, 1132, Math.max(280, wrapperWidth), availableHeight);
   }, [measurePageOffset]);
 
   // Resize the live canvas to the contain-fit box for the given intrinsic size, and publish that

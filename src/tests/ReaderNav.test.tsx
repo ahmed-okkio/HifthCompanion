@@ -22,8 +22,10 @@ describe('ReaderNav', () => {
     (useRouter as any).mockReturnValue({ push: vi.fn() });
     render(<ReaderNav currentPage={1} />);
     expect(screen.getByText('Hifth Companion')).toBeDefined();
-    expect(screen.getByRole('button', { name: /previous page/i }).hasAttribute('disabled')).toBe(true);
-    expect(screen.getByRole('button', { name: /next page/i }).hasAttribute('disabled')).toBe(false);
+    expect(screen.getByText('Page')).toBeDefined();
+    expect(screen.getByText('1')).toBeDefined();
+    expect(screen.getByText('/')).toBeDefined();
+    expect(screen.getByText('604')).toBeDefined();
     expect(screen.queryByText('حفظ')).toBeNull();
   });
 });

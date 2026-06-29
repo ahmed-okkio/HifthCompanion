@@ -16,6 +16,8 @@ interface Props {
   sets: Pick<AnnotationSet, 'id' | 'name'>[];
   user: { id: string } | null;
   lockedSet?: boolean;
+  /** When set (e.g. `/share/{setId}`), prev/next links target the share route instead of /reader. */
+  sharePageBasePath?: string;
 }
 
 /**
@@ -27,7 +29,7 @@ interface Props {
  * Per PRD D10 each canvas keeps its OWN CanvasHistory; this controller only owns the order
  * arrays and calls the right canvas's undo/redo.
  */
-export default function SpreadAnnotation({ pages, sets, user, lockedSet = false }: Props) {
+export default function SpreadAnnotation({ pages, sets, user, lockedSet = false, sharePageBasePath }: Props) {
   const tools = useToolState();
   const { activeTool, setActiveTool, activeColor, setActiveColor, opacity, setOpacity, penWidth, setPenWidth } = tools;
 
@@ -153,6 +155,7 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false 
             onCommit={() => onCommit(0)}
             view={view}
             flush="start"
+            sharePageBasePath={sharePageBasePath}
           />
         </div>
         <div className="flex-1 min-w-0">
@@ -168,6 +171,7 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false 
             onCommit={() => onCommit(1)}
             view={view}
             flush="end"
+            sharePageBasePath={sharePageBasePath}
           />
         </div>
       </div>

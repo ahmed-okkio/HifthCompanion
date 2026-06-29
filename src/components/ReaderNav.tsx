@@ -92,19 +92,8 @@ export default function ReaderNav({
               </svg>
             </button>
           )}
-          <button
-            onClick={() => go(currentPage - (isSpread ? 2 : 1))}
-            disabled={isSpread ? currentPage <= 1 : currentPage === 1}
-            suppressHydrationWarning
-            title="Previous page"
-            className={styles.navButton}
-          >
-            <svg width="16" height="16" className={styles.navIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-
           <div className={styles.pageShell}>
+            <span className={styles.pageLabel}>Page</span>
             {jumpFocused ? (
               <input
                 type="number"
@@ -114,7 +103,7 @@ export default function ReaderNav({
                 autoFocus
                 onChange={e => setJumpInput(e.target.value)}
                 onKeyDown={e => {
-                  if (e.key === 'Enter') go(parseInt(jumpInput, 10));
+                  if (e.key === 'Enter') { go(parseInt(jumpInput, 10)); setJumpFocused(false); setJumpInput(''); }
                   if (e.key === 'Escape') setJumpFocused(false);
                 }}
                 onBlur={() => {
@@ -125,29 +114,20 @@ export default function ReaderNav({
                 className={styles.pageInput}
               />
             ) : (
-              <button
+              <span
                 onClick={() => setJumpFocused(true)}
                 title="Click to jump to page"
-                className={styles.pageButton}
+                className={styles.pageCurrent}
+                role="button"
+                tabIndex={0}
+                onKeyDown={e => { if (e.key === 'Enter') setJumpFocused(true); }}
               >
-                <span className={styles.pageCurrent}>{currentPage}</span>
-                <span className={styles.pageDivider}>/</span>
-                <span className={styles.pageTotal}>{TOTAL_PAGES}</span>
-              </button>
+                {currentPage}
+              </span>
             )}
+            <span className={styles.pageDivider}>/</span>
+            <span className={styles.pageTotal}>{TOTAL_PAGES}</span>
           </div>
-
-          <button
-            onClick={() => go(currentPage + (isSpread ? 2 : 1))}
-            disabled={isSpread ? currentPage >= TOTAL_PAGES - 1 : currentPage === TOTAL_PAGES}
-            suppressHydrationWarning
-            title="Next page"
-            className={styles.navButton}
-          >
-            <svg width="16" height="16" className={styles.navIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
         </div>
 
         <div className={styles.actions}>

@@ -189,6 +189,25 @@
   to { opacity: 1; transform: none; }
 }
 
+/* Landing page (home) — gentle hero motion. */
+@keyframes home-float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-14px) rotate(-2deg); }
+}
+@keyframes home-rise {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes home-aurora {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(6%, -4%) scale(1.1); }
+  66% { transform: translate(-5%, 5%) scale(0.95); }
+}
+.home-rise { animation: home-rise 0.7s var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) {
+  .home-float, .home-aurora-a, .home-aurora-b, .home-rise { animation: none !important; }
+}
+
 Firefox
 * {
   scrollbar-width: thin;
@@ -344,6 +363,17 @@ Firefox
 @media (max-width: 640px) {
   .hide-mobile {
     display: none !important;
+  }
+}
+
+/* Mobile: the slide-in nav drawer parks off-screen (translateX past the inline-start
+   edge). In RTL that off-screen edge is the right, which otherwise adds horizontal
+   scroll and lets the drawer peek back in. Clip it. Scoped to <lg only: the desktop
+   navbar is position:sticky and an overflow-x on an ancestor would break it; on mobile
+   the navbar is position:fixed, so clipping here is safe. */
+@media (max-width: 1023px) {
+  html, body {
+    overflow-x: hidden;
   }
 }
 

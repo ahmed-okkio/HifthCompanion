@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { RAIL_ITEMS, isRailItemActive, type RailItemDef } from './NavRail';
+import { useI18n } from './I18nProvider';
 
 interface Props {
   open: boolean;
@@ -19,6 +20,11 @@ interface Props {
 
 export default function MobileNavDrawer({ open, onOpenChange }: Props) {
   const pathname = usePathname() ?? '';
+  const { locale } = useI18n();
+  // Anchored to the inline-start edge (insetInlineStart: 0 → left in LTR, right in RTL).
+  // The hidden transform must push it off that same edge: -X in LTR, +X in RTL. Mixing
+  // a logical anchor with a fixed physical translateX is what broke the RTL drawer.
+  const hiddenTransform = locale === 'ar' ? 'translateX(105%)' : 'translateX(-105%)';
 
   useEffect(() => {
     if (open) document.body.style.overflow = 'hidden';
@@ -54,7 +60,7 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
           maxWidth: 320,
           background: 'var(--surface-main)',
           boxShadow: 'var(--shadow-e3)',
-          transform: open ? 'translateX(0)' : 'translateX(-105%)',
+          transform: open ? 'translateX(0)' : hiddenTransform,
           transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
           willChange: 'transform',
         }}

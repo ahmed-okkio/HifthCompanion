@@ -64,16 +64,24 @@ export default function MobileAnnotationBar({
         left: 14,
         right: 14,
         zIndex: 45,
-        /* V3 Story 16 — glass bar: white-tinted glass + 16px backdrop blur. Lifted off the
-           bottom with a deep shadow so it clearly hovers above the page. */
-        background: 'var(--bg-glass)',
-        backdropFilter: 'blur(16px) saturate(1.4)',
-        WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-max)',
-        boxShadow: '0 14px 36px rgba(15, 23, 42, 0.22)',
+        /* iOS Safari bug: position:fixed + backdrop-filter on the SAME element drops the
+           fixed behaviour on scroll (bar stops sticking, only reappears scrolled to the
+           bottom). Keep this fixed layer plain; the glass/blur lives on the inner wrapper. */
       }}
     >
+      <div
+        style={{
+          position: 'relative',
+          borderRadius: 'var(--radius-max)',
+          /* V3 Story 16 — glass bar: white-tinted glass + 16px backdrop blur. Lifted off the
+             bottom with a deep shadow so it clearly hovers above the page. */
+          background: 'var(--bg-glass)',
+          backdropFilter: 'blur(16px) saturate(1.4)',
+          WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
+          border: '1px solid var(--border-subtle)',
+          boxShadow: '0 14px 36px rgba(15, 23, 42, 0.22)',
+        }}
+      >
       {saving && (
         <span
           aria-hidden
@@ -262,6 +270,7 @@ export default function MobileAnnotationBar({
           </svg>
           <span className="sr-only">More actions</span>
         </button>
+      </div>
       </div>
     </div>
   );

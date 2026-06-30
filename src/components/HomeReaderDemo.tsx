@@ -7,6 +7,7 @@
 
 import Image from 'next/image';
 import { ALL_TOOLS, TOOL_ICONS, TOOL_LABELS, PRESET_COLORS } from '@/lib/canvasTools';
+import { getPageImageUrl } from '@/lib/quran';
 
 const SURAHS = [
   { n: 1, name: 'Al-Fatihah', page: 1 },
@@ -103,8 +104,8 @@ export default function HomeReaderDemo() {
           {/* Two flush pages + pre-drawn annotation overlay (percentage-positioned). */}
           <div className="relative mt-4" style={{ width: 'fit-content', maxWidth: '100%', borderRadius: 'var(--radius-page)', overflow: 'hidden', boxShadow: 'var(--shadow-e2)' }}>
             <div className="flex items-stretch" style={{ gap: 0 }}>
-              <Image src="/quran-pages/002.png" alt="" width={300} height={470} priority draggable={false} style={{ display: 'block', height: 'auto', width: 'clamp(140px, 30vw, 280px)' }} />
-              <Image src="/quran-pages/001.png" alt="" width={300} height={470} priority draggable={false} style={{ display: 'block', height: 'auto', width: 'clamp(140px, 30vw, 280px)' }} />
+              <Image src={getPageImageUrl(2)} alt="" width={300} height={470} priority draggable={false} style={{ display: 'block', height: 'auto', width: 'clamp(140px, 30vw, 280px)' }} />
+              <Image src={getPageImageUrl(1)} alt="" width={300} height={470} priority draggable={false} style={{ display: 'block', height: 'auto', width: 'clamp(140px, 30vw, 280px)' }} />
             </div>
 
             {/* Annotations — decorative, pointer-events:none. Coords are % of the spread. */}

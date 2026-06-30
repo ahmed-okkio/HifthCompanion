@@ -2,7 +2,6 @@
 
 import { createClient, createClientAction } from '@/lib/supabase/server';
 import type { Recurrence, Session } from '@/types';
-import { missingSlots } from '@/lib/recurrence';
 
 /** Sessions for a halaqah, soonest first within the window we care about. */
 export async function getSessions(halaqahId: string): Promise<Session[]> {
@@ -31,30 +30,33 @@ export async function setSchedule(
 }
 
 /**
- * Materialize missing recurring sessions over the horizon (M3-1). Idempotent:
- * only inserts slots not already present. Returns the freshly inserted rows.
+ * Materialize one virtual recurring slot into a real session row (M3-1).
+ * Idempotent: returns the existing row at that instant if present, else inserts.
+ * Recurring sessions are virtual (computed from halaqah.schedule) until an
+ * action — attendance or cancel — needs a row to hang off.
+ * ponytail: race window between the existence check and insert; add a
+ * unique(halaqah_id, scheduled_at) constraint if duplicate rows ever appear.
  */
-export async function generateSessions(
+export async function materializeSession(
   halaqahId: string,
-  schedule: Recurrence | null,
-  existing: Session[],
-  horizonDays = 28,
-): Promise<Session[]> {
-  const slots = missingSlots(
-    schedule,
-    existing.map((s) => s.scheduled_at),
-    new Date(),
-    horizonDays,
-  );
-  if (slots.length === 0) return [];
-
+  scheduledAt: string,
+): Promise<Session> {
   const supabase = await createClientAction();
+  const { data: existing } = await supabase
+    .from('session')
+    .select('*')
+    .eq('halaqah_id', halaqahId)
+    .eq('scheduled_at', scheduledAt)
+    .maybeSingle();
+  if (existing) return existing;
+
   const { data, error } = await supabase
     .from('session')
-    .insert(slots.map((scheduled_at) => ({ halaqah_id: halaqahId, scheduled_at })))
-    .select();
+    .insert({ halaqah_id: halaqahId, scheduled_at: scheduledAt })
+    .select()
+    .single();
   if (error) throw error;
-  return data ?? [];
+  return data;
 }
 
 /** Teacher adds an ad-hoc session (M3-2). */

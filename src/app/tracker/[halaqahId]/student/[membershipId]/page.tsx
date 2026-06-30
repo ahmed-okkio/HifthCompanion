@@ -35,7 +35,7 @@ export default async function StudentProfilePage({
 
   return (
     <AppShell breadcrumb={halaqah.name} user={account}>
-      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in flex flex-col gap-4">
+      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in flex flex-col gap-4 w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <div className="card flex items-center justify-between gap-3" style={{ padding: '14px 16px' }}>
           <div className="flex items-center gap-3 min-w-0">
             <Avatar seed={displayName(member)} size={44} />

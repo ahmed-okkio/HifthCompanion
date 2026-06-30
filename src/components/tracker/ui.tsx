@@ -124,6 +124,46 @@ export function Chevron() {
   );
 }
 
+/** Tab bar for switching between views. Minimal — just a row of buttons. */
+export function TabBar({
+  tabs,
+  active,
+  onSelect,
+}: {
+  tabs: { key: string; label: string }[];
+  active: string;
+  onSelect: (key: string) => void;
+}) {
+  return (
+    <div className="flex gap-0" role="tablist" style={{ borderBottom: '2px solid var(--border-subtle)' }}>
+      {tabs.map((t) => {
+        const isActive = t.key === active;
+        return (
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onSelect(t.key)}
+            className="btn btn-ghost"
+            style={{
+              minHeight: 42,
+              fontSize: 14,
+              fontWeight: isActive ? 600 : 400,
+              color: isActive ? 'var(--text-accent)' : 'var(--text-muted)',
+              borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+              marginBottom: -2,
+              borderRadius: 0,
+              padding: '8px 20px',
+            }}
+          >
+            {t.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Short, friendly label for a member that has no profile name yet. */
 export function shortId(id: string) {
   return id.slice(0, 6);

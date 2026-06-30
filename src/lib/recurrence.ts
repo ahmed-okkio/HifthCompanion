@@ -44,20 +44,3 @@ export function recurringSlots(
   }
   return out;
 }
-
-/**
- * Slots from {@link recurringSlots} not already covered by `existing`
- * scheduled_at values — the rows the caller should insert. Compares on the
- * exact instant (ms), so existing rows must use the same time basis.
- */
-export function missingSlots(
-  rule: Recurrence | null,
-  existing: string[],
-  from: Date = new Date(),
-  horizonDays = 28,
-): string[] {
-  const have = new Set(existing.map((s) => new Date(s).getTime()));
-  return recurringSlots(rule, from, horizonDays).filter(
-    (s) => !have.has(new Date(s).getTime()),
-  );
-}

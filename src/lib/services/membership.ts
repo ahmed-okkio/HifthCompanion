@@ -9,9 +9,14 @@ export type MembershipWithHalaqah = Membership & { halaqah: Halaqah };
 /** The current user's memberships, each with its halaqah (tracker landing). */
 export async function getMyMembershipsWithHalaqah(): Promise<MembershipWithHalaqah[]> {
   const supabase = await createClient();
+  // Must scope to the current user: the membership RLS also grants teachers read
+  // on every student row in their halaqat, so without this filter a teacher's
+  // landing would list their students' rows as halaqat they "joined".
+  const { data: { user } } = await supabase.auth.getUser();
   const { data, error } = await supabase
     .from('membership')
     .select('*, halaqah:halaqah_id(*)')
+    .eq('user_id', user?.id ?? '')
     .order('joined_at', { ascending: false });
 
   if (error) throw error;

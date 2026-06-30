@@ -110,11 +110,9 @@ export default function HomeReaderDemo() {
             {/* Annotations — decorative, pointer-events:none. Coords are % of the spread. */}
             <div className="absolute inset-0" aria-hidden style={{ pointerEvents: 'none' }}>
               {/* Highlighter over a line on the right (Fatihah) page */}
-              <span style={{ position: 'absolute', left: '57%', top: '34.5%', width: '33%', height: '3.4%', background: 'rgba(34,197,94,0.32)', borderRadius: 3 }} />
-              {/* Underline under a phrase on the right page */}
-              <span style={{ position: 'absolute', left: '60%', top: '46.5%', width: '27%', height: 0, borderBottom: '2.5px solid #3b82f6', borderRadius: 2 }} />
-              {/* Circle around an ayah marker on the right page */}
-              <span style={{ position: 'absolute', left: '85.5%', top: '40%', width: 22, height: 22, border: '2.5px solid #ef4444', borderRadius: '50%' }} />
+              <span style={{ position: 'absolute', left: '57%', top: '32.5%', width: '33%', height: '3.2%', background: 'rgba(34,197,94,0.32)', borderRadius: 3 }} />
+              {/* Circle around an ayah marker on the last line of the right page */}
+              <span style={{ position: 'absolute', left: '80%', top: '58%', width: 20, height: 20, border: '2.5px solid #ef4444', borderRadius: '50%' }} />
               {/* Highlighter on the left (Baqarah) page */}
               <span style={{ position: 'absolute', left: '13%', top: '40%', width: '30%', height: '3.4%', background: 'rgba(249,115,22,0.30)', borderRadius: 3 }} />
               {/* Pen tick on the left page */}

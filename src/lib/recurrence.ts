@@ -44,3 +44,20 @@ export function recurringSlots(
   }
   return out;
 }
+
+/**
+ * Slots from `rule` over the horizon that aren't already present in `existing`
+ * (a set of session `scheduled_at` ISO strings for ONE membership). Pure and
+ * membership-agnostic: the caller passes that membership's existing times and
+ * inserts the result under its membership_id (D4). Idempotent — feeding the
+ * generated slots back as `existing` yields [].
+ */
+export function missingSlots(
+  rule: Recurrence | null,
+  existing: Iterable<string>,
+  from: Date,
+  horizonDays = 28,
+): string[] {
+  const have = new Set(existing);
+  return recurringSlots(rule, from, horizonDays).filter((s) => !have.has(s));
+}

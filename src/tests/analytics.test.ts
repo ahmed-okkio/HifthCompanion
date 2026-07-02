@@ -7,7 +7,7 @@ import {
   rollup,
   attendanceStats,
 } from '../lib/analytics';
-import type { Halaqah, ProgressLog } from '../types';
+import type { Circle, ProgressLog } from '../types';
 
 // Mirror buildHeatmap's date derivation (local midnight -> toISOString) so the
 // comparison is timezone-stable: buildHeatmap's last cell is daysAgo(0).
@@ -23,8 +23,9 @@ function log(p: Partial<ProgressLog>): ProgressLog {
   return {
     id: Math.random().toString(36).slice(2),
     membership_id: 'm1',
+    homework_id: null,
     log_date: today(),
-    log_type: 'Sabaq',
+    log_type: 'memorization',
     page_start: 1,
     page_end: 1,
     surah: null,
@@ -41,12 +42,9 @@ function log(p: Partial<ProgressLog>): ProgressLog {
   };
 }
 
-const halaqah: Pick<Halaqah, 'log_types' | 'teacher_statuses'> = {
-  log_types: [
-    { label: 'Sabaq', role: 'memorize' },
-    { label: 'Sabqi', role: 'revise' },
-    { label: 'Reading', role: 'read' },
-  ],
+// D14: teacher_status polarity is still per-circle config; log_type→role is now
+// a hardcoded enum map (D8), so no log_types config is needed here anymore.
+const circle: Pick<Circle, 'teacher_statuses'> = {
   teacher_statuses: [
     { label: 'Excellent', polarity: 'positive' },
     { label: 'Needs work', polarity: 'negative' },
@@ -90,7 +88,7 @@ describe('cumulativeTotals', () => {
 
 describe('weakestSurahs', () => {
   it('ignores ungraded logs', () => {
-    const scores = weakestSurahs([log({ surah: 2, teacher_status: 'Needs work' })], halaqah);
+    const scores = weakestSurahs([log({ surah: 2, teacher_status: 'Needs work' })], circle);
     expect(scores).toHaveLength(0); // not reviewed
   });
 
@@ -101,7 +99,7 @@ describe('weakestSurahs', () => {
         log({ surah: 2, reviewed_at: today(), teacher_status: 'Excellent' }),
         log({ surah: 3, reviewed_at: today(), teacher_status: 'Needs work' }),
       ],
-      halaqah,
+      circle,
     );
     expect(scores[0]).toMatchObject({ surah: 3, ratio: 1 });
     expect(scores[1]).toMatchObject({ surah: 2, graded: 2, negative: 1, ratio: 0.5 });
@@ -110,27 +108,31 @@ describe('weakestSurahs', () => {
   it('derives surah from page range when surah field absent', () => {
     const scores = weakestSurahs(
       [log({ page_start: 2, page_end: 2, reviewed_at: today(), teacher_status: 'Needs work' })],
-      halaqah,
+      circle,
     );
     expect(scores[0].surah).toBe(2); // page 2 = Al-Baqara
   });
 });
 
-describe('coverageMap', () => {
-  it('memorize paints, revise records recency, read excluded', () => {
-    const cov = coverageMap(
-      [
-        log({ log_type: 'Sabaq', page_start: 5, page_end: 5 }),
-        log({ log_type: 'Sabqi', page_start: 5, page_end: 5, log_date: daysAgo(2) }),
-        log({ log_type: 'Sabqi', page_start: 5, page_end: 5, log_date: today() }),
-        log({ log_type: 'Reading', page_start: 10, page_end: 10 }),
-      ],
-      halaqah,
-    );
+// B2: type→role map is hardcoded — memorization paints coverage; both revision
+// types drive recency; no read role exists.
+describe('coverageMap (B2)', () => {
+  it('memorization paints; general/targeted revision record recency', () => {
+    const cov = coverageMap([
+      log({ log_type: 'memorization', page_start: 5, page_end: 5 }),
+      log({ log_type: 'general_revision', page_start: 5, page_end: 5, log_date: daysAgo(2) }),
+      log({ log_type: 'targeted_revision', page_start: 5, page_end: 5, log_date: today() }),
+    ]);
     expect(cov[5].memorized).toBe(true);
     expect(cov[5].lastRevised).toBe(today()); // most recent revise wins
-    expect(cov[10].memorized).toBe(false); // read excluded
+    expect(cov[10].memorized).toBe(false); // untouched page
     expect(cov[10].lastRevised).toBeNull();
+  });
+
+  it('a revision-only page is not marked memorized', () => {
+    const cov = coverageMap([log({ log_type: 'general_revision', page_start: 20, page_end: 20 })]);
+    expect(cov[20].memorized).toBe(false);
+    expect(cov[20].lastRevised).toBe(today());
   });
 });
 

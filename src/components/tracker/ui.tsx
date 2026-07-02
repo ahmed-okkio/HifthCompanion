@@ -6,7 +6,16 @@
  * as the reader (design tokens only, no bare hex/px palette values).
  */
 
-import type { ReactNode } from 'react';
+import { useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import type { HomeworkStatus } from '@/lib/homework';
+
+/** Badge palette per homework status — open/completed/missed at a glance. */
+export const HOMEWORK_STATUS_STYLE: Record<HomeworkStatus, CSSProperties> = {
+  open: { background: 'var(--accent-muted)', color: 'var(--text-accent)' },
+  completed: { background: 'rgba(16,185,129,0.12)', color: 'var(--success)' },
+  missed: { background: 'var(--danger-muted)', color: 'var(--danger)' },
+};
 
 /** Page hero: large title + optional subtitle, the same altitude the reader
  *  uses for section intros. */
@@ -101,6 +110,174 @@ export function Avatar({ seed, size = 36 }: { seed: string; size?: number }) {
     >
       {initial}
     </span>
+  );
+}
+
+/** KPI tile: icon chip + big value over a small label. */
+export function StatCard({
+  value,
+  label,
+  icon,
+}: {
+  value: ReactNode;
+  label: string;
+  icon?: ReactNode;
+}) {
+  return (
+    <div className="card flex items-center gap-3" style={{ padding: '14px 16px' }}>
+      {icon && (
+        <span
+          aria-hidden
+          className="flex items-center justify-center shrink-0"
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--accent-muted)',
+            fontSize: 18,
+          }}
+        >
+          {icon}
+        </span>
+      )}
+      <div className="flex flex-col min-w-0">
+        <span
+          className="font-bold leading-tight truncate"
+          style={{ color: 'var(--text-primary)', fontSize: 22 }}
+        >
+          {value}
+        </span>
+        <span className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+          {label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Calendar-style date block for agenda rows: weekday over day-of-month. */
+export function DateChip({ iso, locale }: { iso: string; locale: string }) {
+  const d = new Date(iso);
+  return (
+    <span
+      aria-hidden
+      className="flex flex-col items-center justify-center shrink-0"
+      style={{
+        width: 46,
+        height: 46,
+        borderRadius: 'var(--radius-md)',
+        background: 'var(--accent-muted)',
+        color: 'var(--text-accent)',
+      }}
+    >
+      <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.4 }}>
+        {d.toLocaleDateString(locale, { weekday: 'short' })}
+      </span>
+      <span style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.1 }}>{d.getDate()}</span>
+    </span>
+  );
+}
+
+/** Labeled −/+ stepper for bounded numbers (page ranges). Replaces bare
+ *  type="number" inputs whose native spinners look nothing like the app. */
+export function NumberStepper({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  onChange: (v: number) => void;
+}) {
+  const clamp = (v: number) => Math.max(min, Math.min(max, Number.isNaN(v) ? min : v));
+  // Draft mirrors the field while typing so intermediate states ("", "6" on the
+  // way to "60") aren't clamped mid-keystroke; commit on blur.
+  const [draft, setDraft] = useState<string | null>(null);
+  const step = (delta: number) => {
+    setDraft(null);
+    onChange(clamp(value + delta));
+  };
+  const btn: CSSProperties = {
+    width: 34,
+    alignSelf: 'stretch',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 16,
+    fontWeight: 600,
+    color: 'var(--text-muted)',
+    background: 'transparent',
+    border: 'none',
+    cursor: 'pointer',
+    transition: 'all var(--duration-fast) var(--ease-out)',
+  };
+  return (
+    <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+      {label}
+      <span
+        className="flex items-center"
+        style={{
+          height: 40,
+          border: '1px solid var(--border-default)',
+          borderRadius: 'var(--radius-sm)',
+          background: 'var(--bg-input)',
+          overflow: 'hidden',
+        }}
+      >
+        <button type="button" aria-label="−" tabIndex={-1} style={btn}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => step(-1)}>
+          −
+        </button>
+        <input
+          type="number"
+          inputMode="numeric"
+          value={draft ?? value}
+          min={min}
+          max={max}
+          onChange={(e) => {
+            setDraft(e.target.value);
+            const n = Number(e.target.value);
+            if (e.target.value !== '' && n >= min && n <= max) onChange(n);
+          }}
+          onBlur={() => {
+            onChange(clamp(Number(draft ?? value)));
+            setDraft(null);
+          }}
+          onFocus={(e) => e.target.select()}
+          style={{
+            width: 46,
+            textAlign: 'center',
+            border: 'none',
+            outline: 'none',
+            background: 'transparent',
+            fontSize: 14,
+            fontWeight: 600,
+            color: 'var(--text-primary)',
+          }}
+        />
+        <button type="button" aria-label="+" tabIndex={-1} style={btn}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => step(1)}>
+          +
+        </button>
+      </span>
+    </label>
+  );
+}
+
+/** Small status dot (active/pending/…). */
+export function StatusDot({ color }: { color: string }) {
+  return (
+    <span
+      aria-hidden
+      className="shrink-0"
+      style={{ width: 8, height: 8, borderRadius: 'var(--radius-full)', background: color }}
+    />
   );
 }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { recurringSlots } from '../lib/recurrence';
+import { recurringSlots, missingSlots } from '../lib/recurrence';
 import type { Recurrence } from '../types';
 
 // Fixed Monday for determinism: 2026-06-29 is a Monday (getDay() === 1).
@@ -32,5 +32,37 @@ describe('recurringSlots', () => {
     const slots = recurringSlots(rule, MON, 7);
     expect(slots).toHaveLength(1);
     expect(new Date(slots[0]).getHours()).toBe(0);
+  });
+});
+
+// B1: per-membership recurrence — missingSlots keyed off one membership's
+// existing session times; idempotent; a second schedule generates independently.
+describe('missingSlots (B1)', () => {
+  const rule: Recurrence = { weekdays: [1], time: '17:00' }; // Mondays 17:00
+
+  it('generates one slot per matching weekday when nothing exists', () => {
+    const slots = missingSlots(rule, [], MON, 14);
+    expect(slots).toHaveLength(2); // two Mondays in 14 days
+    expect(new Date(slots[0]).getDay()).toBe(1);
+  });
+
+  it('is idempotent: re-feeding generated slots adds nothing', () => {
+    const first = missingSlots(rule, [], MON, 14);
+    expect(missingSlots(rule, first, MON, 14)).toEqual([]);
+  });
+
+  it('only fills the gap when some slots already exist', () => {
+    const all = recurringSlots(rule, MON, 14);
+    const gap = missingSlots(rule, [all[0]], MON, 14); // first Monday already scheduled
+    expect(gap).toEqual([all[1]]);
+  });
+
+  it('a second membership schedule generates independently', () => {
+    const a = missingSlots({ weekdays: [1], time: '17:00' }, [], MON, 7); // Mon
+    const b = missingSlots({ weekdays: [3], time: '09:00' }, [], MON, 7); // Wed
+    expect(a).toHaveLength(1);
+    expect(b).toHaveLength(1);
+    expect(new Date(a[0]).getDay()).toBe(1);
+    expect(new Date(b[0]).getDay()).toBe(3);
   });
 });

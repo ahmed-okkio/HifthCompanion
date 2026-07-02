@@ -1,12 +1,14 @@
 'use server';
 
 import { createClient, createClientAction } from '@/lib/supabase/server';
-import type { ProgressLog } from '@/types';
+import type { LogType, ProgressLog } from '@/types';
 
 export type NewProgressLog = {
   membership_id: string;
+  // null = open self-submission; set = linked to a homework prescription (D6).
+  homework_id?: string | null;
   log_date?: string;
-  log_type: string;
+  log_type: LogType;
   page_start: number;
   page_end: number;
   surah?: number | null;
@@ -58,7 +60,13 @@ export async function createLog(log: NewProgressLog): Promise<ProgressLog> {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    // Deadline hard-lock (guard_homework_deadline trigger, D10) — surface cleanly.
+    if (/past-deadline/i.test(error.message)) {
+      throw new Error('This homework is past its deadline and can no longer be submitted.');
+    }
+    throw error;
+  }
   return data;
 }
 

@@ -11,7 +11,7 @@ specific, load-bearing meaning in the code or product.
   switcher* (see **Section**). Desktop only; its mobile equivalent is the
   **Nav drawer**. (ADR 0002 D1)
 - **Section** — a top-level destination in the rail. The sections are
-  **Surahs** (`/reader`), **Halaqas** (`/tracker`), **Sets** (`/sets`).
+  **Surahs** (`/reader`), **Circles** (`/tracker`), **Sets** (`/sets`).
   Settings is *not* a section. (ADR 0002 D2)
 - **Nav drawer / MobileNavDrawer** — the `< lg` left slide-in listing the same
   sections as the rail.
@@ -28,8 +28,10 @@ specific, load-bearing meaning in the code or product.
 
 ## Domain (tracker) — see ADR / PRD for detail
 
-- **Halaqah** (pl. **Halaqat**) — a teacher-led memorization study circle. The
-  rail label **Halaqas** is the user-facing English plural for this section.
+- **Hifth Circle** — a teacher's roster of 1:1 memorization students (formerly
+  **Halaqah**; renamed in PRD 0005 — `halaqah`→`circle` end to end). The rail
+  label **Circles** is the user-facing English plural for this section; Arabic
+  **حلقة التحفيظ**.
 - **Set / Annotation set** — a named collection of a user's Quran page
   annotations. Surfaced as the **Sets** section.
 - **Share view** — `/share/[userId]/[page]`, a view of another user's

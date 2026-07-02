@@ -17,7 +17,7 @@ The app had grown two halves with divergent chrome:
 There was no consistent way to move between the two halves, and the logout
 button was a bare action rather than the account menu users expect. The rail
 also leaked a conceptual error: it mixed *section navigation* (Surahs → reader,
-Halaqas → tracker) with *reader-only content types* (Bookmarks/Notes/Tags) that
+Circles → tracker) with *reader-only content types* (Bookmarks/Notes/Tags) that
 can never apply on a tracker page.
 
 ## Decisions
@@ -29,13 +29,13 @@ equivalent. The former Bookmarks/Notes/Tags were throwaway placeholders and are
 removed; they may return later as *reader-local* sub-navigation, never as global
 rail items.
 
-### D2 — Sections are Surahs, Halaqas, Sets
+### D2 — Sections are Surahs, Circles, Sets
 Every rail item is a real destination:
 
 | Item | Route | Active when path… |
 |------|-------|-------------------|
 | Surahs | `/reader/1` | starts `/reader` or `/share` |
-| Halaqas | `/tracker` | starts `/tracker` |
+| Circles | `/tracker` | starts `/tracker` |
 | Sets | `/sets` | starts `/sets` |
 
 No inert "coming soon" items in the rail. **Settings** is not a section — it

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import AppShell from '@/components/AppShell';
 import TrackerHome from '@/components/tracker/TrackerHome';
-import { getMyMembershipsWithHalaqah } from '@/lib/services/membership';
+import { getMyMembershipsWithCircle } from '@/lib/services/membership';
 import { getMyChrome } from '@/lib/services/profile';
 
 export default async function TrackerPage() {
@@ -10,7 +10,7 @@ export default async function TrackerPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const memberships = await getMyMembershipsWithHalaqah();
+  const memberships = await getMyMembershipsWithCircle();
   const account = await getMyChrome(user);
 
   return (

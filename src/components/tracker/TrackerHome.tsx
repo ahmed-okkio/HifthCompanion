@@ -2,20 +2,21 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
-import type { MembershipWithHalaqah } from '@/lib/services/membership';
-import { createHalaqah } from '@/lib/services/halaqah';
-import { joinHalaqah } from '@/lib/services/membership';
-import { getHalaqahByCode } from '@/lib/services/halaqah';
+import type { MembershipWithCircle } from '@/lib/services/membership';
+import { createCircle, getCircleByCode } from '@/lib/services/circle';
+import { joinCircle } from '@/lib/services/membership';
 import PushToggle from '@/components/PushToggle';
 import { PageHeader, SectionTitle, EmptyState, Avatar, Chevron } from './ui';
 
 export default function TrackerHome({
   initialMemberships,
 }: {
-  initialMemberships: MembershipWithHalaqah[];
+  initialMemberships: MembershipWithCircle[];
 }) {
   const { t } = useI18n();
+  const router = useRouter();
   const [memberships, setMemberships] = useState(initialMemberships);
   const [newName, setNewName] = useState('');
   const [code, setCode] = useState('');
@@ -24,24 +25,26 @@ export default function TrackerHome({
 
   const teaching = memberships.filter((m) => m.role === 'teacher' && m.status === 'active');
   const enrolled = memberships.filter((m) => m.role === 'student' && m.status === 'active');
+  // Pending invites (email or a joined-but-unaccepted code): land on the accept screen.
+  const pending = memberships.filter((m) => m.role === 'student' && m.status === 'pending');
 
   async function handleCreate() {
     if (!newName.trim() || busy) return;
     setBusy(true);
     setError(null);
     try {
-      const h = await createHalaqah(newName);
+      const h = await createCircle(newName);
       // Reflect the new teacher membership locally.
       setMemberships((prev) => [
         {
           id: `local-${h.id}`,
-          halaqah_id: h.id,
+          circle_id: h.id,
           user_id: '',
           role: 'teacher',
-          shared_set_id: null,
+          schedule: null,
           status: 'active',
           joined_at: new Date().toISOString(),
-          halaqah: h,
+          circle: h,
         },
         ...prev,
       ]);
@@ -58,11 +61,12 @@ export default function TrackerHome({
     setBusy(true);
     setError(null);
     try {
-      const h = await getHalaqahByCode(code);
-      if (!h) throw new Error('No halaqah with that code');
-      const m = await joinHalaqah(h.id);
-      setMemberships((prev) => [{ ...m, halaqah: h }, ...prev]);
+      const h = await getCircleByCode(code);
+      if (!h) throw new Error('No circle with that code');
+      await joinCircle(h.id); // lands as 'pending' — consent gate (C4)
       setCode('');
+      router.push(`/tracker/${h.id}`); // → accept screen, not a silent active join
+      return;
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -70,7 +74,7 @@ export default function TrackerHome({
     }
   }
 
-  const empty = teaching.length === 0 && enrolled.length === 0;
+  const empty = teaching.length === 0 && enrolled.length === 0 && pending.length === 0;
 
   return (
     <div className="flex flex-col gap-8">
@@ -92,14 +96,14 @@ export default function TrackerHome({
         </div>
       )}
 
-      {/* Create + join actions */}
-      <div className="card flex flex-col gap-4" style={{ padding: '18px 18px' }}>
-        <Field label={t('tracker.createHalaqah')}>
+      {/* Create + join actions — two side-by-side cards */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <ActionCard icon="✨" label={t('tracker.createCircle')}>
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-            placeholder={t('tracker.createHalaqahHint')}
+            placeholder={t('tracker.createCircleHint')}
             className="input"
             style={{ flex: 1, minWidth: 0 }}
           />
@@ -107,11 +111,9 @@ export default function TrackerHome({
                   className="btn btn-primary" style={{ flexShrink: 0, minHeight: 44 }}>
             {t('common.create')}
           </button>
-        </Field>
+        </ActionCard>
 
-        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-
-        <Field label={t('tracker.joinHalaqah')}>
+        <ActionCard icon="🔑" label={t('tracker.joinCircle')}>
           <input
             value={code}
             onChange={(e) => setCode(e.target.value)}
@@ -124,7 +126,7 @@ export default function TrackerHome({
                   className="btn btn-outline" style={{ flexShrink: 0, minHeight: 44 }}>
             {t('common.join')}
           </button>
-        </Field>
+        </ActionCard>
       </div>
 
       {empty && (
@@ -134,6 +136,7 @@ export default function TrackerHome({
         </EmptyState>
       )}
 
+      <Section title={t('accept.title')} memberships={pending} hrefBase="/tracker" />
       <Section title={t('tracker.teaching')} memberships={teaching} hrefBase="/tracker" />
       <Section title={t('tracker.enrolled')} memberships={enrolled} hrefBase="/tracker" />
 
@@ -144,12 +147,18 @@ export default function TrackerHome({
   );
 }
 
-/** Labelled input + button row used by the create/join actions card. */
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+/** Icon + label header over an input + button row; one card per action. */
+function ActionCard({ icon, label, children }: { icon: string; label: string; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-2">
-      <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-        {label}
+    <label className="card flex flex-col gap-3" style={{ padding: '16px 18px' }}>
+      <span className="flex items-center gap-2">
+        <span aria-hidden className="flex items-center justify-center shrink-0"
+              style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', background: 'var(--accent-muted)', fontSize: 15 }}>
+          {icon}
+        </span>
+        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+          {label}
+        </span>
       </span>
       <div className="flex gap-2 items-center">{children}</div>
     </label>
@@ -162,7 +171,7 @@ function Section({
   hrefBase,
 }: {
   title: string;
-  memberships: MembershipWithHalaqah[];
+  memberships: MembershipWithCircle[];
   hrefBase: string;
 }) {
   const { t } = useI18n();
@@ -172,24 +181,23 @@ function Section({
       <SectionTitle trailing={<span className="badge-muted badge">{memberships.length}</span>}>
         {title}
       </SectionTitle>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-2">
       {memberships.map((m) => (
         <Link
           key={m.id}
-          href={`${hrefBase}/${m.halaqah_id}`}
+          href={`${hrefBase}/${m.circle_id}`}
           className="card group flex items-center gap-3"
-          style={{ padding: '14px 16px' }}
+          style={{ padding: '16px 18px' }}
         >
-          <Avatar seed={m.halaqah.name} />
-          <div className="flex flex-col min-w-0 flex-1">
+          <Avatar seed={m.circle.name} size={44} />
+          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
             <span className="font-semibold text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-              {m.halaqah.name}
+              {m.circle.name}
             </span>
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
               {t(m.role === 'teacher' ? 'tracker.roleTeacher' : 'tracker.roleStudent')}
             </span>
           </div>
-          <span className="badge">{t(m.role === 'teacher' ? 'tracker.roleTeacher' : 'tracker.roleStudent')}</span>
           <Chevron />
         </Link>
       ))}

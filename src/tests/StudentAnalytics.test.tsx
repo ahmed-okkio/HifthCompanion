@@ -2,20 +2,15 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import StudentAnalytics from '../components/tracker/StudentAnalytics';
 import { I18nProvider } from '../components/I18nProvider';
-import type { Halaqah, ProgressLog } from '../types';
+import type { Circle, ProgressLog } from '../types';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-const halaqah: Halaqah = {
+const circle: Circle = {
   id: 'h1',
   teacher_id: 't1',
   name: 'Test',
   invite_code: 'abc',
-  schedule: null,
-  log_types: [
-    { label: 'Sabaq', role: 'memorize' },
-    { label: 'Sabqi', role: 'revise' },
-  ],
   student_statuses: [{ label: 'Done', polarity: 'positive' }],
   teacher_statuses: [
     { label: 'Excellent', polarity: 'positive' },
@@ -29,7 +24,8 @@ function makeLog(p: Partial<ProgressLog>): ProgressLog {
     id: Math.random().toString(36).slice(2),
     membership_id: 'm1',
     log_date: today(),
-    log_type: 'Sabaq',
+    homework_id: null,
+    log_type: 'memorization',
     page_start: 1,
     page_end: 1,
     surah: null,
@@ -49,7 +45,7 @@ function makeLog(p: Partial<ProgressLog>): ProgressLog {
 const renderPanel = (logs: ProgressLog[]) =>
   render(
     <I18nProvider locale="en">
-      <StudentAnalytics halaqah={halaqah} logs={logs} />
+      <StudentAnalytics circle={circle} logs={logs} />
     </I18nProvider>,
   );
 

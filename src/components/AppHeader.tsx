@@ -18,7 +18,7 @@ export default function AppHeader({
   right,
   onOpenNav,
 }: {
-  /** Optional context label shown after the brand (e.g. a halaqah name). */
+  /** Optional context label shown after the brand (e.g. a circle name). */
   breadcrumb?: string;
   /** Right-aligned actions (language switcher, nav links, …). */
   right?: ReactNode;

@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { useI18n } from '@/components/I18nProvider';
-import type { Attendance, Halaqah, ProgressLog } from '@/types';
+import type { Attendance, Circle, ProgressLog } from '@/types';
 import {
   attendanceStats,
   buildHeatmap,
@@ -14,20 +14,20 @@ import { getSurahName, TOTAL_JUZ, TOTAL_PAGES } from '@/lib/quran';
 
 /** Per-student analytics panel (M2-1..M2-4). */
 export default function StudentAnalytics({
-  halaqah,
+  circle,
   logs,
   attendance = [],
 }: {
-  halaqah: Halaqah;
+  circle: Circle;
   logs: ProgressLog[];
-  attendance?: Attendance[];
+  attendance?: Pick<Attendance, 'status'>[];
 }) {
   const { t, locale } = useI18n();
 
   const heatmap = useMemo(() => buildHeatmap(logs), [logs]);
   const totals = useMemo(() => cumulativeTotals(logs), [logs]);
-  const weak = useMemo(() => weakestSurahs(logs, halaqah).slice(0, 5), [logs, halaqah]);
-  const coverage = useMemo(() => coverageMap(logs, halaqah), [logs, halaqah]);
+  const weak = useMemo(() => weakestSurahs(logs, circle).slice(0, 5), [logs, circle]);
+  const coverage = useMemo(() => coverageMap(logs), [logs]);
   const att = useMemo(() => attendanceStats(attendance), [attendance]);
 
   const maxCount = Math.max(1, ...heatmap.map((d) => d.count));

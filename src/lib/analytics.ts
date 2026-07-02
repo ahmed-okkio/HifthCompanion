@@ -1,20 +1,22 @@
-import type { Attendance, Halaqah, LogRole, Polarity, ProgressLog } from '@/types';
+import type { Attendance, Circle, LogRole, LogType, Polarity, ProgressLog } from '@/types';
 import { getJuzForPage, getSurahForPage, TOTAL_JUZ, TOTAL_PAGES } from '@/lib/quran';
 
 // ---------------------------------------------------------------------------
-// M2 analytics — pure functions over a student's logs + halaqah config.
-// Logs store free-text log_type / teacher_status labels; role and polarity are
-// resolved through the halaqah config maps below.
+// analytics — pure functions over a student's logs + circle config.
+// Role is derived directly from the fixed log_type enum (D8 hardcoded map);
+// teacher_status polarity is still resolved through the per-circle config (D14).
 // ---------------------------------------------------------------------------
 
-/** label -> role, from halaqah.log_types. */
-export function roleMap(halaqah: Pick<Halaqah, 'log_types'>): Map<string, LogRole> {
-  return new Map(halaqah.log_types.map((l) => [l.label, l.role]));
-}
+/** Fixed log_type → role map (D8). No `read` role remains. */
+const TYPE_ROLE: Record<LogType, LogRole> = {
+  memorization: 'memorize',
+  general_revision: 'revise',
+  targeted_revision: 'revise',
+};
 
-/** label -> polarity, from halaqah.teacher_statuses. */
-export function teacherPolarityMap(halaqah: Pick<Halaqah, 'teacher_statuses'>): Map<string, Polarity> {
-  return new Map(halaqah.teacher_statuses.map((s) => [s.label, s.polarity]));
+/** label -> polarity, from circle.teacher_statuses. */
+export function teacherPolarityMap(circle: Pick<Circle, 'teacher_statuses'>): Map<string, Polarity> {
+  return new Map(circle.teacher_statuses.map((s) => [s.label, s.polarity]));
 }
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -87,8 +89,8 @@ function surahsOf(log: ProgressLog): number[] {
  * Only reviewed logs with a teacher_status count. Sorted weakest first
  * (highest ratio, then most graded), surahs with no graded logs excluded.
  */
-export function weakestSurahs(logs: ProgressLog[], halaqah: Pick<Halaqah, 'teacher_statuses'>): SurahScore[] {
-  const pol = teacherPolarityMap(halaqah);
+export function weakestSurahs(logs: ProgressLog[], circle: Pick<Circle, 'teacher_statuses'>): SurahScore[] {
+  const pol = teacherPolarityMap(circle);
   const graded = new Map<number, number>();
   const negative = new Map<number, number>();
 
@@ -115,18 +117,18 @@ export type PageCoverage = { memorized: boolean; lastRevised: string | null };
 
 /**
  * Per-page coverage: role=memorize logs paint `memorized`; role=revise logs
- * track the most recent revision date (recency layer); role=read excluded.
+ * track the most recent revision date (recency layer). Role is derived from the
+ * fixed log_type enum (D8) — no circle config needed.
  * Returns a 1..604 array (index 0 unused) for cheap lookup in the grid.
  */
-export function coverageMap(logs: ProgressLog[], halaqah: Pick<Halaqah, 'log_types'>): PageCoverage[] {
-  const roles = roleMap(halaqah);
+export function coverageMap(logs: ProgressLog[]): PageCoverage[] {
   const map: PageCoverage[] = Array.from({ length: TOTAL_PAGES + 1 }, () => ({
     memorized: false,
     lastRevised: null as string | null,
   }));
 
   for (const l of logs) {
-    const role = roles.get(l.log_type);
+    const role = TYPE_ROLE[l.log_type];
     if (role !== 'memorize' && role !== 'revise') continue;
     for (const p of pagesOf(l)) {
       if (role === 'memorize') map[p].memorized = true;

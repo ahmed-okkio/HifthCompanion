@@ -25,7 +25,7 @@ export async function getMyChrome(
 
 /**
  * Profiles for the given user ids, keyed by id. RLS only returns rows the
- * caller may read (self + halaqah co-members), so missing ids are expected and
+ * caller may read (self + circle co-members), so missing ids are expected and
  * callers fall back to a short-id tag via displayName().
  */
 export async function getProfilesByIds(ids: string[]): Promise<Map<string, Profile>> {

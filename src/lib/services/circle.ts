@@ -1,13 +1,13 @@
 'use server';
 
 import { createClient, createClientAction } from '@/lib/supabase/server';
-import type { Halaqah } from '@/types';
+import type { Circle } from '@/types';
 
-/** Halaqat the current user teaches (created). */
-export async function getTeachingHalaqat(): Promise<Halaqah[]> {
+/** Circles the current user teaches (created). */
+export async function getTeachingCircles(): Promise<Circle[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('halaqah')
+    .from('circle')
     .select('*')
     .order('created_at', { ascending: false });
 
@@ -15,10 +15,10 @@ export async function getTeachingHalaqat(): Promise<Halaqah[]> {
   return data ?? [];
 }
 
-export async function getHalaqah(id: string): Promise<Halaqah | null> {
+export async function getCircle(id: string): Promise<Circle | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('halaqah')
+    .from('circle')
     .select('*')
     .eq('id', id)
     .maybeSingle();
@@ -27,11 +27,11 @@ export async function getHalaqah(id: string): Promise<Halaqah | null> {
   return data ?? null;
 }
 
-/** Look up a halaqah by invite code (for the join flow). */
-export async function getHalaqahByCode(code: string): Promise<Halaqah | null> {
+/** Look up a circle by invite code (for the join flow). */
+export async function getCircleByCode(code: string): Promise<Circle | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('halaqah')
+    .from('circle')
     .select('*')
     .eq('invite_code', code.trim().toLowerCase())
     .maybeSingle();
@@ -40,11 +40,11 @@ export async function getHalaqahByCode(code: string): Promise<Halaqah | null> {
   return data ?? null;
 }
 
-export async function createHalaqah(name: string): Promise<Halaqah> {
+export async function createCircle(name: string): Promise<Circle> {
   const supabase = await createClientAction();
   // Insert with config defaults from the migration.
   const { data, error } = await supabase
-    .from('halaqah')
+    .from('circle')
     .insert({ name: name.trim() })
     .select()
     .single();
@@ -52,20 +52,21 @@ export async function createHalaqah(name: string): Promise<Halaqah> {
   if (error) throw error;
 
   // Creator joins as a teacher membership so member-scoped reads include them.
+  // Teacher's own membership is active (the consent gate only applies to students).
   const { error: memError } = await supabase
     .from('membership')
-    .insert({ halaqah_id: data.id, role: 'teacher' });
+    .insert({ circle_id: data.id, role: 'teacher', status: 'active' });
   if (memError) throw memError;
 
   return data;
 }
 
-export async function updateHalaqahConfig(
+export async function updateCircleConfig(
   id: string,
-  config: Partial<Pick<Halaqah, 'name' | 'log_types' | 'student_statuses' | 'teacher_statuses'>>,
+  config: Partial<Pick<Circle, 'name' | 'student_statuses' | 'teacher_statuses'>>,
 ): Promise<void> {
   const supabase = await createClientAction();
-  const { error } = await supabase.from('halaqah').update(config).eq('id', id);
+  const { error } = await supabase.from('circle').update(config).eq('id', id);
   if (error) throw error;
 }
 
@@ -74,7 +75,7 @@ export async function rotateInviteCode(id: string): Promise<string> {
   const supabase = await createClientAction();
   const code = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
   const { error } = await supabase
-    .from('halaqah')
+    .from('circle')
     .update({ invite_code: code })
     .eq('id', id);
   if (error) throw error;

@@ -29,10 +29,13 @@ export interface Note {
 // Progression Tracker (M1)
 // ---------------------------------------------------------------------------
 
-export type LogRole = 'memorize' | 'revise' | 'read';
+export type LogRole = 'memorize' | 'revise';
 export type Polarity = 'negative' | 'positive' | 'neutral';
 export type MembershipRole = 'teacher' | 'student';
-export type MembershipStatus = 'active' | 'inactive' | 'blocked';
+export type MembershipStatus = 'pending' | 'active' | 'inactive' | 'blocked';
+
+/** Fixed homework / log type enum (D7). Drives the hardcoded type→role map (D8). */
+export type LogType = 'memorization' | 'general_revision' | 'targeted_revision';
 
 export interface LogTypeConfig {
   label: string;
@@ -45,7 +48,7 @@ export interface StatusConfig {
 }
 
 /**
- * Weekly recurrence rule stored on halaqah.schedule (M3). `weekdays` are
+ * Weekly recurrence rule stored on membership.schedule (D4). `weekdays` are
  * 0=Sunday..6=Saturday; `time` is local "HH:MM". null → no recurring sessions.
  */
 export interface Recurrence {
@@ -57,10 +60,12 @@ export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 
 export interface Session {
   id: string;
-  halaqah_id: string;
+  membership_id: string;
   scheduled_at: string;
   is_adhoc: boolean;
   canceled: boolean;
+  // Attendance collapsed onto the row (attendance table dropped, D3). null = unmarked.
+  attendance_status: AttendanceStatus | null;
   created_at: string;
 }
 
@@ -73,25 +78,28 @@ export interface Attendance {
   updated_at: string;
 }
 
-export interface Halaqah {
+export interface Circle {
   id: string;
   teacher_id: string;
   name: string;
   invite_code: string;
-  schedule: Recurrence | null;
-  log_types: LogTypeConfig[];
   student_statuses: StatusConfig[];
   teacher_statuses: StatusConfig[];
   created_at: string;
+  // ponytail: schedule/log_types columns are dropped at the DB (D4/D7); kept as
+  // optional here so analytics.ts (M6) still compiles until its rework lands.
+  schedule?: Recurrence | null;
+  log_types?: LogTypeConfig[];
 }
 
 export interface Membership {
   id: string;
-  halaqah_id: string;
+  circle_id: string;
   user_id: string;
   role: MembershipRole;
-  shared_set_id: string | null;
   status: MembershipStatus;
+  // Per-student weekly recurrence (D4). null → no recurring lesson slot.
+  schedule: Recurrence | null;
   joined_at: string;
 }
 
@@ -111,8 +119,10 @@ export type MemberWithProfile = Membership & {
 export interface ProgressLog {
   id: string;
   membership_id: string;
+  // Open self-submission (null) vs a submission linked to a prescription (D6).
+  homework_id: string | null;
   log_date: string;
-  log_type: string;
+  log_type: LogType;
   page_start: number;
   page_end: number;
   surah: number | null;
@@ -125,4 +135,29 @@ export interface ProgressLog {
   reviewed_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** A homework prescription for one student (D6/D9). Status is derived, not stored. */
+export interface Homework {
+  id: string;
+  membership_id: string;
+  prescribed_by: string;
+  type: LogType;
+  deadline: string | null; // date (local end-of-day)
+  page_start: number;
+  page_end: number;
+  surah: number | null;
+  ayah_start: number | null;
+  ayah_end: number | null;
+  instructions: string | null;
+  created_at: string;
+}
+
+/** One post in a per-student teacher↔student thread (D11). */
+export interface MembershipNote {
+  id: string;
+  membership_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
 }

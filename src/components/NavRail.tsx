@@ -7,7 +7,7 @@
  * on EVERY app surface (reader + tracker + sets) via ReaderShell and AppShell,
  * so the rail is the single cross-page navigation spine.
  *
- * Functional items (`surahs`, `halaqas`) are real `next/link` links; active
+ * Functional items (`surahs`, `circles`) are real `next/link` links; active
  * state is derived from the route via `usePathname()`. The remaining items
  * (Bookmarks/Notes/Tags/Settings) stay inert placeholders ("coming soon").
  *
@@ -46,8 +46,8 @@ function IconSurahs({ active }: { active: boolean }) {
   );
 }
 
-function IconHalaqas({ active }: { active: boolean }) {
-  // Group / people glyph — represents the halaqat (study circles).
+function IconCircles({ active }: { active: boolean }) {
+  // Group / people glyph — represents the Hifth Circles (teacher's students).
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={strokeColor(active)} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -90,9 +90,9 @@ export const RAIL_ITEMS: RailItemDef[] = [
     matchPrefixes: ['/reader', '/share'],
   },
   {
-    id: 'halaqas',
-    label: 'Halaqas',
-    icon: (active) => <IconHalaqas active={active} />,
+    id: 'circles',
+    label: 'Circles',
+    icon: (active) => <IconCircles active={active} />,
     href: '/tracker',
     matchPrefixes: ['/tracker'],
   },

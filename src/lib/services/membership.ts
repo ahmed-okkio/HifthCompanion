@@ -1,29 +1,29 @@
 'use server';
 
 import { createClient, createClientAction } from '@/lib/supabase/server';
-import type { Halaqah, Membership, MemberWithProfile } from '@/types';
+import type { Circle, Membership, MemberWithProfile } from '@/types';
 import { getProfilesByIds } from '@/lib/services/profile';
 
-export type MembershipWithHalaqah = Membership & { halaqah: Halaqah };
+export type MembershipWithCircle = Membership & { circle: Circle };
 
-/** The current user's memberships, each with its halaqah (tracker landing). */
-export async function getMyMembershipsWithHalaqah(): Promise<MembershipWithHalaqah[]> {
+/** The current user's memberships, each with its circle (tracker landing). */
+export async function getMyMembershipsWithCircle(): Promise<MembershipWithCircle[]> {
   const supabase = await createClient();
   // Must scope to the current user: the membership RLS also grants teachers read
-  // on every student row in their halaqat, so without this filter a teacher's
-  // landing would list their students' rows as halaqat they "joined".
+  // on every student row in their circles, so without this filter a teacher's
+  // landing would list their students' rows as circles they "joined".
   const { data: { user } } = await supabase.auth.getUser();
   const { data, error } = await supabase
     .from('membership')
-    .select('*, halaqah:halaqah_id(*)')
+    .select('*, circle:circle_id(*)')
     .eq('user_id', user?.id ?? '')
     .order('joined_at', { ascending: false });
 
   if (error) throw error;
-  return (data ?? []) as MembershipWithHalaqah[];
+  return (data ?? []) as MembershipWithCircle[];
 }
 
-/** The current user's memberships (across all halaqat). */
+/** The current user's memberships (across all circles). */
 export async function getMyMemberships(): Promise<Membership[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -36,24 +36,24 @@ export async function getMyMemberships(): Promise<Membership[]> {
   return data ?? [];
 }
 
-/** All memberships in a halaqah (teacher roster view). */
-export async function getHalaqahMembers(halaqahId: string): Promise<Membership[]> {
+/** All memberships in a circle (teacher roster view). */
+export async function getCircleMembers(circleId: string): Promise<Membership[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('membership')
     .select('*')
-    .eq('halaqah_id', halaqahId)
+    .eq('circle_id', circleId)
     .order('joined_at', { ascending: true });
 
   if (error) throw error;
   return data ?? [];
 }
 
-/** Halaqah roster enriched with each member's display name (when readable). */
-export async function getHalaqahMembersWithProfiles(
-  halaqahId: string,
+/** Circle roster enriched with each member's display name (when readable). */
+export async function getCircleMembersWithProfiles(
+  circleId: string,
 ): Promise<MemberWithProfile[]> {
-  const members = await getHalaqahMembers(halaqahId);
+  const members = await getCircleMembers(circleId);
   const profiles = await getProfilesByIds(members.map((m) => m.user_id));
   return members.map((m) => {
     const p = profiles.get(m.user_id);
@@ -61,12 +61,12 @@ export async function getHalaqahMembersWithProfiles(
   });
 }
 
-/** Join a halaqah by id as a student (M1-6). */
-export async function joinHalaqah(halaqahId: string): Promise<Membership> {
+/** Join a circle by id as a student. Lands as 'pending' — consent gate (D12). */
+export async function joinCircle(circleId: string): Promise<Membership> {
   const supabase = await createClientAction();
   const { data, error } = await supabase
     .from('membership')
-    .insert({ halaqah_id: halaqahId, role: 'student' })
+    .insert({ circle_id: circleId, role: 'student', status: 'pending' })
     .select()
     .single();
 
@@ -74,22 +74,49 @@ export async function joinHalaqah(halaqahId: string): Promise<Membership> {
   return data;
 }
 
-/** Designate which annotation set the teacher may read for this membership. */
-export async function setSharedSet(
-  membershipId: string,
-  sharedSetId: string | null,
-): Promise<void> {
+/**
+ * The invited user accepts their own pending membership (D12). The DB trigger
+ * enforces self-only + the pending→active transition; the service just updates.
+ */
+export async function acceptMembership(membershipId: string): Promise<void> {
   const supabase = await createClientAction();
   const { error } = await supabase
     .from('membership')
-    .update({ shared_set_id: sharedSetId })
+    .update({ status: 'active' })
     .eq('id', membershipId);
   if (error) throw error;
 }
 
-/** Teacher invites an existing user by email (M1-5). No account provisioning. */
+/**
+ * The current default annotation set id of a membership's student (D13). Used by
+ * the teacher's Mushaf button. RLS (teacher_reads_default_set) only exposes it
+ * while the membership is active. Returns null when the student has no default.
+ */
+export async function getStudentDefaultSetId(
+  membershipId: string,
+): Promise<string | null> {
+  const supabase = await createClient();
+  const { data: member, error: memError } = await supabase
+    .from('membership')
+    .select('user_id')
+    .eq('id', membershipId)
+    .maybeSingle();
+  if (memError) throw memError;
+  if (!member) return null;
+
+  const { data, error } = await supabase
+    .from('annotation_sets')
+    .select('id')
+    .eq('user_id', member.user_id)
+    .eq('is_default', true)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.id ?? null;
+}
+
+/** Teacher invites an existing user by email. Lands as 'pending' (D12). */
 export async function inviteByEmail(
-  halaqahId: string,
+  circleId: string,
   email: string,
 ): Promise<Membership> {
   const supabase = await createClientAction();
@@ -102,7 +129,7 @@ export async function inviteByEmail(
 
   const { data, error } = await supabase
     .from('membership')
-    .insert({ halaqah_id: halaqahId, user_id: userId, role: 'student' })
+    .insert({ circle_id: circleId, user_id: userId, role: 'student', status: 'pending' })
     .select()
     .single();
   if (error) throw error;

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { getPageImageUrl, TOTAL_PAGES } from '@/lib/quran';
+import { getPageImageUrl, TOTAL_PAGES, parseSpread } from '@/lib/quran';
 import { notFound, redirect } from 'next/navigation';
 import ReadOnlyCanvas from '@/components/ReadOnlyCanvas';
 import ShareShell from '@/components/ShareShell';
@@ -28,12 +28,19 @@ export default async function SharePage({ params, searchParams }: Props) {
   const { setId, page } = await params;
   const { set: legacySet } = await searchParams;
 
-  const pageNum = parseInt(page, 10);
+  // Spread segment "N-M" mirrors the reader route: the notes column tracks the LOWER page,
+  // ReaderShell lights up the second canvas from the URL. Malformed spread → single fallback.
+  const spread = page.includes('-') ? parseSpread(page) : null;
+  if (page.includes('-') && !spread) {
+    const first = parseInt(page, 10);
+    redirect(`/share/${setId}/${isNaN(first) ? 1 : first}`);
+  }
+  const pageNum = spread ? spread[0] : parseInt(page, 10);
   if (isNaN(pageNum) || pageNum < 1 || pageNum > TOTAL_PAGES) notFound();
 
   // C6 — legacy link `/share/{userId}/{page}?set={setId}` 301s to canonical `/share/{setId}/{page}`.
   // The old route's path segment was a userId; the real set id lived in `?set=`.
-  if (legacySet) redirect(`/share/${legacySet}/${pageNum}`);
+  if (legacySet) redirect(`/share/${legacySet}/${page}`);
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

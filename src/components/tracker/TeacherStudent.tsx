@@ -132,7 +132,7 @@ function MushafButton({ setId }: { setId: string | null }) {
     );
   }
   return (
-    <a href={`/reader/1?set=${setId}`} className="btn btn-outline" style={{ minHeight: 36, fontSize: 12 }}>
+    <a href={`/share/${setId}/1`} className="btn btn-outline" style={{ minHeight: 36, fontSize: 12 }}>
       {t('tracker.mushaf')}
     </a>
   );

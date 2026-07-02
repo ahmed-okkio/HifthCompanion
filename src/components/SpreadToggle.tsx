@@ -10,18 +10,19 @@ export const SPREAD_MODE_KEY = 'reader-spread-mode';
  * Writes the preference to localStorage and client-navigates N↔N-M with the existing pairing
  * helpers. Desktop-only (`hidden lg:flex`) and /reader-only (share routes never go spread).
  */
-export default function SpreadToggle({ page, active }: { page: number; active: boolean }) {
+export default function SpreadToggle({ page, active, basePath }: { page: number; active: boolean; basePath?: string }) {
   const router = useRouter();
   const pathname = usePathname();
-  if (!pathname.startsWith('/reader/')) return null; // not on share/other routes
+  const base = basePath ?? '/reader';
+  if (!pathname.startsWith(`${base}/`)) return null; // not on this route
 
   const toggle = () => {
     if (active) {
       localStorage.setItem(SPREAD_MODE_KEY, '0');
-      router.push(`/reader/${spreadOf(page)[0]}`); // back to the lower page (C2)
+      router.push(`${base}/${spreadOf(page)[0]}`); // back to the lower page (C2)
     } else {
       localStorage.setItem(SPREAD_MODE_KEY, '1');
-      router.push(`/reader/${spreadUrl(page)}`);
+      router.push(`${base}/${spreadUrl(page)}`);
     }
   };
 

@@ -44,7 +44,10 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   // Spread mode (M2): `/reader/N-M`. Derived from the same pathname the page number is read
   // from — no prop plumbing, since this shell lives in the layout and never sees the route
   // param. M3 reads `spread` here to light up the second canvas. `null` ⇒ single-page mode.
-  const spreadMatch = pathname.match(/\/reader\/(\d+)-(\d+)/);
+  // Anchored to the LAST path segment so a uuid in the share base (`/share/{uuid}/N-M`)
+  // — which itself contains digit-hyphen-digit runs — can't be misread as a spread pair.
+  const spreadBase = sharePageBasePath ?? '/reader';
+  const spreadMatch = pathname.match(/\/(\d+)-(\d+)$/);
   const spread: [number, number] | null = spreadMatch
     ? [parseInt(spreadMatch[1], 10), parseInt(spreadMatch[2], 10)]
     : null;
@@ -54,7 +57,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   useEffect(() => {
     if (!spread) return;
     const mq = window.matchMedia('(max-width: 1023px)');
-    const apply = () => { if (mq.matches) router.replace(`/reader/${spread[0]}`); };
+    const apply = () => { if (mq.matches) router.replace(`${spreadBase}/${spread[0]}`); };
     apply();
     mq.addEventListener('change', apply);
     return () => mq.removeEventListener('change', apply);
@@ -74,11 +77,10 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   // one. Share routes never go spread, so skip them. Each branch settles in one hop (toggling to
   // the target state makes its own condition false on the re-render).
   useEffect(() => {
-    if (sharePageBasePath) return;
     if (!window.matchMedia('(min-width: 1024px)').matches) return;
     const raw = localStorage.getItem(SPREAD_MODE_KEY);
-    if (raw === '1' && !spread) router.replace(`/reader/${spreadUrl(pageNum)}`);
-    else if (raw === '0' && spread) router.replace(`/reader/${spread[0]}`);
+    if (raw === '1' && !spread) router.replace(`${spreadBase}/${spreadUrl(pageNum)}`);
+    else if (raw === '0' && spread) router.replace(`${spreadBase}/${spread[0]}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 

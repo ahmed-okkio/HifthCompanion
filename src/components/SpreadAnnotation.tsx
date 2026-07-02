@@ -184,7 +184,7 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
           onReset={resetView}
         />
         {/* M5 C1: spread toggle sits by the zoom control (spread mode → turn spread OFF). */}
-        <SpreadToggle page={pages[0]} active={true} />
+        <SpreadToggle page={pages[0]} active={true} basePath={sharePageBasePath} />
       </div>
     </div>
   );

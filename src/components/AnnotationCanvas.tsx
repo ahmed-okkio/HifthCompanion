@@ -477,7 +477,7 @@ function AnnotationCanvasInner(
                   onReset={resetView}
                 />
                 {/* M5 C1: spread toggle sits by the zoom control (single mode → turn spread ON). */}
-                <SpreadToggle page={pageNum} active={false} />
+                <SpreadToggle page={pageNum} active={false} basePath={sharePageBasePath} />
               </div>
             )}
           </div>

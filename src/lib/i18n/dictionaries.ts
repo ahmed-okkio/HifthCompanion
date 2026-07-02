@@ -47,6 +47,8 @@ const en = {
   'tracker.active': 'Active',
   'tracker.mushaf': 'Mushaf',
   'tracker.noDefaultSet': 'No default mushaf',
+  'tracker.deleteCircle': 'Delete circle',
+  'tracker.deleteCircleConfirm': 'Delete this circle? All students, sessions, homework and notes in it are permanently removed. This cannot be undone.',
 
   // Fixed homework / log types (D7).
   'logType.memorization': 'Memorization',
@@ -200,6 +202,8 @@ const ar: Record<MessageKey, string> = {
   'tracker.active': 'نشط',
   'tracker.mushaf': 'المصحف',
   'tracker.noDefaultSet': 'لا يوجد مصحف افتراضي',
+  'tracker.deleteCircle': 'حذف الحلقة',
+  'tracker.deleteCircleConfirm': 'حذف هذه الحلقة؟ سيتم حذف جميع الطلاب والجلسات والواجبات والملاحظات نهائيًا. لا يمكن التراجع عن هذا.',
 
   // أنواع الواجب / السجل الثابتة (D7).
   'logType.memorization': 'حفظ',

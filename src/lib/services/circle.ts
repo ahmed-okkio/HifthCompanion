@@ -70,6 +70,14 @@ export async function updateCircleConfig(
   if (error) throw error;
 }
 
+/** Delete a circle (RLS: teacher-only). Memberships + their logs/sessions/homework
+ *  cascade via FK. Student annotation sets are separate and untouched. */
+export async function deleteCircle(id: string): Promise<void> {
+  const supabase = await createClientAction();
+  const { error } = await supabase.from('circle').delete().eq('id', id);
+  if (error) throw error;
+}
+
 /** Rotate the invite code (M1-5). */
 export async function rotateInviteCode(id: string): Promise<string> {
   const supabase = await createClientAction();

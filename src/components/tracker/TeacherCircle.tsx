@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import type { Circle, Membership, MemberWithProfile, Session } from '@/types';
 import { displayName } from '@/lib/displayName';
-import { rotateInviteCode } from '@/lib/services/circle';
+import { rotateInviteCode, deleteCircle } from '@/lib/services/circle';
 import { inviteByEmail, setMembershipStatus } from '@/lib/services/membership';
 import { SectionTitle, EmptyState, Avatar, Chevron, StatCard, DateChip, StatusDot } from './ui';
 
@@ -31,6 +32,7 @@ export default function TeacherCircle({
   agenda: { session: Session; student: string }[];
 }) {
   const { t, locale } = useI18n();
+  const router = useRouter();
   const [code, setCode] = useState(circle.invite_code);
   const [copied, setCopied] = useState(false);
   const [students, setStudents] = useState(initialStudents);
@@ -58,6 +60,17 @@ export default function TeacherCircle({
       const m = await inviteByEmail(circle.id, email);
       setStudents((prev) => [...prev, m]);
       setEmail('');
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function handleDelete() {
+    if (!window.confirm(t('tracker.deleteCircleConfirm'))) return;
+    setError(null);
+    try {
+      await deleteCircle(circle.id);
+      router.push('/tracker');
     } catch (e) {
       setError((e as Error).message);
     }
@@ -220,6 +233,10 @@ export default function TeacherCircle({
               {t('common.create')}
             </button>
           </div>
+          <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+          <button onClick={handleDelete} className="btn btn-danger-ghost" style={{ minHeight: 38, fontSize: 13 }}>
+            {t('tracker.deleteCircle')}
+          </button>
         </aside>
       </div>
     </div>

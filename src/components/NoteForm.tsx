@@ -12,7 +12,7 @@ interface Props {
 
 export default function NoteForm({ value, isPending, onChange, onSubmit, textareaRef }: Props) {
   return (
-    <div style={{ padding: 'var(--space-12) var(--space-16)', background: 'var(--surface-main)', borderTop: '1px solid var(--neutral-200)' }}>
+    <div style={{ padding: 'var(--space-12) var(--space-16)', background: 'var(--surface-main)', borderBottom: '1px solid var(--neutral-200)' }}>
       <textarea
         ref={textareaRef}
         value={value}
@@ -20,7 +20,7 @@ export default function NoteForm({ value, isPending, onChange, onSubmit, textare
         placeholder="Add a note about this page…"
         rows={2}
         className="input"
-        style={{ fontSize: '12px', resize: 'none' }}
+        style={{ fontSize: '13px', resize: 'none' }}
         onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onSubmit(); }}
       />
       <div className="flex items-center justify-between mt-2">

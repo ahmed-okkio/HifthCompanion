@@ -20,6 +20,20 @@ export type Collaborator = {
   created_at: string;
 };
 
+/** An account candidate from the prefix search. */
+export type AccountMatch = { id: string; email: string; first_name: string; last_name: string };
+
+/** Prefix-search accounts by email for the add-collaborator picker (min 3
+ *  chars, max 5 rows — bounds live in the RPC). */
+export async function searchAccountsByEmail(prefix: string): Promise<AccountMatch[]> {
+  const p = prefix.trim().toLowerCase();
+  if (p.length < 3) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('accounts_by_email_prefix', { _prefix: p });
+  if (error) throw error;
+  return (data ?? []) as AccountMatch[];
+}
+
 /** Share a set with an existing account by email (contract B1–B5). */
 export async function addByEmail(setId: string, email: string): Promise<AddByEmailResult> {
   const e = email.trim().toLowerCase();

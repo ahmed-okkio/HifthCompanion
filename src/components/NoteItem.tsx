@@ -36,10 +36,10 @@ export default function NoteItem({
       <div
         aria-hidden="true"
         style={{
-          width: '4px',
+          width: '3px',
           flexShrink: 0,
           background: 'var(--green-600)',
-          borderRadius: '4px 0 0 4px',
+          opacity: 0.7,
         }}
       />
 
@@ -80,11 +80,13 @@ export default function NoteItem({
             <div className="flex items-start justify-between gap-2">
               <p
                 style={{
-                  fontSize: 'var(--type-caption-size)',
+                  fontSize: 13,
                   lineHeight: 1.6,
-                  color: 'var(--text-secondary)',
+                  color: 'var(--text-primary)',
                   flex: 1,
                   minWidth: 0,
+                  whiteSpace: 'pre-wrap',
+                  overflowWrap: 'break-word',
                 }}
               >
                 {note.body}
@@ -119,10 +121,12 @@ export default function NoteItem({
               style={{
                 fontSize: 'var(--type-meta-size)',
                 color: 'var(--text-muted)',
-                marginTop: 'var(--space-4)',
+                marginTop: 'var(--space-8)',
               }}
             >
-              {new Date(note.created_at).toLocaleString()}
+              {new Date(note.created_at).toLocaleDateString(undefined, {
+                month: 'short', day: 'numeric', year: 'numeric',
+              })}
             </p>
           </>
         )}

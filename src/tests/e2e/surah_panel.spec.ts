@@ -430,7 +430,7 @@ test.describe('V3 shell structure (Story 17)', () => {
     await expect(zoom).toBeAttached();
   });
 
-  test('right-panel cards (notes-card, share-card, tags-card) render when a set is active', async ({ page, context }) => {
+  test('right-panel cards (notes-card, share-card) render when a set is active', async ({ page, context }) => {
     listenForErrors(page);
     // Use the same auth/set pattern as features.spec.ts.
     await context.addCookies([{ name: 'sb-access-token', value: 'dummy-token', domain: 'localhost', path: '/' }]);
@@ -438,9 +438,8 @@ test.describe('V3 shell structure (Story 17)', () => {
     const setName = `Shell17-${Date.now()}`;
     await setupAuthenticatedReader(page, setName);
 
-    // All three right-panel cards must be present in the DOM (context panel renders them).
+    // Both right-panel cards must be present in the DOM (context panel renders them).
     await expect(page.getByTestId('notes-card')).toBeAttached();
     await expect(page.getByTestId('share-card')).toBeAttached();
-    await expect(page.getByTestId('tags-card')).toBeAttached();
   });
 });

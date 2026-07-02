@@ -3,7 +3,6 @@ import { TOTAL_PAGES, parseSpread } from '@/lib/quran';
 import { notFound, redirect } from 'next/navigation';
 import ShareCard from '@/components/ShareCard';
 import NotesPanel from '@/components/NotesPanel';
-import TagsCard from '@/components/TagsCard';
 import { getNotes } from '@/lib/services/notes';
 
 interface Props {
@@ -93,11 +92,6 @@ export default async function ReaderPage({ params, searchParams }: Props) {
           <ShareCard userId={user.id} pageNum={pageNum} sets={sets ?? []} />
         </div>
       )}
-
-      {/* ── 3. TAGS placeholder (Story 15) — inert chip display, no backend ── */}
-      <div className="animate-fade-in-scale" style={{ animationDelay: '300ms' }}>
-        <TagsCard />
-      </div>
 
     </div>
   );

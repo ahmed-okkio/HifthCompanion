@@ -33,11 +33,12 @@ const globalForDb = global as unknown as {
   mockSets?: MockSet[];
   mockAnnotations?: MockAnnotation[];
   mockNotes?: MockNote[];
-  mockHalaqah?: any[];
+  mockCircle?: any[];
   mockMembership?: any[];
   mockProgressLog?: any[];
   mockSession?: any[];
-  mockAttendance?: any[];
+  mockHomework?: any[];
+  mockMembershipNote?: any[];
 };
 
 if (!globalForDb.mockSets) {
@@ -49,18 +50,14 @@ if (!globalForDb.mockAnnotations) {
 if (!globalForDb.mockNotes) {
   globalForDb.mockNotes = [];
 }
-if (!globalForDb.mockHalaqah) globalForDb.mockHalaqah = [];
+if (!globalForDb.mockCircle) globalForDb.mockCircle = [];
 if (!globalForDb.mockMembership) globalForDb.mockMembership = [];
 if (!globalForDb.mockProgressLog) globalForDb.mockProgressLog = [];
 if (!globalForDb.mockSession) globalForDb.mockSession = [];
-if (!globalForDb.mockAttendance) globalForDb.mockAttendance = [];
+if (!globalForDb.mockHomework) globalForDb.mockHomework = [];
+if (!globalForDb.mockMembershipNote) globalForDb.mockMembershipNote = [];
 
-// Seeded config defaults mirroring the halaqah migration.
-const SEED_LOG_TYPES = [
-  { label: 'Sabaq', role: 'memorize' },
-  { label: 'Sabqi', role: 'revise' },
-  { label: 'Manzil', role: 'revise' },
-];
+// Seeded config defaults mirroring the circle migration.
 const SEED_STUDENT_STATUSES = [
   { label: 'Done', polarity: 'positive' },
   { label: 'Partial', polarity: 'neutral' },
@@ -74,18 +71,20 @@ const SEED_TEACHER_STATUSES = [
 
 // Generic localStorage/global accessors for the tracker tables.
 const TRACKER_STORAGE: Record<string, string> = {
-  halaqah: 'mock_supabase_halaqah',
+  circle: 'mock_supabase_circle',
   membership: 'mock_supabase_membership',
   progress_log: 'mock_supabase_progress_log',
   session: 'mock_supabase_session',
-  attendance: 'mock_supabase_attendance',
+  homework: 'mock_supabase_homework',
+  membership_note: 'mock_supabase_membership_note',
 };
-const TRACKER_GLOBAL: Record<string, 'mockHalaqah' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockAttendance'> = {
-  halaqah: 'mockHalaqah',
+const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockHomework' | 'mockMembershipNote'> = {
+  circle: 'mockCircle',
   membership: 'mockMembership',
   progress_log: 'mockProgressLog',
   session: 'mockSession',
-  attendance: 'mockAttendance',
+  homework: 'mockHomework',
+  membership_note: 'mockMembershipNote',
 };
 function trackerGet(table: string): any[] {
   if (IS_SERVER) return (globalForDb as any)[TRACKER_GLOBAL[table]]!;
@@ -391,16 +390,17 @@ class MockQueryBuilder {
       // upsert: replace existing row matching the conflict keys, else insert.
       const rowsToWrite = Array.isArray(this.opValues) ? this.opValues : [this.opValues];
       if (this.op === 'upsert') {
+        // Only caller is generateSessions: onConflict (membership_id, scheduled_at).
         const written: any[] = [];
         for (const v of rowsToWrite) {
           const idx = rows.findIndex(
-            (r: any) => r.session_id === v.session_id && r.membership_id === v.membership_id,
+            (r: any) => r.membership_id === v.membership_id && r.scheduled_at === v.scheduled_at,
           );
           if (idx >= 0) {
             Object.assign(rows[idx], v);
             written.push(rows[idx]);
           } else {
-            const r = { id: rid(), status: 'present', created_at: now, updated_at: now, ...v };
+            const r = { id: rid(), is_adhoc: false, canceled: false, attendance_status: null, created_at: now, ...v };
             rows.push(r);
             written.push(r);
           }
@@ -418,12 +418,10 @@ class MockQueryBuilder {
         return inserted;
       }
       let row: any = { id: rid(), ...this.opValues };
-      if (table === 'halaqah') {
+      if (table === 'circle') {
         row = {
           invite_code: rid().slice(0, 12),
           teacher_id: this.userId,
-          schedule: null,
-          log_types: SEED_LOG_TYPES,
           student_statuses: SEED_STUDENT_STATUSES,
           teacher_statuses: SEED_TEACHER_STATUSES,
           created_at: now,
@@ -433,15 +431,20 @@ class MockQueryBuilder {
         row = {
           user_id: this.userId,
           role: 'student',
-          shared_set_id: null,
           status: 'active',
+          schedule: null,
           joined_at: now,
           ...row,
         };
       } else if (table === 'session') {
-        row = { is_adhoc: false, canceled: false, created_at: now, ...row };
+        row = { is_adhoc: false, canceled: false, attendance_status: null, created_at: now, ...row };
+      } else if (table === 'homework') {
+        row = { prescribed_by: this.userId, deadline: null, created_at: now, ...row };
+      } else if (table === 'membership_note') {
+        row = { author_id: this.userId, created_at: now, ...row };
       } else {
-        row = { log_date: now.slice(0, 10), created_at: now, updated_at: now, reviewed_at: null, ...row };
+        // progress_log
+        row = { homework_id: null, log_date: now.slice(0, 10), created_at: now, updated_at: now, reviewed_at: null, ...row };
       }
       rows.push(row);
       trackerSave(table, rows);
@@ -464,21 +467,21 @@ class MockQueryBuilder {
 
     // select
     let result = this.sortRows(this.applyFilters(rows));
-    // Embed: membership.select('*, halaqah:halaqah_id(*)') is the "my memberships"
+    // Embed: membership.select('*, circle:circle_id(*)') is the "my memberships"
     // landing query — RLS scopes it to the current user. Mirror that here when no
-    // explicit halaqah_id filter is present (teacher roster reads keep that filter).
+    // explicit circle_id filter is present (teacher roster reads keep that filter).
     if (
       table === 'membership' &&
-      this.selectColumns.includes('halaqah') &&
-      !this.filters.some((f) => f.field === 'halaqah_id')
+      this.selectColumns.includes('circle') &&
+      !this.filters.some((f) => f.field === 'circle_id')
     ) {
       result = result.filter((m: any) => m.user_id === this.userId);
     }
-    if (table === 'membership' && this.selectColumns.includes('halaqah')) {
-      const halaqat = trackerGet('halaqah');
+    if (table === 'membership' && this.selectColumns.includes('circle')) {
+      const circles = trackerGet('circle');
       result = result.map((m: any) => ({
         ...m,
-        halaqah: halaqat.find((h: any) => h.id === m.halaqah_id) ?? null,
+        circle: circles.find((h: any) => h.id === m.circle_id) ?? null,
       }));
     }
     if (this.isSingle || this.isMaybeSingle) return result[0] ?? null;
@@ -539,6 +542,21 @@ export class MockSupabaseClient {
       const email = (args?._email ?? '').toLowerCase();
       return { data: userIdForEmail(email), error: null };
     }
+    if (fn === 'account_by_email') {
+      const email = (args?._email ?? '').toLowerCase();
+      const id = userIdForEmail(email);
+      return { data: id ? [{ id, first_name: null, last_name: null }] : [], error: null };
+    }
+    if (fn === 'accounts_by_email_prefix') {
+      const prefix = (args?._prefix ?? '').toLowerCase();
+      const data = prefix.length >= 3
+        ? Object.entries(E2E_USERS)
+            .filter(([email]) => email.startsWith(prefix))
+            .slice(0, 5)
+            .map(([email, id]) => ({ id, email, first_name: null, last_name: null }))
+        : [];
+      return { data, error: null };
+    }
     return { data: null, error: null };
   }
 }
@@ -569,23 +587,26 @@ export function __resetMockStore() {
   globalForDb.mockSets = [];
   globalForDb.mockAnnotations = [];
   globalForDb.mockNotes = [];
-  globalForDb.mockHalaqah = [];
+  globalForDb.mockCircle = [];
   globalForDb.mockMembership = [];
   globalForDb.mockProgressLog = [];
   globalForDb.mockSession = [];
-  globalForDb.mockAttendance = [];
+  globalForDb.mockHomework = [];
+  globalForDb.mockMembershipNote = [];
 }
 
 export function __seedMockStore(payload: Partial<{
-  halaqah: any[];
+  circle: any[];
   membership: any[];
   progress_log: any[];
   session: any[];
-  attendance: any[];
+  homework: any[];
+  membership_note: any[];
 }>) {
-  if (payload.halaqah) globalForDb.mockHalaqah!.push(...payload.halaqah);
+  if (payload.circle) globalForDb.mockCircle!.push(...payload.circle);
   if (payload.membership) globalForDb.mockMembership!.push(...payload.membership);
   if (payload.progress_log) globalForDb.mockProgressLog!.push(...payload.progress_log);
   if (payload.session) globalForDb.mockSession!.push(...payload.session);
-  if (payload.attendance) globalForDb.mockAttendance!.push(...payload.attendance);
+  if (payload.homework) globalForDb.mockHomework!.push(...payload.homework);
+  if (payload.membership_note) globalForDb.mockMembershipNote!.push(...payload.membership_note);
 }

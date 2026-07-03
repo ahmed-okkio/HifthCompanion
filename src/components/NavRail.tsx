@@ -3,7 +3,7 @@
 /**
  * NavRail — slim left icon rail.
  *
- * 72px wide, desktop-only (rendered inside a `hidden lg:flex` parent). Now used
+ * 96px wide, desktop-only (rendered inside a `hidden lg:flex` parent). Now used
  * on EVERY app surface (reader + tracker + sets) via ReaderShell and AppShell,
  * so the rail is the single cross-page navigation spine.
  *
@@ -59,14 +59,13 @@ function IconCircles({ active }: { active: boolean }) {
 }
 
 function IconShared({ active }: { active: boolean }) {
-  // Handshake / shared glyph — sets shared WITH the viewer by others.
+  // Stacked books glyph — other people's mushafs shared WITH the viewer.
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={strokeColor(active)} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M11 17l-2 2a1.5 1.5 0 0 1-2.12-2.12l.7-.71" />
-      <path d="M13 19l1.5 1.5a1.5 1.5 0 0 0 2.12-2.12L15 16.75" />
-      <path d="M16 16l1.5 1.5a1.5 1.5 0 0 0 2.12-2.12l-4.6-4.6a2 2 0 0 0-2.83 0l-.59.59a2 2 0 0 1-2.83 0L8 9.5a2 2 0 0 1 0-2.83L11.5 3" />
-      <path d="M4 6l3-3 4 4" />
-      <path d="M2 14l3.5-3.5" />
+      <rect x="3" y="13" width="15" height="6" rx="1.5" />
+      <line x1="7" y1="13" x2="7" y2="19" />
+      <rect x="6" y="5" width="15" height="6" rx="1.5" />
+      <line x1="10" y1="5" x2="10" y2="11" />
     </svg>
   );
 }
@@ -151,7 +150,7 @@ export default function NavRail({ activeView }: NavRailProps) {
       data-testid="nav-rail"
       aria-label="Main navigation"
       style={{
-        width: '72px',
+        width: '96px',
         height: '100%',
         flexShrink: 0,
         display: 'flex',
@@ -196,7 +195,7 @@ function RailButton({ item, isActive }: { item: RailItemDef; isActive: boolean }
     alignItems: 'center',
     justifyContent: 'center',
     gap: 'var(--space-4)',
-    width: '56px',
+    width: '80px',
     height: '60px',
     border: 'none',
     borderRadius: 'var(--radius-sm-px)',
@@ -235,7 +234,6 @@ function RailButton({ item, isActive }: { item: RailItemDef; isActive: boolean }
           lineHeight: 1.1,
           letterSpacing: '-0.01em',
           textAlign: 'center',
-          whiteSpace: 'nowrap',
           userSelect: 'none',
           color: isActive ? 'var(--green-600)' : isInert ? 'var(--neutral-400)' : 'var(--neutral-500)',
         }}

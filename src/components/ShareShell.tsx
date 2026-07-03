@@ -170,7 +170,7 @@ export default function ShareShell({ basePath, pageNum, setName, children, accou
         style={{ display: 'flex', alignItems: 'flex-start', ['--nav-h' as string]: `${navHeight}px` } as React.CSSProperties}
         suppressHydrationWarning
       >
-        <div className="hidden lg:block flex-shrink-0" style={{ width: '72px', height: '100%' }}>
+        <div className="hidden lg:block flex-shrink-0" style={{ width: '96px', height: '100%' }}>
           <NavRail />
         </div>
         <div

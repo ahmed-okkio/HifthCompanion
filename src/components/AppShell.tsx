@@ -51,7 +51,7 @@ export default function AppShell({
         {/* Rail BELOW the header (sticky under the 72px bar), content to its right. */}
         <div
           className="hidden lg:block flex-shrink-0"
-          style={{ position: 'sticky', top: 72, alignSelf: 'flex-start', width: 72, height: 'calc(100dvh - 72px)' }}
+          style={{ position: 'sticky', top: 72, alignSelf: 'flex-start', width: 96, height: 'calc(100dvh - 72px)' }}
         >
           <NavRail />
         </div>

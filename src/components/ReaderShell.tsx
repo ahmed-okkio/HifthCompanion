@@ -145,7 +145,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
           <div
             data-testid="nav-rail-slot"
             className="flex-shrink-0"
-            style={{ width: '72px', height: '100%' }}
+            style={{ width: '96px', height: '100%' }}
           >
             <NavRail />
           </div>

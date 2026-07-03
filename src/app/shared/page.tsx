@@ -13,7 +13,7 @@ export default async function SharedPage() {
   }
 
   // sharedWithMe() is collaborator-scoped (set_collaborators.user_id = me), so
-  // sets the viewer owns never appear here.
+  // sets the viewer owns never appear here. Circle accept adds the grant.
   const shared = await sharedWithMe();
   const account = await getMyChrome(user);
   const profiles = await getProfilesByIds(shared.map((s) => s.user_id));

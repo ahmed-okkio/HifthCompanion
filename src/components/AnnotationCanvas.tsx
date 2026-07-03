@@ -3,7 +3,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 're
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { AnnotationSet } from '@/types';
-import { TOTAL_PAGES, clampPage } from '@/lib/quran';
+import { TOTAL_PAGES, clampPage, spreadUrl } from '@/lib/quran';
 import PageDisplayFrame from '@/components/PageDisplayFrame';
 import AnnotationToolbar from '@/components/AnnotationToolbar';
 import MobileAnnotationBar from '@/components/MobileAnnotationBar';
@@ -92,6 +92,21 @@ function AnnotationCanvasInner(
     params.delete('page');
     const qs = params.toString();
     router.push(`/reader/${clamped}${qs ? `?${qs}` : ''}`, { scroll: false });
+  };
+
+  // Spread-mode arrows navigate straight to the target SPREAD segment ("N-M") so
+  // we never bounce through a single page that only re-expands if the localStorage
+  // spread preference happens to be set (that made spread nav collapse to single).
+  const goSpread = (page: number) => {
+    const seg = spreadUrl(clampPage(page));
+    if (sharePageBasePath) {
+      router.push(`${sharePageBasePath}/${seg}`, { scroll: false });
+      return;
+    }
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('page');
+    const qs = params.toString();
+    router.push(`/reader/${seg}${qs ? `?${qs}` : ''}`, { scroll: false });
   };
 
   // D2: a collaborator's access was revoked mid-session — their next save was rejected by RLS.
@@ -254,7 +269,7 @@ function AnnotationCanvasInner(
             <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
               {flush === 'end' && (
               <button
-                onClick={() => go(pageNum + (controlled ? 2 : 1))}
+                onClick={() => goSpread(pageNum + 2)}
                 disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
                 aria-label="Next page"
                 style={{
@@ -317,7 +332,7 @@ function AnnotationCanvasInner(
             </div>
               {flush === 'start' && (
               <button
-                onClick={() => go(pageNum - (controlled ? 2 : 1))}
+                onClick={() => goSpread(pageNum - 2)}
                 disabled={pageNum <= 1}
                 aria-label="Previous page"
                 style={{

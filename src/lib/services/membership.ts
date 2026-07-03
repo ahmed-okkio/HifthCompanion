@@ -85,6 +85,34 @@ export async function acceptMembership(membershipId: string): Promise<void> {
     .update({ status: 'active' })
     .eq('id', membershipId);
   if (error) throw error;
+
+  // Accepting is the consent point: share the student's default mushaf with the
+  // circle's teacher as an explicit set_collaborators grant, so it shows on the
+  // teacher's /shared. The student owns the set, so this insert passes the
+  // owner-insert RLS; idempotent on (set_id, user_id).
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: membership } = await supabase
+    .from('membership')
+    .select('circle:circle_id(teacher_id)')
+    .eq('id', membershipId)
+    .maybeSingle();
+  const teacherId = (membership?.circle as { teacher_id: string } | null)?.teacher_id;
+  if (!user || !teacherId || teacherId === user.id) return;
+
+  const { data: set } = await supabase
+    .from('annotation_sets')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('is_default', true)
+    .maybeSingle();
+  if (!set) return;
+
+  await supabase
+    .from('set_collaborators')
+    .upsert(
+      { set_id: set.id, user_id: teacherId, granted_by: user.id },
+      { onConflict: 'set_id,user_id', ignoreDuplicates: true },
+    );
 }
 
 /**

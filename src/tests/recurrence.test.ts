@@ -2,8 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { recurringSlots, missingSlots } from '../lib/recurrence';
 import type { Recurrence } from '../types';
 
-// Fixed Monday for determinism: 2026-06-29 is a Monday (getDay() === 1).
-const MON = new Date('2026-06-29T00:00:00');
+// Fixed Monday for determinism: 2026-06-29 is a Monday (UTC).
+// Wall-clock floats (R3/R4): assertions read the ISO string / getUTC* so they
+// are timezone-independent and hold under any host TZ. Run under a shifted TZ
+// to prove it, e.g.  TZ=Pacific/Kiritimati npx vitest run recurrence  (or
+// TZ='America/Los_Angeles'); slots must still show 17:00 on Mondays.
+const MON = new Date('2026-06-29T00:00:00Z');
+
+// "…T17:00" regardless of viewer TZ.
+const wallClock = (iso: string) => iso.slice(11, 16);
 
 describe('recurringSlots', () => {
   it('returns [] for null rule or empty weekdays', () => {
@@ -15,8 +22,8 @@ describe('recurringSlots', () => {
     const rule: Recurrence = { weekdays: [1], time: '17:00' }; // Mondays
     const slots = recurringSlots(rule, MON, 14);
     expect(slots).toHaveLength(2); // two Mondays in 14 days
-    expect(new Date(slots[0]).getDay()).toBe(1);
-    expect(new Date(slots[0]).getHours()).toBe(17);
+    expect(new Date(slots[0]).getUTCDay()).toBe(1); // R4: Monday stays Monday
+    expect(wallClock(slots[0])).toBe('17:00'); // R3: floating 17:00
   });
 
   it('handles multiple weekdays and stays sorted', () => {
@@ -24,14 +31,14 @@ describe('recurringSlots', () => {
     const slots = recurringSlots(rule, MON, 7);
     expect(slots).toHaveLength(2);
     expect(slots[0] < slots[1]).toBe(true);
-    expect(new Date(slots[1]).getMinutes()).toBe(30);
+    expect(wallClock(slots[1])).toBe('09:30');
   });
 
   it('excludes invalid weekdays and clamps malformed time to 00:00', () => {
     const rule = { weekdays: [9, 1], time: 'nope' } as Recurrence;
     const slots = recurringSlots(rule, MON, 7);
     expect(slots).toHaveLength(1);
-    expect(new Date(slots[0]).getHours()).toBe(0);
+    expect(wallClock(slots[0])).toBe('00:00');
   });
 });
 
@@ -43,7 +50,7 @@ describe('missingSlots (B1)', () => {
   it('generates one slot per matching weekday when nothing exists', () => {
     const slots = missingSlots(rule, [], MON, 14);
     expect(slots).toHaveLength(2); // two Mondays in 14 days
-    expect(new Date(slots[0]).getDay()).toBe(1);
+    expect(new Date(slots[0]).getUTCDay()).toBe(1);
   });
 
   it('is idempotent: re-feeding generated slots adds nothing', () => {
@@ -62,7 +69,7 @@ describe('missingSlots (B1)', () => {
     const b = missingSlots({ weekdays: [3], time: '09:00' }, [], MON, 7); // Wed
     expect(a).toHaveLength(1);
     expect(b).toHaveLength(1);
-    expect(new Date(a[0]).getDay()).toBe(1);
-    expect(new Date(b[0]).getDay()).toBe(3);
+    expect(new Date(a[0]).getUTCDay()).toBe(1);
+    expect(new Date(b[0]).getUTCDay()).toBe(3);
   });
 });

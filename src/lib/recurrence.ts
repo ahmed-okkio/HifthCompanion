@@ -18,8 +18,9 @@ function parseTime(time: string): [number, number] {
 
 /**
  * Slot instants for `rule` from `from` (inclusive) over `horizonDays`.
- * Times are interpreted in the host's local timezone — fine for a single-class
- * teacher; cross-tz handling is deferred. Returns sorted ascending ISO strings.
+ * Times float as wall-clock (interpreted as-if-UTC), so a picked 17:00 stays
+ * 17:00 regardless of host timezone; render sites use timeZone:'UTC'.
+ * Returns sorted ascending ISO strings.
  */
 export function recurringSlots(
   rule: Recurrence | null,
@@ -33,14 +34,16 @@ export function recurringSlots(
 
   const out: string[] = [];
   const cursor = new Date(from);
-  cursor.setHours(0, 0, 0, 0);
+  // UTC ops so the picked wall-clock floats (stored as-if-UTC), independent of
+  // the host process timezone (this runs in the generateSessions server action).
+  cursor.setUTCHours(0, 0, 0, 0);
   for (let i = 0; i < horizonDays; i++) {
-    if (days.has(cursor.getDay())) {
+    if (days.has(cursor.getUTCDay())) {
       const slot = new Date(cursor);
-      slot.setHours(h, min, 0, 0);
+      slot.setUTCHours(h, min, 0, 0);
       if (slot.getTime() >= from.getTime()) out.push(slot.toISOString());
     }
-    cursor.setDate(cursor.getDate() + 1);
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   return out;
 }

@@ -4,18 +4,22 @@ import { useMemo, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type {
   AttendanceStatus, Circle, Homework, LogType, MemberWithProfile,
-  ProgressLog, Session,
+  ProgressLog, Session, StatusConfig,
 } from '@/types';
 import { displayName } from '@/lib/displayName';
 import {
   createAdhocSession, generateSessions, setSchedule, setSessionAttendance, setSessionCanceled,
 } from '@/lib/services/sessions';
 import { prescribeHomework, editDeadline } from '@/lib/services/homework';
+import { gradeLog } from '@/lib/services/progressLog';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
-import { homeworkStatus, type HomeworkStatus } from '@/lib/homework';
 import {
-  SectionTitle, EmptyState, Avatar, StatCard, DateChip, StatusDot, TabBar, NumberStepper,
+  homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, type HomeworkStatus,
+} from '@/lib/homework';
+import { AYAH_COUNTS, TOTAL_SURAHS, getSurahName } from '@/lib/quran';
+import {
+  SectionTitle, EmptyState, Avatar, StatCard, DateChip, StatusDot, TabBar,
   HOMEWORK_STATUS_STYLE,
 } from './ui';
 import StudentAnalytics from './StudentAnalytics';
@@ -25,7 +29,7 @@ const ATT_STATUSES: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'
 const today = () => new Date().toISOString().slice(0, 10);
 
 function fmtTime(iso: string, locale: string) {
-  return new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' });
 }
 
 /**
@@ -111,7 +115,7 @@ export default function TeacherStudent({
       {tab === 'sessions' && (
         <StudentSessions membershipId={member.id} initial={initialSessions} initialSchedule={member.schedule} />
       )}
-      {tab === 'homework' && <HomeworkPanel membershipId={member.id} initial={initialHomework} logs={logs} />}
+      {tab === 'homework' && <HomeworkPanel membershipId={member.id} initial={initialHomework} logs={logs} teacherStatuses={circle.teacher_statuses} />}
       {tab === 'notes' && <NotesThread membershipId={member.id} initial={initialNotes} />}
       {tab === 'analytics' && <StudentAnalytics circle={circle} logs={logs} attendance={attendance} />}
     </div>
@@ -132,7 +136,12 @@ function MushafButton({ setId }: { setId: string | null }) {
     );
   }
   return (
-    <a href={`/share/${setId}/1`} className="btn btn-outline" style={{ minHeight: 36, fontSize: 12 }}>
+    <a href={`/share/${setId}/1`} className="btn btn-outline" style={{ minHeight: 36, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+      {/* Open-book glyph reused from NavRail's IconSurahs (M1). */}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+      </svg>
       {t('tracker.mushaf')}
     </a>
   );
@@ -157,7 +166,7 @@ function StudentSessions({
   // Localized weekday short labels (2023-01-01 is a Sunday → index 0 = Sun).
   const dayLabels = useMemo(
     () => Array.from({ length: 7 }, (_, d) =>
-      new Date(Date.UTC(2023, 0, 1 + d)).toLocaleDateString(locale, { weekday: 'short' })),
+      new Date(Date.UTC(2023, 0, 1 + d)).toLocaleDateString(locale, { weekday: 'short', timeZone: 'UTC' })),
     [locale],
   );
 
@@ -181,7 +190,7 @@ function StudentSessions({
 
   async function handleAdhoc() {
     if (!adhocDate) return;
-    const iso = new Date(`${adhocDate}T${adhocTime}:00`).toISOString();
+    const iso = new Date(`${adhocDate}T${adhocTime}:00Z`).toISOString();
     const s = await createAdhocSession(membershipId, iso);
     setSessions((p) => [...p, s].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)));
     setAdhocDate('');
@@ -253,7 +262,7 @@ function StudentSessions({
               <DateChip iso={s.scheduled_at} locale={locale} />
               <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                 <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  {new Date(s.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' })}
+                  {new Date(s.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })}
                   {s.is_adhoc && <span className="badge" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
                   {s.canceled && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.canceled')}</span>}
                 </span>
@@ -291,18 +300,32 @@ const STATUS_KEY = {
   missed: 'homework.statusMissed',
 } as const satisfies Record<HomeworkStatus, string>;
 
+type Entry = { surah: number; ayah_start: number | null; ayah_end: number | null };
+
 function HomeworkPanel({
-  membershipId, initial, logs,
+  membershipId, initial, logs, teacherStatuses,
 }: {
   membershipId: string;
   initial: Homework[];
   logs: ProgressLog[];
+  teacherStatuses: StatusConfig[];
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [items, setItems] = useState(initial);
+  // Local copy so a freshly graded log flips to its locked state without a reload.
+  const [logRows, setLogRows] = useState(logs);
+  const onGraded = (id: string, grade: { teacher_status: string | null; teacher_comment: string | null }) =>
+    setLogRows((p) => p.map((l) => (l.id === id ? { ...l, ...grade, reviewed_at: new Date().toISOString() } : l)));
+
+  // Logs linked to a prescription (nested under its card) vs open self-submissions.
+  const logsByHomework = useMemo(() => {
+    const m = new Map<string, ProgressLog[]>();
+    for (const l of logRows) if (l.homework_id) (m.get(l.homework_id) ?? m.set(l.homework_id, []).get(l.homework_id)!).push(l);
+    return m;
+  }, [logRows]);
+  const selfSubmissions = useMemo(() => logRows.filter((l) => !l.homework_id), [logRows]);
   const [type, setType] = useState<LogType>('memorization');
-  const [pageStart, setPageStart] = useState(1);
-  const [pageEnd, setPageEnd] = useState(1);
+  const [entries, setEntries] = useState<Entry[]>([]);
   const [deadline, setDeadline] = useState('');
   const [instructions, setInstructions] = useState('');
   const [busy, setBusy] = useState(false);
@@ -310,19 +333,20 @@ function HomeworkPanel({
   // Linked-log count per prescription drives derived status (D10/B4).
   const linkedCount = useMemo(() => {
     const m = new Map<string, number>();
-    for (const l of logs) if (l.homework_id) m.set(l.homework_id, (m.get(l.homework_id) ?? 0) + 1);
+    for (const l of logRows) if (l.homework_id) m.set(l.homework_id, (m.get(l.homework_id) ?? 0) + 1);
     return m;
-  }, [logs]);
+  }, [logRows]);
 
   async function handlePrescribe() {
-    if (busy || pageEnd < pageStart) return;
+    if (busy || entries.length === 0) return;
     setBusy(true);
     try {
-      const hw = await prescribeHomework({
-        membershipId, type, page_start: pageStart, page_end: pageEnd,
+      const rows = await prescribeHomework({
+        membershipId, type, entries,
         deadline: deadline || null, instructions: instructions || null,
       });
-      setItems((p) => [hw, ...p]);
+      setItems((p) => [...rows, ...p]);
+      setEntries([]);
       setInstructions('');
       setDeadline('');
     } finally {
@@ -330,10 +354,11 @@ function HomeworkPanel({
     }
   }
 
-  async function handleEditDeadline(id: string, value: string) {
+  // Deadline applies to the whole group → update every row in it (H2).
+  async function handleEditDeadline(ids: string[], value: string) {
     const next = value || null;
-    await editDeadline(id, next);
-    setItems((p) => p.map((h) => (h.id === id ? { ...h, deadline: next } : h)));
+    await Promise.all(ids.map((id) => editDeadline(id, next)));
+    setItems((p) => p.map((h) => (ids.includes(h.id) ? { ...h, deadline: next } : h)));
   }
 
   return (
@@ -349,40 +374,205 @@ function HomeworkPanel({
               {LOG_TYPES.map((lt) => <option key={lt} value={lt}>{t(`logType.${lt}`)}</option>)}
             </select>
           </label>
-          <NumberStepper label={t('log.from')} value={pageStart} min={1} max={604} onChange={setPageStart} />
-          <NumberStepper label={t('log.to')} value={pageEnd} min={1} max={604} onChange={setPageEnd} />
           <label className="flex flex-col gap-1">
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('homework.deadline')}</span>
             <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="input" style={{ minHeight: 40 }} />
           </label>
         </div>
+
+        {/* Surah picker — one or more surahs, each whole or narrowed to an ayah range (H1) */}
+        <SurahPicker entries={entries} onChange={setEntries} locale={locale} />
+
         <input value={instructions} onChange={(e) => setInstructions(e.target.value)}
                placeholder={t('homework.instructions')} className="input" />
-        <button onClick={handlePrescribe} disabled={busy || pageEnd < pageStart} className="btn btn-primary" style={{ minHeight: 44 }}>
+        <button onClick={handlePrescribe} disabled={busy || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44 }}>
           {t('homework.prescribe')}
         </button>
       </div>
 
-      {/* Existing prescriptions */}
-      {items.map((h) => {
-        const status = homeworkStatus(h, linkedCount.get(h.id) ?? 0, today());
+      {/* Existing prescriptions — one card per group (H3), grading per row (H4) */}
+      {groupHomework(items).map((group) => {
+        const status = aggregateStatus(
+          group.items.map((h) => homeworkStatus(h, linkedCount.get(h.id) ?? 0, today())),
+        );
+        const ids = group.items.map((h) => h.id);
+        const instr = group.items.find((h) => h.instructions)?.instructions;
         return (
-          <div key={h.id} className="card flex flex-col gap-2" style={{ padding: '12px 16px' }}>
+          <div key={group.key} className="card flex flex-col gap-2" style={{ padding: '12px 16px' }}>
             <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                {t(`logType.${h.type}`)} · {t('log.pageRange')} {h.page_start}–{h.page_end}
-              </span>
+              <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t(`logType.${group.items[0].type}`)}</span>
               <span className="badge" style={{ fontSize: 10, ...HOMEWORK_STATUS_STYLE[status] }}>{t(STATUS_KEY[status])}</span>
             </div>
-            {h.instructions && <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{h.instructions}</span>}
+            {instr && <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{instr}</span>}
             <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
               {t('homework.deadline')}
-              <input type="date" defaultValue={h.deadline ?? ''} onChange={(e) => handleEditDeadline(h.id, e.target.value)}
+              <input type="date" defaultValue={group.items[0].deadline ?? ''} onChange={(e) => handleEditDeadline(ids, e.target.value)}
                      className="input input-sm" style={{ minHeight: 34 }} />
             </label>
+            {group.items.map((h) => (
+              <div key={h.id} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }} className="flex flex-col gap-1">
+                <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                  {homeworkEntryLabel(h, locale) ?? `${t('log.pageRange')} ${h.page_start}–${h.page_end}`}
+                  {h.surah && h.ayah_start == null ? ` ${t('homework.whole')}` : ''}
+                </span>
+                {(logsByHomework.get(h.id) ?? []).map((l) => (
+                  <GradeableLog key={l.id} log={l} statuses={teacherStatuses} onGraded={onGraded} />
+                ))}
+              </div>
+            ))}
           </div>
         );
       })}
+
+      {/* Open self-submissions (homework_id null) — G2 */}
+      <SectionTitle>{t('grade.selfSubmissions')}</SectionTitle>
+      {selfSubmissions.length === 0 && <EmptyState>{t('grade.noSubmissions')}</EmptyState>}
+      {selfSubmissions.map((l) => (
+        <div key={l.id} className="card" style={{ padding: '12px 16px' }}>
+          <GradeableLog log={l} statuses={teacherStatuses} onGraded={onGraded} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// --- Surah picker: build the list of surah entries for a prescription (H1) ----
+
+function SurahPicker({
+  entries, onChange, locale,
+}: {
+  entries: Entry[];
+  onChange: (e: Entry[]) => void;
+  locale: 'en' | 'ar';
+}) {
+  const { t } = useI18n();
+  const [surah, setSurah] = useState(1);
+  const [whole, setWhole] = useState(true);
+  const [ayahStart, setAyahStart] = useState(1);
+  const [ayahEnd, setAyahEnd] = useState(1);
+  const max = AYAH_COUNTS[surah] ?? 1;
+  // Clamp the range to 1..AYAH_COUNTS[surah] (H1).
+  const clamp = (n: number) => Math.max(1, Math.min(max, n));
+
+  function add() {
+    const start = clamp(ayahStart);
+    const end = clamp(ayahEnd);
+    onChange([...entries, whole
+      ? { surah, ayah_start: null, ayah_end: null }
+      : { surah, ayah_start: Math.min(start, end), ayah_end: Math.max(start, end) }]);
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap gap-2 items-end">
+        <label className="flex flex-col gap-1">
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('log.surah')}</span>
+          <select value={surah} onChange={(e) => setSurah(Number(e.target.value))} className="input" style={{ minHeight: 40 }}>
+            {Array.from({ length: TOTAL_SURAHS }, (_, i) => i + 1).map((s) => (
+              <option key={s} value={s}>{s}. {getSurahName(s, locale)}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-secondary)', paddingBottom: 12 }}>
+          <input type="checkbox" checked={whole} onChange={(e) => setWhole(e.target.checked)} />
+          {t('homework.whole')}
+        </label>
+        {!whole && (
+          <>
+            <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {t('log.ayahFrom')}
+              <input type="number" min={1} max={max} value={ayahStart} onChange={(e) => setAyahStart(clamp(Number(e.target.value)))}
+                     className="input input-sm" style={{ minHeight: 40, width: 80 }} />
+            </label>
+            <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+              {t('log.ayahTo')}
+              <input type="number" min={1} max={max} value={ayahEnd} onChange={(e) => setAyahEnd(clamp(Number(e.target.value)))}
+                     className="input input-sm" style={{ minHeight: 40, width: 80 }} />
+            </label>
+          </>
+        )}
+        <button onClick={add} className="btn btn-outline" style={{ minHeight: 40, fontSize: 13, padding: '0 16px' }}>
+          {t('homework.addSurah')}
+        </button>
+      </div>
+      {entries.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {entries.map((e, i) => (
+            <span key={i} className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {getSurahName(e.surah, locale)}{e.ayah_start ? ` ${e.ayah_start}–${e.ayah_end}` : ` ${t('homework.whole')}`}
+              <button onClick={() => onChange(entries.filter((_, j) => j !== i))}
+                      style={{ cursor: 'pointer', fontWeight: 700 }} aria-label="remove">×</button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- A single student log with an inline grader (G1-G4) -----------------------
+
+function GradeableLog({
+  log: l, statuses, onGraded,
+}: {
+  log: ProgressLog;
+  statuses: StatusConfig[];
+  onGraded: (id: string, grade: { teacher_status: string | null; teacher_comment: string | null }) => void;
+}) {
+  const { t } = useI18n();
+  const [status, setStatus] = useState<string | null>(null);
+  const [comment, setComment] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function handleGrade() {
+    if (busy || !status) return;
+    setBusy(true);
+    try {
+      const grade = { teacher_status: status, teacher_comment: comment || null };
+      await gradeLog(l.id, grade);
+      onGraded(l.id, grade);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }} className="flex flex-col gap-1">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+          {t(`logType.${l.log_type}`)} · p{l.page_start}–{l.page_end}
+          {l.surah && l.ayah_start ? ` · ${l.surah}:${l.ayah_start}${l.ayah_end && l.ayah_end !== l.ayah_start ? `–${l.ayah_end}` : ''}` : ''}
+        </span>
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{l.log_date}</span>
+      </div>
+      {l.student_status && <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{l.student_status}</div>}
+      {l.student_notes && <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{l.student_notes}</div>}
+
+      {l.reviewed_at ? (
+        // Locked/graded — mirrors the student-side treatment (G4).
+        <div className="text-xs mt-1" style={{ color: 'var(--text-accent)' }}>
+          {t('grade.reviewed')}{l.teacher_status ? `: ${l.teacher_status}` : ''}
+          {l.teacher_comment ? ` — ${l.teacher_comment}` : ''}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2 mt-1">
+          <div className="flex flex-wrap gap-2">
+            {statuses.map((s) => (
+              <button key={s.label} onClick={() => setStatus(s.label)} className="badge" style={{
+                cursor: 'pointer',
+                background: status === s.label ? 'var(--accent)' : undefined,
+                color: status === s.label ? '#fff' : undefined,
+              }}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+          <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('grade.comment')} className="input input-sm" style={{ minHeight: 34 }} />
+          <button onClick={handleGrade} disabled={busy || !status} className="btn btn-primary self-start" style={{ minHeight: 36, fontSize: 13 }}>
+            {t('grade.markReviewed')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

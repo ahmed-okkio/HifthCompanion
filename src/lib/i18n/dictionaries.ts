@@ -72,6 +72,8 @@ const en = {
   'homework.statusCompleted': 'Completed',
   'homework.statusMissed': 'Missed',
   'homework.statusLocked': 'Locked',
+  'homework.whole': '(whole)',
+  'homework.addSurah': 'Add surah',
 
   // Per-student notes thread (D11).
   'notes.title': 'Notes',
@@ -108,6 +110,8 @@ const en = {
   'grade.pendingTotal': 'pending review',
   'grade.reviewed': 'Reviewed',
   'grade.emptyFeed': 'No log entries yet',
+  'grade.selfSubmissions': 'Self-submissions',
+  'grade.noSubmissions': 'No submissions yet',
 
   'analytics.title': 'Analytics',
   'analytics.pages': 'Pages',
@@ -227,6 +231,8 @@ const ar: Record<MessageKey, string> = {
   'homework.statusCompleted': 'مكتمل',
   'homework.statusMissed': 'فائت',
   'homework.statusLocked': 'مغلق',
+  'homework.whole': '(كاملة)',
+  'homework.addSurah': 'إضافة سورة',
 
   // سلسلة ملاحظات الطالب (D11).
   'notes.title': 'الملاحظات',
@@ -263,6 +269,8 @@ const ar: Record<MessageKey, string> = {
   'grade.pendingTotal': 'بانتظار المراجعة',
   'grade.reviewed': 'تمت المراجعة',
   'grade.emptyFeed': 'لا توجد سجلات بعد',
+  'grade.selfSubmissions': 'تسليمات ذاتية',
+  'grade.noSubmissions': 'لا توجد تسليمات بعد',
 
   'analytics.title': 'التحليلات',
   'analytics.pages': 'الصفحات',

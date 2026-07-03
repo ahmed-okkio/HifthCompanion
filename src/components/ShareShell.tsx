@@ -118,11 +118,11 @@ export default function ShareShell({ basePath, pageNum, setName, children, accou
 
             <div className={navStyles.navigator}>
               <Link
-                href={`${basePath}/${prevPage}`}
-                title="Previous page"
-                aria-disabled={pageNum === 1}
+                href={`${basePath}/${nextPage}`}
+                title="Next page"
+                aria-disabled={pageNum === TOTAL_PAGES}
                 className={navStyles.navButton}
-                style={pageNum === 1 ? { pointerEvents: 'none', opacity: 0.35 } : undefined}
+                style={pageNum === TOTAL_PAGES ? { pointerEvents: 'none', opacity: 0.35 } : undefined}
               >
                 <svg width="16" height="16" className={navStyles.navIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -138,11 +138,11 @@ export default function ShareShell({ basePath, pageNum, setName, children, accou
               </div>
 
               <Link
-                href={`${basePath}/${nextPage}`}
-                title="Next page"
-                aria-disabled={pageNum === TOTAL_PAGES}
+                href={`${basePath}/${prevPage}`}
+                title="Previous page"
+                aria-disabled={pageNum === 1}
                 className={navStyles.navButton}
-                style={pageNum === TOTAL_PAGES ? { pointerEvents: 'none', opacity: 0.35 } : undefined}
+                style={pageNum === 1 ? { pointerEvents: 'none', opacity: 0.35 } : undefined}
               >
                 <svg width="16" height="16" className={navStyles.navIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />

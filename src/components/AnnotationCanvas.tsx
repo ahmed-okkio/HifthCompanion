@@ -254,21 +254,21 @@ function AnnotationCanvasInner(
             <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
               {flush === 'end' && (
               <button
-                onClick={() => go(pageNum - (controlled ? 2 : 1))}
-                disabled={pageNum <= 1}
-                aria-label="Previous page"
+                onClick={() => go(pageNum + (controlled ? 2 : 1))}
+                disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
+                aria-label="Next page"
                 style={{
                   width: 'clamp(50px, 4vw, 120px)', minWidth: 50, flexShrink: 0,
                   border: 'none',
                   background: 'transparent', boxShadow: 'none',
-                  cursor: pageNum <= 1 ? 'default' : 'pointer',
+                  cursor: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 'default' : 'pointer',
                   borderRadius: 'var(--radius-lg-px)',
                   transition: 'background 220ms ease, box-shadow 220ms ease, transform 120ms var(--ease-out)',
-                  opacity: pageNum <= 1 ? 0.3 : 1,
+                  opacity: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 0.3 : 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
                 onMouseEnter={e => {
-                  if (pageNum <= 1) return;
+                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
                   const el = e.currentTarget;
                   el.style.background = 'var(--surface-app)';
                   el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
@@ -279,7 +279,7 @@ function AnnotationCanvasInner(
                   el.style.boxShadow = 'none';
                 }}
                 onMouseDown={e => {
-                  if (pageNum <= 1) return;
+                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
                   const el = e.currentTarget;
                   el.style.transform = 'scale(0.94)';
                   el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.18)';
@@ -317,57 +317,12 @@ function AnnotationCanvasInner(
             </div>
               {flush === 'start' && (
               <button
-                onClick={() => go(pageNum + (controlled ? 2 : 1))}
-                disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
-                aria-label="Next page"
-                style={{
-                  width: 'clamp(50px, 4vw, 120px)', minWidth: 50, flexShrink: 0,
-                  border: 'none',
-                  background: 'transparent', boxShadow: 'none',
-                  cursor: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 'default' : 'pointer',
-                  borderRadius: 'var(--radius-lg-px)',
-                  transition: 'background 220ms ease, box-shadow 220ms ease, transform 120ms var(--ease-out)',
-                  opacity: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 0.3 : 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-                onMouseEnter={e => {
-                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
-                  const el = e.currentTarget;
-                  el.style.background = 'var(--surface-app)';
-                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget;
-                  el.style.background = 'transparent';
-                  el.style.boxShadow = 'none';
-                }}
-                onMouseDown={e => {
-                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
-                  const el = e.currentTarget;
-                  el.style.transform = 'scale(0.94)';
-                  el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.18)';
-                }}
-                onMouseUp={e => {
-                  const el = e.currentTarget;
-                  el.style.transform = '';
-                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
-                }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transition: 'color 220ms ease' }}>
-                  <path d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-              )}
-            </div>
-            ) : (
-            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-              <button
                 onClick={() => go(pageNum - (controlled ? 2 : 1))}
                 disabled={pageNum <= 1}
                 aria-label="Previous page"
                 style={{
-                  position: 'absolute', right: 'calc(100% + 20px)', top: 0, bottom: 0,
-                  width: '16vw', zIndex: 4, border: 'none',
+                  width: 'clamp(50px, 4vw, 120px)', minWidth: 50, flexShrink: 0,
+                  border: 'none',
                   background: 'transparent', boxShadow: 'none',
                   cursor: pageNum <= 1 ? 'default' : 'pointer',
                   borderRadius: 'var(--radius-lg-px)',
@@ -388,6 +343,51 @@ function AnnotationCanvasInner(
                 }}
                 onMouseDown={e => {
                   if (pageNum <= 1) return;
+                  const el = e.currentTarget;
+                  el.style.transform = 'scale(0.94)';
+                  el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.18)';
+                }}
+                onMouseUp={e => {
+                  const el = e.currentTarget;
+                  el.style.transform = '';
+                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
+                }}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transition: 'color 220ms ease' }}>
+                  <path d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              )}
+            </div>
+            ) : (
+            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+              <button
+                onClick={() => go(pageNum + (controlled ? 2 : 1))}
+                disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
+                aria-label="Next page"
+                style={{
+                  position: 'absolute', right: 'calc(100% + 20px)', top: 0, bottom: 0,
+                  width: '16vw', zIndex: 4, border: 'none',
+                  background: 'transparent', boxShadow: 'none',
+                  cursor: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 'default' : 'pointer',
+                  borderRadius: 'var(--radius-lg-px)',
+                  transition: 'background 220ms ease, box-shadow 220ms ease, transform 120ms var(--ease-out)',
+                  opacity: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 0.3 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                onMouseEnter={e => {
+                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
+                  const el = e.currentTarget;
+                  el.style.background = 'var(--surface-app)';
+                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget;
+                  el.style.background = 'transparent';
+                  el.style.boxShadow = 'none';
+                }}
+                onMouseDown={e => {
+                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
                   const el = e.currentTarget;
                   el.style.transform = 'scale(0.94)';
                   el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.18)';
@@ -423,21 +423,21 @@ function AnnotationCanvasInner(
               )}
             </div>
               <button
-                onClick={() => go(pageNum + (controlled ? 2 : 1))}
-                disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
-                aria-label="Next page"
+                onClick={() => go(pageNum - (controlled ? 2 : 1))}
+                disabled={pageNum <= 1}
+                aria-label="Previous page"
                 style={{
                   position: 'absolute', left: 'calc(100% + 20px)', top: 0, bottom: 0,
                   width: '16vw', zIndex: 4, border: 'none',
                   background: 'transparent', boxShadow: 'none',
-                  cursor: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 'default' : 'pointer',
+                  cursor: pageNum <= 1 ? 'default' : 'pointer',
                   borderRadius: 'var(--radius-lg-px)',
                   transition: 'background 220ms ease, box-shadow 220ms ease, transform 120ms var(--ease-out)',
-                  opacity: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 0.3 : 1,
+                  opacity: pageNum <= 1 ? 0.3 : 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
                 onMouseEnter={e => {
-                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
+                  if (pageNum <= 1) return;
                   const el = e.currentTarget;
                   el.style.background = 'var(--surface-app)';
                   el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
@@ -448,7 +448,7 @@ function AnnotationCanvasInner(
                   el.style.boxShadow = 'none';
                 }}
                 onMouseDown={e => {
-                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
+                  if (pageNum <= 1) return;
                   const el = e.currentTarget;
                   el.style.transform = 'scale(0.94)';
                   el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.18)';

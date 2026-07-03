@@ -58,6 +58,19 @@ function IconCircles({ active }: { active: boolean }) {
   );
 }
 
+function IconShared({ active }: { active: boolean }) {
+  // Handshake / shared glyph — sets shared WITH the viewer by others.
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={strokeColor(active)} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M11 17l-2 2a1.5 1.5 0 0 1-2.12-2.12l.7-.71" />
+      <path d="M13 19l1.5 1.5a1.5 1.5 0 0 0 2.12-2.12L15 16.75" />
+      <path d="M16 16l1.5 1.5a1.5 1.5 0 0 0 2.12-2.12l-4.6-4.6a2 2 0 0 0-2.83 0l-.59.59a2 2 0 0 1-2.83 0L8 9.5a2 2 0 0 1 0-2.83L11.5 3" />
+      <path d="M4 6l3-3 4 4" />
+      <path d="M2 14l3.5-3.5" />
+    </svg>
+  );
+}
+
 function IconSets({ active }: { active: boolean }) {
   // Archive / collection glyph — mirrors the reader top-bar "My Sets" icon.
   return (
@@ -84,10 +97,10 @@ export interface RailItemDef {
 export const RAIL_ITEMS: RailItemDef[] = [
   {
     id: 'surahs',
-    label: 'Mushaf',
+    label: 'My Mushaf',
     icon: (active) => <IconSurahs active={active} />,
     href: '/reader/1',
-    matchPrefixes: ['/reader', '/share'],
+    matchPrefixes: ['/reader'],
   },
   {
     id: 'circles',
@@ -102,6 +115,13 @@ export const RAIL_ITEMS: RailItemDef[] = [
     icon: (active) => <IconSets active={active} />,
     href: '/sets',
     matchPrefixes: ['/sets'],
+  },
+  {
+    id: 'shared',
+    label: 'Shared Mushafs',
+    icon: (active) => <IconShared active={active} />,
+    href: '/shared',
+    matchPrefixes: ['/shared', '/share'],
   },
 ];
 

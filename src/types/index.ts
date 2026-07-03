@@ -142,6 +142,7 @@ export interface Homework {
   id: string;
   membership_id: string;
   prescribed_by: string;
+  group_id: string | null; // rows from one multi-surah prescribe share this (A1); null = legacy solo row
   type: LogType;
   deadline: string | null; // date (local end-of-day)
   page_start: number;

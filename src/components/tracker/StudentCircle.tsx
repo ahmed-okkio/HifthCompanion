@@ -8,7 +8,9 @@ import type {
 import { createLog, deleteLog, type NewProgressLog } from '@/lib/services/progressLog';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
-import { homeworkStatus, type HomeworkStatus } from '@/lib/homework';
+import {
+  homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, type HomeworkStatus,
+} from '@/lib/homework';
 import { computeStreak, isStreakAtRisk } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage } from '@/lib/quran';
 import { SectionTitle, EmptyState, StatCard, DateChip, NumberStepper, HOMEWORK_STATUS_STYLE } from './ui';
@@ -23,7 +25,7 @@ const STATUS_KEY = {
 } as const satisfies Record<HomeworkStatus, string>;
 
 function fmtTime(iso: string, locale: string) {
-  return new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' });
 }
 
 /**
@@ -85,7 +87,7 @@ export default function StudentCircle({
         <StatCard
           icon="📅"
           value={nextSession
-            ? new Date(nextSession.scheduled_at).toLocaleDateString(locale, { month: 'short', day: 'numeric' })
+            ? new Date(nextSession.scheduled_at).toLocaleDateString(locale, { month: 'short', day: 'numeric', timeZone: 'UTC' })
             : '—'}
           label={t('sessions.next')}
         />
@@ -154,7 +156,7 @@ function UpcomingSessions({ sessions }: { sessions: Session[] }) {
           <DateChip iso={s.scheduled_at} locale={locale} />
           <div className="flex flex-col gap-0.5 min-w-0 flex-1">
             <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {new Date(s.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' })}
+              {new Date(s.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })}
             </span>
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
               {fmtTime(s.scheduled_at, locale)}
@@ -194,73 +196,79 @@ function AssignedHomework({
     <div className="flex flex-col gap-2">
       <SectionTitle>{t('homework.assignedToYou')}</SectionTitle>
       {homework.length === 0 && <EmptyState>{t('log.empty')}</EmptyState>}
-      {homework.map((h) => {
-        const linkedLogs = linked.get(h.id) ?? [];
-        const status = homeworkStatus(h, linkedLogs.length, today());
-        return (
-          <HomeworkCard
-            key={h.id} homework={h} status={status} linkedLogs={linkedLogs}
-            statuses={statuses} membershipId={membershipId} onCreated={onCreated}
-          />
-        );
-      })}
+      {groupHomework(homework).map((group) => (
+        <HomeworkCard
+          key={group.key} items={group.items} linked={linked}
+          statuses={statuses} membershipId={membershipId} onCreated={onCreated}
+        />
+      ))}
     </div>
   );
 }
 
 function HomeworkCard({
-  homework: h, status, linkedLogs, statuses, membershipId, onCreated,
+  items, linked, statuses, membershipId, onCreated,
 }: {
-  homework: Homework;
-  status: HomeworkStatus;
-  linkedLogs: ProgressLog[];
+  items: Homework[];
+  linked: Map<string, ProgressLog[]>;
   statuses: StatusConfig[];
   membershipId: string;
   onCreated: (log: ProgressLog) => void;
 }) {
-  const { t } = useI18n();
-  const [attaching, setAttaching] = useState(false);
-  const open = status === 'open'; // not past-deadline → still submittable (E4)
+  const { t, locale } = useI18n();
+  const [attaching, setAttaching] = useState<string | null>(null); // per-entry (row) attach form
+  const groupStatus = aggregateStatus(
+    items.map((h) => homeworkStatus(h, (linked.get(h.id) ?? []).length, today())),
+  );
+  const first = items[0];
 
   return (
     <div className="card flex flex-col gap-2" style={{ padding: '12px 16px' }}>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-          {t(`logType.${h.type}`)} · {t('log.pageRange')} {h.page_start}–{h.page_end}
-        </span>
-        <span className="badge" style={{ fontSize: 10, ...HOMEWORK_STATUS_STYLE[status] }}>{t(STATUS_KEY[status])}</span>
+        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t(`logType.${first.type}`)}</span>
+        <span className="badge" style={{ fontSize: 10, ...HOMEWORK_STATUS_STYLE[groupStatus] }}>{t(STATUS_KEY[groupStatus])}</span>
       </div>
-      {h.instructions && <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{h.instructions}</span>}
-      {h.deadline && (
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('homework.deadline')}: {h.deadline}</span>
+      {first.instructions && <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{first.instructions}</span>}
+      {first.deadline && (
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('homework.deadline')}: {first.deadline}</span>
       )}
 
-      {/* Linked submissions (E6) */}
-      {linkedLogs.map((l) => (
-        <div key={l.id} className="text-xs" style={{ color: 'var(--text-secondary)', paddingInlineStart: 8 }}>
-          ✓ p{l.page_start}–{l.page_end} · {l.log_date}
-          {l.student_status ? ` · ${l.student_status}` : ''}
-        </div>
-      ))}
-
-      {/* Attach affordance — hidden/disabled once past deadline (E4) */}
-      {open ? (
-        attaching ? (
-          <LogForm
-            membershipId={membershipId} statuses={statuses}
-            homeworkId={h.id} lockedType={h.type}
-            initialPageStart={h.page_start} initialPageEnd={h.page_end}
-            onCreated={(log) => { onCreated(log); setAttaching(false); }}
-          />
-        ) : (
-          <button onClick={() => setAttaching(true)} className="btn btn-outline self-start"
-                  style={{ minHeight: 36, fontSize: 13 }}>
-            {t('homework.linkSubmission')}
-          </button>
-        )
-      ) : (
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('homework.statusLocked')}</span>
-      )}
+      {/* One entry (surah row) per line; linking + status stay per row (H4) */}
+      {items.map((h) => {
+        const linkedLogs = linked.get(h.id) ?? [];
+        const open = homeworkStatus(h, linkedLogs.length, today()) === 'open';
+        return (
+          <div key={h.id} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }} className="flex flex-col gap-1">
+            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+              {homeworkEntryLabel(h, locale) ?? `${t('log.pageRange')} ${h.page_start}–${h.page_end}`}
+              {h.surah && h.ayah_start == null ? ` ${t('homework.whole')}` : ''}
+            </span>
+            {linkedLogs.map((l) => (
+              <div key={l.id} className="text-xs" style={{ color: 'var(--text-secondary)', paddingInlineStart: 8 }}>
+                ✓ p{l.page_start}–{l.page_end} · {l.log_date}
+                {l.student_status ? ` · ${l.student_status}` : ''}
+              </div>
+            ))}
+            {open ? (
+              attaching === h.id ? (
+                <LogForm
+                  membershipId={membershipId} statuses={statuses}
+                  homeworkId={h.id} lockedType={h.type}
+                  initialPageStart={h.page_start} initialPageEnd={h.page_end}
+                  onCreated={(log) => { onCreated(log); setAttaching(null); }}
+                />
+              ) : (
+                <button onClick={() => setAttaching(h.id)} className="btn btn-outline self-start"
+                        style={{ minHeight: 36, fontSize: 13 }}>
+                  {t('homework.linkSubmission')}
+                </button>
+              )
+            ) : (
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('homework.statusLocked')}</span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

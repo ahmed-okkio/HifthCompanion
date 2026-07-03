@@ -12,7 +12,7 @@ import { SectionTitle, EmptyState, Avatar, Chevron, StatCard, DateChip, StatusDo
 
 // Stdlib formatter — time-of-day only; the DateChip carries the date.
 function fmtTime(iso: string, locale: string) {
-  return new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' });
 }
 
 /**

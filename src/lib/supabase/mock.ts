@@ -410,7 +410,8 @@ class MockQueryBuilder {
       }
       if (Array.isArray(this.opValues)) {
         const inserted = rowsToWrite.map((v: any) => {
-          const r = { id: rid(), created_at: now, ...v };
+          const defaults = table === 'homework' ? { prescribed_by: this.userId, deadline: null } : {};
+          const r = { id: rid(), created_at: now, ...defaults, ...v };
           rows.push(r);
           return r;
         });

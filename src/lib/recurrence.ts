@@ -86,6 +86,17 @@ export interface SectionedSessions {
   history: SessionSlot[];
 }
 
+/**
+ * "Now" in the app's floating frame: session times are stored as wall-clock
+ * as-if-UTC (a picked 17:00 → `...T17:00:00Z`, rendered with timeZone:'UTC'), so
+ * to compare past/future against them, `now` must be shifted into that same
+ * frame — its UTC fields set to the viewer's local wall clock. Without this a
+ * 2:00pm slot reads as "future" to a UTC+n viewer whose local clock is 2:44pm.
+ */
+export function floatingNow(d: Date = new Date()): Date {
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+}
+
 /** A row is "resolved" (belongs in History) once it carries attendance or a cancel. */
 function isResolved(s: Session): boolean {
   return s.attendance_status !== null || s.canceled;
@@ -104,28 +115,41 @@ export function sectionSessions(
   rule: Recurrence | null,
   rows: Session[],
   now: Date,
-  lookbackDays = 28,
   horizonDays = 28,
 ): SectionedSessions {
   const nowMs = now.getTime();
-  const byTime = new Map(rows.map((r) => [r.scheduled_at, r]));
+  // Key by instant (epoch ms), not the raw string: a materialized row comes back
+  // from Postgres in a different ISO format than recurringSlots emits (e.g.
+  // `+00:00` vs `.000Z`), so a string compare would miss the dedup and show the
+  // slot as both a virtual "awaiting" AND its resolved history row (T6).
+  const byTime = new Map(rows.map((r) => [new Date(r.scheduled_at).getTime(), r]));
 
-  // Virtual slots across a window that reaches back before `now`.
-  const windowStart = new Date(now);
-  windowStart.setUTCDate(windowStart.getUTCDate() - lookbackDays);
-  const virtual = recurringSlots(rule, windowStart, lookbackDays + horizonDays)
-    .filter((iso) => !byTime.has(iso)) // real row wins the dedup (T6)
+  // Virtual slots reach back only GRACE_MS before now: a just-passed slot stays
+  // markable as "awaiting" for a short grace window, then vanishes forever unless
+  // the teacher materialized it by marking attendance. No deep past awaiting slots.
+  const GRACE_MS = 12 * 60 * 60 * 1000; // 12h
+  const windowStart = new Date(nowMs - GRACE_MS);
+  const virtual = recurringSlots(rule, windowStart, horizonDays + 1)
+    .filter((iso) => !byTime.has(new Date(iso).getTime())) // real row wins the dedup (T6)
     .map((iso) => ({ scheduled_at: iso, session: null }));
 
+  const graceStartMs = nowMs - GRACE_MS;
+  // Real unresolved rows older than the grace window are "stale" — a session that
+  // came and went unmarked. They drop to History (read-only), never lingering as
+  // an editable "awaiting" slot forever (same cutoff as virtual slots).
   const realUnresolved = rows
     .filter((r) => !isResolved(r))
     .map((r) => ({ scheduled_at: r.scheduled_at, session: r }));
+  const staleUnresolved = realUnresolved.filter(
+    (s) => new Date(s.scheduled_at).getTime() < graceStartMs,
+  );
 
-  const unresolved = [...virtual, ...realUnresolved].sort((a, b) =>
-    a.scheduled_at.localeCompare(b.scheduled_at));
+  const active = [...virtual, ...realUnresolved.filter(
+    (s) => new Date(s.scheduled_at).getTime() >= graceStartMs,
+  )].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
 
-  const pastOrNow = unresolved.filter((s) => new Date(s.scheduled_at).getTime() <= nowMs);
-  const future = unresolved.filter((s) => new Date(s.scheduled_at).getTime() > nowMs);
+  const pastOrNow = active.filter((s) => new Date(s.scheduled_at).getTime() <= nowMs);
+  const future = active.filter((s) => new Date(s.scheduled_at).getTime() > nowMs);
 
   let next: SessionSlot | null = null;
   let nextEditable = false;
@@ -138,10 +162,10 @@ export function sectionSessions(
     upcoming = future.slice(1);
   }
 
-  const history = rows
-    .filter(isResolved)
-    .sort((a, b) => b.scheduled_at.localeCompare(a.scheduled_at)) // newest first (T2)
-    .map((r) => ({ scheduled_at: r.scheduled_at, session: r }));
+  const history = [
+    ...rows.filter(isResolved).map((r) => ({ scheduled_at: r.scheduled_at, session: r })),
+    ...staleUnresolved, // unmarked-but-past sessions belong in the record too
+  ].sort((a, b) => b.scheduled_at.localeCompare(a.scheduled_at)); // newest first (T2)
 
   return { next, nextEditable, upcoming, history };
 }

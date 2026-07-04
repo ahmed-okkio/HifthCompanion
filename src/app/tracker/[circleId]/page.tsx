@@ -10,6 +10,7 @@ import { getCircleMembers, getCircleMembersWithProfiles } from '@/lib/services/m
 import { getProfilesByIds } from '@/lib/services/profile';
 import { getLogsForMembership } from '@/lib/services/progressLog';
 import { getSessionsForMemberships, getSessions } from '@/lib/services/sessions';
+import { sectionSessions, floatingNow } from '@/lib/recurrence';
 import { listHomework } from '@/lib/services/homework';
 import { listNotes } from '@/lib/services/membershipNotes';
 import { displayName } from '@/lib/displayName';
@@ -36,13 +37,27 @@ export default async function CirclePage({
     const active = students.filter((m) => m.status === 'active');
     const nameById = new Map(active.map((m) => [m.id, displayName(m)]));
 
-    // Aggregate agenda (D2/D5): all active students' upcoming, non-canceled sessions.
-    const now = Date.now();
+    // Aggregate agenda (D2/D5): each active student's upcoming slots, derived from
+    // their schedule rule + real rows — so recurring virtual sessions show too.
+    const nowDate = floatingNow();
+    const now = nowDate.getTime();
     const sessions = await getSessionsForMemberships(active.map((m) => m.id));
-    const agenda = sessions
-      .filter((s) => !s.canceled && new Date(s.scheduled_at).getTime() >= now)
-      .slice(0, 20)
-      .map((s) => ({ session: s, student: nameById.get(s.membership_id) ?? '' }));
+    const agenda = active
+      .flatMap((m) => {
+        const rows = sessions.filter((s) => s.membership_id === m.id);
+        const { next, upcoming } = sectionSessions(m.schedule, rows, nowDate);
+        return [next, ...upcoming]
+          .filter((slot): slot is NonNullable<typeof slot> => !!slot)
+          .filter((slot) => new Date(slot.scheduled_at).getTime() >= now)
+          .map((slot) => ({
+            key: slot.session?.id ?? `${m.id}-${slot.scheduled_at}`,
+            scheduled_at: slot.scheduled_at,
+            isAdhoc: slot.session?.is_adhoc ?? false,
+            student: nameById.get(m.id) ?? '',
+          }));
+      })
+      .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
+      .slice(0, 20);
 
     return (
       <AppShell breadcrumb={circle.name} user={account}>

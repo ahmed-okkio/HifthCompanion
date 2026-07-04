@@ -29,7 +29,7 @@ export default function TeacherCircle({
   teacher?: MemberWithProfile;
   initialStudents: MemberWithProfile[];
   // Upcoming sessions across all active students, each already labeled server-side.
-  agenda: { session: Session; student: string }[];
+  agenda: { key: string; scheduled_at: string; isAdhoc: boolean; student: string }[];
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -184,18 +184,18 @@ export default function TeacherCircle({
             {agenda.length === 0 ? (
               <EmptyState>{t('sessions.none')}</EmptyState>
             ) : (
-              agenda.map(({ session, student }) => (
-                <div key={session.id} className="card flex items-center gap-3" style={{ padding: '10px 14px' }}>
-                  <DateChip iso={session.scheduled_at} locale={locale} />
+              agenda.map(({ key, scheduled_at, isAdhoc, student }) => (
+                <div key={key} className="card flex items-center gap-3" style={{ padding: '10px 14px' }}>
+                  <DateChip iso={scheduled_at} locale={locale} />
                   <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                     <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                       {student}
                     </span>
                     <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {fmtTime(session.scheduled_at, locale)}
+                      {fmtTime(scheduled_at, locale)}
                     </span>
                   </div>
-                  {session.is_adhoc && <span className="badge shrink-0" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
+                  {isAdhoc && <span className="badge shrink-0" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
                 </div>
               ))
             )}

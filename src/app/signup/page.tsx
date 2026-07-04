@@ -65,7 +65,7 @@ export default function SignupPage() {
                   value={firstName}
                   onChange={e => setFirstName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSignup()}
-                  placeholder="Aisha"
+                  placeholder="Omar"
                   className="input"
                   autoFocus
                 />
@@ -81,7 +81,7 @@ export default function SignupPage() {
                   value={lastName}
                   onChange={e => setLastName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSignup()}
-                  placeholder="Rahman"
+                  placeholder="Ahmed"
                   className="input"
                 />
               </div>

@@ -12,6 +12,7 @@ import {
   homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus,
 } from '@/lib/homework';
 import { computeStreak, isStreakAtRisk } from '@/lib/streak';
+import { sectionSessions, floatingNow } from '@/lib/recurrence';
 import { getSurahForPage, getAyahsOnPage } from '@/lib/quran';
 import { SectionTitle, EmptyState, StatCard, DateChip, NumberStepper, TabBar, PagedList, HOMEWORK_STATUS_STYLE, Icon } from './ui';
 
@@ -63,12 +64,16 @@ export default function StudentCircle({
     const d = today();
     return initialHomework.filter((h) => homeworkStatus(h, counts.get(h.id) ?? 0, d) === 'open').length;
   }, [logs, initialHomework]);
+  // Soonest future slot from the schedule rule + real rows, so weekly virtual
+  // sessions surface here too (not just materialized rows).
   const nextSession = useMemo(() => {
-    const now = Date.now();
-    return initialSessions
-      .filter((s) => !s.canceled && new Date(s.scheduled_at).getTime() >= now)
+    const fnow = floatingNow();
+    const { next, upcoming } = sectionSessions(membership.schedule, initialSessions, fnow);
+    return [next, ...upcoming]
+      .filter((slot): slot is NonNullable<typeof slot> => !!slot)
+      .filter((slot) => new Date(slot.scheduled_at).getTime() >= fnow.getTime())
       .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))[0];
-  }, [initialSessions]);
+  }, [membership.schedule, initialSessions]);
 
   function addLog(log: ProgressLog) {
     setLogs((prev) => [log, ...prev]);

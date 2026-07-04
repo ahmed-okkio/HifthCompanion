@@ -10,7 +10,7 @@ import { displayName } from '@/lib/displayName';
 import {
   createAdhocSession, materializeSession, setSchedule, setSessionAttendance, setSessionCanceled,
 } from '@/lib/services/sessions';
-import { sectionSessions, type SessionSlot } from '@/lib/recurrence';
+import { sectionSessions, floatingNow, type SessionSlot } from '@/lib/recurrence';
 import { prescribeHomework, editDeadline } from '@/lib/services/homework';
 import { gradeLog } from '@/lib/services/progressLog';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
@@ -65,10 +65,6 @@ export default function TeacherStudent({
   );
 
   // KPI inputs — static snapshots from the server payload.
-  const now = Date.now();
-  const upcomingCount = initialSessions.filter(
-    (s) => !s.canceled && new Date(s.scheduled_at).getTime() >= now,
-  ).length;
   const linkedCount = new Map<string, number>();
   for (const l of logs) if (l.homework_id) linkedCount.set(l.homework_id, (linkedCount.get(l.homework_id) ?? 0) + 1);
   const openHomework = initialHomework.filter(
@@ -94,7 +90,6 @@ export default function TeacherStudent({
 
         <StatCard icon={<Icon name="flame" />} value={streak} label={t('log.streak')} />
         <StatCard icon={<Icon name="book" />} value={openHomework} label={t('homework.statusOpen')} />
-        <StatCard icon={<Icon name="calendar" />} value={upcomingCount} label={t('sessions.title')} />
       </aside>
 
       {/* Right column — the feed: tabs + panels, unchanged */}
@@ -164,6 +159,10 @@ function StudentSessions({
   const [time, setTime] = useState(initialSchedule?.time ?? '17:00');
   const [adhocDate, setAdhocDate] = useState('');
   const [adhocTime, setAdhocTime] = useState('17:00');
+  const [err, setErr] = useState<string | null>(null);
+  // Just-marked session id: keeps the slot in Next (showing the selection) for a
+  // beat before it reflows into History (T5 linger).
+  const [lingerId, setLingerId] = useState<string | null>(null);
 
   // Localized weekday short labels (2023-01-01 is a Sunday → index 0 = Sun).
   const dayLabels = useMemo(
@@ -179,10 +178,24 @@ function StudentSessions({
   }
 
   // Sections re-derive from the rule + real rows on every schedule/state change (T1).
-  const sections = useMemo(
-    () => sectionSessions(rule, sessions, new Date()),
+  const rawSections = useMemo(
+    () => sectionSessions(rule, sessions, floatingNow()),
     [rule, sessions],
   );
+  // While a mark is lingering, pin that row as Next (editable, so its selection
+  // stays highlighted) and pull it out of History until the 3s elapses.
+  const sections = useMemo(() => {
+    if (!lingerId) return rawSections;
+    const row = sessions.find((s) => s.id === lingerId);
+    if (!row) return rawSections;
+    return {
+      ...rawSections,
+      next: { scheduled_at: row.scheduled_at, session: row },
+      nextEditable: true,
+      upcoming: rawSections.upcoming.filter((u) => u.session?.id !== lingerId),
+      history: rawSections.history.filter((h) => h.session?.id !== lingerId),
+    };
+  }, [rawSections, lingerId, sessions]);
 
   // Save the schedule; the list re-derives from `rule` (no Generate button, T1).
   async function handleSave() {
@@ -207,16 +220,31 @@ function StudentSessions({
   }
 
   async function handleCancel(slot: SessionSlot) {
-    const s = await ensureRow(slot);
-    await setSessionCanceled(s.id, !s.canceled);
-    setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, canceled: !s.canceled } : x)));
+    try {
+      const s = await ensureRow(slot);
+      await setSessionCanceled(s.id, !s.canceled);
+      setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, canceled: !s.canceled } : x)));
+    } catch (e) {
+      setErr((e as Error).message);
+    }
   }
 
   async function handleAttendance(slot: SessionSlot, status: AttendanceStatus) {
-    const s = await ensureRow(slot);
-    const next = s.attendance_status === status ? null : status;
-    await setSessionAttendance(s.id, next);
-    setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, attendance_status: next } : x)));
+    try {
+      const s = await ensureRow(slot);
+      const next = s.attendance_status === status ? null : status;
+      await setSessionAttendance(s.id, next);
+      setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, attendance_status: next } : x)));
+      // Linger in Next for 3s showing the selection, then let it reflow to History.
+      if (next) {
+        setLingerId(s.id);
+        setTimeout(() => setLingerId((cur) => (cur === s.id ? null : cur)), 3000);
+      } else {
+        setLingerId((cur) => (cur === s.id ? null : cur));
+      }
+    } catch (e) {
+      setErr((e as Error).message);
+    }
   }
 
   // One card renderer for all three sections; flags gate attendance/cancel.
@@ -234,6 +262,9 @@ function StudentSessions({
               {new Date(slot.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })}
               {s?.is_adhoc && <span className="badge" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
               {canceled && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.canceled')}</span>}
+              {!canceled && s?.attendance_status && (
+                <span className="badge" style={{ fontSize: 10 }}>{t(`att.${s.attendance_status}`)}</span>
+              )}
             </span>
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtTime(slot.scheduled_at, locale)}</span>
           </div>
@@ -264,6 +295,11 @@ function StudentSessions({
 
   return (
     <div className="flex flex-col gap-3">
+      {err && (
+        <div className="card" role="alert" style={{ padding: '10px 14px', color: 'var(--danger)', background: 'var(--danger-muted)', borderColor: 'var(--danger-muted)', fontSize: 13 }}>
+          {err}
+        </div>
+      )}
       {/* Weekly schedule */}
       <div className="card flex flex-col gap-3" style={{ padding: '16px 18px' }}>
         <SectionTitle>{t('sessions.schedule')}</SectionTitle>
@@ -314,7 +350,11 @@ function StudentSessions({
       {/* Next session — the only attendance-editable slot (T2/T3/T4). */}
       {sections.next && (
         <div className="flex flex-col gap-2">
-          <SectionTitle>{t('sessions.next')}</SectionTitle>
+          <SectionTitle>
+            {new Date(sections.next.scheduled_at).getTime() <= Date.now()
+              ? t('sessions.awaitingAttendance')
+              : t('sessions.next')}
+          </SectionTitle>
           <SlotCard slot={sections.next} attendance={sections.nextEditable} cancelable />
         </div>
       )}

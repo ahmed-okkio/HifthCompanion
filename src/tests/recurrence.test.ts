@@ -86,26 +86,51 @@ describe('sectionSessions', () => {
     // Next Monday after MON is 2026-07-06; give it a real unmarked row.
     const twin = '2026-07-06T17:00:00.000Z';
     const now = new Date('2026-07-01T00:00:00Z'); // Wed, before that Monday
-    const { upcoming } = sectionSessions(rule, [row({ scheduled_at: twin })], now);
-    const at = upcoming.filter((s) => s.scheduled_at === twin);
+    const { next, upcoming } = sectionSessions(rule, [row({ scheduled_at: twin })], now);
+    const at = [next, ...upcoming].filter((s): s is NonNullable<typeof s> => !!s)
+      .filter((s) => s.scheduled_at === twin);
     expect(at).toHaveLength(1);
     expect(at[0].session).not.toBeNull(); // the real row, not the virtual
   });
 
-  it('Next is the most-recent past-or-now slot and is editable (T3)', () => {
-    // now = Tue after two Mondays have passed (2026-06-29, 2026-07-06 wait future)
-    const now = new Date('2026-07-07T09:00:00Z'); // Tue; last Monday 07-06 passed
+  it('a real past unresolved row within grace is the editable Next (T3)', () => {
+    const now = new Date('2026-07-06T20:00:00Z'); // 3h after the 17:00 slot (in grace)
+    const rows = [row({ scheduled_at: '2026-07-06T17:00:00.000Z' })]; // real, unmarked
+    const { next, nextEditable } = sectionSessions(rule, rows, now);
+    expect(next?.scheduled_at).toBe('2026-07-06T17:00:00.000Z');
+    expect(next?.session).not.toBeNull(); // the real row, not a virtual past slot
+    expect(nextEditable).toBe(true);
+  });
+
+  it('a real unresolved row older than grace goes to History, not Next (T3d)', () => {
+    const now = new Date('2026-07-07T09:00:00Z'); // 16h after the 07-06 slot (stale)
+    const rows = [row({ scheduled_at: '2026-07-06T17:00:00.000Z' })]; // real, unmarked
+    const { next, nextEditable, history } = sectionSessions(rule, rows, now);
+    expect(next?.scheduled_at).toBe('2026-07-13T17:00:00.000Z'); // soonest future
+    expect(nextEditable).toBe(false);
+    expect(history.map((h) => h.scheduled_at)).toContain('2026-07-06T17:00:00.000Z');
+  });
+
+  it('virtual slots are future-only: no past awaiting slot conjured (T3b)', () => {
+    // now = Tue after a Monday passed, but NO real row for it → nothing awaiting.
+    const now = new Date('2026-07-07T09:00:00Z');
+    const { next, nextEditable } = sectionSessions(rule, [], now);
+    expect(next?.scheduled_at).toBe('2026-07-13T17:00:00.000Z'); // soonest FUTURE Monday
+    expect(next?.session).toBeNull();
+    expect(nextEditable).toBe(false); // display-only, nothing to mark
+  });
+
+  it('a just-passed virtual slot lingers as editable Next within the 12h grace (T3c)', () => {
+    const now = new Date('2026-07-06T20:00:00Z'); // 3h after the 17:00 Monday slot
     const { next, nextEditable } = sectionSessions(rule, [], now);
     expect(next?.scheduled_at).toBe('2026-07-06T17:00:00.000Z');
-    expect(next?.session).toBeNull(); // virtual
+    expect(next?.session).toBeNull(); // still virtual, materializes on mark
     expect(nextEditable).toBe(true);
   });
 
   it('no session yet → soonest upcoming, display-only (T4)', () => {
-    // now = Fri before the first Monday; no past slot in a fresh schedule window.
     const now = new Date('2026-07-03T09:00:00Z'); // Fri; next Monday 07-06 future
-    // Zero lookback so nothing before now qualifies.
-    const { next, nextEditable, upcoming } = sectionSessions(rule, [], now, 0);
+    const { next, nextEditable, upcoming } = sectionSessions(rule, [], now);
     expect(next?.scheduled_at).toBe('2026-07-06T17:00:00.000Z');
     expect(nextEditable).toBe(false);
     expect(upcoming[0].scheduled_at).toBe('2026-07-13T17:00:00.000Z');
@@ -121,7 +146,8 @@ describe('sectionSessions', () => {
     expect(history.map((h) => h.scheduled_at)).toEqual([
       '2026-07-06T17:00:00.000Z', '2026-06-29T17:00:00.000Z', // newest first
     ]);
-    // The marked Mondays are gone from Next; the unmarked 07-13 slot is now Next.
-    expect(next?.scheduled_at).toBe('2026-07-13T17:00:00.000Z');
+    // Marked Mondays gone from Next; 07-13 passed >12h ago unmaterialized so it's
+    // lost too — the soonest future Monday 07-20 is now Next.
+    expect(next?.scheduled_at).toBe('2026-07-20T17:00:00.000Z');
   });
 });

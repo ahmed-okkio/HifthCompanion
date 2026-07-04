@@ -478,12 +478,12 @@ function HomeworkPanel({
     <div className="flex flex-col gap-2">
       {/* Prescribe form collapsed behind a button; review is the default surface (P6/P7). */}
       {!prescribing && (
-        <button onClick={() => setPrescribing(true)} className="btn btn-primary self-start" style={{ minHeight: 44 }}>
+        <button onClick={() => setPrescribing(true)} className="btn btn-primary self-center" style={{ minHeight: 44 }}>
           {t('homework.prescribe')}
         </button>
       )}
       {prescribing && (
-      <div className="card flex flex-col gap-3" style={{ padding: '16px 18px' }}>
+      <div className="card flex flex-col gap-3" style={{ padding: '16px 18px', animation: 'fade-in-scale 0.2s var(--ease-out) both', transformOrigin: 'top' }}>
         <div className="flex flex-wrap gap-2 items-end">
           <label className="flex flex-col gap-1">
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('log.type')}</span>

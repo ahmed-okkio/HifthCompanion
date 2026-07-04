@@ -543,7 +543,7 @@ export function TabBar({
   onSelect: (key: string) => void;
 }) {
   return (
-    <div className="flex gap-0" role="tablist" style={{ borderBottom: '2px solid var(--border-subtle)' }}>
+    <div className="flex gap-0 overflow-x-auto overflow-y-hidden" role="tablist" style={{ borderBottom: '2px solid var(--border-subtle)' }}>
       {tabs.map((t) => {
         const isActive = t.key === active;
         return (
@@ -552,7 +552,7 @@ export function TabBar({
             role="tab"
             aria-selected={isActive}
             onClick={() => onSelect(t.key)}
-            className="btn btn-ghost"
+            className="btn btn-ghost shrink-0"
             style={{
               minHeight: 42,
               fontSize: 14,
@@ -562,6 +562,7 @@ export function TabBar({
               marginBottom: -2,
               borderRadius: 0,
               padding: '8px 20px',
+              whiteSpace: 'nowrap',
             }}
           >
             {t.label}

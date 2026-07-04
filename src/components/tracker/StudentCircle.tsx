@@ -11,10 +11,9 @@ import NotesThread from './NotesThread';
 import {
   homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus,
 } from '@/lib/homework';
-import { computeStreak, isStreakAtRisk } from '@/lib/streak';
-import { sectionSessions, floatingNow } from '@/lib/recurrence';
+import { isStreakAtRisk } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage } from '@/lib/quran';
-import { SectionTitle, EmptyState, StatCard, DateChip, NumberStepper, TabBar, PagedList, HOMEWORK_STATUS_STYLE, Icon } from './ui';
+import { SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, HOMEWORK_STATUS_STYLE, Icon } from './ui';
 
 const LOG_TYPES: LogType[] = ['memorization', 'general_revision', 'targeted_revision'];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -53,27 +52,8 @@ export default function StudentCircle({
   const [logs, setLogs] = useState(initialLogs);
   const [tab, setTab] = useState('homework');
 
-  const streak = useMemo(() => computeStreak(logs), [logs]);
   const atRisk = useMemo(() => isStreakAtRisk(logs), [logs]);
   const statuses = circle.student_statuses;
-
-  // KPI row inputs: open homework count + next upcoming session.
-  const openHomework = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const l of logs) if (l.homework_id) counts.set(l.homework_id, (counts.get(l.homework_id) ?? 0) + 1);
-    const d = today();
-    return initialHomework.filter((h) => homeworkStatus(h, counts.get(h.id) ?? 0, d) === 'open').length;
-  }, [logs, initialHomework]);
-  // Soonest future slot from the schedule rule + real rows, so weekly virtual
-  // sessions surface here too (not just materialized rows).
-  const nextSession = useMemo(() => {
-    const fnow = floatingNow();
-    const { next, upcoming } = sectionSessions(membership.schedule, initialSessions, fnow);
-    return [next, ...upcoming]
-      .filter((slot): slot is NonNullable<typeof slot> => !!slot)
-      .filter((slot) => new Date(slot.scheduled_at).getTime() >= fnow.getTime())
-      .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))[0];
-  }, [membership.schedule, initialSessions]);
 
   function addLog(log: ProgressLog) {
     setLogs((prev) => [log, ...prev]);
@@ -86,18 +66,6 @@ export default function StudentCircle({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* KPI row: streak / open homework / next session */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard icon={<Icon name="flame" />} value={streak} label={t('log.streak')} />
-        <StatCard icon={<Icon name="book" />} value={openHomework} label={t('homework.statusOpen')} />
-        <StatCard
-          icon={<Icon name="calendar" />}
-          value={nextSession
-            ? new Date(nextSession.scheduled_at).toLocaleDateString(locale, { month: 'short', day: 'numeric', timeZone: 'UTC' })
-            : '—'}
-          label={t('sessions.next')}
-        />
-      </div>
       {atRisk && (
         <div
           className="card flex items-center gap-2" role="status"
@@ -150,8 +118,8 @@ export default function StudentCircle({
           {tab === 'notes' && <NotesThread membershipId={membership.id} initial={initialNotes} />}
         </div>
 
-        {/* Schedule sidebar — always visible, read-only (D3) */}
-        <aside className="lg:sticky lg:top-6 self-start min-w-0">
+        {/* Schedule sidebar — always visible, read-only (D3); hoisted above the feed on mobile. */}
+        <aside className="order-first lg:order-none lg:sticky lg:top-6 self-start min-w-0">
           <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} />
         </aside>
       </div>
@@ -435,7 +403,7 @@ function LogForm({
         </label>
       )}
 
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-2 flex-wrap">
         {!hideRange && (<>
           <NumberStepper label={t('log.from')} value={pageStart} min={1} max={604} onChange={setPageStart} />
           <NumberStepper label={t('log.to')} value={pageEnd} min={1} max={604} onChange={setPageEnd} />

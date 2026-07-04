@@ -4,6 +4,7 @@ import { notFound, redirect } from 'next/navigation';
 import ShareCard from '@/components/ShareCard';
 import NotesPanel from '@/components/NotesPanel';
 import { getNotes } from '@/lib/services/notes';
+import { Icon } from '@/components/tracker/ui';
 
 interface Props {
   params: Promise<{ page: string }>;
@@ -68,7 +69,7 @@ export default async function ReaderPage({ params, searchParams }: Props) {
         </div>
       ) : !user ? (
         <div className="card p-8 text-center flex flex-col items-center justify-center animate-fade-in-scale" style={{ animationDelay: '100ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>
-          <div className="text-4xl mb-4 opacity-50" style={{ filter: 'grayscale(1)' }}>🔒</div>
+          <div className="mb-4 opacity-50" style={{ color: 'var(--text-muted)' }}><Icon name="lock" size={36} /></div>
           <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Sign in to annotate</h3>
           <p className="text-sm mt-2 max-w-[240px]" style={{ color: 'var(--text-muted)' }}>
             You must be logged in to draw on pages, create annotation sets, and save notes.
@@ -77,7 +78,7 @@ export default async function ReaderPage({ params, searchParams }: Props) {
         </div>
       ) : (
         <div className="card p-6 text-center animate-fade-in-scale" style={{ animationDelay: '100ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>
-          <div className="text-3xl mb-3 opacity-50">📂</div>
+          <div className="mb-3 opacity-50" style={{ color: 'var(--text-muted)' }}><Icon name="folder" size={30} /></div>
           <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>No annotation sets</h3>
           <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
             Create a set to start taking notes.

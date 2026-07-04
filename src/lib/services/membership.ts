@@ -146,7 +146,7 @@ export async function getStudentDefaultSetId(
 export async function inviteByEmail(
   circleId: string,
   email: string,
-): Promise<Membership> {
+): Promise<MemberWithProfile> {
   const supabase = await createClientAction();
   const { data: userId, error: lookupError } = await supabase.rpc(
     'user_id_by_email',
@@ -161,7 +161,12 @@ export async function inviteByEmail(
     .select()
     .single();
   if (error) throw error;
-  return data;
+
+  // Enrich with the invited user's name so the optimistic roster row reads the
+  // same as a reload (else displayName falls back to a #<id> tag).
+  const profiles = await getProfilesByIds([userId]);
+  const p = profiles.get(userId);
+  return { ...data, first_name: p?.first_name, last_name: p?.last_name };
 }
 
 /** Teacher changes a member's lifecycle status: archive / block / reactivate. */

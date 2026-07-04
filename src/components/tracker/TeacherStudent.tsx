@@ -8,19 +8,20 @@ import type {
 } from '@/types';
 import { displayName } from '@/lib/displayName';
 import {
-  createAdhocSession, generateSessions, setSchedule, setSessionAttendance, setSessionCanceled,
+  createAdhocSession, materializeSession, setSchedule, setSessionAttendance, setSessionCanceled,
 } from '@/lib/services/sessions';
+import { sectionSessions, type SessionSlot } from '@/lib/recurrence';
 import { prescribeHomework, editDeadline } from '@/lib/services/homework';
 import { gradeLog } from '@/lib/services/progressLog';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
 import {
-  homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, type HomeworkStatus,
+  homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus,
 } from '@/lib/homework';
-import { AYAH_COUNTS, TOTAL_SURAHS, getSurahName } from '@/lib/quran';
+import { AYAH_COUNTS, TOTAL_JUZ, getSurahName } from '@/lib/quran';
 import {
   SectionTitle, EmptyState, Avatar, StatCard, DateChip, StatusDot, TabBar,
-  HOMEWORK_STATUS_STYLE,
+  SurahCombobox, HOMEWORK_STATUS_STYLE, Chevron, Icon,
 } from './ui';
 import StudentAnalytics from './StudentAnalytics';
 
@@ -75,49 +76,50 @@ export default function TeacherStudent({
   ).length;
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Hero */}
-      <div className="card flex items-center justify-between gap-3 flex-wrap" style={{ padding: '20px 22px' }}>
-        <div className="flex items-center gap-4 min-w-0">
-          <Avatar seed={displayName(member)} size={52} />
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <h1 className="font-bold tracking-tight truncate"
-                style={{ color: 'var(--text-primary)', fontSize: 'var(--type-heading-m-size)' }}>
-              {displayName(member)}
-            </h1>
-            <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
-              <StatusDot color="var(--success)" />
-              {t('tracker.active')} · {circle.name}
-            </span>
-          </div>
+    <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_280px] gap-5">
+      {/* Left sidebar — profile identity + KPIs + Mushaf (Pr1); stacks on top on mobile (Pr2) */}
+      <aside className="flex flex-col gap-3 lg:sticky lg:top-6 self-start">
+        <div className="card flex flex-col items-center text-center gap-2" style={{ padding: '22px' }}>
+          <Avatar seed={displayName(member)} size={64} />
+          <h1 className="font-bold tracking-tight truncate max-w-full"
+              style={{ color: 'var(--text-primary)', fontSize: 'var(--type-heading-m-size)' }}>
+            {displayName(member)}
+          </h1>
+          <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+            <StatusDot color="var(--success)" />
+            {t('tracker.active')} · {circle.name}
+          </span>
+          <div className="mt-1"><MushafButton setId={defaultSetId} /></div>
         </div>
-        <MushafButton setId={defaultSetId} />
+
+        <StatCard icon={<Icon name="flame" />} value={streak} label={t('log.streak')} />
+        <StatCard icon={<Icon name="book" />} value={openHomework} label={t('homework.statusOpen')} />
+        <StatCard icon={<Icon name="calendar" />} value={upcomingCount} label={t('sessions.title')} />
+      </aside>
+
+      {/* Right column — the feed: tabs + panels, unchanged */}
+      <div className="flex flex-col gap-5 min-w-0">
+        <TabBar
+          tabs={[
+            { key: 'sessions', label: t('tracker.tabSessions') },
+            { key: 'homework', label: t('homework.title') },
+            { key: 'notes', label: t('notes.title') },
+            { key: 'analytics', label: t('analytics.title') },
+          ]}
+          active={tab}
+          onSelect={setTab}
+        />
+
+        {tab === 'sessions' && (
+          <StudentSessions membershipId={member.id} initial={initialSessions} initialSchedule={member.schedule} />
+        )}
+        {tab === 'homework' && <HomeworkPanel membershipId={member.id} initial={initialHomework} logs={logs} teacherStatuses={circle.teacher_statuses} />}
+        {tab === 'notes' && <NotesThread membershipId={member.id} initial={initialNotes} />}
+        {tab === 'analytics' && <StudentAnalytics circle={circle} logs={logs} attendance={attendance} />}
       </div>
 
-      {/* KPI row */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard icon="🔥" value={streak} label={t('log.streak')} />
-        <StatCard icon="📖" value={openHomework} label={t('homework.statusOpen')} />
-        <StatCard icon="📅" value={upcomingCount} label={t('sessions.title')} />
-      </div>
-
-      <TabBar
-        tabs={[
-          { key: 'sessions', label: t('tracker.tabSessions') },
-          { key: 'homework', label: t('homework.title') },
-          { key: 'notes', label: t('notes.title') },
-          { key: 'analytics', label: t('analytics.title') },
-        ]}
-        active={tab}
-        onSelect={setTab}
-      />
-
-      {tab === 'sessions' && (
-        <StudentSessions membershipId={member.id} initial={initialSessions} initialSchedule={member.schedule} />
-      )}
-      {tab === 'homework' && <HomeworkPanel membershipId={member.id} initial={initialHomework} logs={logs} teacherStatuses={circle.teacher_statuses} />}
-      {tab === 'notes' && <NotesThread membershipId={member.id} initial={initialNotes} />}
-      {tab === 'analytics' && <StudentAnalytics circle={circle} logs={logs} attendance={attendance} />}
+      {/* Empty right spacer mirrors the sidebar width so the feed sits centered in the page. */}
+      <div className="hidden lg:block" aria-hidden />
     </div>
   );
 }
@@ -176,16 +178,15 @@ function StudentSessions({
     setWeekdays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
   }
 
+  // Sections re-derive from the rule + real rows on every schedule/state change (T1).
+  const sections = useMemo(
+    () => sectionSessions(rule, sessions, new Date()),
+    [rule, sessions],
+  );
+
+  // Save the schedule; the list re-derives from `rule` (no Generate button, T1).
   async function handleSave() {
     await setSchedule(membershipId, rule);
-  }
-
-  async function handleGenerate() {
-    await setSchedule(membershipId, rule);
-    await generateSessions(membershipId, rule);
-    // Cheapest way to reflect the new rows: reload. ponytail: full refetch beats
-    // re-deriving slots client-side; swap for an optimistic merge if it flickers.
-    location.reload();
   }
 
   async function handleAdhoc() {
@@ -196,16 +197,70 @@ function StudentSessions({
     setAdhocDate('');
   }
 
-  async function handleCancel(s: Session) {
+  /** Real row now, materializing the virtual slot on first touch (T5). */
+  async function ensureRow(slot: SessionSlot): Promise<Session> {
+    if (slot.session) return slot.session;
+    const s = await materializeSession(membershipId, slot.scheduled_at);
+    setSessions((p) =>
+      p.some((x) => x.id === s.id) ? p : [...p, s].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)));
+    return s;
+  }
+
+  async function handleCancel(slot: SessionSlot) {
+    const s = await ensureRow(slot);
     await setSessionCanceled(s.id, !s.canceled);
     setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, canceled: !s.canceled } : x)));
   }
 
-  async function handleAttendance(s: Session, status: AttendanceStatus) {
+  async function handleAttendance(slot: SessionSlot, status: AttendanceStatus) {
+    const s = await ensureRow(slot);
     const next = s.attendance_status === status ? null : status;
     await setSessionAttendance(s.id, next);
     setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, attendance_status: next } : x)));
   }
+
+  // One card renderer for all three sections; flags gate attendance/cancel.
+  function SlotCard({ slot, attendance, cancelable }: {
+    slot: SessionSlot; attendance: boolean; cancelable: boolean;
+  }) {
+    const s = slot.session;
+    const canceled = s?.canceled ?? false;
+    return (
+      <div className="card flex flex-col gap-2" style={{ padding: '12px 14px', opacity: canceled ? 0.5 : 1 }}>
+        <div className="flex items-center gap-3">
+          <DateChip iso={slot.scheduled_at} locale={locale} />
+          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+            <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+              {new Date(slot.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })}
+              {s?.is_adhoc && <span className="badge" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
+              {canceled && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.canceled')}</span>}
+            </span>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtTime(slot.scheduled_at, locale)}</span>
+          </div>
+          {cancelable && (
+            <button onClick={() => handleCancel(slot)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11 }}>
+              {canceled ? t('sessions.reinstate') : t('sessions.cancel')}
+            </button>
+          )}
+        </div>
+        {attendance && !canceled && (
+          <div className="flex flex-wrap gap-1">
+            {ATT_STATUSES.map((st) => {
+              const on = s?.attendance_status === st;
+              return (
+                <button key={st} onClick={() => handleAttendance(slot, st)} className={on ? 'btn btn-primary' : 'btn btn-ghost'}
+                        style={{ minHeight: 30, fontSize: 11, padding: '0 12px' }}>
+                  {t(`att.${st}`)}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const empty = !sections.next && sections.upcoming.length === 0 && sections.history.length === 0;
 
   return (
     <div className="flex flex-col gap-3">
@@ -228,11 +283,8 @@ function StudentSessions({
             <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('sessions.time')}</span>
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="input" style={{ minHeight: 40, width: 140 }} />
           </label>
-          <button onClick={handleSave} className="btn btn-outline" style={{ minHeight: 40, fontSize: 13, padding: '0 18px' }}>
+          <button onClick={handleSave} className="btn btn-primary" style={{ minHeight: 40, fontSize: 13, padding: '0 18px' }}>
             {t('sessions.saveSchedule')}
-          </button>
-          <button onClick={handleGenerate} disabled={weekdays.length === 0} className="btn btn-primary" style={{ minHeight: 40, fontSize: 13, padding: '0 18px' }}>
-            {t('sessions.generate')}
           </button>
         </div>
 
@@ -252,42 +304,41 @@ function StudentSessions({
         </div>
       </div>
 
-      {/* Session list + attendance */}
-      <div className="flex flex-col gap-2">
-        <SectionTitle>{t('sessions.title')}</SectionTitle>
-        {sessions.length === 0 && <EmptyState>{t('sessions.none')}</EmptyState>}
-        {sessions.map((s) => (
-          <div key={s.id} className="card flex flex-col gap-2" style={{ padding: '12px 14px', opacity: s.canceled ? 0.5 : 1 }}>
-            <div className="flex items-center gap-3">
-              <DateChip iso={s.scheduled_at} locale={locale} />
-              <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                  {new Date(s.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })}
-                  {s.is_adhoc && <span className="badge" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
-                  {s.canceled && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.canceled')}</span>}
-                </span>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtTime(s.scheduled_at, locale)}</span>
-              </div>
-              <button onClick={() => handleCancel(s)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11 }}>
-                {s.canceled ? t('sessions.reinstate') : t('sessions.cancel')}
-              </button>
-            </div>
-            {!s.canceled && (
-              <div className="flex flex-wrap gap-1">
-                {ATT_STATUSES.map((st) => {
-                  const on = s.attendance_status === st;
-                  return (
-                    <button key={st} onClick={() => handleAttendance(s, st)} className={on ? 'btn btn-primary' : 'btn btn-ghost'}
-                            style={{ minHeight: 30, fontSize: 11, padding: '0 12px' }}>
-                      {t(`att.${st}`)}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      {empty && (
+        <div className="flex flex-col gap-2">
+          <SectionTitle>{t('sessions.title')}</SectionTitle>
+          <EmptyState>{t('sessions.none')}</EmptyState>
+        </div>
+      )}
+
+      {/* Next session — the only attendance-editable slot (T2/T3/T4). */}
+      {sections.next && (
+        <div className="flex flex-col gap-2">
+          <SectionTitle>{t('sessions.next')}</SectionTitle>
+          <SlotCard slot={sections.next} attendance={sections.nextEditable} cancelable />
+        </div>
+      )}
+
+      {/* Upcoming — read-only, cancelable (T3). */}
+      {sections.upcoming.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <SectionTitle>{t('sessions.upcoming')}</SectionTitle>
+          {sections.upcoming.map((slot) => (
+            <SlotCard key={slot.scheduled_at} slot={slot} attendance={false} cancelable />
+          ))}
+        </div>
+      )}
+
+      {/* History — resolved rows, newest first (T2). */}
+      {sections.history.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <SectionTitle>{t('sessions.history')}</SectionTitle>
+          {sections.history.map((slot) => (
+            // Canceled rows live here (isResolved) — keep them reinstatable; graded rows stay read-only.
+            <SlotCard key={slot.scheduled_at} slot={slot} attendance={false} cancelable={slot.session?.canceled ?? false} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -300,7 +351,9 @@ const STATUS_KEY = {
   missed: 'homework.statusMissed',
 } as const satisfies Record<HomeworkStatus, string>;
 
-type Entry = { surah: number; ayah_start: number | null; ayah_end: number | null };
+type Entry =
+  | { kind: 'surah'; surah: number; ayah_start: number | null; ayah_end: number | null }
+  | { kind: 'juz'; juz: number };
 
 function HomeworkPanel({
   membershipId, initial, logs, teacherStatuses,
@@ -329,6 +382,11 @@ function HomeworkPanel({
   const [deadline, setDeadline] = useState('');
   const [instructions, setInstructions] = useState('');
   const [busy, setBusy] = useState(false);
+  // Prescribe form is collapsed by default; the tab opens on the review surface (P6).
+  const [prescribing, setPrescribing] = useState(false);
+  // Review feed is paginated client-side (recency order); reveal more on demand.
+  const PER_PAGE = 8;
+  const [shown, setShown] = useState(PER_PAGE);
 
   // Linked-log count per prescription drives derived status (D10/B4).
   const linkedCount = useMemo(() => {
@@ -349,6 +407,7 @@ function HomeworkPanel({
       setEntries([]);
       setInstructions('');
       setDeadline('');
+      setPrescribing(false); // collapse the form after a successful prescribe (P7).
     } finally {
       setBusy(false);
     }
@@ -361,11 +420,29 @@ function HomeworkPanel({
     setItems((p) => p.map((h) => (ids.includes(h.id) ? { ...h, deadline: next } : h)));
   }
 
+  // Unified review feed: prescription groups + self-submissions in one list,
+  // newest first. Each entry carries a sort timestamp (a group uses its newest
+  // row's created_at). Self-submissions are no longer a separate section.
+  const feed = useMemo(() => {
+    const groups = groupHomework(items).map((group) => ({
+      kind: 'rx' as const,
+      key: `rx-${group.key}`,
+      ts: group.items.reduce((m, h) => (h.created_at > m ? h.created_at : m), group.items[0].created_at),
+      group,
+    }));
+    const subs = selfSubmissions.map((l) => ({ kind: 'sub' as const, key: `sub-${l.id}`, ts: l.created_at, log: l }));
+    return [...groups, ...subs].sort((a, b) => b.ts.localeCompare(a.ts));
+  }, [items, selfSubmissions]);
+
   return (
     <div className="flex flex-col gap-2">
-      <SectionTitle>{t('homework.prescribe')}</SectionTitle>
-
-      {/* Prescribe form */}
+      {/* Prescribe form collapsed behind a button; review is the default surface (P6/P7). */}
+      {!prescribing && (
+        <button onClick={() => setPrescribing(true)} className="btn btn-primary self-start" style={{ minHeight: 44 }}>
+          {t('homework.prescribe')}
+        </button>
+      )}
+      {prescribing && (
       <div className="card flex flex-col gap-3" style={{ padding: '16px 18px' }}>
         <div className="flex flex-wrap gap-2 items-end">
           <label className="flex flex-col gap-1">
@@ -385,53 +462,109 @@ function HomeworkPanel({
 
         <input value={instructions} onChange={(e) => setInstructions(e.target.value)}
                placeholder={t('homework.instructions')} className="input" />
-        <button onClick={handlePrescribe} disabled={busy || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44 }}>
-          {t('homework.prescribe')}
-        </button>
+        <div className="flex gap-2">
+          <button onClick={handlePrescribe} disabled={busy || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44 }}>
+            {t('homework.prescribe')}
+          </button>
+          <button onClick={() => setPrescribing(false)} className="btn btn-ghost" style={{ minHeight: 44 }}>
+            {t('common.cancel')}
+          </button>
+        </div>
       </div>
+      )}
 
-      {/* Existing prescriptions — one card per group (H3), grading per row (H4) */}
-      {groupHomework(items).map((group) => {
-        const status = aggregateStatus(
-          group.items.map((h) => homeworkStatus(h, linkedCount.get(h.id) ?? 0, today())),
-        );
-        const ids = group.items.map((h) => h.id);
-        const instr = group.items.find((h) => h.instructions)?.instructions;
-        return (
-          <div key={group.key} className="card flex flex-col gap-2" style={{ padding: '12px 16px' }}>
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t(`logType.${group.items[0].type}`)}</span>
-              <span className="badge" style={{ fontSize: 10, ...HOMEWORK_STATUS_STYLE[status] }}>{t(STATUS_KEY[status])}</span>
-            </div>
-            {instr && <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{instr}</span>}
-            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-              {t('homework.deadline')}
-              <input type="date" defaultValue={group.items[0].deadline ?? ''} onChange={(e) => handleEditDeadline(ids, e.target.value)}
-                     className="input input-sm" style={{ minHeight: 34 }} />
-            </label>
-            {group.items.map((h) => (
-              <div key={h.id} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }} className="flex flex-col gap-1">
-                <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                  {homeworkEntryLabel(h, locale) ?? `${t('log.pageRange')} ${h.page_start}–${h.page_end}`}
+      {/* Unified review feed — prescriptions + self-submissions, newest first,
+          paginated. Every entry is collapsed until selected (H3/H4/G2). */}
+      <SectionTitle>{t('grade.reviewFeed')}</SectionTitle>
+      {feed.length === 0 && <EmptyState>{t('grade.noSubmissions')}</EmptyState>}
+      {feed.slice(0, shown).map((entry) =>
+        entry.kind === 'rx' ? (
+          <PrescriptionCard
+            key={entry.key} group={entry.group} locale={locale}
+            linkedCount={linkedCount} logsByHomework={logsByHomework}
+            teacherStatuses={teacherStatuses} onGraded={onGraded} onEditDeadline={handleEditDeadline}
+          />
+        ) : (
+          <div key={entry.key} className="card" style={{ padding: '12px 16px' }}>
+            <GradeableLog log={entry.log} statuses={teacherStatuses} onGraded={onGraded} />
+          </div>
+        ),
+      )}
+      {feed.length > shown && (
+        <button onClick={() => setShown((n) => n + PER_PAGE)} className="btn btn-ghost self-center" style={{ minHeight: 40, fontSize: 13 }}>
+          {t('grade.loadMore')}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// --- One prescription group as a collapsed card (H3/H4) -----------------------
+// Header (type + status) is always shown; instructions, deadline editor, entries
+// and their gradeable logs appear only once the card is selected.
+function PrescriptionCard({
+  group, locale, linkedCount, logsByHomework, teacherStatuses, onGraded, onEditDeadline,
+}: {
+  group: { key: string; items: Homework[] };
+  locale: 'en' | 'ar';
+  linkedCount: Map<string, number>;
+  logsByHomework: Map<string, ProgressLog[]>;
+  teacherStatuses: StatusConfig[];
+  onGraded: (id: string, grade: { teacher_status: string | null; teacher_comment: string | null }) => void;
+  onEditDeadline: (ids: string[], value: string) => void;
+}) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const status = aggregateStatus(group.items.map((h) => homeworkStatus(h, linkedCount.get(h.id) ?? 0, today())));
+  const ids = group.items.map((h) => h.id);
+  const instr = group.items.find((h) => h.instructions)?.instructions;
+
+  return (
+    <div className="card flex flex-col gap-2" style={{ padding: '12px 16px' }}>
+      <button onClick={() => setOpen((o) => !o)} className="flex items-center justify-between gap-2 text-start"
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
+        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+          {`${t(group.items[0].type === 'memorization' ? 'homework.verbMemorize' : 'homework.verbReview')} ${homeworkTarget(group.items, locale, t('homework.juz'))}`}
+        </span>
+        <span className="flex items-center gap-2 shrink-0">
+          <span className="badge" style={{ fontSize: 10, ...HOMEWORK_STATUS_STYLE[status] }}>{t(STATUS_KEY[status])}</span>
+          <Chevron open={open} />
+        </span>
+      </button>
+      {open && (<>
+        {instr && <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{instr}</span>}
+        <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+          {t('homework.deadline')}
+          <input type="date" defaultValue={group.items[0].deadline ?? ''} onChange={(e) => onEditDeadline(ids, e.target.value)}
+                 className="input input-sm" style={{ minHeight: 34 }} />
+        </label>
+        {group.items.map((h) => {
+          const subs = logsByHomework.get(h.id) ?? [];
+          return (
+            <div key={h.id} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }} className="flex flex-col gap-2">
+              {/* The prescription target */}
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                  {t('homework.prescribedLabel')}
+                </span>
+                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                  {homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${h.page_start}–${h.page_end}`}
                   {h.surah && h.ayah_start == null ? ` ${t('homework.whole')}` : ''}
                 </span>
-                {(logsByHomework.get(h.id) ?? []).map((l) => (
-                  <GradeableLog key={l.id} log={l} statuses={teacherStatuses} onGraded={onGraded} />
-                ))}
               </div>
-            ))}
-          </div>
-        );
-      })}
-
-      {/* Open self-submissions (homework_id null) — G2 */}
-      <SectionTitle>{t('grade.selfSubmissions')}</SectionTitle>
-      {selfSubmissions.length === 0 && <EmptyState>{t('grade.noSubmissions')}</EmptyState>}
-      {selfSubmissions.map((l) => (
-        <div key={l.id} className="card" style={{ padding: '12px 16px' }}>
-          <GradeableLog log={l} statuses={teacherStatuses} onGraded={onGraded} />
-        </div>
-      ))}
+              {/* Student submissions logged against it — indented under a subhead */}
+              <div className="flex flex-col gap-1" style={{ marginInlineStart: 10, paddingInlineStart: 10, borderInlineStart: '2px solid var(--border-subtle)' }}>
+                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                  {t('homework.submissions')}
+                </span>
+                {subs.length === 0
+                  ? <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('homework.noSubmissionsYet')}</span>
+                  : subs.map((l, i) => <GradeableLog key={l.id} log={l} statuses={teacherStatuses} onGraded={onGraded} divided={i > 0} />)}
+              </div>
+            </div>
+          );
+        })}
+      </>)}
     </div>
   );
 }
@@ -446,60 +579,99 @@ function SurahPicker({
   locale: 'en' | 'ar';
 }) {
   const { t } = useI18n();
+  const [mode, setMode] = useState<'surah' | 'juz'>('surah');
+  const [juz, setJuz] = useState(1);
   const [surah, setSurah] = useState(1);
-  const [whole, setWhole] = useState(true);
-  const [ayahStart, setAyahStart] = useState(1);
-  const [ayahEnd, setAyahEnd] = useState(1);
   const max = AYAH_COUNTS[surah] ?? 1;
-  // Clamp the range to 1..AYAH_COUNTS[surah] (H1).
   const clamp = (n: number) => Math.max(1, Math.min(max, n));
+  // Ayah fields held as raw text so they can be cleared / mid-edited; coerced
+  // and clamped only on blur and on Add (P1/P2). Default is the full 1..max.
+  const [startText, setStartText] = useState('1');
+  const [endText, setEndText] = useState(String(max));
+
+  // coerce a draft field to a valid ayah; empty/NaN falls back to its bound.
+  const coerce = (text: string, fallback: number) => {
+    const n = Number(text);
+    return text.trim() === '' || Number.isNaN(n) ? fallback : clamp(n);
+  };
+
+  // When the surah changes, reset the range to the new full surah.
+  const pickSurah = (s: number) => {
+    setSurah(s);
+    setStartText('1');
+    setEndText(String(AYAH_COUNTS[s] ?? 1));
+  };
 
   function add() {
-    const start = clamp(ayahStart);
-    const end = clamp(ayahEnd);
+    const a = coerce(startText, 1);
+    const b = coerce(endText, max);
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    // Full range → store null (whole surah) so cards/chips render "whole" (P5).
+    const whole = lo === 1 && hi === max;
     onChange([...entries, whole
-      ? { surah, ayah_start: null, ayah_end: null }
-      : { surah, ayah_start: Math.min(start, end), ayah_end: Math.max(start, end) }]);
+      ? { kind: 'surah', surah, ayah_start: null, ayah_end: null }
+      : { kind: 'surah', surah, ayah_start: lo, ayah_end: hi }]);
   }
 
   return (
     <div className="flex flex-col gap-2">
+      {/* Mode toggle: prescribe a surah range or a whole juz. */}
+      <div className="flex gap-1">
+        {(['surah', 'juz'] as const).map((m) => (
+          <button key={m} onClick={() => setMode(m)} className={mode === m ? 'btn btn-primary' : 'btn btn-ghost'}
+                  style={{ minHeight: 34, fontSize: 12, padding: '0 14px' }}>
+            {t(m === 'surah' ? 'homework.modeSurah' : 'homework.modeJuz')}
+          </button>
+        ))}
+      </div>
+      {mode === 'juz' ? (
+        <div className="flex flex-wrap gap-2 items-end">
+          <label className="flex flex-col gap-1">
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('homework.juz')}</span>
+            <select value={juz} onChange={(e) => setJuz(Number(e.target.value))} className="input" style={{ minHeight: 40, width: 'auto', paddingInlineStart: 10, paddingInlineEnd: 28 }}>
+              {Array.from({ length: TOTAL_JUZ }, (_, i) => i + 1).map((j) => (
+                <option key={j} value={j}>{j}</option>
+              ))}
+            </select>
+          </label>
+          <button onClick={() => onChange([...entries, { kind: 'juz', juz }])} className="btn btn-outline"
+                  style={{ minHeight: 40, fontSize: 13, padding: '0 16px' }}>
+            {t('homework.addJuz')}
+          </button>
+        </div>
+      ) : (
       <div className="flex flex-wrap gap-2 items-end">
         <label className="flex flex-col gap-1">
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('log.surah')}</span>
-          <select value={surah} onChange={(e) => setSurah(Number(e.target.value))} className="input" style={{ minHeight: 40 }}>
-            {Array.from({ length: TOTAL_SURAHS }, (_, i) => i + 1).map((s) => (
-              <option key={s} value={s}>{s}. {getSurahName(s, locale)}</option>
-            ))}
-          </select>
+          <SurahCombobox value={surah} onChange={pickSurah} locale={locale} placeholder={t('homework.searchSurah')} />
         </label>
-        <label className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-secondary)', paddingBottom: 12 }}>
-          <input type="checkbox" checked={whole} onChange={(e) => setWhole(e.target.checked)} />
-          {t('homework.whole')}
+        <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+          {t('log.ayahFrom')}
+          <input type="number" inputMode="numeric" min={1} max={max} value={startText}
+                 onChange={(e) => setStartText(e.target.value)}
+                 onBlur={() => setStartText(String(coerce(startText, 1)))}
+                 className="input input-sm" style={{ minHeight: 40, width: 80 }} />
         </label>
-        {!whole && (
-          <>
-            <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-              {t('log.ayahFrom')}
-              <input type="number" min={1} max={max} value={ayahStart} onChange={(e) => setAyahStart(clamp(Number(e.target.value)))}
-                     className="input input-sm" style={{ minHeight: 40, width: 80 }} />
-            </label>
-            <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-              {t('log.ayahTo')}
-              <input type="number" min={1} max={max} value={ayahEnd} onChange={(e) => setAyahEnd(clamp(Number(e.target.value)))}
-                     className="input input-sm" style={{ minHeight: 40, width: 80 }} />
-            </label>
-          </>
-        )}
+        <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+          {t('log.ayahTo')}
+          <input type="number" inputMode="numeric" min={1} max={max} value={endText}
+                 onChange={(e) => setEndText(e.target.value)}
+                 onBlur={() => setEndText(String(coerce(endText, max)))}
+                 className="input input-sm" style={{ minHeight: 40, width: 80 }} />
+        </label>
         <button onClick={add} className="btn btn-outline" style={{ minHeight: 40, fontSize: 13, padding: '0 16px' }}>
           {t('homework.addSurah')}
         </button>
       </div>
+      )}
       {entries.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {entries.map((e, i) => (
             <span key={i} className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              {getSurahName(e.surah, locale)}{e.ayah_start ? ` ${e.ayah_start}–${e.ayah_end}` : ` ${t('homework.whole')}`}
+              {e.kind === 'juz'
+                ? `${t('homework.juz')} ${e.juz}`
+                : `${getSurahName(e.surah, locale)}${e.ayah_start ? ` ${e.ayah_start}–${e.ayah_end}` : ` ${t('homework.whole')}`}`}
               <button onClick={() => onChange(entries.filter((_, j) => j !== i))}
                       style={{ cursor: 'pointer', fontWeight: 700 }} aria-label="remove">×</button>
             </span>
@@ -513,16 +685,20 @@ function SurahPicker({
 // --- A single student log with an inline grader (G1-G4) -----------------------
 
 function GradeableLog({
-  log: l, statuses, onGraded,
+  log: l, statuses, onGraded, divided = false,
 }: {
   log: ProgressLog;
   statuses: StatusConfig[];
   onGraded: (id: string, grade: { teacher_status: string | null; teacher_comment: string | null }) => void;
+  // Top divider only when stacked among sibling logs; standalone cards omit it.
+  divided?: boolean;
 }) {
   const { t } = useI18n();
   const [status, setStatus] = useState<string | null>(null);
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
+  // Collapsed by default — details + grade controls only appear once selected.
+  const [open, setOpen] = useState(false);
 
   async function handleGrade() {
     if (busy || !status) return;
@@ -537,14 +713,21 @@ function GradeableLog({
   }
 
   return (
-    <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }} className="flex flex-col gap-1">
-      <div className="flex items-center justify-between gap-2">
+    <div style={divided ? { borderTop: '1px solid var(--border-subtle)', paddingTop: 8 } : undefined} className="flex flex-col gap-1">
+      <button onClick={() => setOpen((o) => !o)} className="flex items-center justify-between gap-2 text-start"
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
         <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
           {t(`logType.${l.log_type}`)} · p{l.page_start}–{l.page_end}
           {l.surah && l.ayah_start ? ` · ${l.surah}:${l.ayah_start}${l.ayah_end && l.ayah_end !== l.ayah_start ? `–${l.ayah_end}` : ''}` : ''}
         </span>
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{l.log_date}</span>
-      </div>
+        <span className="flex items-center gap-2 shrink-0">
+          {!l.reviewed_at && <span className="badge" style={{ fontSize: 10, ...HOMEWORK_STATUS_STYLE.open }}>{t('grade.needsReview')}</span>}
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{l.log_date}</span>
+          <Chevron open={open} />
+        </span>
+      </button>
+
+      {open && (<>
       {l.student_status && <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{l.student_status}</div>}
       {l.student_notes && <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{l.student_notes}</div>}
 
@@ -573,6 +756,7 @@ function GradeableLog({
           </button>
         </div>
       )}
+      </>)}
     </div>
   );
 }

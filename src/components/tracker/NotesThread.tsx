@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import { postNote, type NoteWithAuthor } from '@/lib/services/membershipNotes';
-import { SectionTitle, EmptyState, Avatar } from './ui';
+import { SectionTitle, EmptyState, Avatar, PagedList } from './ui';
 
 /** Shared membership notes thread (G1/G2/G3): composer on top, newest first. */
 export default function NotesThread({
@@ -44,7 +44,7 @@ export default function NotesThread({
         </button>
       </div>
       {notes.length === 0 && <EmptyState>{t('notes.empty')}</EmptyState>}
-      {notes.map((n) => {
+      <PagedList items={notes} loadMoreLabel={t('grade.loadMore')} render={(n) => {
         const name = `${n.first_name ?? ''} ${n.last_name ?? ''}`.trim() || `#${n.author_id.slice(0, 6)}`;
         return (
           <div key={n.id} className="card flex gap-3" style={{ padding: '12px 14px' }}>
@@ -62,7 +62,7 @@ export default function NotesThread({
             </div>
           </div>
         );
-      })}
+      }} />
     </div>
   );
 }

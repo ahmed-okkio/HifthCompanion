@@ -1,4 +1,4 @@
-import type { Recurrence } from '@/types';
+import type { Recurrence, Session } from '@/types';
 
 // ---------------------------------------------------------------------------
 // M3 recurrence — pure logic to materialize weekly-recurring session times.
@@ -63,4 +63,85 @@ export function missingSlots(
 ): string[] {
   const have = new Set(existing);
   return recurringSlots(rule, from, horizonDays).filter((s) => !have.has(s));
+}
+
+// ---------------------------------------------------------------------------
+// M2 sectioning (PRD 0007 §5) — derive Next / Upcoming / History from the rule
+// plus whatever real rows exist, dedup by scheduled_at (real wins). Pure so it
+// runs client-side and in unit tests.
+// ---------------------------------------------------------------------------
+
+/** A slot in a section: virtual when `session` is null, else a materialized row. */
+export interface SessionSlot {
+  scheduled_at: string;
+  session: Session | null;
+}
+
+export interface SectionedSessions {
+  /** Most-recent past-or-now unresolved slot, else soonest upcoming (display-only). */
+  next: SessionSlot | null;
+  /** Whether Next accepts attendance (false = the display-only soonest-upcoming case). */
+  nextEditable: boolean;
+  upcoming: SessionSlot[];
+  history: SessionSlot[];
+}
+
+/** A row is "resolved" (belongs in History) once it carries attendance or a cancel. */
+function isResolved(s: Session): boolean {
+  return s.attendance_status !== null || s.canceled;
+}
+
+/**
+ * Split `rows` + rule-derived virtual slots into Next / Upcoming / History.
+ * - Virtual slots span [now - lookbackDays, now + horizonDays] so a just-passed
+ *   slot surfaces as Next before anyone materializes it.
+ * - Dedup by scheduled_at: a real row drops its virtual twin (T6).
+ * - Next = most-recent past-or-now UNRESOLVED slot (editable). If none, the
+ *   soonest upcoming slot is shown display-only (T4). Upcoming = the rest.
+ * - History = resolved rows (attendance set or canceled), newest first (T2).
+ */
+export function sectionSessions(
+  rule: Recurrence | null,
+  rows: Session[],
+  now: Date,
+  lookbackDays = 28,
+  horizonDays = 28,
+): SectionedSessions {
+  const nowMs = now.getTime();
+  const byTime = new Map(rows.map((r) => [r.scheduled_at, r]));
+
+  // Virtual slots across a window that reaches back before `now`.
+  const windowStart = new Date(now);
+  windowStart.setUTCDate(windowStart.getUTCDate() - lookbackDays);
+  const virtual = recurringSlots(rule, windowStart, lookbackDays + horizonDays)
+    .filter((iso) => !byTime.has(iso)) // real row wins the dedup (T6)
+    .map((iso) => ({ scheduled_at: iso, session: null }));
+
+  const realUnresolved = rows
+    .filter((r) => !isResolved(r))
+    .map((r) => ({ scheduled_at: r.scheduled_at, session: r }));
+
+  const unresolved = [...virtual, ...realUnresolved].sort((a, b) =>
+    a.scheduled_at.localeCompare(b.scheduled_at));
+
+  const pastOrNow = unresolved.filter((s) => new Date(s.scheduled_at).getTime() <= nowMs);
+  const future = unresolved.filter((s) => new Date(s.scheduled_at).getTime() > nowMs);
+
+  let next: SessionSlot | null = null;
+  let nextEditable = false;
+  let upcoming: SessionSlot[] = future;
+  if (pastOrNow.length) {
+    next = pastOrNow[pastOrNow.length - 1]; // most recent at-or-before now
+    nextEditable = true;
+  } else if (future.length) {
+    next = future[0]; // nothing to mark yet → soonest upcoming, display-only (T4)
+    upcoming = future.slice(1);
+  }
+
+  const history = rows
+    .filter(isResolved)
+    .sort((a, b) => b.scheduled_at.localeCompare(a.scheduled_at)) // newest first (T2)
+    .map((r) => ({ scheduled_at: r.scheduled_at, session: r }));
+
+  return { next, nextEditable, upcoming, history };
 }

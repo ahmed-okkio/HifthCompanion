@@ -1,5 +1,5 @@
 import type { Homework } from '@/types';
-import { SURAH_FIRST_PAGES, TOTAL_PAGES, TOTAL_SURAHS, getSurahName } from '@/lib/quran';
+import { AYAH_COUNTS, SURAH_FIRST_PAGES, TOTAL_PAGES, TOTAL_SURAHS, getJuzForPage, getSurahName } from '@/lib/quran';
 
 // Pure homework logic — no supabase import so B4 unit tests can import it freely.
 
@@ -66,12 +66,48 @@ export function groupHomework(items: Homework[]): HomeworkGroup[] {
  * page-only row (no surah) — caller falls back to a page range.
  */
 export function homeworkEntryLabel(
-  h: Pick<Homework, 'surah' | 'ayah_start' | 'ayah_end'>,
+  h: Pick<Homework, 'surah' | 'ayah_start' | 'ayah_end' | 'page_start'>,
   locale: 'en' | 'ar' = 'en',
+  juzWord = 'Juz',
 ): string | null {
-  if (!h.surah) return null;
+  if (!h.surah) return `${juzWord} ${getJuzForPage(h.page_start)}`;
   const name = getSurahName(h.surah, locale);
   if (h.ayah_start == null) return name;
   const end = h.ayah_end && h.ayah_end !== h.ayah_start ? `–${h.ayah_end}` : '';
   return `${name} ${h.ayah_start}${end}`;
+}
+
+type PreviewRow = Pick<Homework, 'surah' | 'ayah_start' | 'ayah_end' | 'page_start' | 'page_end'>;
+
+/**
+ * Human "action target" for a whole prescription group, e.g.
+ *   - single surah:   "Al-Baqara 1-20"  (whole surah → "1-286")
+ *   - multiple surahs: "Al-Baqara - An-Nisa"
+ *   - page-only rows:  "Juz 30" / "Juz 28-30"
+ * The caller prepends the verb (Memorize / Review) and supplies the localized
+ * word for "Juz". Pure — no i18n dependency.
+ */
+export function homeworkTarget(
+  items: PreviewRow[],
+  locale: 'en' | 'ar',
+  juzWord: string,
+): string {
+  const withSurah = items.filter((h) => h.surah);
+
+  if (withSurah.length === 0) {
+    const js = getJuzForPage(Math.min(...items.map((h) => h.page_start)));
+    const je = getJuzForPage(Math.max(...items.map((h) => h.page_end)));
+    return js === je ? `${juzWord} ${js}` : `${juzWord} ${js}-${je}`;
+  }
+
+  if (withSurah.length === 1) {
+    const h = withSurah[0];
+    const name = getSurahName(h.surah!, locale);
+    const start = h.ayah_start ?? 1;
+    const end = h.ayah_end ?? AYAH_COUNTS[h.surah!] ?? start;
+    return end !== start ? `${name} ${start}-${end}` : `${name} ${start}`;
+  }
+
+  const surahs = withSurah.map((h) => h.surah!).sort((a, b) => a - b);
+  return `${getSurahName(surahs[0], locale)} - ${getSurahName(surahs[surahs.length - 1], locale)}`;
 }

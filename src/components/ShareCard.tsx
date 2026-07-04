@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { addByEmail, searchAccountsByEmail, list, remove, type AccountMatch, type Collaborator } from '@/lib/services/collaborators';
 import PanelCard, { PanelIcon, ICON_PATHS } from '@/components/PanelCard';
-import { Avatar } from '@/components/tracker/ui';
+import { Avatar, Icon } from '@/components/tracker/ui';
 
 interface Props {
   userId: string;
@@ -167,7 +167,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
                 className="btn btn-primary"
                 style={{ fontSize: '12px', padding: '6px 14px', flexShrink: 0 }}
               >
-                {copied ? '✓ Copied' : 'Copy'}
+                {copied ? <span className="flex items-center gap-1"><Icon name="check" size={13} /> Copied</span> : 'Copy'}
               </button>
             </div>
             <div className="flex items-center justify-between">

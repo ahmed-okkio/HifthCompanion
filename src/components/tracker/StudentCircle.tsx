@@ -3,17 +3,17 @@
 import { useMemo, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type {
-  Circle, Homework, LogType, Membership, ProgressLog, Session, StatusConfig,
+  Circle, Homework, LogType, Membership, ProgressLog, Recurrence, Session, StatusConfig,
 } from '@/types';
 import { createLog, deleteLog, type NewProgressLog } from '@/lib/services/progressLog';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
 import {
-  homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, type HomeworkStatus,
+  homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus,
 } from '@/lib/homework';
 import { computeStreak, isStreakAtRisk } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage } from '@/lib/quran';
-import { SectionTitle, EmptyState, StatCard, DateChip, NumberStepper, HOMEWORK_STATUS_STYLE } from './ui';
+import { SectionTitle, EmptyState, StatCard, DateChip, NumberStepper, TabBar, PagedList, HOMEWORK_STATUS_STYLE, Icon } from './ui';
 
 const LOG_TYPES: LogType[] = ['memorization', 'general_revision', 'targeted_revision'];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -50,6 +50,7 @@ export default function StudentCircle({
 }) {
   const { t, locale } = useI18n();
   const [logs, setLogs] = useState(initialLogs);
+  const [tab, setTab] = useState('homework');
 
   const streak = useMemo(() => computeStreak(logs), [logs]);
   const atRisk = useMemo(() => isStreakAtRisk(logs), [logs]);
@@ -82,10 +83,10 @@ export default function StudentCircle({
     <div className="flex flex-col gap-6">
       {/* KPI row: streak / open homework / next session */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard icon="🔥" value={streak} label={t('log.streak')} />
-        <StatCard icon="📖" value={openHomework} label={t('homework.statusOpen')} />
+        <StatCard icon={<Icon name="flame" />} value={streak} label={t('log.streak')} />
+        <StatCard icon={<Icon name="book" />} value={openHomework} label={t('homework.statusOpen')} />
         <StatCard
-          icon="📅"
+          icon={<Icon name="calendar" />}
           value={nextSession
             ? new Date(nextSession.scheduled_at).toLocaleDateString(locale, { month: 'short', day: 'numeric', timeZone: 'UTC' })
             : '—'}
@@ -97,42 +98,56 @@ export default function StudentCircle({
           className="card flex items-center gap-2" role="status"
           style={{ padding: '10px 14px', background: 'var(--danger-muted)', borderColor: 'var(--danger-muted)', color: 'var(--danger)', fontSize: 13, fontWeight: 600 }}
         >
-          ⚠ {t('log.streakAtRisk')}
+          <Icon name="alert" size={15} /> {t('log.streakAtRisk')}
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] items-start">
-        {/* Main column: homework + logging */}
+      {/* Feed (tabs) + always-on schedule sidebar; KPIs above stay pinned. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] items-start">
         <div className="flex flex-col gap-6 min-w-0">
-          {/* Assigned homework (E2/E3/E4/E6) */}
-          <AssignedHomework
-            homework={initialHomework} logs={logs} statuses={statuses}
-            membershipId={membership.id} onCreated={addLog}
+          <TabBar
+            tabs={[
+              { key: 'homework', label: t('homework.title') },
+              { key: 'log', label: t('log.tab') },
+              { key: 'notes', label: t('notes.title') },
+            ]}
+            active={tab}
+            onSelect={setTab}
           />
 
-          {/* Open self-submission (F1/F2/F3) */}
-          <div className="card flex flex-col gap-3" style={{ padding: '16px 18px' }}>
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('log.new')}</h2>
-            <LogForm membershipId={membership.id} statuses={statuses} onCreated={addLog} />
-          </div>
+          {/* Assigned homework (E2/E3/E4/E6) */}
+          {tab === 'homework' && (
+            <AssignedHomework
+              homework={initialHomework} logs={logs} statuses={statuses}
+              membershipId={membership.id} onCreated={addLog}
+            />
+          )}
 
-          {/* My logs */}
-          <div className="flex flex-col gap-2">
-            <SectionTitle trailing={<span className="badge badge-muted">{logs.length}</span>}>
-              {t('log.mine')}
-            </SectionTitle>
-            {logs.length === 0 && <EmptyState>{t('log.empty')}</EmptyState>}
-            {logs.map((l) => <LogRow key={l.id} log={l} onDelete={handleDelete} />)}
-          </div>
-        </div>
+          {tab === 'log' && (<>
+            {/* Open self-submission (F1/F2/F3) */}
+            <div className="card flex flex-col gap-3" style={{ padding: '16px 18px' }}>
+              <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('log.new')}</h2>
+              <LogForm membershipId={membership.id} statuses={statuses} onCreated={addLog} />
+            </div>
 
-        {/* Sidebar: sessions + notes */}
-        <aside className="flex flex-col gap-6 min-w-0">
-          {/* Own upcoming sessions — read-only (D3) */}
-          <UpcomingSessions sessions={initialSessions} />
+            {/* My logs */}
+            <div className="flex flex-col gap-2">
+              <SectionTitle trailing={<span className="badge badge-muted">{logs.length}</span>}>
+                {t('log.mine')}
+              </SectionTitle>
+              {logs.length === 0 && <EmptyState>{t('log.empty')}</EmptyState>}
+              <PagedList items={logs} loadMoreLabel={t('grade.loadMore')}
+                render={(l) => <LogRow key={l.id} log={l} onDelete={handleDelete} />} />
+            </div>
+          </>)}
 
           {/* Own notes thread (G2/G3) */}
-          <NotesThread membershipId={membership.id} initial={initialNotes} />
+          {tab === 'notes' && <NotesThread membershipId={membership.id} initial={initialNotes} />}
+        </div>
+
+        {/* Schedule sidebar — always visible, read-only (D3) */}
+        <aside className="lg:sticky lg:top-6 self-start min-w-0">
+          <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} />
         </aside>
       </div>
     </div>
@@ -141,30 +156,79 @@ export default function StudentCircle({
 
 // --- Upcoming sessions (read-only, D3) ---------------------------------------
 
-function UpcomingSessions({ sessions }: { sessions: Session[] }) {
+function UpcomingSessions({ sessions, schedule }: { sessions: Session[]; schedule: Recurrence | null }) {
   const { t, locale } = useI18n();
   const now = Date.now();
-  const upcoming = sessions.filter(
-    (s) => !s.canceled && new Date(s.scheduled_at).getTime() >= now,
-  );
+
+  // The weekly slots are virtual — render the RULE (one card per weekday, same
+  // chip style as a session) rather than materialized rows; only ad-hocs list.
+  const ruleDays = schedule?.weekdays.length
+    ? [...schedule.weekdays].sort((a, b) => a - b)
+    : null;
+  // Wall-clock time interpreted as-if-UTC (mirrors the recurrence convention).
+  const [hh, mm] = (schedule?.time ?? '00:00').split(':').map(Number);
+  const timeShort = new Date(Date.UTC(2023, 0, 1, hh, mm)).toLocaleTimeString(locale, { hour: 'numeric', hour12: true, timeZone: 'UTC' });
+  const timeFull = new Date(Date.UTC(2023, 0, 1, hh, mm)).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' });
+  // 2023-01-01 is a Sunday → index d lands on that weekday for name formatting.
+  const dayDate = (d: number) => new Date(Date.UTC(2023, 0, 1 + d));
+
+  // Only surface the NEXT ad-hoc (soonest upcoming) — the recurring rule covers
+  // the rest; a one-off is the exception worth calling out.
+  const nextAdhoc = sessions
+    .filter((s) => s.is_adhoc && !s.canceled && new Date(s.scheduled_at).getTime() >= now)
+    .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))[0];
+
   return (
-    <div className="flex flex-col gap-2">
-      <SectionTitle>{t('sessions.title')}</SectionTitle>
-      {upcoming.length === 0 && <EmptyState>{t('sessions.none')}</EmptyState>}
-      {upcoming.map((s) => (
-        <div key={s.id} className="card flex items-center gap-3" style={{ padding: '10px 14px' }}>
-          <DateChip iso={s.scheduled_at} locale={locale} />
-          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {new Date(s.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })}
+    <div className="flex flex-col gap-3">
+      {/* Recurring schedule — one card per weekday, reusing the session look */}
+      <div className="flex flex-col gap-2">
+        <SectionTitle>{t('sessions.schedule')}</SectionTitle>
+        {ruleDays ? ruleDays.map((d) => (
+          <div key={d} className="card flex items-center gap-3" style={{ padding: '10px 14px' }}>
+            <span aria-hidden className="flex flex-col items-center justify-center shrink-0"
+                  style={{ width: 46, height: 46, borderRadius: 'var(--radius-md)', background: 'var(--accent-muted)', color: 'var(--text-accent)' }}>
+              <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.4 }}>
+                {dayDate(d).toLocaleDateString(locale, { weekday: 'short', timeZone: 'UTC' })}
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.1 }}>{timeShort.replace(/\s/g, '')}</span>
             </span>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-              {fmtTime(s.scheduled_at, locale)}
-            </span>
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+              <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {dayDate(d).toLocaleDateString(locale, { weekday: 'long', timeZone: 'UTC' })}
+              </span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{timeFull}</span>
+            </div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                 strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0" style={{ color: 'var(--text-muted)' }}>
+              <path d="M17 2l4 4-4 4" />
+              <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+              <path d="M7 22l-4-4 4-4" />
+              <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+            </svg>
           </div>
-          {s.is_adhoc && <span className="badge shrink-0" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
+        )) : (
+          <EmptyState>{t('sessions.noSchedule')}</EmptyState>
+        )}
+      </div>
+
+      {/* Next ad-hoc one-off session, if any */}
+      {nextAdhoc && (
+        <div className="flex flex-col gap-2">
+          <SectionTitle>{t('sessions.adhocTitle')}</SectionTitle>
+          <div className="card flex items-center gap-3" style={{ padding: '10px 14px' }}>
+            <DateChip iso={nextAdhoc.scheduled_at} locale={locale} />
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+              <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {new Date(nextAdhoc.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })}
+              </span>
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {fmtTime(nextAdhoc.scheduled_at, locale)}
+              </span>
+            </div>
+            <span className="badge shrink-0" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>
+          </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }
@@ -196,12 +260,13 @@ function AssignedHomework({
     <div className="flex flex-col gap-2">
       <SectionTitle>{t('homework.assignedToYou')}</SectionTitle>
       {homework.length === 0 && <EmptyState>{t('log.empty')}</EmptyState>}
-      {groupHomework(homework).map((group) => (
-        <HomeworkCard
-          key={group.key} items={group.items} linked={linked}
-          statuses={statuses} membershipId={membershipId} onCreated={onCreated}
-        />
-      ))}
+      <PagedList items={groupHomework(homework)} loadMoreLabel={t('grade.loadMore')}
+        render={(group) => (
+          <HomeworkCard
+            key={group.key} items={group.items} linked={linked}
+            statuses={statuses} membershipId={membershipId} onCreated={onCreated}
+          />
+        )} />
     </div>
   );
 }
@@ -225,7 +290,9 @@ function HomeworkCard({
   return (
     <div className="card flex flex-col gap-2" style={{ padding: '12px 16px' }}>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t(`logType.${first.type}`)}</span>
+        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+          {`${t(first.type === 'memorization' ? 'homework.verbMemorize' : 'homework.verbReview')} ${homeworkTarget(items, locale, t('homework.juz'))}`}
+        </span>
         <span className="badge" style={{ fontSize: 10, ...HOMEWORK_STATUS_STYLE[groupStatus] }}>{t(STATUS_KEY[groupStatus])}</span>
       </div>
       {first.instructions && <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{first.instructions}</span>}
@@ -239,13 +306,15 @@ function HomeworkCard({
         const open = homeworkStatus(h, linkedLogs.length, today()) === 'open';
         return (
           <div key={h.id} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }} className="flex flex-col gap-1">
-            <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-              {homeworkEntryLabel(h, locale) ?? `${t('log.pageRange')} ${h.page_start}–${h.page_end}`}
-              {h.surah && h.ayah_start == null ? ` ${t('homework.whole')}` : ''}
-            </span>
+            {items.length > 1 && (
+              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                {homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${h.page_start}–${h.page_end}`}
+                {h.surah && h.ayah_start == null ? ` ${t('homework.whole')}` : ''}
+              </span>
+            )}
             {linkedLogs.map((l) => (
-              <div key={l.id} className="text-xs" style={{ color: 'var(--text-secondary)', paddingInlineStart: 8 }}>
-                ✓ p{l.page_start}–{l.page_end} · {l.log_date}
+              <div key={l.id} className="text-xs flex items-center gap-1" style={{ color: 'var(--text-secondary)', paddingInlineStart: 8 }}>
+                <Icon name="check" size={13} /> p{l.page_start}–{l.page_end} · {l.log_date}
                 {l.student_status ? ` · ${l.student_status}` : ''}
               </div>
             ))}
@@ -288,6 +357,9 @@ function LogForm({
   initialPageEnd?: number;
 }) {
   const { t } = useI18n();
+  // Prescribed homework has a scope the teacher already set — the student only
+  // reports a status. Pages/ayahs are pickable only on a self-raised log.
+  const hideRange = homeworkId != null;
   const [logType, setLogType] = useState<LogType>(lockedType ?? 'memorization');
   const [pageStart, setPageStart] = useState(initialPageStart);
   const [pageEnd, setPageEnd] = useState(initialPageEnd);
@@ -346,12 +418,9 @@ function LogForm({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Type — 3 fixed enum only (F3). Locked when linked to a prescription. */}
-      {lockedType ? (
-        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-          {t('log.type')}: {t(`logType.${lockedType}`)}
-        </span>
-      ) : (
+      {/* Type — 3 fixed enum only (F3). Hidden when linked (the card already
+          names the type); the locked value still flows through via `logType`. */}
+      {!lockedType && (
         <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
           {t('log.type')}
           <select value={logType} onChange={(e) => setLogType(e.target.value as LogType)}
@@ -362,8 +431,10 @@ function LogForm({
       )}
 
       <div className="flex items-end gap-2">
-        <NumberStepper label={t('log.from')} value={pageStart} min={1} max={604} onChange={setPageStart} />
-        <NumberStepper label={t('log.to')} value={pageEnd} min={1} max={604} onChange={setPageEnd} />
+        {!hideRange && (<>
+          <NumberStepper label={t('log.from')} value={pageStart} min={1} max={604} onChange={setPageStart} />
+          <NumberStepper label={t('log.to')} value={pageEnd} min={1} max={604} onChange={setPageEnd} />
+        </>)}
         <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
           {t('log.date')}
           <input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)}
@@ -371,22 +442,24 @@ function LogForm({
         </label>
       </div>
 
-      {/* Optional ayah refinement */}
-      <div className="flex flex-col gap-2">
-        <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-          <input type="checkbox" checked={refine} onChange={(e) => setRefine(e.target.checked)} />
-          {t('log.refineAyah')}
-        </label>
-        {refine && ayahOptions.length > 0 && (
-          <div className="flex items-end gap-2">
-            <span className="text-xs" style={{ color: 'var(--text-muted)', paddingBottom: 10 }}>
-              {t('log.surah')} {refineSurah}
-            </span>
-            <AyahSelect label={t('log.ayahFrom')} value={effAyahStart} options={ayahOptions} onChange={setAyahStart} />
-            <AyahSelect label={t('log.ayahTo')} value={effAyahEnd} options={ayahOptions} onChange={setAyahEnd} />
-          </div>
-        )}
-      </div>
+      {/* Optional ayah refinement — irrelevant for a whole-juz submission. */}
+      {!hideRange && (
+        <div className="flex flex-col gap-2">
+          <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <input type="checkbox" checked={refine} onChange={(e) => setRefine(e.target.checked)} />
+            {t('log.refineAyah')}
+          </label>
+          {refine && ayahOptions.length > 0 && (
+            <div className="flex items-end gap-2">
+              <span className="text-xs" style={{ color: 'var(--text-muted)', paddingBottom: 10 }}>
+                {t('log.surah')} {refineSurah}
+              </span>
+              <AyahSelect label={t('log.ayahFrom')} value={effAyahStart} options={ayahOptions} onChange={setAyahStart} />
+              <AyahSelect label={t('log.ayahTo')} value={effAyahEnd} options={ayahOptions} onChange={setAyahEnd} />
+            </div>
+          )}
+        </div>
+      )}
 
       <ChipRow label={t('log.selfStatus')} options={statuses.map((s) => s.label)} value={status} onChange={setStatus} />
 

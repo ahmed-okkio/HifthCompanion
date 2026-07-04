@@ -118,6 +118,19 @@ export default async function SharePage({ params, searchParams }: Props) {
   const account = user ? await getMyChrome(user) : null;
   const setName = annotationSet?.name ?? 'Shared Set';
 
+  // S1 — name the set owner as the primary header. Only resolvable when the set row loaded
+  // (E2E/guest/unresolvable → annotationSet null → ownerName undefined → S2 set-name-only fallback).
+  const owner = annotationSet
+    ? (await getProfilesByIds([annotationSet.user_id])).get(annotationSet.user_id)
+    : undefined;
+  const ownerName = annotationSet
+    ? displayName({
+        user_id: annotationSet.user_id,
+        first_name: owner?.first_name,
+        last_name: owner?.last_name,
+      })
+    : undefined;
+
   const { data: annotation } = await supabase
     .from('annotations')
     .select('canvas_json')
@@ -129,7 +142,7 @@ export default async function SharePage({ params, searchParams }: Props) {
   const imageUrl = getPageImageUrl(pageNum);
 
   return (
-    <ShareShell basePath={`/share/${setId}`} pageNum={pageNum} setName={setName} account={account}>
+    <ShareShell basePath={`/share/${setId}`} pageNum={pageNum} setName={setName} ownerName={ownerName} account={account}>
       <main className="w-full flex-grow px-4 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-8 sm:pb-8 animate-fade-in lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:pb-8">
         <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-6 items-start lg:h-full lg:min-h-0 lg:items-start lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] lg:justify-center">
 

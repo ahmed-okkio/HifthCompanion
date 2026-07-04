@@ -3,10 +3,15 @@
 import { createClientAction, createClient } from '@/lib/supabase/server';
 import type { Homework, LogType } from '@/types';
 import { wholeSurahPages } from '@/lib/homework';
-import { getPageForAyah } from '@/lib/quran';
+import { getPageForAyah, juzPageBounds } from '@/lib/quran';
 
-/** One surah in a prescription — whole surah (null ayahs) or a narrowed range. */
-export type SurahEntry = { surah: number; ayah_start: number | null; ayah_end: number | null };
+/**
+ * One entry in a prescription: a surah (whole → null ayahs, or a narrowed range)
+ * or a whole juz (stored surah-less as a page range, like a legacy page-only row).
+ */
+export type SurahEntry =
+  | { kind: 'surah'; surah: number; ayah_start: number | null; ayah_end: number | null }
+  | { kind: 'juz'; juz: number };
 
 export type NewHomework = {
   membershipId: string;
@@ -26,13 +31,20 @@ export async function prescribeHomework(hw: NewHomework): Promise<Homework[]> {
   const supabase = await createClientAction();
   const groupId = crypto.randomUUID();
   const rows = hw.entries.map((e) => {
-    const [ps, pe] = wholeSurahPages(e.surah);
-    return {
+    const base = {
       membership_id: hw.membershipId,
       group_id: groupId,
       type: hw.type,
       deadline: hw.deadline ?? null,
       instructions: hw.instructions ?? null,
+    };
+    if (e.kind === 'juz') {
+      const [ps, pe] = juzPageBounds(e.juz);
+      return { ...base, surah: null, ayah_start: null, ayah_end: null, page_start: ps, page_end: pe };
+    }
+    const [ps, pe] = wholeSurahPages(e.surah);
+    return {
+      ...base,
       surah: e.surah,
       ayah_start: e.ayah_start,
       ayah_end: e.ayah_end,

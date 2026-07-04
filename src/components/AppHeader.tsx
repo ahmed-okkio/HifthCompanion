@@ -58,9 +58,11 @@ export default function AppHeader({
 
           {breadcrumb && (
             <span className="flex items-center gap-2 min-w-0">
-              <span aria-hidden style={{ color: 'var(--text-muted)' }} className="rtl:-scale-x-100">
-                ›
-              </span>
+              <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                   style={{ color: 'var(--text-muted)' }} className="shrink-0 rtl:-scale-x-100">
+                <path d="m9 18 6-6-6-6" />
+              </svg>
               <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>
                 {breadcrumb}
               </span>

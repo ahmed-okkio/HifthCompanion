@@ -1,6 +1,7 @@
 'use client';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Icon } from '@/components/tracker/ui';
 
 interface Props {
   userId: string;
@@ -112,7 +113,7 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
               className="btn btn-primary"
               style={{ fontSize: '12px', padding: '6px 14px', flexShrink: 0 }}
             >
-              {copied ? '✓ Copied' : 'Copy'}
+              {copied ? <span className="flex items-center gap-1"><Icon name="check" size={13} /> Copied</span> : 'Copy'}
             </button>
           </div>
 

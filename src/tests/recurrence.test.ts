@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { recurringSlots, missingSlots } from '../lib/recurrence';
-import type { Recurrence } from '../types';
+import { recurringSlots, missingSlots, sectionSessions } from '../lib/recurrence';
+import type { Recurrence, Session } from '../types';
 
 // Fixed Monday for determinism: 2026-06-29 is a Monday (UTC).
 // Wall-clock floats (R3/R4): assertions read the ISO string / getUTC* so they
@@ -71,5 +71,57 @@ describe('missingSlots (B1)', () => {
     expect(b).toHaveLength(1);
     expect(new Date(a[0]).getUTCDay()).toBe(1);
     expect(new Date(b[0]).getUTCDay()).toBe(3);
+  });
+});
+
+// M2 sectioning (PRD 0007 §5, T2/T4/T6).
+describe('sectionSessions', () => {
+  const rule: Recurrence = { weekdays: [1], time: '17:00' }; // Mondays 17:00
+  const row = (over: Partial<Session> & { scheduled_at: string }): Session => ({
+    id: over.scheduled_at, membership_id: 'm', is_adhoc: false, canceled: false,
+    attendance_status: null, created_at: over.scheduled_at, ...over,
+  });
+
+  it('dedups a real row over its virtual twin (T6)', () => {
+    // Next Monday after MON is 2026-07-06; give it a real unmarked row.
+    const twin = '2026-07-06T17:00:00.000Z';
+    const now = new Date('2026-07-01T00:00:00Z'); // Wed, before that Monday
+    const { upcoming } = sectionSessions(rule, [row({ scheduled_at: twin })], now);
+    const at = upcoming.filter((s) => s.scheduled_at === twin);
+    expect(at).toHaveLength(1);
+    expect(at[0].session).not.toBeNull(); // the real row, not the virtual
+  });
+
+  it('Next is the most-recent past-or-now slot and is editable (T3)', () => {
+    // now = Tue after two Mondays have passed (2026-06-29, 2026-07-06 wait future)
+    const now = new Date('2026-07-07T09:00:00Z'); // Tue; last Monday 07-06 passed
+    const { next, nextEditable } = sectionSessions(rule, [], now);
+    expect(next?.scheduled_at).toBe('2026-07-06T17:00:00.000Z');
+    expect(next?.session).toBeNull(); // virtual
+    expect(nextEditable).toBe(true);
+  });
+
+  it('no session yet → soonest upcoming, display-only (T4)', () => {
+    // now = Fri before the first Monday; no past slot in a fresh schedule window.
+    const now = new Date('2026-07-03T09:00:00Z'); // Fri; next Monday 07-06 future
+    // Zero lookback so nothing before now qualifies.
+    const { next, nextEditable, upcoming } = sectionSessions(rule, [], now, 0);
+    expect(next?.scheduled_at).toBe('2026-07-06T17:00:00.000Z');
+    expect(nextEditable).toBe(false);
+    expect(upcoming[0].scheduled_at).toBe('2026-07-13T17:00:00.000Z');
+  });
+
+  it('History is resolved rows, newest first, and a marked Next drops out (T2/T5)', () => {
+    const now = new Date('2026-07-14T09:00:00Z');
+    const rows = [
+      row({ scheduled_at: '2026-06-29T17:00:00.000Z', attendance_status: 'present' }),
+      row({ scheduled_at: '2026-07-06T17:00:00.000Z', attendance_status: 'absent' }),
+    ];
+    const { history, next } = sectionSessions(rule, rows, now);
+    expect(history.map((h) => h.scheduled_at)).toEqual([
+      '2026-07-06T17:00:00.000Z', '2026-06-29T17:00:00.000Z', // newest first
+    ]);
+    // The marked Mondays are gone from Next; the unmarked 07-13 slot is now Next.
+    expect(next?.scheduled_at).toBe('2026-07-13T17:00:00.000Z');
   });
 });

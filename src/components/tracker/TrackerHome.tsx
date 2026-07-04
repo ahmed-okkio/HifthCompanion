@@ -8,7 +8,7 @@ import type { MembershipWithCircle } from '@/lib/services/membership';
 import { createCircle, getCircleByCode } from '@/lib/services/circle';
 import { joinCircle } from '@/lib/services/membership';
 import PushToggle from '@/components/PushToggle';
-import { PageHeader, SectionTitle, EmptyState, Avatar, Chevron } from './ui';
+import { PageHeader, SectionTitle, EmptyState, Avatar, Chevron, Icon } from './ui';
 
 export default function TrackerHome({
   initialMemberships,
@@ -98,7 +98,7 @@ export default function TrackerHome({
 
       {/* Create + join actions — two side-by-side cards */}
       <div className="grid gap-3 sm:grid-cols-2">
-        <ActionCard icon="✨" label={t('tracker.createCircle')}>
+        <ActionCard icon={<Icon name="circle-people" size={16} />} label={t('tracker.createCircle')}>
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
@@ -113,7 +113,7 @@ export default function TrackerHome({
           </button>
         </ActionCard>
 
-        <ActionCard icon="🔑" label={t('tracker.joinCircle')}>
+        <ActionCard icon={<Icon name="key" size={16} />} label={t('tracker.joinCircle')}>
           <input
             value={code}
             onChange={(e) => setCode(e.target.value)}
@@ -148,7 +148,7 @@ export default function TrackerHome({
 }
 
 /** Icon + label header over an input + button row; one card per action. */
-function ActionCard({ icon, label, children }: { icon: string; label: string; children: React.ReactNode }) {
+function ActionCard({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
   return (
     <label className="card flex flex-col gap-3" style={{ padding: '16px 18px' }}>
       <span className="flex items-center gap-2">

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { homeworkStatus, wholeSurahPages, aggregateStatus, groupHomework } from '../lib/homework';
-import { SURAH_FIRST_PAGES, TOTAL_PAGES } from '../lib/quran';
+import { homeworkStatus, wholeSurahPages, aggregateStatus, groupHomework, homeworkTarget } from '../lib/homework';
+import { SURAH_FIRST_PAGES, TOTAL_PAGES, JUZ_START_PAGES, juzPageBounds } from '../lib/quran';
 import type { Homework } from '../types';
 
 describe('homeworkStatus (D10)', () => {
@@ -33,6 +33,17 @@ describe('wholeSurahPages (H6)', () => {
   });
 });
 
+describe('juzPageBounds', () => {
+  it('juz J spans JUZ_START_PAGES[J] .. JUZ_START_PAGES[J+1]-1', () => {
+    expect(juzPageBounds(1)).toEqual([JUZ_START_PAGES[1], JUZ_START_PAGES[2] - 1]);
+    expect(juzPageBounds(15)).toEqual([JUZ_START_PAGES[15], JUZ_START_PAGES[16] - 1]);
+  });
+  it('juz 30 ends on page 604', () => {
+    expect(juzPageBounds(30)).toEqual([JUZ_START_PAGES[30], TOTAL_PAGES]);
+    expect(juzPageBounds(30)[1]).toBe(604);
+  });
+});
+
 describe('aggregateStatus (H4)', () => {
   it('open if any row open', () => {
     expect(aggregateStatus(['completed', 'open'])).toBe('open');
@@ -42,6 +53,23 @@ describe('aggregateStatus (H4)', () => {
   });
   it('missed when none open and not all completed', () => {
     expect(aggregateStatus(['missed', 'completed'])).toBe('missed');
+  });
+});
+
+describe('homeworkTarget', () => {
+  const r = (o: Partial<Homework>): Homework => o as Homework;
+  it('single surah with ayah range', () => {
+    expect(homeworkTarget([r({ surah: 2, ayah_start: 1, ayah_end: 20 })], 'en', 'Juz')).toBe('Al-Baqara 1-20');
+  });
+  it('whole surah (null ayahs) expands to 1-count', () => {
+    // Al-Fatiha = 7 ayahs
+    expect(homeworkTarget([r({ surah: 1, ayah_start: null, ayah_end: null })], 'en', 'Juz')).toBe('Al-Faatiha 1-7');
+  });
+  it('multiple surahs → first - last', () => {
+    expect(homeworkTarget([r({ surah: 4 }), r({ surah: 2 })], 'en', 'Juz')).toBe('Al-Baqara - An-Nisaa');
+  });
+  it('page-only rows → single juz', () => {
+    expect(homeworkTarget([r({ surah: null, page_start: 582, page_end: 604 })], 'en', 'Juz')).toBe('Juz 30');
   });
 });
 

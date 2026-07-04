@@ -17,6 +17,8 @@ interface Props {
   basePath: string;
   pageNum: number;
   setName: string;
+  /** Set owner's display name — primary header text (S1). Absent for guest/E2E → set-name-only (S2). */
+  ownerName?: string;
   children: React.ReactNode;
   /** Signed-in visitor's chrome summary, or null for a guest viewer. */
   account?: { name: string; email: string } | null;
@@ -30,7 +32,7 @@ interface Props {
  * the bottom-sheet (opened from the header). Read-only throughout — no annotation
  * toolbar, so there is no fixed bottom bar to pad against.
  */
-export default function ShareShell({ basePath, pageNum, setName, children, account = null }: Props) {
+export default function ShareShell({ basePath, pageNum, setName, ownerName, children, account = null }: Props) {
   const navRef = useRef<HTMLDivElement>(null);
   const [navHeight, setNavHeight] = useState(FALLBACK_NAV_HEIGHT);
   const [surahOpen, setSurahOpen] = useState(false);
@@ -110,9 +112,21 @@ export default function ShareShell({ basePath, pageNum, setName, children, accou
                 </span>
               </Link>
               <span className={navStyles.contextBreadcrumb}>
-                <span className={navStyles.contextSurah}>{setName}</span>
-                <span className={navStyles.contextSep} aria-hidden>·</span>
-                <span className={navStyles.contextJuz}>Read-only</span>
+                {ownerName ? (
+                  <>
+                    {/* S1 — owner primary, set name as subtext. */}
+                    <span className={navStyles.contextSurah}>{ownerName}</span>
+                    <span className={navStyles.contextSep} aria-hidden>·</span>
+                    <span className={navStyles.contextJuz}>{setName}</span>
+                  </>
+                ) : (
+                  <>
+                    {/* S2 — guest/unresolvable owner: set name alone. */}
+                    <span className={navStyles.contextSurah}>{setName}</span>
+                    <span className={navStyles.contextSep} aria-hidden>·</span>
+                    <span className={navStyles.contextJuz}>Read-only</span>
+                  </>
+                )}
               </span>
             </div>
 

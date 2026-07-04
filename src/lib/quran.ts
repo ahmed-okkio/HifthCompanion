@@ -77,6 +77,13 @@ export function getJuzStartPage(juz: number): number {
   return JUZ_START_PAGES[juz] ?? 1;
 }
 
+/** Page bounds [start, end] of a juz (1–30); juz 30 ends on page 604. */
+export function juzPageBounds(juz: number): [number, number] {
+  const start = getJuzStartPage(juz);
+  const end = juz >= TOTAL_JUZ ? TOTAL_PAGES : JUZ_START_PAGES[juz + 1] - 1;
+  return [start, end];
+}
+
 /** Juz number (1–30) containing the given page. */
 export function getJuzForPage(page: number): number {
   const p = clampPage(page);

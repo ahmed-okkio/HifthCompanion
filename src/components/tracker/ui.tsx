@@ -6,9 +6,10 @@
  * as the reader (design tokens only, no bare hex/px palette values).
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { HomeworkStatus } from '@/lib/homework';
+import { TOTAL_SURAHS, getSurahName } from '@/lib/quran';
 
 /** Badge palette per homework status — open/completed/missed at a glance. */
 export const HOMEWORK_STATUS_STYLE: Record<HomeworkStatus, CSSProperties> = {
@@ -270,6 +271,154 @@ export function NumberStepper({
   );
 }
 
+/** Searchable surah picker: styled text input filtering the 114 surahs by
+ *  number or name (en/ar), with a styled dropdown listbox. Reusable — click or
+ *  Enter selects, Escape / click-outside closes. Written for the prescribe
+ *  picker; drops in anywhere a full-surah selection is needed. */
+export function SurahCombobox({
+  value,
+  onChange,
+  locale,
+  placeholder,
+}: {
+  value: number;
+  onChange: (surah: number) => void;
+  locale: 'en' | 'ar';
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const wrap = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const all = Array.from({ length: TOTAL_SURAHS }, (_, i) => i + 1);
+  const q = query.trim().toLowerCase();
+  const matches = q
+    ? all.filter(
+        (s) =>
+          String(s).startsWith(q) ||
+          getSurahName(s, 'en').toLowerCase().includes(q) ||
+          getSurahName(s, 'ar').includes(query.trim()),
+      )
+    : all;
+
+  const select = (s: number) => {
+    onChange(s);
+    setQuery('');
+    setOpen(false);
+  };
+
+  return (
+    <div ref={wrap} style={{ position: 'relative' }}>
+      <input
+        className="input input-sm"
+        style={{ minHeight: 40, width: 200 }}
+        value={open ? query : `${value}. ${getSurahName(value, locale)}`}
+        placeholder={placeholder}
+        onFocus={() => {
+          setOpen(true);
+          setQuery('');
+        }}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && matches.length > 0) {
+            e.preventDefault();
+            select(matches[0]);
+          } else if (e.key === 'Escape') {
+            setOpen(false);
+          }
+        }}
+      />
+      {open && matches.length > 0 && (
+        <ul
+          role="listbox"
+          className="card"
+          style={{
+            position: 'absolute',
+            zIndex: 20,
+            top: 'calc(100% + 4px)',
+            left: 0,
+            right: 0,
+            maxHeight: 240,
+            overflowY: 'auto',
+            padding: 4,
+            margin: 0,
+            listStyle: 'none',
+          }}
+        >
+          {matches.map((s) => (
+            <li key={s}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={s === value}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => select(s)}
+                className="btn btn-ghost"
+                style={{
+                  width: '100%',
+                  justifyContent: 'flex-start',
+                  textAlign: 'start',
+                  minHeight: 34,
+                  padding: '6px 10px',
+                  fontSize: 13,
+                  fontWeight: s === value ? 600 : 400,
+                  color: s === value ? 'var(--text-accent)' : 'var(--text-primary)',
+                }}
+              >
+                {s}. {getSurahName(s, locale)}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** Renders the first `pageSize` items with a "Load more" button that reveals
+ *  the next page. Keeps long lists (homework, logs, notes) from burying the
+ *  page. `render` supplies the key; `loadMoreLabel` is passed in so this stays
+ *  i18n-agnostic. */
+export function PagedList<T>({
+  items,
+  render,
+  loadMoreLabel,
+  pageSize = 8,
+}: {
+  items: T[];
+  render: (item: T) => ReactNode;
+  loadMoreLabel: string;
+  pageSize?: number;
+}) {
+  const [shown, setShown] = useState(pageSize);
+  return (
+    <>
+      {items.slice(0, shown).map(render)}
+      {items.length > shown && (
+        <button
+          onClick={() => setShown((n) => n + pageSize)}
+          className="btn btn-ghost self-center"
+          style={{ minHeight: 40, fontSize: 13 }}
+        >
+          {loadMoreLabel}
+        </button>
+      )}
+    </>
+  );
+}
+
 /** Small status dot (active/pending/…). */
 export function StatusDot({ color }: { color: string }) {
   return (
@@ -281,8 +430,9 @@ export function StatusDot({ color }: { color: string }) {
   );
 }
 
-/** Right-pointing chevron used to mark a row as navigable. Flips under RTL. */
-export function Chevron() {
+/** Right-pointing chevron used to mark a row as navigable. Flips under RTL.
+ *  Pass `open` to rotate it down as a collapse/expand affordance. */
+export function Chevron({ open }: { open?: boolean } = {}) {
   return (
     <svg
       width="16"
@@ -294,9 +444,90 @@ export function Chevron() {
       strokeLinecap="round"
       strokeLinejoin="round"
       className="shrink-0 rtl:-scale-x-100"
-      style={{ color: 'var(--text-muted)' }}
+      style={{
+        color: 'var(--text-muted)',
+        transform: open ? 'rotate(90deg)' : undefined,
+        transition: 'transform var(--duration-fast) var(--ease-out)',
+      }}
     >
       <path d="m9 18 6-6-6-6" />
+    </svg>
+  );
+}
+
+/** Inline stroke icons (feather/lucide geometry) replacing emoji so glyphs stay
+ *  on-brand, currentColor-tinted, and consistent across platforms. */
+const ICON_PATHS: Record<string, ReactNode> = {
+  sparkles: <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 15l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z" />,
+  'circle-people': (
+    <>
+      <circle cx="19" cy="12" r="2.1" />
+      <circle cx="15.5" cy="5.94" r="2.1" />
+      <circle cx="8.5" cy="5.94" r="2.1" />
+      <circle cx="5" cy="12" r="2.1" />
+      <circle cx="8.5" cy="18.06" r="2.1" />
+      <circle cx="15.5" cy="18.06" r="2.1" />
+    </>
+  ),
+  key: (
+    <>
+      <circle cx="7.5" cy="15.5" r="4.5" />
+      <path d="m10.7 12.3 9.3-9.3M15.5 7.5l3 3 3-3-3-3" />
+    </>
+  ),
+  users: (
+    <>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+    </>
+  ),
+  calendar: (
+    <>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </>
+  ),
+  flame: <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z" />,
+  book: (
+    <>
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+    </>
+  ),
+  check: <path d="M20 6 9 17l-5-5" />,
+  hourglass: <path d="M5 22h14M5 2h14M17 22v-4.17a2 2 0 0 0-.59-1.41L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22M7 2v4.17a2 2 0 0 0 .59 1.41L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2" />,
+  alert: (
+    <>
+      <path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3z" />
+      <path d="M12 9v4M12 17h.01" />
+    </>
+  ),
+  'arrow-left': <path d="M19 12H5m7 7-7-7 7-7" />,
+  lock: (
+    <>
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </>
+  ),
+  folder: <path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" />,
+};
+
+export function Icon({ name, size = 18 }: { name: keyof typeof ICON_PATHS; size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+      aria-hidden
+    >
+      {ICON_PATHS[name]}
     </svg>
   );
 }

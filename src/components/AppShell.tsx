@@ -34,7 +34,7 @@ export default function AppShell({
   const [navOpen, setNavOpen] = useState(false);
 
   return (
-    <div className="flex flex-col min-h-screen overflow-x-hidden" style={{ background: 'var(--bg-base)' }}>
+    <div className="flex flex-col min-h-dvh overflow-x-hidden" style={{ background: 'var(--bg-base)' }}>
       {/* Header on top, full width (sticky) */}
       <AppHeader
         breadcrumb={breadcrumb}
@@ -47,12 +47,10 @@ export default function AppShell({
         }
       />
 
-      <div className="flex flex-1" style={{ minHeight: 'calc(100dvh - 72px)' }}>
-        {/* Rail BELOW the header (sticky under the 72px bar), content to its right. */}
-        <div
-          className="hidden lg:block flex-shrink-0"
-          style={{ position: 'sticky', top: 72, alignSelf: 'flex-start', width: 96, height: 'calc(100dvh - 72px)' }}
-        >
+      <div className="flex flex-1 min-h-0">
+        {/* Rail BELOW the header, stretched to the full content height so it
+            grows with the page (align-stretch is the flex default). */}
+        <div className="hidden lg:block flex-shrink-0" style={{ width: 96 }}>
           <NavRail />
         </div>
         <div className="flex-1 min-w-0 min-h-0" style={{ overflow: 'hidden' }}>{children}</div>

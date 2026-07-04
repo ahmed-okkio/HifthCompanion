@@ -40,7 +40,7 @@ export default async function StudentDetailPage({
 
   return (
     <AppShell breadcrumb={circle.name} user={account}>
-      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+      <main className="max-w-6xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <TeacherStudent
           circle={circle}
           member={member}

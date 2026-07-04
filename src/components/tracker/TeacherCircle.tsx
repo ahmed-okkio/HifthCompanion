@@ -8,7 +8,7 @@ import type { Circle, Membership, MemberWithProfile, Session } from '@/types';
 import { displayName } from '@/lib/displayName';
 import { rotateInviteCode, deleteCircle } from '@/lib/services/circle';
 import { inviteByEmail, setMembershipStatus } from '@/lib/services/membership';
-import { SectionTitle, EmptyState, Avatar, Chevron, StatCard, DateChip, StatusDot } from './ui';
+import { SectionTitle, EmptyState, Avatar, Chevron, StatCard, DateChip, StatusDot, Icon } from './ui';
 
 // Stdlib formatter — time-of-day only; the DateChip carries the date.
 function fmtTime(iso: string, locale: string) {
@@ -108,9 +108,9 @@ export default function TeacherCircle({
 
       {/* KPI row */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard icon="👥" value={activeCount} label={t('tracker.active')} />
-        <StatCard icon="⏳" value={pendingCount} label={t('tracker.pending')} />
-        <StatCard icon="📅" value={agenda.length} label={t('sessions.title')} />
+        <StatCard icon={<Icon name="users" />} value={activeCount} label={t('tracker.active')} />
+        <StatCard icon={<Icon name="hourglass" />} value={pendingCount} label={t('tracker.pending')} />
+        <StatCard icon={<Icon name="calendar" />} value={agenda.length} label={t('sessions.title')} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] items-start">

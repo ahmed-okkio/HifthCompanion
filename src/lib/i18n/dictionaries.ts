@@ -22,7 +22,7 @@ const en = {
 
   'tracker.tabProgress': 'Progress',
   'tracker.tabActive': 'Active',
-  'tracker.tabSessions': 'Sessions',
+  'tracker.tabSchedule': 'Schedule',
   'tracker.title': 'Progress Tracker',
   'tracker.subtitle': 'Your Hifth Circles, students, and memorization progress.',
   'tracker.emptyTitle': 'No circles yet',
@@ -69,6 +69,7 @@ const en = {
   'homework.instructions': 'Instructions',
   'homework.linkSubmission': 'Attach submission',
   'homework.statusOpen': 'Open',
+  'homework.openHomework': 'Open homework',
   'homework.statusCompleted': 'Completed',
   'homework.statusMissed': 'Missed',
   'homework.statusLocked': 'Locked',
@@ -141,7 +142,8 @@ const en = {
   'analytics.attendanceRate': 'Attendance rate',
 
   'sessions.title': 'Upcoming sessions',
-  'sessions.schedule': 'Weekly schedule',
+  'sessions.tabSessions': 'Sessions',
+  'sessions.setSchedule': 'Set a weekly schedule',
   'sessions.repeatsEvery': 'Repeats every',
   'sessions.every': 'Every',
   'sessions.at': 'at',
@@ -176,6 +178,49 @@ const en = {
   'push.enable': 'Enable notifications',
   'push.disable': 'Disable notifications',
   'push.denied': 'Notifications blocked in browser settings',
+
+  // Auth screens (PRD 0008 M5).
+  'auth.signInSubtitle': 'Sign in to your account',
+  'auth.signUpSubtitle': 'Create your account',
+  'auth.email': 'Email',
+  'auth.password': 'Password',
+  'auth.firstName': 'First name',
+  'auth.lastName': 'Last name',
+  'auth.signInAction': 'Sign In',
+  'auth.signingIn': 'Signing in…',
+  'auth.createAction': 'Create Account',
+  'auth.creating': 'Creating…',
+  'auth.checkEmail': 'Check your email to confirm your account.',
+  'auth.noAccount': 'No account?',
+  'auth.signUpLink': 'Sign up',
+  'auth.haveAccount': 'Already have an account?',
+  'auth.logInLink': 'Log in',
+
+  // Memorization editor (PRD 0008 E1–E4).
+  'memorization.step1Title': 'How many juz have you fully memorized?',
+  'memorization.step1Hint': "Tap each juz you've memorized completely. Partial or extra surahs come on the next screen.",
+  'memorization.step2Title': 'Add any other surahs you have memorized',
+  'memorization.step2Hint': 'Pick a surah and its ayah range — for partials or anything outside a full juz.',
+  'memorization.step3Title': 'Which surahs are weakest?',
+  'memorization.step3Hint': 'Tap the surahs you find hardest to retain. You can update these any time as you improve.',
+  'memorization.step3Empty': 'Add some memorization first to mark your weakest surahs.',
+  'memorization.next': 'Next',
+  'memorization.back': 'Back',
+  'memorization.surahSection': 'Add a surah range',
+  'memorization.add': 'Add',
+  'memorization.empty': 'No verses added yet.',
+  'memorization.partial': '{name} {from}–{to}',
+  'memorization.remove': 'Remove',
+
+  // Onboarding + profile (PRD 0008 M4).
+  'onboarding.title': 'Set your memorization baseline',
+  'onboarding.subtitle': 'Add what you have already memorized so we can tailor your reviews. You can change this anytime.',
+  'onboarding.done': 'Done',
+  'profile.title': 'My hifth',
+  'profile.saved': 'Saved',
+  'menu.myHifth': 'My hifth',
+  'menu.account': 'Account',
+  'menu.logout': 'Log out',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -199,7 +244,7 @@ const ar: Record<MessageKey, string> = {
 
   'tracker.tabProgress': 'التقدّم',
   'tracker.tabActive': 'الحالية',
-  'tracker.tabSessions': 'الجلسات',
+  'tracker.tabSchedule': 'الجدول',
   'tracker.title': 'متابعة التقدّم',
   'tracker.subtitle': 'حلقات التحفيظ وطلابك وتقدّم الحفظ.',
   'tracker.emptyTitle': 'لا توجد حلقات بعد',
@@ -246,6 +291,7 @@ const ar: Record<MessageKey, string> = {
   'homework.instructions': 'تعليمات',
   'homework.linkSubmission': 'إرفاق تسليم',
   'homework.statusOpen': 'مفتوح',
+  'homework.openHomework': 'واجبات مفتوحة',
   'homework.statusCompleted': 'مكتمل',
   'homework.statusMissed': 'فائت',
   'homework.statusLocked': 'مغلق',
@@ -318,7 +364,8 @@ const ar: Record<MessageKey, string> = {
   'analytics.attendanceRate': 'نسبة الحضور',
 
   'sessions.title': 'الجلسات القادمة',
-  'sessions.schedule': 'الجدول الأسبوعي',
+  'sessions.tabSessions': 'الجلسات',
+  'sessions.setSchedule': 'حدد جدولًا أسبوعيًا',
   'sessions.repeatsEvery': 'يتكرر كل',
   'sessions.every': 'كل',
   'sessions.at': 'في',
@@ -353,6 +400,49 @@ const ar: Record<MessageKey, string> = {
   'push.enable': 'تفعيل الإشعارات',
   'push.disable': 'إيقاف الإشعارات',
   'push.denied': 'الإشعارات محظورة في إعدادات المتصفح',
+
+  // شاشات الدخول (PRD 0008 M5).
+  'auth.signInSubtitle': 'سجّل الدخول إلى حسابك',
+  'auth.signUpSubtitle': 'أنشئ حسابك',
+  'auth.email': 'البريد الإلكتروني',
+  'auth.password': 'كلمة المرور',
+  'auth.firstName': 'الاسم الأول',
+  'auth.lastName': 'اسم العائلة',
+  'auth.signInAction': 'تسجيل الدخول',
+  'auth.signingIn': 'جارٍ تسجيل الدخول…',
+  'auth.createAction': 'إنشاء حساب',
+  'auth.creating': 'جارٍ الإنشاء…',
+  'auth.checkEmail': 'تحقق من بريدك الإلكتروني لتأكيد حسابك.',
+  'auth.noAccount': 'لا تملك حسابًا؟',
+  'auth.signUpLink': 'إنشاء حساب',
+  'auth.haveAccount': 'لديك حساب بالفعل؟',
+  'auth.logInLink': 'تسجيل الدخول',
+
+  // محرر الحفظ (PRD 0008 E1–E4).
+  'memorization.step1Title': 'كم جزءًا حفظته كاملًا؟',
+  'memorization.step1Hint': 'اختر كل جزء حفظته بالكامل. السور الجزئية أو الإضافية في الشاشة التالية.',
+  'memorization.step2Title': 'أضف أي سور أخرى حفظتها',
+  'memorization.step2Hint': 'اختر سورة ونطاق آياتها — للأجزاء الجزئية أو ما هو خارج جزء كامل.',
+  'memorization.step3Title': 'ما هي أضعف السور لديك؟',
+  'memorization.step3Hint': 'اختر السور التي تجد صعوبة في تثبيتها. يمكنك تحديثها في أي وقت مع تقدمك.',
+  'memorization.step3Empty': 'أضف بعض الحفظ أولًا لتحديد أضعف السور لديك.',
+  'memorization.next': 'التالي',
+  'memorization.back': 'رجوع',
+  'memorization.surahSection': 'إضافة نطاق سورة',
+  'memorization.add': 'إضافة',
+  'memorization.empty': 'لم تتم إضافة آيات بعد.',
+  'memorization.partial': '{name} {from}–{to}',
+  'memorization.remove': 'إزالة',
+
+  // الإعداد + الملف الشخصي (PRD 0008 M4).
+  'onboarding.title': 'حدّد أساس حفظك',
+  'onboarding.subtitle': 'أضف ما حفظته بالفعل لنخصّص مراجعاتك. يمكنك تغيير هذا في أي وقت.',
+  'onboarding.done': 'تم',
+  'profile.title': 'حفظي',
+  'profile.saved': 'تم الحفظ',
+  'menu.myHifth': 'حفظي',
+  'menu.account': 'الحساب',
+  'menu.logout': 'تسجيل الخروج',
 };
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { en, ar };

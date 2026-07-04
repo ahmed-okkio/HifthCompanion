@@ -33,6 +33,22 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
+  // Onboarding gate: force a real authed user with no completed onboarding to
+  // /onboarding before any protected page. Skipped in E2E — the fake test-user
+  // has no user_hifth row, so gating it would redirect the whole Playwright suite.
+  const pathname = request.nextUrl.pathname;
+  const exempt = ['/onboarding', '/login', '/signup'].some(p => pathname.startsWith(p));
+  if (!isE2E && user && isProtected && !exempt) {
+    const { data } = await supabase
+      .from('user_hifth')
+      .select('onboarded_at')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (!data || data.onboarded_at == null) {
+      return NextResponse.redirect(new URL('/onboarding', request.url));
+    }
+  }
+
   if (isE2E) {
     response.cookies.set('x-e2e-test', 'true');
   }
@@ -41,5 +57,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/sets', '/sets/:path*', '/tracker', '/tracker/:path*'],
+  matcher: ['/sets', '/sets/:path*', '/reader', '/reader/:path*', '/tracker', '/tracker/:path*'],
 };

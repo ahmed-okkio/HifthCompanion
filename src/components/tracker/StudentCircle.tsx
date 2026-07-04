@@ -155,7 +155,7 @@ function UpcomingSessions({ sessions, schedule }: { sessions: Session[]; schedul
     <div className="flex flex-col gap-3">
       {/* Recurring schedule — one card per weekday, reusing the session look */}
       <div className="flex flex-col gap-2">
-        <SectionTitle>{t('sessions.schedule')}</SectionTitle>
+        <SectionTitle>{t('sessions.tabSessions')}</SectionTitle>
         {ruleDays ? ruleDays.map((d) => (
           <div key={d} className="card flex items-center gap-3" style={{ padding: '10px 14px' }}>
             <span aria-hidden className="flex flex-col items-center justify-center shrink-0"

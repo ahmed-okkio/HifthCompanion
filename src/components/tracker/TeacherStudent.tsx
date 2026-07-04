@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type {
   AttendanceStatus, Circle, Homework, LogType, MemberWithProfile,
@@ -23,7 +23,7 @@ import {
   SectionTitle, EmptyState, Avatar, StatCard, DateChip, StatusDot, TabBar,
   SurahCombobox, HOMEWORK_STATUS_STYLE, Chevron, Icon,
 } from './ui';
-import StudentAnalytics from './StudentAnalytics';
+import { cumulativeTotals, attendanceStats } from '@/lib/analytics';
 
 const LOG_TYPES: LogType[] = ['memorization', 'general_revision', 'targeted_revision'];
 const ATT_STATUSES: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'];
@@ -45,7 +45,6 @@ export default function TeacherStudent({
   initialHomework,
   logs,
   initialNotes,
-  streak,
 }: {
   circle: Circle;
   member: MemberWithProfile;
@@ -54,7 +53,6 @@ export default function TeacherStudent({
   initialHomework: Homework[];
   logs: ProgressLog[];
   initialNotes: NoteWithAuthor[];
-  streak: number;
 }) {
   const { t } = useI18n();
   const [tab, setTab] = useState('sessions');
@@ -70,11 +68,13 @@ export default function TeacherStudent({
   const openHomework = initialHomework.filter(
     (h) => homeworkStatus(h, linkedCount.get(h.id) ?? 0, today()) === 'open',
   ).length;
+  const totals = useMemo(() => cumulativeTotals(logs), [logs]);
+  const att = useMemo(() => attendanceStats(attendance), [attendance]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_280px] gap-5">
       {/* Left sidebar — profile identity + KPIs + Mushaf (Pr1); stacks on top on mobile (Pr2) */}
-      <aside className="flex flex-col gap-3 lg:sticky lg:top-6 self-start">
+      <aside className="flex flex-col gap-3 self-start">
         <div className="card flex flex-col items-center text-center gap-2" style={{ padding: '22px' }}>
           <Avatar seed={displayName(member)} size={64} />
           <h1 className="font-bold tracking-tight truncate max-w-full"
@@ -88,29 +88,39 @@ export default function TeacherStudent({
           <div className="mt-1"><MushafButton setId={defaultSetId} /></div>
         </div>
 
-        <StatCard icon={<Icon name="flame" />} value={streak} label={t('log.streak')} />
-        <StatCard icon={<Icon name="book" />} value={openHomework} label={t('homework.statusOpen')} />
+        <StatCard icon={<Icon name="book" />} value={`${totals.juz} / ${TOTAL_JUZ}`} label={t('analytics.juz')} />
+        {att.marked > 0 && (
+          <StatCard icon={<Icon name="calendar" />} value={`${Math.round(att.rate * 100)}%`} label={t('analytics.attendanceRate')} />
+        )}
+        <StatCard icon={<Icon name="hourglass" />} value={openHomework} label={t('homework.openHomework')} />
       </aside>
 
       {/* Right column — the feed: tabs + panels, unchanged */}
       <div className="flex flex-col gap-5 min-w-0">
         <TabBar
           tabs={[
-            { key: 'sessions', label: t('tracker.tabSessions') },
+            { key: 'sessions', label: t('tracker.tabSchedule') },
             { key: 'homework', label: t('homework.title') },
             { key: 'notes', label: t('notes.title') },
-            { key: 'analytics', label: t('analytics.title') },
+            { key: 'schedule', label: t('sessions.tabSessions') },
           ]}
           active={tab}
           onSelect={setTab}
         />
 
-        {tab === 'sessions' && (
-          <StudentSessions membershipId={member.id} initial={initialSessions} initialSchedule={member.schedule} />
+        {/* Sessions + Schedule share one component (stays mounted between the two
+            so schedule edits reflect in the list live). */}
+        {(tab === 'sessions' || tab === 'schedule') && (
+          <StudentSessions
+            membershipId={member.id}
+            initial={initialSessions}
+            initialSchedule={member.schedule}
+            view={tab}
+            onGoToSchedule={() => setTab('schedule')}
+          />
         )}
         {tab === 'homework' && <HomeworkPanel membershipId={member.id} initial={initialHomework} logs={logs} teacherStatuses={circle.teacher_statuses} />}
         {tab === 'notes' && <NotesThread membershipId={member.id} initial={initialNotes} />}
-        {tab === 'analytics' && <StudentAnalytics circle={circle} logs={logs} attendance={attendance} />}
       </div>
 
       {/* Empty right spacer mirrors the sidebar width so the feed sits centered in the page. */}
@@ -147,14 +157,17 @@ function MushafButton({ setId }: { setId: string | null }) {
 // --- Sessions: weekly slot + attendance + ad-hoc (D1/D4/D5) -------------------
 
 function StudentSessions({
-  membershipId, initial, initialSchedule,
+  membershipId, initial, initialSchedule, view, onGoToSchedule,
 }: {
   membershipId: string;
   initial: Session[];
   initialSchedule: { weekdays: number[]; time: string } | null;
+  view: 'sessions' | 'schedule';
+  onGoToSchedule: () => void;
 }) {
   const { t, locale } = useI18n();
   const [sessions, setSessions] = useState(initial);
+  const [sessTab, setSessTab] = useState<'upcoming' | 'history'>('upcoming');
   const [weekdays, setWeekdays] = useState<number[]>(initialSchedule?.weekdays ?? []);
   const [time, setTime] = useState(initialSchedule?.time ?? '17:00');
   const [adhocDate, setAdhocDate] = useState('');
@@ -300,9 +313,10 @@ function StudentSessions({
           {err}
         </div>
       )}
-      {/* Weekly schedule */}
+      {/* Schedule + ad-hoc live on their own tab (set once, forgotten). */}
+      {view === 'schedule' && (
       <div className="card flex flex-col gap-3" style={{ padding: '16px 18px' }}>
-        <SectionTitle>{t('sessions.schedule')}</SectionTitle>
+        <SectionTitle>{t('sessions.tabSessions')}</SectionTitle>
         <div className="flex flex-wrap gap-2">
           {dayLabels.map((label, d) => {
             const on = weekdays.includes(d);
@@ -339,6 +353,17 @@ function StudentSessions({
           </button>
         </div>
       </div>
+      )}
+
+      {view === 'sessions' && (<>
+      {/* No weekly schedule yet → nudge to the Schedule tab. */}
+      {weekdays.length === 0 && (
+        <button onClick={onGoToSchedule} className="btn btn-outline self-start"
+                style={{ minHeight: 40, fontSize: 13, padding: '0 16px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="calendar" size={16} />
+          {t('sessions.setSchedule')}
+        </button>
+      )}
 
       {empty && (
         <div className="flex flex-col gap-2">
@@ -359,24 +384,96 @@ function StudentSessions({
         </div>
       )}
 
-      {/* Upcoming — read-only, cancelable (T3). */}
-      {sections.upcoming.length > 0 && (
+      {/* Upcoming + History share a sub-tab so only one list is on the page at a
+          time — keeps the Sessions tab from growing very tall (T2/T3). */}
+      {(sections.upcoming.length > 0 || sections.history.length > 0) && (
         <div className="flex flex-col gap-2">
-          <SectionTitle>{t('sessions.upcoming')}</SectionTitle>
-          {sections.upcoming.map((slot) => (
-            <SlotCard key={slot.scheduled_at} slot={slot} attendance={false} cancelable />
-          ))}
+          <TabBar
+            tabs={[
+              { key: 'upcoming', label: `${t('sessions.upcoming')} (${sections.upcoming.length})` },
+              { key: 'history', label: `${t('sessions.history')} (${sections.history.length})` },
+            ]}
+            active={sessTab}
+            onSelect={(k) => setSessTab(k as 'upcoming' | 'history')}
+          />
+          {sessTab === 'upcoming' &&
+            (sections.upcoming.length > 0 ? (
+              sections.upcoming.map((slot) => (
+                <SlotCard key={slot.scheduled_at} slot={slot} attendance={false} cancelable />
+              ))
+            ) : (
+              <EmptyState>{t('sessions.none')}</EmptyState>
+            ))}
+          {sessTab === 'history' &&
+            (sections.history.length > 0 ? (
+              <PagedHistory
+                slots={sections.history}
+                render={(slot) => (
+                  // Canceled rows stay reinstatable; graded rows read-only.
+                  <SlotCard key={slot.scheduled_at} slot={slot} attendance={false} cancelable={slot.session?.canceled ?? false} />
+                )}
+              />
+            ) : (
+              <EmptyState>{t('sessions.none')}</EmptyState>
+            ))}
         </div>
       )}
+      </>)}
+    </div>
+  );
+}
 
-      {/* History — resolved rows, newest first (T2). */}
-      {sections.history.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <SectionTitle>{t('sessions.history')}</SectionTitle>
-          {sections.history.map((slot) => (
-            // Canceled rows live here (isResolved) — keep them reinstatable; graded rows stay read-only.
-            <SlotCard key={slot.scheduled_at} slot={slot} attendance={false} cancelable={slot.session?.canceled ?? false} />
-          ))}
+// --- History pager: show only as many rows as fit without scrolling ----------
+// Measures the gap between the list's top and the scroll container's bottom and
+// divides by an approximate card height to pick a page size, so History never
+// pushes the page into a scroll. ponytail: CARD_H is a fixed estimate; if slot
+// cards change height materially, bump it.
+function PagedHistory({
+  slots, render,
+}: {
+  slots: SessionSlot[];
+  render: (slot: SessionSlot) => React.ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [perPage, setPerPage] = useState(4);
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+    const measure = () => {
+      const el = ref.current;
+      if (!el) return;
+      const scroller = el.closest('main');
+      const top = el.getBoundingClientRect().top;
+      const bottom = scroller ? scroller.getBoundingClientRect().bottom : window.innerHeight;
+      const CARD_H = 88; // approx slot card + gap
+      const avail = bottom - top - 44; // reserve room for the pager row
+      setPerPage(Math.max(1, Math.floor(avail / CARD_H)));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [slots.length]);
+
+  const pages = Math.max(1, Math.ceil(slots.length / perPage));
+  const cur = Math.min(page, pages - 1);
+  const shown = slots.slice(cur * perPage, cur * perPage + perPage);
+
+  const arrow: React.CSSProperties = { minHeight: 32, minWidth: 32, fontSize: 16, padding: 0 };
+
+  return (
+    <div ref={ref} className="flex flex-col gap-2">
+      {shown.map(render)}
+      {pages > 1 && (
+        <div className="flex items-center justify-center gap-3">
+          <button className="btn btn-ghost" style={arrow} disabled={cur === 0}
+                  onClick={() => setPage(cur - 1)} aria-label="Previous">
+            <span className="rtl:-scale-x-100">‹</span>
+          </button>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{cur + 1} / {pages}</span>
+          <button className="btn btn-ghost" style={arrow} disabled={cur >= pages - 1}
+                  onClick={() => setPage(cur + 1)} aria-label="Next">
+            <span className="rtl:-scale-x-100">›</span>
+          </button>
         </div>
       )}
     </div>

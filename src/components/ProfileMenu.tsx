@@ -15,9 +15,11 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Avatar } from '@/components/tracker/ui';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useI18n } from '@/components/I18nProvider';
 
 export default function ProfileMenu({ name, email }: { name: string; email: string }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -51,7 +53,7 @@ export default function ProfileMenu({ name, email }: { name: string; email: stri
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label="Account menu"
+        aria-label={t('menu.account')}
         className="flex items-center justify-center rounded-full"
         style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, minHeight: 44, minWidth: 44 }}
       >
@@ -61,7 +63,7 @@ export default function ProfileMenu({ name, email }: { name: string; email: stri
       {open && (
         <div
           role="menu"
-          aria-label="Account"
+          aria-label={t('menu.account')}
           className="thin-scroll"
           style={{
             position: 'absolute',
@@ -88,24 +90,25 @@ export default function ProfileMenu({ name, email }: { name: string; email: stri
 
           {/* Language switcher */}
           <div className="flex items-center justify-between" style={{ padding: '10px var(--space-12)' }}>
-            <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Language</span>
+            <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('lang.label')}</span>
             <LanguageSwitcher />
           </div>
 
-          {/* Settings — inert placeholder */}
+          {/* My hifth — navigate to the memorization editor */}
           <button
             type="button"
-            aria-disabled
-            title="Settings — coming soon"
+            role="menuitem"
+            onClick={() => { setOpen(false); router.push('/profile'); }}
             className="flex items-center gap-2 w-full text-left"
-            style={{ padding: '10px var(--space-12)', background: 'transparent', border: 'none', cursor: 'default', color: 'var(--text-muted)', fontSize: '0.8125rem' }}
+            style={{ padding: '10px var(--space-12)', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.8125rem' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--surface-hover, var(--accent-muted))'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
             </svg>
-            <span>Settings</span>
-            <span className="ml-auto text-[10px] uppercase tracking-wide">soon</span>
+            <span>{t('menu.myHifth')}</span>
           </button>
 
           {/* Log out */}
@@ -121,7 +124,7 @@ export default function ProfileMenu({ name, email }: { name: string; email: stri
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-            <span>Log out</span>
+            <span>{t('menu.logout')}</span>
           </button>
         </div>
       )}

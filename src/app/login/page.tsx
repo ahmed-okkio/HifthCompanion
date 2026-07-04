@@ -3,10 +3,13 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AuthBrand from '@/components/AuthBrand';
+import { useI18n } from '@/components/I18nProvider';
 
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -22,19 +25,12 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8 overflow-x-hidden"
-         style={{ background: 'var(--bg-base)' }}>
+         style={{
+           background:
+             'radial-gradient(120% 80% at 50% -10%, var(--accent-muted), transparent 60%), var(--bg-base)',
+         }}>
       <div className="w-full max-w-sm animate-fade-in-scale">
-        {/* Brand */}
-        <div className="text-center mb-8">
-          <Link href="/reader/1">
-            <span className="text-3xl font-bold" style={{ color: 'var(--text-accent)' }}>
-              حفظ
-            </span>
-          </Link>
-          <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-            Sign in to your account
-          </p>
-        </div>
+        <AuthBrand subtitle={t('auth.signInSubtitle')} />
 
         {/* Card */}
         <div className="card p-6 sm:p-8">
@@ -42,7 +38,7 @@ export default function LoginPage() {
             <div>
               <label className="block text-xs font-semibold mb-1.5"
                      style={{ color: 'var(--text-secondary)' }}>
-                Email
+                {t('auth.email')}
               </label>
               <input
                 type="email"
@@ -60,7 +56,7 @@ export default function LoginPage() {
             <div>
               <label className="block text-xs font-semibold mb-1.5"
                      style={{ color: 'var(--text-secondary)' }}>
-                Password
+                {t('auth.password')}
               </label>
               <input
                 type="password"
@@ -93,20 +89,20 @@ export default function LoginPage() {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in…
+                  {t('auth.signingIn')}
                 </span>
-              ) : 'Sign In'}
+              ) : t('auth.signInAction')}
             </button>
           </div>
         </div>
 
         {/* Footer link */}
         <p className="text-center mt-5 text-sm" style={{ color: 'var(--text-muted)' }}>
-          No account?{' '}
+          {t('auth.noAccount')}{' '}
           <Link href="/signup"
                 className="font-semibold hover:underline"
                 style={{ color: 'var(--text-accent)' }}>
-            Sign up
+            {t('auth.signUpLink')}
           </Link>
         </p>
       </div>

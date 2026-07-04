@@ -154,6 +154,23 @@ export interface Homework {
   created_at: string;
 }
 
+/** A contiguous memorized ayah span within one surah (PRD 0008). */
+export interface MemorizedRange {
+  surah: number;
+  from: number;
+  to: number;
+}
+
+/** A user's self-declared memorization + onboarding marker (PRD 0008). */
+export interface UserHifth {
+  user_id: string;
+  memorized_ranges: MemorizedRange[];
+  /** Self-declared weakest surahs (surah numbers); evolves over time. */
+  weakest_surahs: number[];
+  onboarded_at: string | null;
+  updated_at: string;
+}
+
 /** One post in a per-student teacher↔student thread (D11). */
 export interface MembershipNote {
   id: string;

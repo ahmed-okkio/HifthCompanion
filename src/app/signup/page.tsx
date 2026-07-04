@@ -2,9 +2,12 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
+import AuthBrand from '@/components/AuthBrand';
+import { useI18n } from '@/components/I18nProvider';
 
 export default function SignupPage() {
   const supabase = createClient();
+  const { t } = useI18n();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -30,25 +33,18 @@ export default function SignupPage() {
       },
     });
     if (error) { setMessage(error.message); setIsError(true); }
-    else { setMessage('Check your email to confirm your account.'); setIsError(false); }
+    else { setMessage(t('auth.checkEmail')); setIsError(false); }
     setLoading(false);
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8 overflow-x-hidden"
-         style={{ background: 'var(--bg-base)' }}>
+         style={{
+           background:
+             'radial-gradient(120% 80% at 50% -10%, var(--accent-muted), transparent 60%), var(--bg-base)',
+         }}>
       <div className="w-full max-w-sm animate-fade-in-scale">
-        {/* Brand */}
-        <div className="text-center mb-8">
-          <Link href="/reader/1">
-            <span className="text-3xl font-bold" style={{ color: 'var(--text-accent)' }}>
-              حفظ
-            </span>
-          </Link>
-          <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>
-            Create your account
-          </p>
-        </div>
+        <AuthBrand subtitle={t('auth.signUpSubtitle')} />
 
         {/* Card */}
         <div className="card p-6 sm:p-8">
@@ -57,7 +53,7 @@ export default function SignupPage() {
               <div>
                 <label className="block text-xs font-semibold mb-1.5"
                        style={{ color: 'var(--text-secondary)' }}>
-                  First name
+                  {t('auth.firstName')}
                 </label>
                 <input
                   type="text"
@@ -73,7 +69,7 @@ export default function SignupPage() {
               <div>
                 <label className="block text-xs font-semibold mb-1.5"
                        style={{ color: 'var(--text-secondary)' }}>
-                  Last name
+                  {t('auth.lastName')}
                 </label>
                 <input
                   type="text"
@@ -90,7 +86,7 @@ export default function SignupPage() {
             <div>
               <label className="block text-xs font-semibold mb-1.5"
                      style={{ color: 'var(--text-secondary)' }}>
-                Email
+                {t('auth.email')}
               </label>
               <input
                 type="email"
@@ -107,7 +103,7 @@ export default function SignupPage() {
             <div>
               <label className="block text-xs font-semibold mb-1.5"
                      style={{ color: 'var(--text-secondary)' }}>
-                Password
+                {t('auth.password')}
               </label>
               <input
                 type="password"
@@ -140,20 +136,20 @@ export default function SignupPage() {
               {loading ? (
                 <span className="flex items-center gap-2">
                   <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Creating…
+                  {t('auth.creating')}
                 </span>
-              ) : 'Create Account'}
+              ) : t('auth.createAction')}
             </button>
           </div>
         </div>
 
         {/* Footer link */}
         <p className="text-center mt-5 text-sm" style={{ color: 'var(--text-muted)' }}>
-          Already have an account?{' '}
+          {t('auth.haveAccount')}{' '}
           <Link href="/login"
                 className="font-semibold hover:underline"
                 style={{ color: 'var(--text-accent)' }}>
-            Log in
+            {t('auth.logInLink')}
           </Link>
         </p>
       </div>

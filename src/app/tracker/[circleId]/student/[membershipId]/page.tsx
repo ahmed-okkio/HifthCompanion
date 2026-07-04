@@ -8,7 +8,6 @@ import { getSessions } from '@/lib/services/sessions';
 import { listHomework } from '@/lib/services/homework';
 import { listNotes } from '@/lib/services/membershipNotes';
 import { getMyChrome } from '@/lib/services/profile';
-import { computeStreak } from '@/lib/streak';
 import TeacherStudent from '@/components/tracker/TeacherStudent';
 
 export default async function StudentDetailPage({
@@ -49,7 +48,6 @@ export default async function StudentDetailPage({
           initialHomework={homework}
           logs={logs}
           initialNotes={notes}
-          streak={computeStreak(logs)}
         />
       </main>
     </AppShell>

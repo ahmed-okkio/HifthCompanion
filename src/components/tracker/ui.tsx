@@ -280,11 +280,14 @@ export function SurahCombobox({
   onChange,
   locale,
   placeholder,
+  surahs,
 }: {
   value: number;
   onChange: (surah: number) => void;
   locale: 'en' | 'ar';
   placeholder?: string;
+  /** Restrict the list to these surah numbers (default: all 114). */
+  surahs?: number[];
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -299,7 +302,7 @@ export function SurahCombobox({
     return () => document.removeEventListener('mousedown', onDoc);
   }, [open]);
 
-  const all = Array.from({ length: TOTAL_SURAHS }, (_, i) => i + 1);
+  const all = surahs ?? Array.from({ length: TOTAL_SURAHS }, (_, i) => i + 1);
   const q = query.trim().toLowerCase();
   const matches = q
     ? all.filter(
@@ -317,13 +320,19 @@ export function SurahCombobox({
   };
 
   return (
-    <div ref={wrap} style={{ position: 'relative' }}>
+    <div ref={wrap} style={{ position: 'relative', width: 200, maxWidth: '100%' }}>
       <input
         className="input input-sm"
-        style={{ minHeight: 40, width: 200 }}
-        value={open ? query : `${value}. ${getSurahName(value, locale)}`}
+        style={{ minHeight: 40, width: '100%', paddingInlineEnd: 32 }}
+        value={open ? query : value ? `${value}. ${getSurahName(value, locale)}` : ''}
         placeholder={placeholder}
         onFocus={() => {
+          setOpen(true);
+          setQuery('');
+        }}
+        // Reopen when the input is clicked while already focused (after a pick,
+        // focus stays put so onFocus won't refire).
+        onClick={() => {
           setOpen(true);
           setQuery('');
         }}
@@ -340,6 +349,19 @@ export function SurahCombobox({
           }
         }}
       />
+      <span
+        aria-hidden
+        style={{
+          position: 'absolute',
+          insetInlineEnd: 10,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          pointerEvents: 'none',
+          display: 'flex',
+        }}
+      >
+        <Chevron open={open} />
+      </span>
       {open && matches.length > 0 && (
         <ul
           role="listbox"

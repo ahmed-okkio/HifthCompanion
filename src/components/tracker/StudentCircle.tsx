@@ -147,9 +147,16 @@ function UpcomingSessions({ sessions, schedule }: { sessions: Session[]; schedul
   const weekSlots = useMemo(() => {
     if (!schedule || schedule.weekdays.length === 0) return null;
     const ruleCount = schedule.weekdays.length;
-    // Get slots for the next 7 days, then slice exactly the rule count
-    // so we just show one instance of each weekly slot.
-    return recurringSlots(schedule, new Date(), 7).slice(0, ruleCount);
+    // Get slots for the next 14 days to ensure we always catch the next occurrence
+    // even if today's slot has passed. Then slice exactly the rule count.
+    const slots = recurringSlots(schedule, new Date(), 14).slice(0, ruleCount);
+    // Sort chronologically by day of week (Monday first) to maintain visual order
+    // In JS, Sunday=0. We'll map it so Monday=1, Sunday=7 for sorting.
+    return slots.sort((a, b) => {
+      const da = new Date(a).getDay() || 7;
+      const db = new Date(b).getDay() || 7;
+      return da - db;
+    });
   }, [schedule]);
 
   // Only surface the NEXT ad-hoc (soonest upcoming) — the recurring rule covers
@@ -163,7 +170,7 @@ function UpcomingSessions({ sessions, schedule }: { sessions: Session[]; schedul
       {/* Recurring schedule — one card per weekday, reusing the session look */}
       <div className="flex flex-col gap-2">
         <SectionTitle>{t('sessions.tabSessions')}</SectionTitle>
-        {weekSlots ? weekSlots.map((iso) => {
+        {weekSlots && weekSlots.length > 0 ? weekSlots.map((iso) => {
           const d = new Date(iso);
           return (
             <div key={iso} className="card flex items-center gap-3" style={{ padding: '10px 14px' }}>

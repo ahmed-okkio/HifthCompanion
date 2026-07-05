@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAnnotationStore } from '@/lib/annotationStore';
 import { getPageImageUrl, TOTAL_PAGES, parseSpread } from '@/lib/quran';
 import { notFound, redirect } from 'next/navigation';
 import ReadOnlyCanvas from '@/components/ReadOnlyCanvas';
@@ -131,12 +132,8 @@ export default async function SharePage({ params, searchParams }: Props) {
       })
     : undefined;
 
-  const { data: annotation } = await supabase
-    .from('annotations')
-    .select('canvas_json')
-    .eq('set_id', setId)
-    .eq('page_number', pageNum)
-    .maybeSingle();
+  const store = createAnnotationStore(supabase);
+  const annotationJson = await store.load(setId, pageNum).catch(() => null);
 
   const initialNotes = await getNotes(setId, pageNum).catch(() => []);
   const imageUrl = getPageImageUrl(pageNum);
@@ -165,7 +162,7 @@ export default async function SharePage({ params, searchParams }: Props) {
               <ReadOnlyCanvas
                 pageNum={pageNum}
                 imageUrl={imageUrl}
-                canvasJson={annotation?.canvas_json ?? null}
+                canvasJson={annotationJson ?? null}
               />
             </div>
           </div>

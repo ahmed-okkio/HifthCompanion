@@ -7,15 +7,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { calculatePageCanvasSize, type PageCanvasSize } from '@/lib/pageCanvas';
 import { CanvasHistory } from '@/lib/canvasHistory';
 import { type Tool, getToolCursor } from '@/lib/canvasTools';
+import { createAnnotationStore, type CanvasJson } from '@/lib/annotationStore';
 
 const SAVE_DELAY_MS = 1500;
-// A Supabase/Postgres error is an access-revoked signal only if it's an RLS/permission
-// denial — code 42501 or a policy/permission message. Network/transient errors lack both.
-function isRlsDenial(error: { code?: string; message?: string }): boolean {
-  if (error?.code === '42501') return true;
-  const m = (error?.message ?? '').toLowerCase();
-  return m.includes('row-level security') || m.includes('permission denied');
-}
 // Supersample factor: render the canvas backing store above the display resolution, then let
 // the browser downscale it to the CSS fit box — the page image reads noticeably crisper. This
 // multiplies fabric's retina scaling only (backing pixels), NOT the canvas coordinate space, so
@@ -80,6 +74,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const supabase = useMemo(() => createClient(), []);
+  const store = useMemo(() => createAnnotationStore(supabase), [supabase]);
 
   // Live refs so the mount-only init effect can read the current page/image without
   // re-running (and disposing the Fabric instance) on every page change. The page swap
@@ -231,42 +226,28 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     try {
       const json = canvas.toJSON();
       delete (json as any).backgroundImage;
-      // Empty page carries no annotation — delete any existing row instead of
-      // storing a `{objects:[]}` shell. Keeps the table free of junk rows as it grows.
-      if (!(json as any).objects?.length) {
-        const { error } = await supabase.from('annotations')
-          .delete().match({ set_id: setId, page_number: page });
-        if (error) {
-          console.error('[AnnotationCanvas] Delete error:', error);
-          if (lockedSet && isRlsDenial(error)) {
-            accessRevokedRef.current = true;
-            setAccessRevoked(true);
-            if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
-          }
-        }
-        return;
-      }
-      const canvasJson = { width: canvas.getWidth(), height: canvas.getHeight(), ...json };
-      const { error } = await supabase.from('annotations').upsert(
-        { set_id: setId, page_number: page, canvas_json: canvasJson, updated_at: new Date().toISOString() },
-        { onConflict: 'set_id,page_number' }
-      );
-      if (error) {
-        console.error('[AnnotationCanvas] Save error:', error);
-        // ponytail: revoke only on RLS denial (42501 / policy message), never on a
+      // json carries `objects`; the store decides empty→delete vs upsert internally.
+      const payload: CanvasJson = { width: canvas.getWidth(), height: canvas.getHeight(), ...(json as any) };
+      const r = await store.save(setId, page, payload);
+      if (r.status === 'denied') {
+        // ponytail: revoke only on RLS denial (store already classified it), never on a
         // transient/network error. An owner (lockedSet false) just logs and retries.
-        if (lockedSet && isRlsDenial(error)) {
+        if (lockedSet) {
           accessRevokedRef.current = true;
           setAccessRevoked(true);
           if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
+        } else {
+          console.error('[AnnotationCanvas] Save denied (owner):', setId, page);
         }
+      } else if (r.status === 'error') {
+        console.error('[AnnotationCanvas] Save error:', r.err);
       }
     } catch (err) {
       console.error('[AnnotationCanvas] Unexpected save error:', err);
     } finally {
       setSaving(false);
     }
-  }, [user, supabase, lockedSet]);
+  }, [user, store, lockedSet]);
 
   const scheduleSave = useCallback(() => {
     if (!user || !selectedSetId || !fabricRef.current || accessRevokedRef.current) return;
@@ -317,16 +298,19 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     isLoadingRef.current = true;
     setCanvasReady(false);
 
-    const { data, error } = await supabase
-      .from('annotations').select('canvas_json')
-      .eq('set_id', setId).eq('page_number', page).maybeSingle();
+    let canvasJson: CanvasJson | null;
+    try {
+      canvasJson = await store.load(setId, page);
+    } catch (error) {
+      console.error('[AnnotationCanvas] Load error:', error);
+      return;
+    }
 
     if (activeLoadSetIdRef.current !== setId) return;
-    if (error) { console.error('[AnnotationCanvas] Load error:', error); return; }
 
-    if (data?.canvas_json) {
-      const savedW = (data.canvas_json as { width?: number }).width;
-      canvas.loadFromJSON(data.canvas_json, async () => {
+    if (canvasJson) {
+      const savedW = canvasJson.width;
+      canvas.loadFromJSON(canvasJson, async () => {
         if (activeLoadSetIdRef.current !== setId) return;
         // Re-fit the canvas to THIS page's image, then scale the loaded objects from the size
         // they were saved at to the current fit — keeps existing drawings aligned to the page.
@@ -350,7 +334,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
       isLoadingRef.current = false;
       setCanvasReady(true);
     }
-  }, [supabase, imageUrl, applyBackground, rescaleObjects, refreshHistory]);
+  }, [store, imageUrl, applyBackground, rescaleObjects, refreshHistory]);
 
   // Canvas init + resize.
   // Story 24 (soft page swap): this effect creates/disposes the Fabric instance ONCE

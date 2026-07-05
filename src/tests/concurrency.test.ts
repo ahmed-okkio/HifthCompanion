@@ -1,59 +1,30 @@
 import { describe, it, expect } from 'vitest';
+import { createFakeAnnotationStore, type CanvasJson } from '@/lib/annotationStore';
 
 // Contract F1 — DOCUMENTED last-write-wins limitation (not a bug).
 //
-// Production: `useAnnotationCanvas.saveCanvas` upserts the `annotations` row with
-// `{ onConflict: 'set_id,page_number' }`. The table has `unique (set_id, page_number)`
-// (supabase/migrations/20260616003244_create_annotations_table.sql, line 7), so two
-// saves to the same page collapse onto ONE row via Postgres
-// `INSERT ... ON CONFLICT (set_id,page_number) DO UPDATE` — the later save overwrites
-// the earlier one. No locking/merge: a concurrent edit silently loses the older payload.
-// This is the ACCEPTED behavior, so a future "lost update" report is recognized as
-// by-design. No integration DB runs in CI, so we model the upsert in-memory below.
+// Production: `useAnnotationCanvas.saveCanvas` routes through `annotationStore.save`,
+// which upserts the `annotations` row with `{ onConflict: 'set_id,page_number' }`. The
+// table has `unique (set_id, page_number)`, so two saves to the same page collapse onto
+// ONE row — the later save overwrites the earlier one. No locking/merge: a concurrent
+// edit silently loses the older payload. This is the ACCEPTED behavior.
+//
+// The onConflict wiring itself is covered by annotationStore.test.ts. Here we drive the
+// REAL seam (createFakeAnnotationStore) to prove last-write-wins on the same (setId,page):
+// no integration DB runs in CI, so the in-memory store models the collapse.
 
-// Must match useAnnotationCanvas.saveCanvas's upsert call.
-const ON_CONFLICT = 'set_id,page_number';
+describe('F1: sequential saves to same (set_id, page) — last write wins', () => {
+  it('load returns the second payload; the first is overwritten', async () => {
+    const store = createFakeAnnotationStore();
+    const setId = 'set-1';
+    const page = 42;
 
-type Row = { set_id: string; page_number: number; canvas_json: unknown; updated_at: string };
+    const first: CanvasJson = { width: 800, height: 1132, objects: [{ id: 'first' }] };
+    const second: CanvasJson = { width: 800, height: 1132, objects: [{ id: 'second' }] };
 
-// Emulates Postgres INSERT ... ON CONFLICT (set_id,page_number) DO UPDATE: the
-// conflict key replaces the existing row instead of inserting a duplicate.
-function makeStore() {
-  const rows = new Map<string, Row>();
-  return {
-    upsert(row: Row, opts: { onConflict: string }) {
-      if (opts.onConflict !== ON_CONFLICT) throw new Error(`unexpected onConflict: ${opts.onConflict}`);
-      rows.set(`${row.set_id}:${row.page_number}`, row);
-      return { error: null as null };
-    },
-    all: () => [...rows.values()],
-  };
-}
+    expect(await store.save(setId, page, first)).toEqual({ status: 'saved' });
+    expect(await store.save(setId, page, second)).toEqual({ status: 'saved' });
 
-describe('F1: sequential saves to same (set_id, page_number) — last write wins', () => {
-  it('keeps exactly one row holding the second write, no errors', () => {
-    const store = makeStore();
-    const set_id = 'set-1';
-    const page_number = 42;
-
-    const first = store.upsert(
-      { set_id, page_number, canvas_json: { objects: ['first'] }, updated_at: '2026-01-01T00:00:00Z' },
-      { onConflict: ON_CONFLICT }
-    );
-    const second = store.upsert(
-      { set_id, page_number, canvas_json: { objects: ['second'] }, updated_at: '2026-01-01T00:00:01Z' },
-      { onConflict: ON_CONFLICT }
-    );
-
-    expect(first.error).toBeNull();
-    expect(second.error).toBeNull();
-
-    const rows = store.all();
-    expect(rows).toHaveLength(1);
-    expect(rows[0].canvas_json).toEqual({ objects: ['second'] });
-  });
-
-  it('precondition: production upsert keys on the composite (set_id, page_number)', () => {
-    expect(ON_CONFLICT).toBe('set_id,page_number');
+    expect(await store.load(setId, page)).toEqual(second);
   });
 });

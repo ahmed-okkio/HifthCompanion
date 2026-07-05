@@ -197,6 +197,11 @@
   to { opacity: 1; transform: none; }
 }
 
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
 /* Landing page (home) — gentle hero motion. */
 @keyframes home-float {
   0%, 100% { transform: translateY(0) rotate(-2deg); }

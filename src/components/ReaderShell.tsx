@@ -14,6 +14,83 @@ import NavRail from './NavRail';
 
 const FALLBACK_NAV_HEIGHT = 72;
 
+/** Shared shimmer gradient style for skeleton blocks. */
+const SHIMMER: React.CSSProperties = {
+  background: 'linear-gradient(90deg, rgba(15,23,42,0.04) 0%, rgba(15,23,42,0.08) 50%, rgba(15,23,42,0.04) 100%)',
+  backgroundSize: '200% 100%',
+  animation: 'shimmer 1.4s linear infinite',
+  borderRadius: 'var(--radius-md, 8px)',
+};
+
+/** Full-shell skeleton shown while a redirect is pending.
+ *  Mirrors all three regions so the entire page appears at once after the redirect. */
+function ShellSkeleton() {
+  return (
+    <>
+      {/* REGION 1 skeleton — nav rail + surah sidebar (desktop only) */}
+      <div className="hidden lg:flex flex-shrink-0" style={{ height: '100%', overflow: 'hidden', zIndex: 1 }}>
+        {/* Nav rail slot */}
+        <div className="flex-shrink-0" style={{ width: '96px', height: '100%' }}>
+          <NavRail />
+        </div>
+        {/* Surah sidebar skeleton */}
+        <div
+          className="flex flex-col flex-shrink-0 gap-3"
+          style={{
+            width: '300px', height: '100%', overflow: 'hidden',
+            background: 'var(--surface-main)', boxShadow: 'var(--shadow-e2)',
+            padding: '16px 12px',
+          }}
+        >
+          {/* Search bar skeleton */}
+          <div style={{ ...SHIMMER, height: '40px', width: '100%' }} />
+          {/* Surah list item skeletons */}
+          {Array.from({ length: 12 }, (_, i) => (
+            <div key={i} style={{ ...SHIMMER, height: '36px', width: `${85 - (i % 3) * 10}%` }} />
+          ))}
+        </div>
+      </div>
+
+      {/* REGION 2 skeleton — canvas workspace */}
+      <div
+        className="lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col lg:flex-1 lg:min-w-0"
+        style={{ flex: 1, minWidth: 0, background: 'var(--surface-app)' }}
+      >
+        <main className="w-full flex-grow px-4 pt-6 pb-2 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:py-0">
+          <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
+            <div className="mx-auto w-fit">
+              <div
+                style={{
+                  width: 'clamp(280px, 40vw, 540px)',
+                  aspectRatio: '0.704', /* Quran page ~= 1:1.42 */
+                  borderRadius: 'var(--radius-page, 12px)',
+                  ...SHIMMER,
+                  boxShadow: '0 6px 16px rgba(15, 23, 42, 0.10)',
+                }}
+              />
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* REGION 3 skeleton — context panel */}
+      <div
+        className="w-full px-4 sm:px-6 lg:flex lg:flex-col lg:flex-shrink-0 lg:w-[320px] lg:px-0 lg:h-full lg:min-h-0"
+        style={{ paddingTop: 'var(--space-24)' }}
+      >
+        <div className="flex flex-col gap-4">
+          {/* Sets card skeleton */}
+          <div style={{ ...SHIMMER, height: '52px', width: '100%' }} />
+          {/* Notes / share panel skeleton */}
+          <div style={{ ...SHIMMER, height: '160px', width: '100%' }} />
+          <div style={{ ...SHIMMER, height: '100px', width: '80%' }} />
+        </div>
+      </div>
+    </>
+  );
+}
+
+
 function readPageFromUrl(pathname: string, search: string): number {
   const qp = parseInt(new URLSearchParams(search).get('page') ?? '', 10);
   if (!isNaN(qp) && qp > 0) return qp;
@@ -89,6 +166,30 @@ export default function ReaderShell({ children, user, sets, account = null, lock
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
+  // Detect any URL state that will trigger an immediate redirect so we can show a skeleton
+  // instead of the wrong canvas layout. This covers:
+  //   1. Bare index route (/reader) — ReaderIndexPage reads pinned page + spread pref
+  //   2. Spread/single mode mismatch — C3 effect will redirect (desktop only)
+  //   3. Mobile spread URL — E1 effect will collapse to single page
+  // Using state so it's only computed once after hydration (avoids SSR mismatch on
+  // window/localStorage reads). Resets on every pathname change.
+  const [pendingRedirect, setPendingRedirect] = useState(true);
+  useEffect(() => {
+    const isIndex = pathname === spreadBase || pathname === `${spreadBase}/`;
+    if (isIndex) { setPendingRedirect(true); return; }
+
+    const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
+    const spreadPref = localStorage.getItem(SPREAD_MODE_KEY);
+
+    // Mode mismatch: pref says spread but URL is single (or vice versa) on desktop
+    const wantsSpread = spreadPref === '1' && !spread && isDesktop;
+    const wantsSingle = spreadPref === '0' && !!spread && isDesktop;
+    // Mobile + spread URL → E1 will collapse
+    const mobileSpread = !isDesktop && !!spread;
+
+    setPendingRedirect(wantsSpread || wantsSingle || mobileSpread);
+  }, [pathname, spread, spreadBase]);
+
   const navRef = useRef<HTMLDivElement>(null);
   const [navHeight, setNavHeight] = useState(FALLBACK_NAV_HEIGHT);
   const [surahOpen, setSurahOpen] = useState(false);
@@ -140,108 +241,121 @@ export default function ReaderShell({ children, user, sets, account = null, lock
         style={{ ['--nav-h' as string]: `${navHeight}px`, background: 'var(--surface-app)' } as React.CSSProperties}
         suppressHydrationWarning
       >
-        {/* REGION 1 — left navigation + surah sidebar.
-            Icon rail (72px) is an empty placeholder column for now (Story 4 fills it); the
-            surah sidebar (260px) carries the existing SurahNavPanel and its scroll logic. */}
-        <div
-          className="hidden lg:flex flex-shrink-0"
-          style={{ height: '100%', overflow: 'hidden', zIndex: 1 }}
-        >
-          <div
-            data-testid="nav-rail-slot"
-            className="flex-shrink-0"
-            style={{ width: '96px', height: '100%' }}
-          >
-            <NavRail />
-          </div>
-          {/* Surah sidebar — 260px. */}
-          <div
-            className="flex flex-col flex-shrink-0"
-            style={{
-              width: '300px',
-              height: '100%',
-              overflow: 'hidden',
-              background: 'var(--surface-main)',
-              boxShadow: 'var(--shadow-e2)',
-            }}
-          >
-            <SurahNavPanel currentPage={pageNum} topOffset={navHeight} basePath={sharePageBasePath} isSpread={!!spread} />
-          </div>
-        </div>
-
-        {/* REGION 2 — centered Quran workspace. Does not scroll on desktop. */}
-        <div
-          className="lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col lg:flex-1 lg:min-w-0"
-          style={{ flex: 1, minWidth: 0, background: 'var(--surface-app)' }}
-        >
-          {/* No transform-based animation here: the mobile annotation bar inside this
-              subtree is position:fixed and a transformed ancestor (e.g. animate-fade-in,
-              which keeps a computed matrix via animation-fill-mode: both) would make it the
-              containing block, pinning the fixed bar to <main> instead of the viewport. */}
-          <main className="w-full flex-grow px-4 pt-6 pb-2 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:py-0">
-            <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
-
-              {banner}
-
-              <div className="flex min-w-0 flex-col gap-4">
-                <div className="mx-auto w-full">
-                  {/* Persistent across page navigation — Fabric is not torn down (Story 24).
-                      M3: in spread mode (`/reader/N-M`, desktop only — E1 redirects narrow
-                      viewports to single) we mount TWO independent persistent canvases. Each
-                      has its own refs/Fabric instance inside useAnnotationCanvas, so they
-                      soft-swap (background+objects) on spread→spread nav without disposing
-                      (__hifthFabricCreatedCount stays 2). Each saves to its own page_number.
-                      RTL (B2): flex-row-reverse puts the DOM-first lower/odd page on the RIGHT
-                      and the higher/even page on the LEFT, while data stays page-numeric. */}
-                  {spread ? (
-                    <SpreadAnnotation
-                      pages={spread}
-                      sets={sets}
-                      user={user}
-                      lockedSet={lockedSet}
-                      sharePageBasePath={sharePageBasePath}
-                    />
-                  ) : (
-                    <AnnotationCanvas
-                      pageNum={pageNum}
-                      imageUrl={imageUrl}
-                      sets={sets}
-                      user={user}
-                      lockedSet={lockedSet}
-                      sharePageBasePath={sharePageBasePath}
-                    />
-                  )}
-                </div>
-              </div>
-
+        {pendingRedirect ? (
+          <>
+            <ShellSkeleton />
+            {/* Children must stay mounted (hidden) so page-level effects (e.g. the index
+                redirect in ReaderIndexPage) still fire and resolve the pending redirect. */}
+            <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }} aria-hidden>
+              {children}
             </div>
-          </main>
-        </div>
+          </>
+        ) : (
+          <>
+            {/* REGION 1 — left navigation + surah sidebar.
+                Icon rail (72px) is an empty placeholder column for now (Story 4 fills it); the
+                surah sidebar (260px) carries the existing SurahNavPanel and its scroll logic. */}
+            <div
+              className="hidden lg:flex flex-shrink-0"
+              style={{ height: '100%', overflow: 'hidden', zIndex: 1 }}
+            >
+              <div
+                data-testid="nav-rail-slot"
+                className="flex-shrink-0"
+                style={{ width: '96px', height: '100%' }}
+              >
+                <NavRail />
+              </div>
+              {/* Surah sidebar — 260px. */}
+              <div
+                className="flex flex-col flex-shrink-0"
+                style={{
+                  width: '300px',
+                  height: '100%',
+                  overflow: 'hidden',
+                  background: 'var(--surface-main)',
+                  boxShadow: 'var(--shadow-e2)',
+                }}
+              >
+                <SurahNavPanel currentPage={pageNum} topOffset={navHeight} basePath={sharePageBasePath} isSpread={!!spread} />
+              </div>
+            </div>
 
-        {/* REGION 3 — right context panel. Holds the per-page notes / share column (the route
-            children, rendered exactly once so the single NotesPanel/canvas stay mounted).
-            Desktop: a 320px column that scrolls internally. Mobile: full-width, in normal
-            document flow below the workspace (the layout it had before this story), carrying
-            the fixed-bottom-bar offset. Card contents are restyled in Stories 13–15; here it
-            scaffolds the slot. */}
-        {/* V3 Story 16: mobile-context-panel testid added (context-panel preserved for desktop E2E) */}
-        <div
-          data-testid="context-panel"
-          data-mobile-testid="mobile-context-panel"
-          className="w-full px-4 pb-[calc(88px+env(safe-area-inset-bottom,0px))] sm:px-6 lg:flex lg:flex-col lg:flex-shrink-0 lg:w-[320px] lg:px-0 lg:pb-0 lg:h-full lg:min-h-0 lg:overflow-y-auto thin-scroll"
-          style={{ paddingTop: 'var(--space-24)' }}
-        >
-          {/* Sets card portal target — AnnotationCanvas renders the SetsCard here (top of the
-              right panel) so the set selector + "New set" share the canvas state. */}
-          <div id="sets-card-portal" className="mb-4 empty:mb-0" />
-          {children}
-          <footer
-            className="lg:hidden w-full text-center text-xs tracking-wider uppercase border-t mt-6"
-            style={{ padding: '10px 0', color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
-          >
-            HifthCompanion © 2026
-          </footer>
-        </div>
+            {/* REGION 2 — centered Quran workspace. Does not scroll on desktop. */}
+            <div
+              className="lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col lg:flex-1 lg:min-w-0"
+              style={{ flex: 1, minWidth: 0, background: 'var(--surface-app)' }}
+            >
+              {/* No transform-based animation here: the mobile annotation bar inside this
+                  subtree is position:fixed and a transformed ancestor (e.g. animate-fade-in,
+                  which keeps a computed matrix via animation-fill-mode: both) would make it the
+                  containing block, pinning the fixed bar to <main> instead of the viewport. */}
+              <main className="w-full flex-grow px-4 pt-6 pb-2 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:py-0">
+                <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
+
+                  {banner}
+
+                  <div className="flex min-w-0 flex-col gap-4">
+                    <div className="mx-auto w-full">
+                      {/* Persistent across page navigation — Fabric is not torn down (Story 24).
+                          M3: in spread mode (`/reader/N-M`, desktop only — E1 redirects narrow
+                          viewports to single) we mount TWO independent persistent canvases. Each
+                          has its own refs/Fabric instance inside useAnnotationCanvas, so they
+                          soft-swap (background+objects) on spread→spread nav without disposing
+                          (__hifthFabricCreatedCount stays 2). Each saves to its own page_number.
+                          RTL (B2): flex-row-reverse puts the DOM-first lower/odd page on the RIGHT
+                          and the higher/even page on the LEFT, while data stays page-numeric. */}
+                      {spread ? (
+                        <SpreadAnnotation
+                          pages={spread}
+                          sets={sets}
+                          user={user}
+                          lockedSet={lockedSet}
+                          sharePageBasePath={sharePageBasePath}
+                        />
+                      ) : (
+                        <AnnotationCanvas
+                          pageNum={pageNum}
+                          imageUrl={imageUrl}
+                          sets={sets}
+                          user={user}
+                          lockedSet={lockedSet}
+                          sharePageBasePath={sharePageBasePath}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              </main>
+            </div>
+
+            {/* REGION 3 — right context panel. Holds the per-page notes / share column (the route
+                children, rendered exactly once so the single NotesPanel/canvas stay mounted).
+                Desktop: a 320px column that scrolls internally. Mobile: full-width, in normal
+                document flow below the workspace (the layout it had before this story), carrying
+                the fixed-bottom-bar offset. Card contents are restyled in Stories 13–15; here it
+                scaffolds the slot. */}
+            {/* V3 Story 16: mobile-context-panel testid added (context-panel preserved for desktop E2E) */}
+            <div
+              data-testid="context-panel"
+              data-mobile-testid="mobile-context-panel"
+              className="w-full px-4 pb-[calc(88px+env(safe-area-inset-bottom,0px))] sm:px-6 lg:flex lg:flex-col lg:flex-shrink-0 lg:w-[320px] lg:px-0 lg:pb-0 lg:h-full lg:min-h-0 lg:overflow-y-auto thin-scroll"
+              style={{ paddingTop: 'var(--space-24)' }}
+            >
+              {/* Sets card portal target — AnnotationCanvas renders the SetsCard here (top of the
+                  right panel) so the set selector + "New set" share the canvas state. */}
+              <div id="sets-card-portal" className="mb-4 empty:mb-0" />
+              {children}
+              <footer
+                className="lg:hidden w-full text-center text-xs tracking-wider uppercase border-t mt-6"
+                style={{ padding: '10px 0', color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
+              >
+                HifthCompanion © 2026
+              </footer>
+            </div>
+          </>
+        )}
       </div>
       <MobileSurahDrawer open={surahOpen} onOpenChange={setSurahOpen} basePath={sharePageBasePath} isSpread={!!spread} />
       <MobileNavDrawer open={navOpen} onOpenChange={setNavOpen} />

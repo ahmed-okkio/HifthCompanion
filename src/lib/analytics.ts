@@ -1,5 +1,7 @@
-import type { Attendance, Circle, LogRole, LogType, Polarity, ProgressLog } from '@/types';
-import { getJuzForPage, getSurahForPage, TOTAL_JUZ, TOTAL_PAGES } from '@/lib/quran';
+import type { Attendance, Circle, LogRole, LogType, MemorizedRange, Polarity, ProgressLog } from '@/types';
+import {
+  getJuzForPage, getSurahForPage, getPageForAyah, getAyahsOnPage, TOTAL_JUZ, TOTAL_PAGES,
+} from '@/lib/quran';
 
 // ---------------------------------------------------------------------------
 // analytics — pure functions over a student's logs + circle config.
@@ -59,15 +61,58 @@ export function buildHeatmap(
 
 // --- M2-2: cumulative pages + juz totals -------------------------------------
 
-export type Totals = { pages: number; juz: number; logs: number };
+export type Totals = { pages: number; juz: number; surahs: number; logs: number };
 
-/** Distinct pages and distinct juz covered across all logs. */
+/** Distinct pages, distinct juz, and distinct surahs covered across all logs. */
 export function cumulativeTotals(logs: Pick<ProgressLog, 'page_start' | 'page_end'>[]): Totals {
   const pages = new Set<number>();
   for (const l of logs) for (const p of pagesOf(l)) pages.add(p);
   const juz = new Set<number>();
-  for (const p of pages) juz.add(getJuzForPage(p));
-  return { pages: pages.size, juz: juz.size, logs: logs.length };
+  const surahs = new Set<number>();
+  for (const p of pages) { juz.add(getJuzForPage(p)); surahs.add(getSurahForPage(p)); }
+  return { pages: pages.size, juz: juz.size, surahs: surahs.size, logs: logs.length };
+}
+
+// --- Hifth profile: log -> memorized ranges, and totals over ranges ----------
+
+/**
+ * A memorization log as ayah ranges to credit into user_hifth. An explicit
+ * surah+ayah scope maps 1:1; a page-only log is decomposed via the page↔ayah
+ * map, one range per surah spanned (min..max ayah on the covered pages).
+ * ponytail: page-only ranges clip at page edges, so a whole-surah submission
+ * logged by pages credits only the ayahs actually on those pages — good enough;
+ * tighten only if partial-surah edges cause visible under-credit.
+ */
+export function logToMemorizedRanges(
+  log: Pick<ProgressLog, 'page_start' | 'page_end' | 'surah' | 'ayah_start' | 'ayah_end'>,
+): MemorizedRange[] {
+  if (log.surah && log.ayah_start != null && log.ayah_end != null) {
+    return [{ surah: log.surah, from: Math.min(log.ayah_start, log.ayah_end), to: Math.max(log.ayah_start, log.ayah_end) }];
+  }
+  const lo = Math.max(1, Math.min(log.page_start, log.page_end));
+  const hi = Math.min(TOTAL_PAGES, Math.max(log.page_start, log.page_end));
+  const bounds = new Map<number, { from: number; to: number }>();
+  for (let p = lo; p <= hi; p++) {
+    for (const { surah, ayah } of getAyahsOnPage(p)) {
+      const b = bounds.get(surah);
+      if (!b) bounds.set(surah, { from: ayah, to: ayah });
+      else { b.from = Math.min(b.from, ayah); b.to = Math.max(b.to, ayah); }
+    }
+  }
+  return [...bounds.entries()].map(([surah, b]) => ({ surah, from: b.from, to: b.to }));
+}
+
+/** Distinct juz + surahs covered by a set of memorized ayah ranges. */
+export function rangesTotals(ranges: MemorizedRange[]): { juz: number; surahs: number } {
+  const surahs = new Set<number>();
+  const juz = new Set<number>();
+  for (const r of ranges) {
+    surahs.add(r.surah);
+    const p0 = getPageForAyah(r.surah, Math.min(r.from, r.to));
+    const p1 = getPageForAyah(r.surah, Math.max(r.from, r.to));
+    for (let p = Math.min(p0, p1); p <= Math.max(p0, p1); p++) juz.add(getJuzForPage(p));
+  }
+  return { juz: juz.size, surahs: surahs.size };
 }
 
 // --- M2-3: weakest-surah ------------------------------------------------------

@@ -6,6 +6,8 @@ import {
   coverageMap,
   rollup,
   attendanceStats,
+  logToMemorizedRanges,
+  rangesTotals,
 } from '../lib/analytics';
 import type { Circle, ProgressLog } from '../types';
 
@@ -83,6 +85,38 @@ describe('cumulativeTotals', () => {
     const t = cumulativeTotals([log({ page_start: 21, page_end: 22 })]); // juz1 + juz2
     expect(t.pages).toBe(2);
     expect(t.juz).toBe(2);
+  });
+});
+
+describe('logToMemorizedRanges + rangesTotals (hifth credit)', () => {
+  const log = (o: Partial<ProgressLog>): ProgressLog => ({
+    id: 'x', membership_id: 'm', homework_id: null, log_date: '2026-01-01',
+    log_type: 'memorization', page_start: 1, page_end: 1, surah: null,
+    ayah_start: null, ayah_end: null, student_status: null, student_notes: null,
+    teacher_status: null, teacher_comment: null, reviewed_at: null, created_at: '', updated_at: '',
+    ...o,
+  } as ProgressLog);
+
+  it('maps an explicit surah+ayah scope 1:1', () => {
+    expect(logToMemorizedRanges(log({ surah: 2, ayah_start: 5, ayah_end: 20 })))
+      .toEqual([{ surah: 2, from: 5, to: 20 }]);
+  });
+
+  it('normalizes a reversed ayah range', () => {
+    expect(logToMemorizedRanges(log({ surah: 2, ayah_start: 20, ayah_end: 5 })))
+      .toEqual([{ surah: 2, from: 5, to: 20 }]);
+  });
+
+  it('decomposes a page-only log into per-surah ranges', () => {
+    // Page 1 is Al-Fatiha (surah 1, ayahs 1..7).
+    expect(logToMemorizedRanges(log({ page_start: 1, page_end: 1 })))
+      .toEqual([{ surah: 1, from: 1, to: 7 }]);
+  });
+
+  it('counts distinct surahs and juz over ranges', () => {
+    const t = rangesTotals([{ surah: 1, from: 1, to: 7 }, { surah: 2, from: 1, to: 5 }]);
+    expect(t.surahs).toBe(2);
+    expect(t.juz).toBe(1); // both sit in juz 1
   });
 });
 

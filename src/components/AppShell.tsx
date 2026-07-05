@@ -14,7 +14,7 @@
  */
 
 import { useState, type ReactNode } from 'react';
-import AppHeader from './AppHeader';
+import AppHeader, { type Crumb } from './AppHeader';
 import NavRail from './NavRail';
 import MobileNavDrawer from './MobileNavDrawer';
 import ProfileMenu from './ProfileMenu';
@@ -25,7 +25,7 @@ export default function AppShell({
   user,
   children,
 }: {
-  breadcrumb?: string;
+  breadcrumb?: string | Crumb[];
   /** Page-specific header actions, shown left of the profile menu. */
   actions?: ReactNode;
   user: { name: string; email: string };

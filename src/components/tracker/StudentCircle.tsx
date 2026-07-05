@@ -119,8 +119,10 @@ export default function StudentCircle({
           {tab === 'notes' && <NotesThread membershipId={membership.id} initial={initialNotes} />}
         </div>
 
-        {/* Schedule sidebar — always visible, read-only (D3); hoisted above the feed on mobile. */}
-        <aside className="order-first lg:order-none lg:sticky lg:top-6 self-start min-w-0">
+        {/* Schedule sidebar — always visible, read-only (D3); hoisted above the
+            feed on mobile. On lg, offset down so its heading sits under the tab
+            bar row (≈ tab-bar height + the column's gap), not level with it. */}
+        <aside className="order-first lg:order-none lg:sticky lg:top-6 self-start min-w-0 lg:mt-[66px]">
           <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} />
         </aside>
       </div>

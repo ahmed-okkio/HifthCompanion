@@ -7,8 +7,11 @@ import { getLogsForMembership } from '@/lib/services/progressLog';
 import { getSessions } from '@/lib/services/sessions';
 import { listHomework } from '@/lib/services/homework';
 import { listNotes } from '@/lib/services/membershipNotes';
-import { getMyChrome } from '@/lib/services/profile';
+import { getMyChrome, getStudentMemorization } from '@/lib/services/profile';
+import { rangesTotals } from '@/lib/analytics';
 import TeacherStudent from '@/components/tracker/TeacherStudent';
+import { BackButton } from '@/components/tracker/ui';
+import { displayName } from '@/lib/displayName';
 
 export default async function StudentDetailPage({
   params,
@@ -27,28 +30,38 @@ export default async function StudentDetailPage({
   // Only active students have a control surface (pending = RLS-empty, C1/S1).
   if (!member || member.role !== 'student' || member.status !== 'active') notFound();
 
-  const [logs, sessions, defaultSetId, homework, notes] = await Promise.all([
+  const [logs, sessions, defaultSetId, homework, notes, memorizedRanges] = await Promise.all([
     getLogsForMembership(membershipId),
     getSessions(membershipId),
     getStudentDefaultSetId(membershipId),
     listHomework(membershipId),
     listNotes(membershipId),
+    getStudentMemorization(member.user_id),
   ]);
 
   const account = await getMyChrome(user);
+  const memorized = rangesTotals(memorizedRanges);
 
   return (
-    <AppShell breadcrumb={circle.name} user={account}>
-      <main className="max-w-6xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
-        <TeacherStudent
-          circle={circle}
-          member={member}
-          initialSessions={sessions}
-          defaultSetId={defaultSetId}
-          initialHomework={homework}
-          logs={logs}
-          initialNotes={notes}
-        />
+    <AppShell breadcrumb={[
+      { label: 'Circles', href: '/tracker' },
+      { label: circle.name, href: `/tracker/${circleId}` },
+      { label: displayName(member) },
+    ]} user={account}>
+      <main className="px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+        <div className="max-w-6xl mx-auto w-full" style={{ position: 'relative' }}>
+          <BackButton href={`/tracker/${circleId}`} />
+          <TeacherStudent
+            circle={circle}
+            member={member}
+            initialSessions={sessions}
+            defaultSetId={defaultSetId}
+            initialHomework={homework}
+            logs={logs}
+            memorized={memorized}
+            initialNotes={notes}
+          />
+        </div>
       </main>
     </AppShell>
   );

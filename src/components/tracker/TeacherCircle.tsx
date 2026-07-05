@@ -133,8 +133,8 @@ export default function TeacherCircle({
                         {displayName(m)}
                       </span>
                       <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
-                        <StatusDot color={active ? 'var(--success)' : 'var(--warning)'} />
-                        {t(active ? 'tracker.active' : 'tracker.pending')}
+                        <StatusDot color={m.status === 'active' ? 'var(--success)' : m.status === 'pending' ? 'var(--warning)' : 'var(--text-muted)'} />
+                        {t(`tracker.${m.status}`)}
                       </span>
                     </div>
                   </div>
@@ -156,14 +156,9 @@ export default function TeacherCircle({
                         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                         <div className="flex gap-1">
                           {active ? (
-                            <>
-                              <button onClick={() => handleStatus(m.id, 'inactive')} className="btn btn-ghost" style={{ minHeight: 32, fontSize: 12, padding: '4px 10px' }}>
-                                {t('tracker.archive')}
-                              </button>
-                              <button onClick={() => handleStatus(m.id, 'blocked')} className="btn btn-danger-ghost" style={{ minHeight: 32, fontSize: 12, padding: '4px 10px' }}>
-                                {t('tracker.block')}
-                              </button>
-                            </>
+                            <button onClick={() => handleStatus(m.id, 'blocked')} className="btn btn-danger-ghost" style={{ minHeight: 32, fontSize: 12, padding: '4px 10px' }}>
+                              {t('tracker.deactivate')}
+                            </button>
                           ) : (
                             <button onClick={() => handleStatus(m.id, 'active')} className="btn btn-outline" style={{ minHeight: 32, fontSize: 12, padding: '4px 10px' }}>
                               {t('tracker.reactivate')}

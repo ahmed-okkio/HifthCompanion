@@ -14,6 +14,7 @@ import { sectionSessions, floatingNow } from '@/lib/recurrence';
 import { listHomework } from '@/lib/services/homework';
 import { listNotes } from '@/lib/services/membershipNotes';
 import { displayName } from '@/lib/displayName';
+import { BackButton } from '@/components/tracker/ui';
 
 export default async function CirclePage({
   params,
@@ -60,14 +61,17 @@ export default async function CirclePage({
       .slice(0, 20);
 
     return (
-      <AppShell breadcrumb={circle.name} user={account}>
-        <main className="max-w-5xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
-          <TeacherCircle
-            circle={circle}
-            teacher={members.find((m) => m.role === 'teacher')}
-            initialStudents={students}
-            agenda={agenda}
-          />
+      <AppShell breadcrumb={[{ label: 'Circles', href: '/tracker' }, { label: circle.name }]} user={account}>
+        <main className="px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+          <div className="max-w-5xl mx-auto w-full" style={{ position: 'relative' }}>
+            <BackButton href="/tracker" />
+            <TeacherCircle
+              circle={circle}
+              teacher={members.find((m) => m.role === 'teacher')}
+              initialStudents={students}
+              agenda={agenda}
+            />
+          </div>
         </main>
       </AppShell>
     );
@@ -88,7 +92,7 @@ export default async function CirclePage({
       last_name: tp?.last_name,
     });
     return (
-      <AppShell breadcrumb={circle.name} user={account}>
+      <AppShell breadcrumb={[{ label: 'Circles', href: '/tracker' }, { label: circle.name }]} user={account}>
         <main className="max-w-2xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
           <AcceptInvite
             membershipId={membership.id}
@@ -108,16 +112,19 @@ export default async function CirclePage({
   ]);
 
   return (
-    <AppShell breadcrumb={circle.name} user={account}>
-      <main className="max-w-5xl mx-auto px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
-        <StudentCircle
-          circle={circle}
-          membership={membership}
-          initialSessions={initialSessions}
-          initialLogs={initialLogs}
-          initialHomework={initialHomework}
-          initialNotes={initialNotes}
-        />
+    <AppShell breadcrumb={[{ label: 'Circles', href: '/tracker' }, { label: circle.name }]} user={account}>
+      <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+        <div className="max-w-5xl mx-auto w-full" style={{ position: 'relative' }}>
+          <BackButton href="/tracker" />
+          <StudentCircle
+            circle={circle}
+            membership={membership}
+            initialSessions={initialSessions}
+            initialLogs={initialLogs}
+            initialHomework={initialHomework}
+            initialNotes={initialNotes}
+          />
+        </div>
       </main>
     </AppShell>
   );

@@ -11,15 +11,19 @@
  */
 
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import Brand from './Brand';
+
+export type Crumb = { label: string; href?: string };
 
 export default function AppHeader({
   breadcrumb,
   right,
   onOpenNav,
 }: {
-  /** Optional context label shown after the brand (e.g. a circle name). */
-  breadcrumb?: string;
+  /** Context after the brand: a single label, or a crumb path ("Circles › Test").
+   *  Crumbs with an href render as links. */
+  breadcrumb?: string | Crumb[];
   /** Right-aligned actions (language switcher, nav links, …). */
   right?: ReactNode;
   /** When set, renders a mobile-only hamburger that opens the nav drawer. */
@@ -56,18 +60,34 @@ export default function AppHeader({
           )}
           <Brand />
 
-          {breadcrumb && (
-            <span className="flex items-center gap-2 min-w-0">
+          {breadcrumb && (() => {
+            const crumbs: Crumb[] = typeof breadcrumb === 'string' ? [{ label: breadcrumb }] : breadcrumb;
+            const sep = (
               <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                    strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
                    style={{ color: 'var(--text-muted)' }} className="shrink-0 rtl:-scale-x-100">
                 <path d="m9 18 6-6-6-6" />
               </svg>
-              <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>
-                {breadcrumb}
+            );
+            return (
+              // Extra left margin = the SPACE between the brand and the path.
+              <span className="flex items-center gap-2 min-w-0" style={{ marginInlineStart: 'var(--space-8)' }}>
+                {crumbs.map((c, i) => {
+                  const last = i === crumbs.length - 1;
+                  return (
+                    <span key={i} className="flex items-center gap-2 min-w-0">
+                      {c.href && !last ? (
+                        <Link href={c.href} className="text-sm font-semibold truncate" style={{ color: 'var(--text-muted)' }}>{c.label}</Link>
+                      ) : (
+                        <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>{c.label}</span>
+                      )}
+                      {!last && sep}
+                    </span>
+                  );
+                })}
               </span>
-            </span>
-          )}
+            );
+          })()}
         </div>
 
         {right && <div className="flex items-center gap-3 shrink-0">{right}</div>}

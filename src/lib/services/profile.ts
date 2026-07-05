@@ -67,6 +67,19 @@ export async function getMyMemorization(): Promise<{
   };
 }
 
+/** A student's memorized ranges, readable by a teacher of an active membership
+ *  (teacher-read RLS on user_hifth). Empty when the row/access is absent. */
+export async function getStudentMemorization(userId: string): Promise<MemorizedRange[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('user_hifth')
+    .select('memorized_ranges')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.memorized_ranges ?? [];
+}
+
 /** Upsert the caller's own hifth path. Re-validates+normalizes server-side;
  *  user_id is always the caller — client is never trusted for it. Weakest surahs
  *  are clamped to valid surah numbers that actually appear in the saved ranges. */

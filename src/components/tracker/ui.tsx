@@ -156,6 +156,39 @@ export function StatCard({
   );
 }
 
+/** Bare circular progress ring: `value`/`max` fills the arc. SVG only. */
+export function Ring({ value, max, size = 44 }: { value: number; max: number; size?: number }) {
+  const r = size / 2 - 4;
+  const c = 2 * Math.PI * r;
+  const pct = max > 0 ? Math.min(1, value / max) : 0;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0" aria-hidden
+         style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--accent-muted)" strokeWidth="4" />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--accent)" strokeWidth="4"
+              strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)}
+              style={{ transition: 'stroke-dashoffset var(--duration-slow, 0.4s) var(--ease-out)' }} />
+    </svg>
+  );
+}
+
+/** KPI tile: ring on the left, big value over a small label on the right. */
+export function RingStatCard({ value, max, label, size = 44 }: {
+  value: number; max: number; label: string; size?: number;
+}) {
+  return (
+    <div className="card flex items-center gap-3" style={{ padding: '14px 16px' }}>
+      <Ring value={value} max={max} size={size} />
+      <div className="flex flex-col min-w-0">
+        <span className="font-bold leading-tight truncate" style={{ color: 'var(--text-primary)', fontSize: 22 }}>
+          {value} / {max}
+        </span>
+        <span className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{label}</span>
+      </div>
+    </div>
+  );
+}
+
 /** Calendar-style date block for agenda rows: weekday over day-of-month. */
 export function DateChip({ iso, locale }: { iso: string; locale: string }) {
   const d = new Date(iso);
@@ -444,6 +477,30 @@ export function PagedList<T>({
   );
 }
 
+/** Icon-only back button. Place as the first child of a `position:relative`
+ *  centered container: on wide screens it floats in the left gutter beside the
+ *  column; on narrow screens (no gutter) it falls back to an in-flow row above. */
+export function BackButton({ href }: { href: string }) {
+  const box: CSSProperties = {
+    width: 36, height: 36, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)',
+    background: 'var(--bg-surface)', color: 'var(--text-secondary)',
+  };
+  return (
+    <>
+      <a href={href} aria-label="Back"
+         className="hidden lg:inline-flex items-center justify-center"
+         style={{ ...box, position: 'absolute', top: 0, insetInlineEnd: '100%', marginInlineEnd: 16 }}>
+        <Icon name="arrow-left" size={18} />
+      </a>
+      <a href={href} aria-label="Back"
+         className="inline-flex lg:hidden items-center justify-center"
+         style={{ ...box, marginBottom: 16 }}>
+        <Icon name="arrow-left" size={18} />
+      </a>
+    </>
+  );
+}
+
 /** Small status dot (active/pending/…). */
 export function StatusDot({ color }: { color: string }) {
   return (
@@ -457,7 +514,7 @@ export function StatusDot({ color }: { color: string }) {
 
 /** Right-pointing chevron used to mark a row as navigable. Flips under RTL.
  *  Pass `open` to rotate it down as a collapse/expand affordance. */
-export function Chevron({ open }: { open?: boolean } = {}) {
+export function Chevron({ open, color = 'var(--text-muted)' }: { open?: boolean; color?: string } = {}) {
   return (
     <svg
       width="16"
@@ -470,7 +527,7 @@ export function Chevron({ open }: { open?: boolean } = {}) {
       strokeLinejoin="round"
       className="shrink-0 rtl:-scale-x-100"
       style={{
-        color: 'var(--text-muted)',
+        color,
         transform: open ? 'rotate(90deg)' : undefined,
         transition: 'transform var(--duration-fast) var(--ease-out)',
       }}

@@ -1,7 +1,8 @@
 'use server';
 
 import { createClient, createClientAction } from '@/lib/supabase/server';
-import type { LogType, ProgressLog } from '@/types';
+import type { LogType, Polarity, ProgressLog, StatusConfig } from '@/types';
+import { logToMemorizedRanges } from '@/lib/analytics';
 
 export type NewProgressLog = {
   membership_id: string;
@@ -100,4 +101,46 @@ export async function gradeLog(
     .update({ ...grade, reviewed_at: new Date().toISOString() })
     .eq('id', id);
   if (error) throw error;
+
+  // Approving a memorization submission (positive-polarity status) folds the
+  // log's ayah range into the student's persistent hifth profile. Best-effort:
+  // a credit failure must not fail the grade itself.
+  if (grade.teacher_status) {
+    try {
+      await creditHifthFromLog(supabase, id, grade.teacher_status);
+    } catch {
+      /* non-fatal — the grade already landed */
+    }
+  }
+}
+
+/** Credit a positively-graded memorization log into the student's user_hifth,
+ *  via the teaches_user-guarded RPC. Resolves membership → student + circle
+ *  polarity server-side so the client is never trusted for it. */
+async function creditHifthFromLog(
+  supabase: Awaited<ReturnType<typeof createClientAction>>,
+  logId: string,
+  status: string,
+): Promise<void> {
+  const { data, error } = await supabase
+    .from('progress_log')
+    .select('log_type, page_start, page_end, surah, ayah_start, ayah_end, membership:membership_id(user_id, circle:circle_id(teacher_statuses))')
+    .eq('id', logId)
+    .single();
+  if (error || !data) return;
+
+  // supabase types the embedded relations as arrays; narrow to the single row.
+  const membership = (Array.isArray(data.membership) ? data.membership[0] : data.membership) as
+    | { user_id: string; circle: { teacher_statuses: StatusConfig[] } | { teacher_statuses: StatusConfig[] }[] }
+    | null;
+  if (data.log_type !== 'memorization' || !membership) return;
+
+  const circle = Array.isArray(membership.circle) ? membership.circle[0] : membership.circle;
+  const polarity: Polarity | undefined =
+    circle?.teacher_statuses.find((s) => s.label === status)?.polarity;
+  if (polarity !== 'positive') return;
+
+  const ranges = logToMemorizedRanges(data);
+  if (ranges.length === 0) return;
+  await supabase.rpc('teacher_add_hifth', { _student: membership.user_id, _ranges: ranges });
 }

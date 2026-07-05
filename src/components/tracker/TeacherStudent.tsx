@@ -18,12 +18,12 @@ import NotesThread from './NotesThread';
 import {
   homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus,
 } from '@/lib/homework';
-import { AYAH_COUNTS, TOTAL_JUZ, getSurahName } from '@/lib/quran';
+import { AYAH_COUNTS, TOTAL_JUZ, TOTAL_SURAHS, getSurahName } from '@/lib/quran';
 import {
-  SectionTitle, EmptyState, Avatar, StatCard, DateChip, StatusDot, TabBar,
+  SectionTitle, EmptyState, Avatar, StatCard, Ring, StatusDot, DateChip, TabBar,
   SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, Chevron, Icon,
 } from './ui';
-import { cumulativeTotals, attendanceStats } from '@/lib/analytics';
+import { attendanceStats } from '@/lib/analytics';
 
 const LOG_TYPES: LogType[] = ['memorization', 'general_revision', 'targeted_revision'];
 const ATT_STATUSES: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'];
@@ -44,6 +44,7 @@ export default function TeacherStudent({
   defaultSetId,
   initialHomework,
   logs,
+  memorized,
   initialNotes,
 }: {
   circle: Circle;
@@ -52,6 +53,8 @@ export default function TeacherStudent({
   defaultSetId: string | null;
   initialHomework: Homework[];
   logs: ProgressLog[];
+  /** Juz/surah totals from the student's persistent user_hifth profile. */
+  memorized: { juz: number; surahs: number };
   initialNotes: NoteWithAuthor[];
 }) {
   const { t } = useI18n();
@@ -68,7 +71,6 @@ export default function TeacherStudent({
   const openHomework = initialHomework.filter(
     (h) => homeworkStatus(h, linkedCount.get(h.id) ?? 0, today()) === 'open',
   ).length;
-  const totals = useMemo(() => cumulativeTotals(logs), [logs]);
   const att = useMemo(() => attendanceStats(attendance), [attendance]);
 
   return (
@@ -81,17 +83,18 @@ export default function TeacherStudent({
               style={{ color: 'var(--text-primary)', fontSize: 'var(--type-heading-m-size)' }}>
             {displayName(member)}
           </h1>
-          <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
-            <StatusDot color="var(--success)" />
-            {t('tracker.active')} · {circle.name}
-          </span>
+          <span className="text-xs truncate max-w-full" style={{ color: 'var(--text-muted)' }}>{circle.name}</span>
           <div className="mt-1"><MushafButton setId={defaultSetId} /></div>
         </div>
 
-        <StatCard icon={<Icon name="book" />} value={`${totals.juz} / ${TOTAL_JUZ}`} label={t('analytics.juz')} />
-        {att.marked > 0 && (
-          <StatCard icon={<Icon name="calendar" />} value={`${Math.round(att.rate * 100)}%`} label={t('analytics.attendanceRate')} />
-        )}
+        <div className="card flex flex-col gap-3" style={{ padding: '16px' }}>
+          <div className="grid grid-cols-2 gap-2">
+            <RingTile value={memorized.juz} max={TOTAL_JUZ} label={t('analytics.juz')} />
+            <RingTile value={memorized.surahs} max={TOTAL_SURAHS} label={t('analytics.surahs')} />
+          </div>
+          <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+          <AttendanceLine marked={att.marked} rate={att.rate} />
+        </div>
         <StatCard icon={<Icon name="hourglass" />} value={openHomework} label={t('homework.openHomework')} />
       </aside>
 
@@ -120,6 +123,47 @@ export default function TeacherStudent({
 
       {/* Empty right spacer mirrors the sidebar width so the feed sits centered in the page. */}
       <div className="hidden lg:block" aria-hidden />
+    </div>
+  );
+}
+
+// --- Profile stat block: compact ring tile + colored attendance line ---------
+
+/** Ring above value/label, centered — the side-by-side variant. */
+function RingTile({ value, max, label }: { value: number; max: number; label: string }) {
+  return (
+    <div className="flex flex-col items-center text-center gap-1.5" style={{ padding: '4px 0' }}>
+      <Ring value={value} max={max} size={52} />
+      <span className="font-bold leading-tight" style={{ color: 'var(--text-primary)', fontSize: 16 }}>
+        {value} / {max}
+      </span>
+      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</span>
+    </div>
+  );
+}
+
+/** "Attendance: Good" with a color keyed to the rate. */
+function AttendanceLine({ marked, rate }: { marked: number; rate: number }) {
+  const { t } = useI18n();
+  if (marked === 0) {
+    return (
+      <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
+        <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('analytics.attendance')}</span>
+        <span>{t('analytics.attNone')}</span>
+      </div>
+    );
+  }
+  const [key, color] =
+    rate >= 0.85 ? ['analytics.attGood', 'var(--success)'] as const
+    : rate >= 0.6 ? ['analytics.attFair', 'var(--warning)'] as const
+    : ['analytics.attLow', 'var(--danger)'] as const;
+  return (
+    <div className="flex items-center justify-between text-xs">
+      <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('analytics.attendance')}</span>
+      <span className="flex items-center gap-1.5 font-semibold" style={{ color }}>
+        <StatusDot color={color} />
+        {t(key)} · {Math.round(rate * 100)}%
+      </span>
     </div>
   );
 }
@@ -309,11 +353,11 @@ function StudentSessions({
         </div>
       )}
       {/* Schedule + ad-hoc collapsed behind a button (set once, tweaked rarely). */}
-      <button onClick={() => setShowSchedule((v) => !v)} className="btn btn-outline self-start"
+      <button onClick={() => setShowSchedule((v) => !v)} className={`${weekdays.length ? 'btn btn-outline' : 'btn btn-primary'} self-start`}
               style={{ minHeight: 40, fontSize: 13, padding: '0 16px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
         <Icon name="calendar" size={16} />
         {weekdays.length ? t('sessions.editSchedule') : t('sessions.setSchedule')}
-        <Chevron open={showSchedule} />
+        <Chevron open={showSchedule} color={weekdays.length ? 'var(--text-muted)' : 'var(--accent-contrast, #fff)'} />
       </button>
 
       {showSchedule && (

@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { SURAH_PAGE_GROUPS, activeGroupPage, filterSurahGroups, getJuzForPage, getSurahName, pageFromLocation, spreadUrl, type SurahPageGroup } from '@/lib/quran';
+import { SURAH_PAGE_GROUPS, activeGroupPage, filterSurahGroups, getJuzForPage, getSurahName, pageFromLocation, spreadOf, spreadUrl, type SurahPageGroup } from '@/lib/quran';
 import { pinStorageKey } from '@/lib/bookmark';
 
 interface Props {
@@ -47,6 +47,13 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
   );
 
   const activePage = useMemo(() => activeGroupPage(currentPage), [currentPage]);
+
+  // In spread mode the "selector" covers the whole 2-page spread: a row is active if
+  // its page is the containing group OR falls within the current spread, so both pages
+  // of the spread highlight together as one combined selection.
+  const activeSpread = useMemo(() => (isSpread ? spreadOf(currentPage) : null), [isSpread, currentPage]);
+  const isActiveGroup = (page: number) =>
+    page === activePage || (activeSpread !== null && page >= activeSpread[0] && page <= activeSpread[1]);
 
   // Show a "jump to current" affordance when the active surah is scrolled out of
   // view — at the top (arrow up) when it's above, at the bottom (arrow down) below.
@@ -263,7 +270,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
       <div ref={scrollListRef} data-testid="surah-scroll-list" className="flex-1 min-h-0 overflow-y-auto thin-scroll">
         <ul>
           {filtered.map(group => {
-            const active = activePage === group.page;
+            const active = isActiveGroup(group.page);
             return (
               <li key={group.page} className="group/row relative">
                 <button
@@ -283,7 +290,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
                   </svg>
                 </button>
                 <button
-                  ref={active ? activeButtonRef : undefined}
+                  ref={group.page === activePage ? activeButtonRef : undefined}
                   type="button"
                   onClick={() => { void handleSelect(group); }}
                   onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-50)'; }}

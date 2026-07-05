@@ -122,7 +122,7 @@ export default function ReaderNav({
                 tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter') setJumpFocused(true); }}
               >
-                {currentPage}
+                {isSpread ? spreadUrl(currentPage) : currentPage}
               </span>
             )}
             <span className={styles.pageDivider}>/</span>

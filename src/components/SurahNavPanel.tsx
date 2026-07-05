@@ -2,6 +2,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SURAH_PAGE_GROUPS, activeGroupPage, filterSurahGroups, getJuzForPage, getSurahName, pageFromLocation, spreadUrl, type SurahPageGroup } from '@/lib/quran';
+import { pinStorageKey } from '@/lib/bookmark';
 
 interface Props {
   onSelect?: (surahNumber: number) => void;
@@ -19,13 +20,13 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
   const hasAutoScrolledRef = useRef(false);
   const scrollListRef = useRef<HTMLDivElement | null>(null);
   const SCROLL_STORAGE_KEY = 'surahPanelScrollTop';
-  const PIN_STORAGE_KEY = 'pinnedSurahPage';
+  const PIN_STORAGE_KEY = pinStorageKey(basePath);
 
   useEffect(() => {
     const raw = localStorage.getItem(PIN_STORAGE_KEY);
     const n = raw ? parseInt(raw, 10) : NaN;
-    if (!isNaN(n) && n > 0) setPinnedPage(n);
-  }, []);
+    setPinnedPage(!isNaN(n) && n > 0 ? n : null);
+  }, [PIN_STORAGE_KEY]);
 
   const togglePin = (page: number) => {
     setPinnedPage(prev => {

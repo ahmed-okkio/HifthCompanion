@@ -43,7 +43,7 @@ export default async function SharedPage() {
               const p = profiles.get(set.user_id);
               const owner = displayName({ user_id: set.user_id, first_name: p?.first_name, last_name: p?.last_name });
               return (
-                <a key={set.id} href={`/share/${set.id}/1`}
+                <a key={set.id} href={`/share/${set.id}`}
                    className="card flex items-center gap-3"
                    style={{ padding: '14px 18px' }}>
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />

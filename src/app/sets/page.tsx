@@ -42,7 +42,7 @@ export default async function SetsPage() {
             <div className="flex flex-col gap-3">
               {shared.map((set) => (
                 // E1/C2: lands on the editable collaborator share view.
-                <a key={set.id} href={`/share/${set.id}/1`}
+                <a key={set.id} href={`/share/${set.id}`}
                    className="card flex items-center gap-3"
                    style={{ padding: '14px 18px' }}>
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />

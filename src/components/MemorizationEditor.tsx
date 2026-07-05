@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type { MemorizedRange } from '@/types';
-import { AYAH_COUNTS, TOTAL_JUZ, getSurahName } from '@/lib/quran';
+import { AYAH_COUNTS, TOTAL_JUZ, TOTAL_SURAHS, getSurahName } from '@/lib/quran';
 import { juzToRanges, normalize, subtractRanges } from '@/lib/memorization';
 import { SectionTitle, SurahCombobox, NumberStepper } from '@/components/tracker/ui';
 
@@ -56,14 +56,14 @@ export default function MemorizationEditor({
   );
   const [weakest, setWeakest] = useState<Set<number>>(() => new Set(initialWeakest));
 
-  const [surah, setSurah] = useState(1);
+  const [surah, setSurah] = useState(0);
   const [from, setFrom] = useState(1);
-  const [to, setTo] = useState(AYAH_COUNTS[1]);
+  const [to, setTo] = useState(1);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [error, setError] = useState('');
 
-  const max = AYAH_COUNTS[surah];
+  const max = surah ? AYAH_COUNTS[surah] : 1;
 
   // Surahs the user has declared memorized — the pool step 3 picks weakest from.
   const memorizedSurahs = [
@@ -72,6 +72,11 @@ export default function MemorizationEditor({
 
   // Step-3 dropdown: only offer memorized surahs not already marked weak.
   const weakOptions = memorizedSurahs.filter((s) => !weakest.has(s));
+
+  // Step-2 dropdown: hide surahs already added as extras.
+  const extraOptions = Array.from({ length: TOTAL_SURAHS }, (_, i) => i + 1).filter(
+    (s) => !extras.some((r) => r.surah === s),
+  );
 
   const addWeak = (s: number) => setWeakest((prev) => new Set(prev).add(s));
   const removeWeak = (s: number) =>
@@ -96,6 +101,7 @@ export default function MemorizationEditor({
   };
 
   const addExtra = () => {
+    if (!surah) return;
     const lo = Math.max(1, Math.min(from, max));
     const hi = Math.max(lo, Math.min(to, max));
     setExtras((prev) => normalize([...prev, { surah, from: lo, to: hi }]));
@@ -198,15 +204,17 @@ export default function MemorizationEditor({
                   onChange={pickSurah}
                   locale={locale}
                   placeholder={t('homework.searchSurah')}
+                  surahs={extraOptions}
                 />
                 <NumberStepper label={t('log.from')} value={from} min={1} max={max} onChange={setFrom} />
                 <NumberStepper label={t('log.to')} value={to} min={1} max={max} onChange={setTo} />
                 <button
                   type="button"
                   onClick={addExtra}
+                  disabled={!surah}
                   tabIndex={step === 1 ? 0 : -1}
                   className="btn btn-primary"
-                  style={{ minHeight: 40 }}
+                  style={{ minHeight: 40, opacity: surah ? 1 : 0.5 }}
                 >
                   {t('memorization.add')}
                 </button>

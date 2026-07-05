@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { activeGroupPage, filterSurahGroups, getSurahName, pageFromLocation, spreadUrl, type SurahPageGroup } from '@/lib/quran';
+import { pinStorageKey } from '@/lib/bookmark';
 
 interface Props {
   open: boolean;
@@ -20,13 +21,13 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClickRef = useRef(false);
 
-  const BOOKMARK_KEY = 'pinnedSurahPage';
+  const BOOKMARK_KEY = pinStorageKey(basePath);
 
   useEffect(() => {
     const raw = localStorage.getItem(BOOKMARK_KEY);
     const n = raw ? parseInt(raw, 10) : NaN;
-    if (!isNaN(n) && n > 0) setBookmarkedPage(n);
-  }, []);
+    setBookmarkedPage(!isNaN(n) && n > 0 ? n : null);
+  }, [BOOKMARK_KEY]);
 
   const toggleBookmark = (page: number) => {
     setBookmarkedPage(prev => {

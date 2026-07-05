@@ -1,142 +1,9 @@
 'use client';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { SURAH_FIRST_PAGES, spreadUrl } from '@/lib/quran';
-
-export type Surah = {
-  number: number;
-  name: string;
-  englishName?: string;
-  verses?: number;
-};
-
-type SurahPageGroup = {
-  page: number;
-  surahs: Surah[];
-};
-
-// Hard-coded list of 114 surahs (names only). Verse counts are omitted for brevity.
-// Exported so other components (e.g. ReaderNav breadcrumb) can look up a surah name.
-export const SURAH_LIST: Surah[] = [
-  { number: 1, name: "Al-Fatihah" },
-  { number: 2, name: "Al-Baqarah" },
-  { number: 3, name: "Aal-i-Imran" },
-  { number: 4, name: "An-Nisa'" },
-  { number: 5, name: "Al-Ma'idah" },
-  { number: 6, name: "Al-An'am" },
-  { number: 7, name: "Al-A'raf" },
-  { number: 8, name: "Al-Anfal" },
-  { number: 9, name: "At-Tawbah" },
-  { number: 10, name: "Yunus" },
-  { number: 11, name: "Hud" },
-  { number: 12, name: "Yusuf" },
-  { number: 13, name: "Ar-Ra'd" },
-  { number: 14, name: "Ibrahim" },
-  { number: 15, name: "Al-Hijr" },
-  { number: 16, name: "An-Nahl" },
-  { number: 17, name: "Al-Isra'" },
-  { number: 18, name: "Al-Kahf" },
-  { number: 19, name: "Maryam" },
-  { number: 20, name: "Ta-Ha" },
-  { number: 21, name: "Al-Anbiya" },
-  { number: 22, name: "Al-Hajj" },
-  { number: 23, name: "Al-Mu'minun" },
-  { number: 24, name: "An-Nur" },
-  { number: 25, name: "Al-Furqan" },
-  { number: 26, name: "Ash-Shu'ara'" },
-  { number: 27, name: "An-Naml" },
-  { number: 28, name: "Al-Qasas" },
-  { number: 29, name: "Al-Ankabut" },
-  { number: 30, name: "Ar-Rum" },
-  { number: 31, name: "Luqman" },
-  { number: 32, name: "As-Sajdah" },
-  { number: 33, name: "Al-Ahzab" },
-  { number: 34, name: "Saba" },
-  { number: 35, name: "Fatir" },
-  { number: 36, name: "Ya-Sin" },
-  { number: 37, name: "As-Saffat" },
-  { number: 38, name: "Sad" },
-  { number: 39, name: "Az-Zumar" },
-  { number: 40, name: "Ghafir" },
-  { number: 41, name: "Fussilat" },
-  { number: 42, name: "Ash-Shura" },
-  { number: 43, name: "Az-Zukhruf" },
-  { number: 44, name: "Ad-Dukhan" },
-  { number: 45, name: "Al-Jathiyah" },
-  { number: 46, name: "Al-Ahqaf" },
-  { number: 47, name: "Muhammad" },
-  { number: 48, name: "Al-Fath" },
-  { number: 49, name: "Al-Hujurat" },
-  { number: 50, name: "Qaf" },
-  { number: 51, name: "Adh-Dhariyat" },
-  { number: 52, name: "At-Tur" },
-  { number: 53, name: "An-Najm" },
-  { number: 54, name: "Al-Qamar" },
-  { number: 55, name: "Ar-Rahman" },
-  { number: 56, name: "Al-Waqi'" },
-  { number: 57, name: "Al-Hadid" },
-  { number: 58, name: "Al-Mujadila" },
-  { number: 59, name: "Al-Hashr" },
-  { number: 60, name: "Al-Mumtahanah" },
-  { number: 61, name: "As-Saff" },
-  { number: 62, name: "Al-Jumu'ah" },
-  { number: 63, name: "Al-Munafiqun" },
-  { number: 64, name: "At-Taghabun" },
-  { number: 65, name: "At-Talaq" },
-  { number: 66, name: "At-Tahrim" },
-  { number: 67, name: "Al-Mulk" },
-  { number: 68, name: "Al-Qalam" },
-  { number: 69, name: "Al-Haqqah" },
-  { number: 70, name: "Al-Ma'arij" },
-  { number: 71, name: "Nuh" },
-  { number: 72, name: "Al-Jinn" },
-  { number: 73, name: "Al-Muzzammil" },
-  { number: 74, name: "Al-Muddathir" },
-  { number: 75, name: "Al-Qiyamah" },
-  { number: 76, name: "Al-Insan" },
-  { number: 77, name: "Al-Mursalat" },
-  { number: 78, name: "An-Naba'" },
-  { number: 79, name: "An-Nazi'at" },
-  { number: 80, name: "Abasa" },
-  { number: 81, name: "At-Takwir" },
-  { number: 82, name: "Al-Infitar" },
-  { number: 83, name: "Al-Mutaffifin" },
-  { number: 84, name: "Al-Inshiqaq" },
-  { number: 85, name: "Al-Buruj" },
-  { number: 86, name: "At-Tariq" },
-  { number: 87, name: "Al-Ala" },
-  { number: 88, name: "Al-Ghashiyah" },
-  { number: 89, name: "Al-Fajr" },
-  { number: 90, name: "Al-Balad" },
-  { number: 91, name: "Ash-Shams" },
-  { number: 92, name: "Al-Layl" },
-  { number: 93, name: "Ad-Duha" },
-  { number: 94, name: "Ash-Sharh" },
-  { number: 95, name: "At-Tin" },
-  { number: 96, name: "Al-Alaq" },
-  { number: 97, name: "Al-Qadr" },
-  { number: 98, name: "Al-Bayyinah" },
-  { number: 99, name: "Az-Zalzalah" },
-  { number: 100, name: "Al-Adiyat" },
-  { number: 101, name: "Al-Qari'ah" },
-  { number: 102, name: "At-Takathur" },
-  { number: 103, name: "Al-Asr" },
-  { number: 104, name: "Al-Humazah" },
-  { number: 105, name: "Al-Fil" },
-  { number: 106, name: "Quraysh" },
-  { number: 107, name: "Al-Maun" },
-  { number: 108, name: "Al-Kawthar" },
-  { number: 109, name: "Al-Kafirun" },
-  { number: 110, name: "An-Nasr" },
-  { number: 111, name: "Al-Masad" },
-  { number: 112, name: "Al-Ikhlas" },
-  { number: 113, name: "Al-Falaq" },
-  { number: 114, name: "An-Nas" },
-];
+import { SURAH_PAGE_GROUPS, activeGroupPage, filterSurahGroups, getJuzForPage, getSurahName, pageFromLocation, spreadUrl, type SurahPageGroup } from '@/lib/quran';
 
 interface Props {
-  surahs?: Surah[];
-  initialSelected?: number;
   onSelect?: (surahNumber: number) => void;
   currentPage?: number;
   basePath?: string;
@@ -145,7 +12,7 @@ interface Props {
   isSpread?: boolean;
 }
 
-export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, onSelect, currentPage: currentPageProp, basePath, topOffset = 72, isSpread = false }: Props) {
+export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, basePath, topOffset = 72, isSpread = false }: Props) {
   const [query, setQuery] = useState('');
   const [pinnedPage, setPinnedPage] = useState<number | null>(null);
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -173,44 +40,12 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const currentPage = useMemo(() => {
-    if (typeof currentPageProp === 'number') {
-      return currentPageProp;
-    }
+  const currentPage = useMemo(
+    () => (typeof currentPageProp === 'number' ? currentPageProp : pageFromLocation(pathname, searchParams)),
+    [currentPageProp, pathname, searchParams],
+  );
 
-    const qp = parseInt(searchParams.get('page') ?? '', 10);
-    if (!isNaN(qp) && qp > 0) return qp;
-
-    const readerMatch = pathname.match(/^\/reader\/(\d+)/);
-    if (readerMatch) return Number.parseInt(readerMatch[1], 10);
-
-    const shareMatch = pathname.match(/^\/share\/[^/]+\/(\d+)/);
-    if (shareMatch) return Number.parseInt(shareMatch[1], 10);
-
-    return 1;
-  }, [currentPageProp, pathname, searchParams]);
-
-  const groupedSurahs = useMemo<SurahPageGroup[]>(() => {
-    const groups = new Map<number, Surah[]>();
-    surahs.forEach(surah => {
-      const page = SURAH_FIRST_PAGES[surah.number];
-      if (!groups.has(page)) groups.set(page, []);
-      groups.get(page)!.push(surah);
-    });
-
-    return Array.from(groups.entries())
-      .sort(([a], [b]) => a - b)
-      .map(([page, groupSurahs]) => ({ page, surahs: groupSurahs }));
-  }, [surahs]);
-
-  const activePage = useMemo(() => {
-    let page = SURAH_FIRST_PAGES[initialSelected ?? 1] ?? 1;
-    for (const group of groupedSurahs) {
-      if (group.page <= currentPage) page = group.page;
-      else break;
-    }
-    return page;
-  }, [currentPage, groupedSurahs, initialSelected]);
+  const activePage = useMemo(() => activeGroupPage(currentPage), [currentPage]);
 
   // Show a "jump to current" affordance when the active surah is scrolled out of
   // view — at the top (arrow up) when it's above, at the bottom (arrow down) below.
@@ -219,22 +54,11 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     activeButtonRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
 
   const activeSurahName = useMemo(() => {
-    const g = groupedSurahs.find(group => group.page === activePage);
-    return g?.surahs.map(s => s.name).join(' · ') ?? '';
-  }, [groupedSurahs, activePage]);
+    const g = SURAH_PAGE_GROUPS.find(group => group.page === activePage);
+    return g?.surahs.map(n => getSurahName(n)).join(' · ') ?? '';
+  }, [activePage]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return groupedSurahs;
-    return groupedSurahs.filter(group => (
-      `${group.page}`.includes(q)
-      || group.surahs.some(surah => (
-        `${surah.number}`.includes(q)
-        || surah.name.toLowerCase().includes(q)
-        || (surah.englishName || '').toLowerCase().includes(q)
-      ))
-    ));
-  }, [groupedSurahs, query]);
+  const filtered = useMemo(() => filterSurahGroups(query), [query]);
 
   // Scroll to the active surah whenever the open page changes — EXCEPT when the change
   // came from a panel click (that path preserves the user's browse position, below).
@@ -354,7 +178,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
 
     const flush = (window as any).__hifthFlushReaderCanvas as undefined | (() => Promise<void>);
     await flush?.();
-    onSelect?.(group.surahs[0]?.number ?? 1);
+    onSelect?.(group.surahs[0] ?? 1);
 
     const params = new URLSearchParams(searchParams.toString());
     params.delete('page');
@@ -399,8 +223,21 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
           Surahs
         </h2>
         {activeSurahName && (
-          <p className="mt-0.5 truncate" style={{ color: 'var(--text-muted)', fontSize: 'var(--type-small-size)' }}>
-            Juz — · <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{activeSurahName}</span>
+          <p className="mt-1 flex items-center gap-2 truncate" style={{ fontSize: 'var(--type-small-size)' }}>
+            <span
+              className="shrink-0 tabular-nums"
+              style={{
+                padding: '2px 8px',
+                borderRadius: 'var(--radius-full)',
+                fontSize: 'var(--type-meta-size)',
+                fontWeight: 700,
+                background: 'var(--green-soft)',
+                color: 'var(--green-600)',
+              }}
+            >
+              Juz {getJuzForPage(activePage)}
+            </span>
+            <span className="truncate" style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{activeSurahName}</span>
           </p>
         )}
 
@@ -462,8 +299,8 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
                   }}
                 >
                   <span className="min-w-0 flex-1 flex flex-col justify-center gap-2">
-                    {group.surahs.map(s => (
-                      <span key={s.number} className="flex items-center gap-3 min-w-0">
+                    {group.surahs.map(n => (
+                      <span key={n} className="flex items-center gap-3 min-w-0">
                         <span
                           className="inline-flex shrink-0 items-center justify-center tabular-nums"
                           style={{
@@ -477,7 +314,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
                             color: active ? 'var(--green-600)' : 'var(--text-secondary)',
                           }}
                         >
-                          {s.number}
+                          {n}
                         </span>
                         <span
                           className="block truncate leading-snug"
@@ -487,7 +324,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
                             color: active ? 'var(--green-800)' : 'var(--text-primary)',
                           }}
                         >
-                          {s.name}
+                          {getSurahName(n)}
                         </span>
                       </span>
                     ))}

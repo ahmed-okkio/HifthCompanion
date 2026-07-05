@@ -72,6 +72,57 @@ export function getSurahName(surah: number, locale: 'en' | 'ar' = 'en'): string 
   return SURAH_NAMES[locale]?.[String(surah)] ?? `Surah ${surah}`;
 }
 
+/** A Mushaf page and the surah numbers (1–114) that start on it. */
+export type SurahPageGroup = { page: number; surahs: number[] };
+
+/**
+ * Surah numbers grouped by their first Mushaf page, page-ascending. Constant
+ * (depends only on the static surah↔page map) — the reader nav panels render
+ * this, resolving display names via getSurahName.
+ */
+export const SURAH_PAGE_GROUPS: SurahPageGroup[] = (() => {
+  const groups = new Map<number, number[]>();
+  for (let n = 1; n <= TOTAL_SURAHS; n++) {
+    const page = SURAH_FIRST_PAGES[n];
+    if (!groups.has(page)) groups.set(page, []);
+    groups.get(page)!.push(n);
+  }
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([page, surahs]) => ({ page, surahs }));
+})();
+
+/** First-page of the surah group active for a given page (highest group ≤ page). */
+export function activeGroupPage(currentPage: number): number {
+  let page = SURAH_PAGE_GROUPS[0]?.page ?? 1;
+  for (const group of SURAH_PAGE_GROUPS) {
+    if (group.page <= currentPage) page = group.page;
+    else break;
+  }
+  return page;
+}
+
+/** Filter surah groups by a free-text query (page number, surah number, or name). */
+export function filterSurahGroups(query: string): SurahPageGroup[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return SURAH_PAGE_GROUPS;
+  return SURAH_PAGE_GROUPS.filter(group =>
+    `${group.page}`.includes(q) ||
+    group.surahs.some(n => `${n}`.includes(q) || getSurahName(n).toLowerCase().includes(q)),
+  );
+}
+
+/** Reader page (1-based) parsed from a pathname/search-params pair; defaults 1. */
+export function pageFromLocation(pathname: string, search: URLSearchParams): number {
+  const qp = parseInt(search.get('page') ?? '', 10);
+  if (!isNaN(qp) && qp > 0) return qp;
+  const readerMatch = pathname.match(/^\/reader\/(\d+)/);
+  if (readerMatch) return parseInt(readerMatch[1], 10);
+  const shareMatch = pathname.match(/^\/share\/[^/]+\/(\d+)/);
+  if (shareMatch) return parseInt(shareMatch[1], 10);
+  return 1;
+}
+
 /** First page of a juz (1–30). */
 export function getJuzStartPage(juz: number): number {
   return JUZ_START_PAGES[juz] ?? 1;

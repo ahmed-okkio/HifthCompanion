@@ -140,9 +140,41 @@ interface Props {
 
 export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/reader', isSpread = false }: Props) {
   const [query, setQuery] = useState('');
+  const [bookmarkedPage, setBookmarkedPage] = useState<number | null>(null);
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
   const hasAutoScrolledRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressClickRef = useRef(false);
+
+  const BOOKMARK_KEY = 'pinnedSurahPage';
+
+  useEffect(() => {
+    const raw = localStorage.getItem(BOOKMARK_KEY);
+    const n = raw ? parseInt(raw, 10) : NaN;
+    if (!isNaN(n) && n > 0) setBookmarkedPage(n);
+  }, []);
+
+  const toggleBookmark = (page: number) => {
+    setBookmarkedPage(prev => {
+      const next = prev === page ? null : page;
+      if (next === null) localStorage.removeItem(BOOKMARK_KEY);
+      else localStorage.setItem(BOOKMARK_KEY, String(next));
+      return next;
+    });
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15);
+  };
+
+  const startLongPress = (page: number) => {
+    suppressClickRef.current = false;
+    longPressTimer.current = setTimeout(() => {
+      suppressClickRef.current = true;
+      toggleBookmark(page);
+    }, 500);
+  };
+  const cancelLongPress = () => {
+    if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
+  };
 
   const router = useRouter();
   const pathname = usePathname();
@@ -353,6 +385,9 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
               />
             </div>
           </div>
+          <p style={{ margin: '8px 4px 0', fontSize: 'var(--type-caption-size)', color: 'var(--text-muted)' }}>
+            Hold a surah to bookmark it as your default page.
+          </p>
         </div>
 
         {/* Scrollable list */}
@@ -370,7 +405,15 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                   <button
                     ref={active ? activeButtonRef : undefined}
                     type="button"
-                    onClick={() => { void handleSelect(group); }}
+                    onClick={() => {
+                      if (suppressClickRef.current) { suppressClickRef.current = false; return; }
+                      void handleSelect(group);
+                    }}
+                    onPointerDown={() => startLongPress(group.page)}
+                    onPointerUp={cancelLongPress}
+                    onPointerLeave={cancelLongPress}
+                    onPointerCancel={cancelLongPress}
+                    onContextMenu={e => e.preventDefault()}
                     style={{
                       width: '100%',
                       /* V3 Story 16: token radius + token colors */
@@ -430,9 +473,20 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                         fontSize: 'var(--type-caption-size)',  /* 12px */
                         fontWeight: 500,
                         color: active ? 'var(--text-accent)' : 'var(--text-muted)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
                       }}
                     >
                       Page {group.page}{group.surahs.length > 1 ? ` · ${group.surahs.length} surahs` : ''}
+                      {bookmarkedPage === group.page && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--green-600)', fontWeight: 700 }}>
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.2L5 21V4a1 1 0 0 1 1-1z" />
+                          </svg>
+                          Default
+                        </span>
+                      )}
                     </div>
                   </button>
                 </li>

@@ -19,7 +19,7 @@ export default function OnboardingPage() {
 
   const onSave = async (ranges: MemorizedRange[], weakest: number[]) => {
     await saveMemorization(ranges, weakest);
-    router.push('/reader/1');
+    router.push('/reader');
   };
 
   return (

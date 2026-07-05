@@ -147,10 +147,27 @@ interface Props {
 
 export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, onSelect, currentPage: currentPageProp, basePath, topOffset = 72, isSpread = false }: Props) {
   const [query, setQuery] = useState('');
+  const [pinnedPage, setPinnedPage] = useState<number | null>(null);
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
   const hasAutoScrolledRef = useRef(false);
   const scrollListRef = useRef<HTMLDivElement | null>(null);
   const SCROLL_STORAGE_KEY = 'surahPanelScrollTop';
+  const PIN_STORAGE_KEY = 'pinnedSurahPage';
+
+  useEffect(() => {
+    const raw = localStorage.getItem(PIN_STORAGE_KEY);
+    const n = raw ? parseInt(raw, 10) : NaN;
+    if (!isNaN(n) && n > 0) setPinnedPage(n);
+  }, []);
+
+  const togglePin = (page: number) => {
+    setPinnedPage(prev => {
+      const next = prev === page ? null : page;
+      if (next === null) localStorage.removeItem(PIN_STORAGE_KEY);
+      else localStorage.setItem(PIN_STORAGE_KEY, String(next));
+      return next;
+    });
+  };
 
   const router = useRouter();
   const pathname = usePathname();
@@ -219,16 +236,16 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     ));
   }, [groupedSurahs, query]);
 
+  // Scroll to the active surah whenever the open page changes — EXCEPT when the change
+  // came from a panel click (that path preserves the user's browse position, below).
   useEffect(() => {
     if (query.trim()) return;
-    if (hasAutoScrolledRef.current) return;
-    if (!activeButtonRef.current) return;
-    activeButtonRef.current.scrollIntoView({
+    if (cameFromPanelRef.current) { cameFromPanelRef.current = false; return; }
+    activeButtonRef.current?.scrollIntoView({
       block: 'center',
       inline: 'nearest',
       behavior: 'smooth',
     });
-    hasAutoScrolledRef.current = true;
   }, [activePage, query]);
 
   // The panel lives in the persistent reader shell, so it does NOT remount on page
@@ -238,6 +255,9 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
   const lastScrollTopRef = useRef<number>(0);
   const pinningRef = useRef<boolean>(false);
   const pendingTargetRef = useRef<number | null>(null);
+  // Set by handleSelect so the scroll-to-active effect knows this nav was a panel click
+  // (preserve position) rather than a URL / prev-next / bookmark nav (scroll to surah).
+  const cameFromPanelRef = useRef(false);
 
   useEffect(() => {
     const el = scrollListRef.current;
@@ -286,11 +306,12 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
   useEffect(() => {
     const el = scrollListRef.current;
     if (!el) return;
-    // Prefer the position frozen at navigation start (handleSelect); fall back to the
-    // last tracked scroll for navigations that bypass it (e.g. page jumper, back/forward).
-    const target = pendingTargetRef.current ?? lastScrollTopRef.current;
+    // Only preserve position for a panel-click nav (handleSelect froze it here). Any other
+    // nav (URL, prev/next, bookmark) has no frozen target and is left to the scroll-to-active
+    // effect, so opening a reader path scrolls the list to the selected surah.
+    const target = pendingTargetRef.current;
     pendingTargetRef.current = null;
-    if (target <= 0) return;
+    if (target === null || target <= 0) return;
 
     let cancelled = false;
     pinningRef.current = true;
@@ -323,6 +344,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
     // Freeze the current list scroll position up front and guard it: flushing the canvas
     // and the route change both reset this (persistent, non-remounting) list to 0, so we
     // must capture before awaiting anything and ignore the intervening resets.
+    cameFromPanelRef.current = true;
     const el = scrollListRef.current;
     if (el && el.scrollTop > 0) {
       pendingTargetRef.current = el.scrollTop;
@@ -346,6 +368,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
       // No navigation will occur; release the guard so normal tracking resumes.
       pendingTargetRef.current = null;
       pinningRef.current = false;
+      cameFromPanelRef.current = false;
       return;
     }
 
@@ -404,7 +427,23 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
           {filtered.map(group => {
             const active = activePage === group.page;
             return (
-              <li key={group.page}>
+              <li key={group.page} className="group/row relative">
+                <button
+                  type="button"
+                  onClick={() => togglePin(group.page)}
+                  title={pinnedPage === group.page ? 'Remove bookmark (default page)' : 'Bookmark as default page'}
+                  aria-label={pinnedPage === group.page ? 'Remove default bookmark' : 'Bookmark as default page'}
+                  aria-pressed={pinnedPage === group.page}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center opacity-0 transition-opacity duration-150 focus-visible:opacity-100 group-hover/row:opacity-100"
+                  style={{
+                    color: pinnedPage === group.page ? 'var(--green-600)' : 'var(--text-muted)',
+                    opacity: pinnedPage === group.page ? 1 : undefined,
+                  }}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill={pinnedPage === group.page ? 'currentColor' : 'none'} stroke="currentColor" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.2L5 21V4a1 1 0 0 1 1-1z" />
+                  </svg>
+                </button>
                 <button
                   ref={active ? activeButtonRef : undefined}
                   type="button"
@@ -415,6 +454,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
                   style={{
                     minHeight: '72px',
                     paddingBlock: '20px',
+                    paddingRight: '40px',
                     background: active ? 'var(--green-soft)' : 'transparent',
                     borderLeft: active
                       ? '4px solid var(--green-600)'
@@ -480,7 +520,7 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
           className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 font-semibold animate-fade-in"
           style={{
             // Top variant clears the header (title + search); bottom clears the footer.
-            ...(jumpDir === 'up' ? { top: '140px' } : { bottom: '84px' }),
+            ...(jumpDir === 'up' ? { top: '140px' } : { bottom: '24px' }),
             height: '40px',
             borderRadius: 'var(--radius-full)',
             background: 'var(--green-600)',
@@ -503,28 +543,6 @@ export default function SurahNavPanel({ surahs = SURAH_LIST, initialSelected, on
         </button>
       )}
 
-      <div className="flex-shrink-0 px-4 py-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-        <button
-          type="button"
-          aria-disabled="true"
-          title="Add to My Sets (coming soon)"
-          className="flex w-full items-center justify-center gap-2 font-semibold opacity-60 cursor-default"
-          style={{
-            minHeight: '44px',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid var(--border-subtle)',
-            background: 'var(--surface-main)',
-            color: 'var(--text-secondary)',
-            fontSize: 'var(--type-small-size)',
-          }}
-          onClick={e => e.preventDefault()}
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M5 12h14" />
-          </svg>
-          Add to My Sets
-        </button>
-      </div>
     </aside>
   );
 

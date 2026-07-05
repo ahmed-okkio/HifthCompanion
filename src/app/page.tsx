@@ -85,7 +85,7 @@ export default function Home() {
           style={{ animationDelay: '0.15s' }}
         >
           <Link
-            href="/reader/1"
+            href="/reader"
             className="inline-flex items-center justify-center gap-2 font-bold transition-transform hover:-translate-y-0.5"
             style={{
               height: 54, padding: '0 var(--space-32)', borderRadius: 'var(--radius-md)',

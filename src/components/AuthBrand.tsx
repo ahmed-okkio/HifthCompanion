@@ -12,7 +12,7 @@ export default function AuthBrand({ subtitle }: { subtitle?: string }) {
 
   return (
     <div className="text-center mb-8">
-      <Link href="/reader/1" className="inline-block">
+      <Link href="/reader" className="inline-block">
         {broken ? (
           <span className="text-3xl font-bold" style={{ color: 'var(--text-accent)' }}>
             حفظ

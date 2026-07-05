@@ -98,7 +98,7 @@ export const RAIL_ITEMS: RailItemDef[] = [
     id: 'surahs',
     label: 'My Mushaf',
     icon: (active) => <IconSurahs active={active} />,
-    href: '/reader/1',
+    href: '/reader',
     matchPrefixes: ['/reader'],
   },
   {

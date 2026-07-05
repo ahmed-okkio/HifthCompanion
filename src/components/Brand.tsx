@@ -10,7 +10,7 @@ import Link from 'next/link';
  */
 export default function Brand() {
   return (
-    <Link href="/reader/1" className="flex items-center gap-3 min-w-0" style={{ textDecoration: 'none', flexShrink: 0 }}>
+    <Link href="/reader" className="flex items-center gap-3 min-w-0" style={{ textDecoration: 'none', flexShrink: 0 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo.png" alt="Hifth Companion logo" style={{ height: 52, width: 'auto', objectFit: 'contain' }} />
       <span

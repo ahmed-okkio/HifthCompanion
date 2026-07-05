@@ -78,6 +78,11 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   // the target state makes its own condition false on the re-render).
   useEffect(() => {
     if (!window.matchMedia('(min-width: 1024px)').matches) return;
+    // Don't apply spread preference on the bare index route (/reader) — the
+    // ReaderIndexPage handles its own redirect there, including the pinned
+    // surah bookmark.  Without this guard, C3 fires second (parent effect)
+    // and clobbers the child's pinned-surah redirect with page 1.
+    if (pathname === spreadBase || pathname === `${spreadBase}/`) return;
     const raw = localStorage.getItem(SPREAD_MODE_KEY);
     if (raw === '1' && !spread) router.replace(`${spreadBase}/${spreadUrl(pageNum)}`);
     else if (raw === '0' && spread) router.replace(`${spreadBase}/${spread[0]}`);
@@ -153,7 +158,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
           <div
             className="flex flex-col flex-shrink-0"
             style={{
-              width: '260px',
+              width: '300px',
               height: '100%',
               overflow: 'hidden',
               background: 'var(--surface-main)',

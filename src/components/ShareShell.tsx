@@ -100,7 +100,7 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
                   <line x1="3" y1="18" x2="3.01" y2="18" />
                 </svg>
               </button>
-              <Link href="/reader/1" className={navStyles.brand}>
+              <Link href="/reader" className={navStyles.brand}>
                 <span className={navStyles.brandIcon}>
                   <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden>
                     <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} />
@@ -191,7 +191,7 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
           className="hidden lg:flex lg:flex-col flex-shrink-0"
           style={{
             height: '100%',
-            width: '288px',
+            width: '320px',
             overflow: 'hidden',
           }}
         >

@@ -30,7 +30,7 @@ const ATT_STATUSES: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'
 const today = () => new Date().toISOString().slice(0, 10);
 
 function fmtTime(iso: string, locale: string) {
-  return new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' });
+  return new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 }
 
 /**
@@ -200,7 +200,7 @@ function StudentSessions({
 }: {
   membershipId: string;
   initial: Session[];
-  initialSchedule: { weekdays: number[]; time: string } | null;
+  initialSchedule: { weekdays: number[]; time: string; timezone?: string } | null;
 }) {
   const { t, locale } = useI18n();
   const [sessions, setSessions] = useState(initial);
@@ -209,6 +209,7 @@ function StudentSessions({
   const [showSchedule, setShowSchedule] = useState(false);
   const [weekdays, setWeekdays] = useState<number[]>(initialSchedule?.weekdays ?? []);
   const [time, setTime] = useState(initialSchedule?.time ?? '17:00');
+  const [tz, setTz] = useState(initialSchedule?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [adhocDate, setAdhocDate] = useState('');
   const [adhocTime, setAdhocTime] = useState('17:00');
   const [err, setErr] = useState<string | null>(null);
@@ -223,7 +224,7 @@ function StudentSessions({
     [locale],
   );
 
-  const rule = weekdays.length ? { weekdays, time } : null;
+  const rule = weekdays.length ? { weekdays, time, timezone: tz } : null;
 
   function toggleDay(d: number) {
     setWeekdays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
@@ -311,7 +312,7 @@ function StudentSessions({
           <DateChip iso={slot.scheduled_at} locale={locale} />
           <div className="flex flex-col gap-0.5 min-w-0 flex-1">
             <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {new Date(slot.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })}
+              {new Date(slot.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' })}
               {s?.is_adhoc && <span className="badge" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
               {canceled && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.canceled')}</span>}
               {!canceled && s?.attendance_status && (

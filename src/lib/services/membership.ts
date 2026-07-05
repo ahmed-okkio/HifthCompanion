@@ -61,6 +61,23 @@ export async function getCircleMembersWithProfiles(
   });
 }
 
+export type RosterMember = {
+  user_id: string;
+  role: 'teacher' | 'student';
+  first_name: string | null;
+  last_name: string | null;
+};
+
+/** Circle roster (teacher + active students), names only, for the student view.
+ *  Backed by the `circle_roster` definer RPC — a student can't read sibling
+ *  membership rows directly, and this leaks no schedule/status/progress. */
+export async function getCircleRoster(circleId: string): Promise<RosterMember[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc('circle_roster', { _circle: circleId });
+  if (error) throw error;
+  return (data ?? []) as RosterMember[];
+}
+
 /** Join a circle by id as a student. Lands as 'pending' — consent gate (D12). */
 export async function joinCircle(circleId: string): Promise<Membership> {
   const supabase = await createClientAction();

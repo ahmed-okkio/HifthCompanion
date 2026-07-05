@@ -6,7 +6,7 @@ import TeacherCircle from '@/components/tracker/TeacherCircle';
 import StudentCircle from '@/components/tracker/StudentCircle';
 import AcceptInvite from '@/components/tracker/AcceptInvite';
 import { getCircle } from '@/lib/services/circle';
-import { getCircleMembers, getCircleMembersWithProfiles } from '@/lib/services/membership';
+import { getCircleMembers, getCircleMembersWithProfiles, getCircleRoster } from '@/lib/services/membership';
 import { getProfilesByIds } from '@/lib/services/profile';
 import { getLogsForMembership } from '@/lib/services/progressLog';
 import { getSessionsForMemberships, getSessions } from '@/lib/services/sessions';
@@ -104,11 +104,12 @@ export default async function CirclePage({
     );
   }
 
-  const [initialLogs, initialSessions, initialHomework, initialNotes] = await Promise.all([
+  const [initialLogs, initialSessions, initialHomework, initialNotes, roster] = await Promise.all([
     getLogsForMembership(membership.id),
     getSessions(membership.id),
     listHomework(membership.id),
     listNotes(membership.id),
+    getCircleRoster(circleId),
   ]);
 
   return (
@@ -123,6 +124,8 @@ export default async function CirclePage({
             initialLogs={initialLogs}
             initialHomework={initialHomework}
             initialNotes={initialNotes}
+            roster={roster}
+            selfUserId={user.id}
           />
         </div>
       </main>

@@ -205,9 +205,9 @@ export function DateChip({ iso, locale }: { iso: string; locale: string }) {
       }}
     >
       <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.4 }}>
-        {d.toLocaleDateString(locale, { weekday: 'short', timeZone: 'UTC' })}
+        {d.toLocaleDateString(locale, { weekday: 'short' })}
       </span>
-      <span style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.1 }}>{d.getUTCDate()}</span>
+      <span style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.1 }}>{d.getDate()}</span>
     </span>
   );
 }

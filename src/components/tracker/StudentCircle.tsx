@@ -8,14 +8,15 @@ import type {
 import { createLog, deleteLog, type NewProgressLog } from '@/lib/services/progressLog';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
-import {
-  homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus,
-} from '@/lib/homework';
+import { homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus } from '@/lib/homework';
+import { recurringSlots } from '@/lib/recurrence';
 import { isStreakAtRisk } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
 import { wholeSurahPages } from '@/lib/homework';
-import { SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, Icon } from './ui';
+import { SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, Icon, Avatar } from './ui';
 import { SurahPicker, type Entry } from './TeacherStudent';
+import type { RosterMember } from '@/lib/services/membership';
+import { displayName } from '@/lib/displayName';
 
 const LOG_TYPES: LogType[] = ['memorization', 'general_revision', 'targeted_revision'];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -27,7 +28,7 @@ const STATUS_KEY = {
 } as const satisfies Record<HomeworkStatus, string>;
 
 function fmtTime(iso: string, locale: string) {
-  return new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' });
+  return new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 }
 
 /**
@@ -42,6 +43,8 @@ export default function StudentCircle({
   initialLogs,
   initialHomework,
   initialNotes,
+  roster,
+  selfUserId,
 }: {
   circle: Circle;
   membership: Membership;
@@ -49,6 +52,8 @@ export default function StudentCircle({
   initialLogs: ProgressLog[];
   initialHomework: Homework[];
   initialNotes: NoteWithAuthor[];
+  roster: RosterMember[];
+  selfUserId: string;
 }) {
   const { t, locale } = useI18n();
   const [logs, setLogs] = useState(initialLogs);
@@ -122,8 +127,9 @@ export default function StudentCircle({
         {/* Schedule sidebar — always visible, read-only (D3); hoisted above the
             feed on mobile. On lg, offset down so its heading sits under the tab
             bar row (≈ tab-bar height + the column's gap), not level with it. */}
-        <aside className="order-first lg:order-none lg:sticky lg:top-6 self-start min-w-0 lg:mt-[66px]">
+        <aside className="order-first lg:order-none lg:sticky lg:top-6 self-start min-w-0 lg:mt-[66px] flex flex-col gap-6">
           <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} />
+          <CircleMembers roster={roster} selfUserId={selfUserId} />
         </aside>
       </div>
     </div>
@@ -136,17 +142,15 @@ function UpcomingSessions({ sessions, schedule }: { sessions: Session[]; schedul
   const { t, locale } = useI18n();
   const now = Date.now();
 
-  // The weekly slots are virtual — render the RULE (one card per weekday, same
-  // chip style as a session) rather than materialized rows; only ad-hocs list.
-  const ruleDays = schedule?.weekdays.length
-    ? [...schedule.weekdays].sort((a, b) => a - b)
-    : null;
-  // Wall-clock time interpreted as-if-UTC (mirrors the recurrence convention).
-  const [hh, mm] = (schedule?.time ?? '00:00').split(':').map(Number);
-  const timeShort = new Date(Date.UTC(2023, 0, 1, hh, mm)).toLocaleTimeString(locale, { hour: 'numeric', hour12: true, timeZone: 'UTC' });
-  const timeFull = new Date(Date.UTC(2023, 0, 1, hh, mm)).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'UTC' });
-  // 2023-01-01 is a Sunday → index d lands on that weekday for name formatting.
-  const dayDate = (d: number) => new Date(Date.UTC(2023, 0, 1 + d));
+  // Generate 1 week of virtual slots to accurately derive local days and times
+  // for the schedule, automatically handling timezone boundary crossings.
+  const weekSlots = useMemo(() => {
+    if (!schedule || schedule.weekdays.length === 0) return null;
+    const ruleCount = schedule.weekdays.length;
+    // Get slots for the next 7 days, then slice exactly the rule count
+    // so we just show one instance of each weekly slot.
+    return recurringSlots(schedule, new Date(), 7).slice(0, ruleCount);
+  }, [schedule]);
 
   // Only surface the NEXT ad-hoc (soonest upcoming) — the recurring rule covers
   // the rest; a one-off is the exception worth calling out.
@@ -159,30 +163,37 @@ function UpcomingSessions({ sessions, schedule }: { sessions: Session[]; schedul
       {/* Recurring schedule — one card per weekday, reusing the session look */}
       <div className="flex flex-col gap-2">
         <SectionTitle>{t('sessions.tabSessions')}</SectionTitle>
-        {ruleDays ? ruleDays.map((d) => (
-          <div key={d} className="card flex items-center gap-3" style={{ padding: '10px 14px' }}>
-            <span aria-hidden className="flex flex-col items-center justify-center shrink-0"
-                  style={{ width: 46, height: 46, borderRadius: 'var(--radius-md)', background: 'var(--accent-muted)', color: 'var(--text-accent)' }}>
-              <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.4 }}>
-                {dayDate(d).toLocaleDateString(locale, { weekday: 'short', timeZone: 'UTC' })}
+        {weekSlots ? weekSlots.map((iso) => {
+          const d = new Date(iso);
+          return (
+            <div key={iso} className="card flex items-center gap-3" style={{ padding: '10px 14px' }}>
+              <span aria-hidden className="flex flex-col items-center justify-center shrink-0"
+                    style={{ width: 46, height: 46, borderRadius: 'var(--radius-md)', background: 'var(--accent-muted)', color: 'var(--text-accent)' }}>
+                <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.4 }}>
+                  {d.toLocaleDateString(locale, { weekday: 'short' })}
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.1 }}>
+                  {d.toLocaleTimeString(locale, { hour: 'numeric', hour12: true }).replace(/\s/g, '')}
+                </span>
               </span>
-              <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.1 }}>{timeShort.replace(/\s/g, '')}</span>
-            </span>
-            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-              <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {dayDate(d).toLocaleDateString(locale, { weekday: 'long', timeZone: 'UTC' })}
-              </span>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{timeFull}</span>
+              <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {d.toLocaleDateString(locale, { weekday: 'long' })}
+                </span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: true })}
+                </span>
+              </div>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                   strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0" style={{ color: 'var(--text-muted)' }}>
+                <path d="M17 2l4 4-4 4" />
+                <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+                <path d="M7 22l-4-4 4-4" />
+                <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+              </svg>
             </div>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                 strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0" style={{ color: 'var(--text-muted)' }}>
-              <path d="M17 2l4 4-4 4" />
-              <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
-              <path d="M7 22l-4-4 4-4" />
-              <path d="M21 13v1a4 4 0 0 1-4 4H3" />
-            </svg>
-          </div>
-        )) : (
+          );
+        }) : (
           <EmptyState>{t('sessions.noSchedule')}</EmptyState>
         )}
       </div>
@@ -195,7 +206,7 @@ function UpcomingSessions({ sessions, schedule }: { sessions: Session[]; schedul
             <DateChip iso={nextAdhoc.scheduled_at} locale={locale} />
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
               <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {new Date(nextAdhoc.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' })}
+                {new Date(nextAdhoc.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' })}
               </span>
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                 {fmtTime(nextAdhoc.scheduled_at, locale)}
@@ -205,6 +216,40 @@ function UpcomingSessions({ sessions, schedule }: { sessions: Session[]; schedul
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// --- Circle members (roster, read-only identity) -----------------------------
+
+function CircleMembers({ roster, selfUserId }: { roster: RosterMember[]; selfUserId: string }) {
+  const { t } = useI18n();
+  if (roster.length === 0) return null;
+  return (
+    <div className="flex flex-col gap-2">
+      <SectionTitle trailing={<span className="badge badge-muted">{roster.length}</span>}>
+        {t('circle.membersTitle')}
+      </SectionTitle>
+      <div className="flex flex-col gap-2">
+        {roster.map((m) => {
+          const name = displayName(m);
+          const isSelf = m.user_id === selfUserId;
+          const isTeacher = m.role === 'teacher';
+          return (
+            <div key={m.user_id} className="card flex items-center gap-3" style={{ padding: '10px 12px' }}>
+              <Avatar seed={name} size={32} />
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                  {name}{isSelf ? ` (${t('circle.you')})` : ''}
+                </span>
+                {isTeacher && (
+                  <span className="text-xs" style={{ color: 'var(--text-accent)' }}>{t('circle.roleTeacher')}</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

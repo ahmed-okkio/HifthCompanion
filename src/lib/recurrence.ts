@@ -1,4 +1,5 @@
 import type { Recurrence, Session } from '@/types';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 // ---------------------------------------------------------------------------
 // M3 recurrence — pure logic to materialize weekly-recurring session times.
@@ -18,9 +19,8 @@ function parseTime(time: string): [number, number] {
 
 /**
  * Slot instants for `rule` from `from` (inclusive) over `horizonDays`.
- * Times float as wall-clock (interpreted as-if-UTC), so a picked 17:00 stays
- * 17:00 regardless of host timezone; render sites use timeZone:'UTC'.
- * Returns sorted ascending ISO strings.
+ * Times are evaluated in the rule's local timezone (or UTC if unset) to correctly
+ * handle DST shifts, then returned as absolute UTC ISO strings.
  */
 export function recurringSlots(
   rule: Recurrence | null,
@@ -31,21 +31,36 @@ export function recurringSlots(
   const days = new Set(rule.weekdays.filter((d) => d >= 0 && d <= 6));
   if (days.size === 0) return [];
   const [h, min] = parseTime(rule.time);
+  const tz = rule.timezone || 'UTC';
 
   const out: string[] = [];
-  const cursor = new Date(from);
-  // UTC ops so the picked wall-clock floats (stored as-if-UTC), independent of
-  // the host process timezone (this runs in the generateSessions server action).
-  cursor.setUTCHours(0, 0, 0, 0);
+  
+  // Start from the local day corresponding to `from` in the target timezone
+  const zonedFrom = toZonedTime(from, tz);
+  // Use a system-local Date object purely to iterate days safely (starting at noon avoids DST skip bugs)
+  const localCursor = new Date(zonedFrom.getFullYear(), zonedFrom.getMonth(), zonedFrom.getDate(), 12, 0, 0);
+
   for (let i = 0; i < horizonDays; i++) {
-    if (days.has(cursor.getUTCDay())) {
-      const slot = new Date(cursor);
-      slot.setUTCHours(h, min, 0, 0);
-      if (slot.getTime() >= from.getTime()) out.push(slot.toISOString());
+    const evalDate = new Date(localCursor.getTime() + i * 86400000);
+    const yyyy = evalDate.getFullYear();
+    const mm = String(evalDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(evalDate.getDate()).padStart(2, '0');
+    
+    // Construct local ISO string: YYYY-MM-DDTHH:mm:00
+    const localString = `${yyyy}-${mm}-${dd}T${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}:00`;
+    
+    // Convert this local moment in `tz` to a real UTC Date
+    const utcDate = fromZonedTime(localString, tz);
+    
+    // Does this moment fall on an accepted weekday in `tz`?
+    if (days.has(evalDate.getDay())) {
+      if (utcDate.getTime() >= from.getTime()) {
+        out.push(utcDate.toISOString());
+      }
     }
-    cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
-  return out;
+
+  return out.sort();
 }
 
 /**
@@ -87,14 +102,11 @@ export interface SectionedSessions {
 }
 
 /**
- * "Now" in the app's floating frame: session times are stored as wall-clock
- * as-if-UTC (a picked 17:00 → `...T17:00:00Z`, rendered with timeZone:'UTC'), so
- * to compare past/future against them, `now` must be shifted into that same
- * frame — its UTC fields set to the viewer's local wall clock. Without this a
- * 2:00pm slot reads as "future" to a UTC+n viewer whose local clock is 2:44pm.
+ * "Now" is just `new Date()` since session times are now correctly absolute UTC.
+ * (Kept as a helper for backwards compatibility in call sites).
  */
 export function floatingNow(d: Date = new Date()): Date {
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return d;
 }
 
 /** A row is "resolved" (belongs in History) once it carries attendance or a cancel. */

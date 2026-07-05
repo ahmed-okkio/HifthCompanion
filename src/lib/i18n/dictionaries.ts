@@ -151,6 +151,9 @@ const en = {
 
   'sessions.title': 'Upcoming sessions',
   'sessions.tabSessions': 'Sessions',
+  'circle.membersTitle': 'Circle members',
+  'circle.roleTeacher': 'Teacher',
+  'circle.you': 'You',
   'sessions.setSchedule': 'Set the schedule',
   'sessions.editSchedule': 'Edit schedule',
   'sessions.repeatsEvery': 'Repeats every',
@@ -220,6 +223,8 @@ const en = {
   'memorization.empty': 'No verses added yet.',
   'memorization.partial': '{name} {from}–{to}',
   'memorization.remove': 'Remove',
+  'memorization.juzSelected': '{count} juz selected — tap to review',
+  'memorization.juzLabel': 'Juz {n}',
 
   // Onboarding + profile (PRD 0008 M4).
   'onboarding.title': 'Set your memorization baseline',
@@ -382,6 +387,9 @@ const ar: Record<MessageKey, string> = {
 
   'sessions.title': 'الجلسات القادمة',
   'sessions.tabSessions': 'الجلسات',
+  'circle.membersTitle': 'أعضاء الحلقة',
+  'circle.roleTeacher': 'المعلّم',
+  'circle.you': 'أنت',
   'sessions.setSchedule': 'ضبط الجدول',
   'sessions.editSchedule': 'تعديل الجدول',
   'sessions.repeatsEvery': 'يتكرر كل',
@@ -451,6 +459,8 @@ const ar: Record<MessageKey, string> = {
   'memorization.empty': 'لم تتم إضافة آيات بعد.',
   'memorization.partial': '{name} {from}–{to}',
   'memorization.remove': 'إزالة',
+  'memorization.juzSelected': 'تم تحديد {count} جزء — اضغط للمراجعة',
+  'memorization.juzLabel': 'الجزء {n}',
 
   // الإعداد + الملف الشخصي (PRD 0008 M4).
   'onboarding.title': 'حدّد أساس حفظك',

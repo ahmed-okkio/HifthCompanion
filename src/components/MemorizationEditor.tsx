@@ -5,7 +5,7 @@ import { useI18n } from '@/components/I18nProvider';
 import type { MemorizedRange } from '@/types';
 import { AYAH_COUNTS, TOTAL_JUZ, TOTAL_SURAHS, getSurahName } from '@/lib/quran';
 import { juzToRanges, normalize, subtractRanges } from '@/lib/memorization';
-import { SectionTitle, SurahCombobox, NumberStepper } from '@/components/tracker/ui';
+import { SectionTitle, SurahCombobox, NumberStepper, Chevron } from '@/components/tracker/ui';
 
 /**
  * Three-step memorization editor (PRD 0008, revised UX).
@@ -62,8 +62,18 @@ export default function MemorizationEditor({
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [error, setError] = useState('');
+  const [showJuzList, setShowJuzList] = useState(false);
 
   const max = surah ? AYAH_COUNTS[surah] : 1;
+
+  // First → last surah spanned by a juz, e.g. "Al-Mulk – Al-Mursalat" (single
+  // name when the juz sits inside one surah). Lets users sanity-check a juz pick.
+  const juzSurahRange = (j: number): string => {
+    const r = juzToRanges(j);
+    const a = getSurahName(r[0].surah, locale);
+    const b = getSurahName(r[r.length - 1].surah, locale);
+    return a === b ? a : `${a} – ${b}`;
+  };
 
   // Surahs the user has declared memorized — the pool step 3 picks weakest from.
   const memorizedSurahs = [
@@ -152,7 +162,7 @@ export default function MemorizationEditor({
               <h2 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
                 {t('memorization.step1Title')}
               </h2>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {t('memorization.step1Hint')}
               </p>
               <div
@@ -186,6 +196,46 @@ export default function MemorizationEditor({
                   );
                 })}
               </div>
+
+              {/* Collapsible recap: one row per selected juz with its surah span,
+                  so users can verify the pick without the grid ballooning. */}
+              {selected.size > 0 && (
+                <div className="mt-4 flex flex-col items-start">
+                  <button
+                    type="button"
+                    onClick={() => setShowJuzList((v) => !v)}
+                    tabIndex={step === 0 ? 0 : -1}
+                    className="btn btn-outline inline-flex items-center gap-3"
+                    style={{ minHeight: 38, fontSize: 13, padding: '0 16px' }}
+                  >
+                    <span>{t('memorization.juzSelected', { count: selected.size })}</span>
+                    <Chevron open={showJuzList} color="currentColor" />
+                  </button>
+                  {showJuzList && (
+                    <div className="flex flex-wrap gap-2 mt-3 animate-fade-in">
+                      {[...selected].sort((a, b) => a - b).map((j) => (
+                        <div
+                          key={j}
+                          className="flex items-center gap-1.5 text-xs"
+                          style={{ 
+                            background: 'var(--bg-surface)', 
+                            border: '1px solid var(--border-subtle)', 
+                            borderRadius: 'var(--radius-md)',
+                            padding: '6px 10px',
+                            color: 'var(--text-secondary)'
+                          }}
+                        >
+                          <span className="font-semibold shrink-0" style={{ color: 'var(--text-primary)' }}>
+                            {t('memorization.juzLabel', { n: j })}
+                          </span>
+                          <span style={{ color: 'var(--text-muted)' }}>·</span>
+                          <span>{juzSurahRange(j)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -195,7 +245,7 @@ export default function MemorizationEditor({
               <h2 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
                 {t('memorization.step2Title')}
               </h2>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {t('memorization.step2Hint')}
               </p>
               <div className="flex flex-wrap items-end gap-2 mt-1">
@@ -266,7 +316,7 @@ export default function MemorizationEditor({
               <h2 className="text-base font-bold" style={{ color: 'var(--text-primary)' }}>
                 {t('memorization.step3Title')}
               </h2>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
                 {t('memorization.step3Hint')}
               </p>
               {memorizedSurahs.length === 0 ? (

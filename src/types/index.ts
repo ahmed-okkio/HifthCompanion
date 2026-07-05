@@ -54,6 +54,7 @@ export interface StatusConfig {
 export interface Recurrence {
   weekdays: number[];
   time: string;
+  timezone?: string;
 }
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';

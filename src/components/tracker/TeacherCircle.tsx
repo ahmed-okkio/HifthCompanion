@@ -132,10 +132,14 @@ export default function TeacherCircle({
                       <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
                         {displayName(m)}
                       </span>
-                      <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
-                        <StatusDot color={m.status === 'active' ? 'var(--success)' : m.status === 'pending' ? 'var(--warning)' : 'var(--text-muted)'} />
-                        {t(`tracker.${m.status}`)}
-                      </span>
+                      {/* Active is the default/expected state — no dot needed. Only flag
+                          pending/blocked, which need teacher attention. */}
+                      {m.status !== 'active' && (
+                        <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                          <StatusDot color={m.status === 'pending' ? 'var(--warning)' : 'var(--text-muted)'} />
+                          {t(`tracker.${m.status}`)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
@@ -151,19 +155,15 @@ export default function TeacherCircle({
                       // Pending: not clickable into data — teacher sees nothing until active (C1/S1).
                       header
                     )}
-                    {(active || m.status !== 'pending') && (
+                    {/* Deactivate lives on the student's profile page (grey, confirm-gated)
+                        to avoid accidental clicks. Roster only offers reactivate for blocked. */}
+                    {m.status === 'blocked' && (
                       <>
                         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                         <div className="flex gap-1">
-                          {active ? (
-                            <button onClick={() => handleStatus(m.id, 'blocked')} className="btn btn-danger-ghost" style={{ minHeight: 32, fontSize: 12, padding: '4px 10px' }}>
-                              {t('tracker.deactivate')}
-                            </button>
-                          ) : (
-                            <button onClick={() => handleStatus(m.id, 'active')} className="btn btn-outline" style={{ minHeight: 32, fontSize: 12, padding: '4px 10px' }}>
-                              {t('tracker.reactivate')}
-                            </button>
-                          )}
+                          <button onClick={() => handleStatus(m.id, 'active')} className="btn btn-outline" style={{ minHeight: 32, fontSize: 12, padding: '4px 10px' }}>
+                            {t('tracker.reactivate')}
+                          </button>
                         </div>
                       </>
                     )}

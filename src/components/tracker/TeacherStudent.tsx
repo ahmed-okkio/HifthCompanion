@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
+import { setMembershipStatus } from '@/lib/services/membership';
 import type {
   AttendanceStatus, Circle, Exam, ExamStatus, Homework, LogType, MemberWithProfile,
   ProgressLog, Session, StatusConfig,
@@ -61,7 +63,16 @@ export default function TeacherStudent({
   initialExams: Exam[];
 }) {
   const { t, locale } = useI18n();
+  const router = useRouter();
   const [tab, setTab] = useState('sessions');
+
+  // Deactivate lives here (student profile) only, grey + confirm-gated, so it
+  // can't be hit by accident from the roster. Redirects back to the circle.
+  async function handleDeactivate() {
+    if (!window.confirm(t('tracker.deactivateConfirm'))) return;
+    await setMembershipStatus(member.id, 'blocked');
+    router.push(`/tracker/${circle.id}`);
+  }
   // Attendance rows for analytics live on the session row now (D3) — derive them.
   const attendance = useMemo(
     () => initialSessions.filter((s) => s.attendance_status).map((s) => ({ status: s.attendance_status! })),
@@ -91,6 +102,7 @@ export default function TeacherStudent({
             { key: 'homework', label: t('homework.title') },
             { key: 'exams', label: t('exam.title') },
             { key: 'notes', label: t('notes.title') },
+            { key: 'settings', label: t('common.settings') },
           ]}
           active={tab}
           onSelect={setTab}
@@ -106,6 +118,29 @@ export default function TeacherStudent({
         {tab === 'homework' && <HomeworkPanel membershipId={member.id} initial={initialHomework} logs={logs} teacherStatuses={circle.teacher_statuses} studentStatuses={circle.student_statuses} />}
         {tab === 'exams' && <ExamsPanel membershipId={member.id} initial={initialExams} locale={locale} />}
         {tab === 'notes' && <NotesThread membershipId={member.id} initial={initialNotes} />}
+        {tab === 'settings' && (
+          <div className="card flex flex-col gap-3" style={{ padding: '18px 20px' }}>
+            <SectionTitle>{t('common.settings')}</SectionTitle>
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {t('tracker.deactivate')}
+                </span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {t('tracker.deactivateHint')}
+                </span>
+              </div>
+              {member.status === 'active' ? (
+                <button onClick={handleDeactivate} className="btn btn-ghost shrink-0"
+                        style={{ minHeight: 34, fontSize: 13, color: 'var(--text-muted)' }}>
+                  {t('tracker.deactivate')}
+                </button>
+              ) : (
+                <span className="badge badge-muted shrink-0">{t(`tracker.${member.status}`)}</span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Empty right spacer mirrors the sidebar width so the feed sits centered in the page. */}

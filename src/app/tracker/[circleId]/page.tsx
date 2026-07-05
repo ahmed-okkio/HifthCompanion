@@ -49,8 +49,9 @@ export default async function CirclePage({
     const agenda = active
       .flatMap((m) => {
         const rows = sessions.filter((s) => s.membership_id === m.id);
-        const { next, upcoming } = sectionSessions(m.schedule, rows, nowDate);
-        return [next, ...upcoming]
+        // Teacher agenda shows only each student's single next session (D5).
+        const { next } = sectionSessions(m.schedule, rows, nowDate);
+        return [next]
           .filter((slot): slot is NonNullable<typeof slot> => !!slot)
           .filter((slot) => new Date(slot.scheduled_at).getTime() >= now)
           .map((slot) => ({

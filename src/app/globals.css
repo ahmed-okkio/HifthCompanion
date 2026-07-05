@@ -4,8 +4,43 @@
    on <html> in layout.tsx. Without this the app silently rendered in the
    default system stack — Plus Jakarta Sans was loaded but never applied. */
 @theme inline {
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  /* NOTE: reference the raw "Plus Jakarta Sans" face, NOT var(--font-geist-sans).
+     next/font bundles a `local(Arial)` fallback into that variable with no
+     unicode-range, so Arial would render Arabic before the browser ever reaches
+     the Arabic face below. Naming the face directly keeps Latin on Jakarta and
+     lets Arabic glyphs fall through to "Noto Sans Arabic Web". */
+  --font-sans: "Plus Jakarta Sans", "Noto Sans Arabic Web", ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+/* Arabic face — self-hosted @font-face (not next/font) so we can set size-adjust.
+   Noto Sans Arabic renders visually small next to Plus Jakarta Sans; size-adjust
+   scales it up ONLY where it's actually used (Arabic glyphs), no per-element
+   tagging. Chained into --font-sans above. Bump the size-adjust % to grow all
+   Arabic text app-wide. */
+@font-face {
+  font-family: "Noto Sans Arabic Web";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  size-adjust: 118%;
+  src: url(https://fonts.gstatic.com/s/notosansarabic/v33/nwpxtLGrOAZMl5nJ_wfgRg3DrWFZWsnVBJ_sS6tlqHHFlhQ5l3sQWIHPqzCfyGyvuw.ttf) format('truetype');
+}
+@font-face {
+  font-family: "Noto Sans Arabic Web";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  size-adjust: 118%;
+  src: url(https://fonts.gstatic.com/s/notosansarabic/v33/nwpxtLGrOAZMl5nJ_wfgRg3DrWFZWsnVBJ_sS6tlqHHFlhQ5l3sQWIHPqzCf-myvuw.ttf) format('truetype');
+}
+@font-face {
+  font-family: "Noto Sans Arabic Web";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  size-adjust: 118%;
+  src: url(https://fonts.gstatic.com/s/notosansarabic/v33/nwpxtLGrOAZMl5nJ_wfgRg3DrWFZWsnVBJ_sS6tlqHHFlhQ5l3sQWIHPqzCfL2uvuw.ttf) format('truetype');
 }
 
 /* ============================================================================

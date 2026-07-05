@@ -51,7 +51,7 @@ export default async function StudentDetailPage({
       { label: displayName(member) },
     ]} user={account}>
       <main className="px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
-        <div className="max-w-6xl mx-auto w-full" style={{ position: 'relative' }}>
+        <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
           <BackButton href={`/tracker/${circleId}`} />
           <TeacherStudent
             circle={circle}

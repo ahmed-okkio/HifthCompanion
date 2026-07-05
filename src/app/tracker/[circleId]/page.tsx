@@ -6,7 +6,9 @@ import TeacherCircle from '@/components/tracker/TeacherCircle';
 import StudentCircle from '@/components/tracker/StudentCircle';
 import AcceptInvite from '@/components/tracker/AcceptInvite';
 import { getCircle } from '@/lib/services/circle';
-import { getCircleMembers, getCircleMembersWithProfiles, getCircleRoster } from '@/lib/services/membership';
+import { getCircleMembers, getCircleMembersWithProfiles, getCircleRoster, getStudentDefaultSetId } from '@/lib/services/membership';
+import { getStudentMemorization } from '@/lib/services/profile';
+import { rangesTotals } from '@/lib/analytics';
 import { getProfilesByIds } from '@/lib/services/profile';
 import { getLogsForMembership } from '@/lib/services/progressLog';
 import { getSessionsForMemberships, getSessions } from '@/lib/services/sessions';
@@ -105,19 +107,22 @@ export default async function CirclePage({
     );
   }
 
-  const [initialLogs, initialSessions, initialHomework, initialNotes, roster, initialExams] = await Promise.all([
+  const [initialLogs, initialSessions, initialHomework, initialNotes, roster, initialExams, defaultSetId, memorizedRanges] = await Promise.all([
     getLogsForMembership(membership.id),
     getSessions(membership.id),
     listHomework(membership.id),
     listNotes(membership.id),
     getCircleRoster(circleId),
     getExamsForMembership(membership.id),
+    getStudentDefaultSetId(membership.id),
+    getStudentMemorization(user.id),
   ]);
+  const memorized = rangesTotals(memorizedRanges);
 
   return (
     <AppShell breadcrumb={[{ label: 'Circles', href: '/tracker' }, { label: circle.name }]} user={account}>
       <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
-        <div className="max-w-5xl mx-auto w-full" style={{ position: 'relative' }}>
+        <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
           <BackButton href="/tracker" />
           <StudentCircle
             circle={circle}
@@ -129,6 +134,8 @@ export default async function CirclePage({
             initialExams={initialExams}
             roster={roster}
             selfUserId={user.id}
+            memorized={memorized}
+            defaultSetId={defaultSetId}
           />
         </div>
       </main>

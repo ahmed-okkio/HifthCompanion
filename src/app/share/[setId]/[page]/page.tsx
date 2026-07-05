@@ -9,6 +9,7 @@ import NotesPanel from '@/components/NotesPanel';
 import { getNotes } from '@/lib/services/notes';
 import { getMyChrome, getProfilesByIds } from '@/lib/services/profile';
 import { displayName } from '@/lib/displayName';
+import { getStudentPagePathForOwner } from '@/lib/services/membership';
 
 export const dynamic = 'force-dynamic';
 
@@ -79,21 +80,26 @@ export default async function SharePage({ params, searchParams }: Props) {
     });
     const account = await getMyChrome(user);
     const initialNotes = await getNotes(setId, pageNum).catch(() => []);
+    // If the viewer teaches the set owner, always offer a link back to that
+    // student's tracker page (resolved server-side — no cross-page ?back= state).
+    const studentPath = await getStudentPagePathForOwner(annotationSet.user_id).catch(() => null);
 
     const banner = (
-      <div
-        className="mx-auto flex w-fit items-center gap-2 rounded-lg px-3 py-2"
-        style={{
-          background: 'var(--bg-card)',
-          border: '1px solid var(--border-subtle)',
-          color: 'var(--text-muted)',
-          fontSize: '12px',
-        }}
-      >
-        <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-        </svg>
-        <span>Editing <strong>{ownerName}</strong>&rsquo;s &ldquo;{annotationSet.name}&rdquo; — shared with you</span>
+      <div className="relative flex w-full items-center justify-center gap-2">
+        <div
+          className="flex items-center gap-2 rounded-lg px-3 py-2"
+          style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-subtle)',
+            color: 'var(--text-muted)',
+            fontSize: '12px',
+          }}
+        >
+          <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          <span>Editing <strong>{ownerName}</strong>&rsquo;s &ldquo;{annotationSet.name}&rdquo; — shared with you</span>
+        </div>
       </div>
     );
 
@@ -106,7 +112,19 @@ export default async function SharePage({ params, searchParams }: Props) {
         banner={banner}
         sharePageBasePath={`/share/${setId}`}
       >
-        <div className="animate-fade-in-scale" style={{ animationDelay: '100ms' }}>
+        <div className="animate-fade-in-scale flex flex-col gap-3" style={{ animationDelay: '100ms' }}>
+          {studentPath && (
+            <a
+              href={studentPath}
+              className="btn btn-primary w-full transition-transform duration-150 hover:-translate-y-0.5"
+              style={{ fontSize: '13px' }}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span>Open student profile</span>
+            </a>
+          )}
           <NotesPanel setId={setId} pageNum={pageNum} initialNotes={initialNotes} />
         </div>
       </ReaderShell>

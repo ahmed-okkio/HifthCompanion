@@ -159,6 +159,33 @@ export async function getStudentDefaultSetId(
   return data?.id ?? null;
 }
 
+/**
+ * The viewer's tracker student-page path for a set owner, when the viewer
+ * teaches that owner. Backs the shared-Mushaf "open student page" button.
+ * One membership per (teacher, student) is guaranteed by the DB trigger, so at
+ * most one row matches. Returns null when the viewer doesn't teach the owner.
+ */
+export async function getStudentPagePathForOwner(
+  ownerUserId: string,
+): Promise<string | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user || user.id === ownerUserId) return null;
+
+  const { data, error } = await supabase
+    .from('membership')
+    .select('id, circle:circle_id!inner(id, teacher_id)')
+    .eq('user_id', ownerUserId)
+    .eq('role', 'student')
+    .eq('circle.teacher_id', user.id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  const circleId = (data.circle as unknown as { id: string }).id;
+  return `/tracker/${circleId}/student/${data.id}`;
+}
+
 /** Teacher invites an existing user by email. Lands as 'pending' (D12). */
 export async function inviteByEmail(
   circleId: string,

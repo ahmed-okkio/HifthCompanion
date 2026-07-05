@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Geist_Mono, Outfit } from "next/font/google";
 import "./globals.css";
 import { I18nProvider } from "@/components/I18nProvider";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { TopProgressBar } from "@/components/TopProgressBar";
 import { dirFor } from "@/lib/i18n/config";
 import { getLocale } from "@/lib/i18n/server";
 
@@ -55,6 +57,9 @@ export default async function RootLayout({
   return (
     <html lang={locale} dir={dirFor(locale)} className={`${sans.variable} ${geistMono.variable} ${brand.variable}`}>
       <body className="font-sans">
+        <Suspense fallback={null}>
+          <TopProgressBar />
+        </Suspense>
         <I18nProvider locale={locale}>{children}</I18nProvider>
         <ServiceWorkerRegister />
       </body>

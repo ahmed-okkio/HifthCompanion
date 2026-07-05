@@ -71,6 +71,39 @@ export async function createLog(log: NewProgressLog): Promise<ProgressLog> {
   return data;
 }
 
+/** Teacher logs a homework submission on the student's behalf AND reviews it in
+ *  one shot: inserts the log with student fields + teacher grade + reviewed_at,
+ *  then credits hifth like a normal grade. Teacher INSERT RLS + deadline exemption
+ *  (migration 20260705000006) permit this. */
+export async function logAndReview(input: NewProgressLog & {
+  teacher_status?: string | null;
+  teacher_comment?: string | null;
+}): Promise<ProgressLog> {
+  const supabase = await createClientAction();
+  const { teacher_status, teacher_comment, ...log } = input;
+  const { data, error } = await supabase
+    .from('progress_log')
+    .insert({
+      ...log,
+      log_date: log.log_date ?? new Date().toISOString().slice(0, 10),
+      teacher_status: teacher_status ?? null,
+      teacher_comment: teacher_comment ?? null,
+      reviewed_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+  if (error) throw error;
+
+  if (teacher_status) {
+    try {
+      await creditHifthFromLog(supabase, data.id, teacher_status);
+    } catch {
+      /* non-fatal — the grade already landed */
+    }
+  }
+  return data;
+}
+
 /** Student edits own log (blocked by RLS once reviewed). */
 export async function updateLog(
   id: string,

@@ -306,15 +306,19 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
       return;
     }
 
-    if (activeLoadSetIdRef.current !== setId) return;
+    // Alive = right set still loading AND canvas not disposed. Fabric nulls lowerCanvasEl
+    // on dispose(), so operating after that throws "ctx is null" in clear()/clearRect.
+    const alive = () => activeLoadSetIdRef.current === setId && (canvas as any).lowerCanvasEl != null;
+    if (!alive()) return;
 
     if (canvasJson) {
       const savedW = canvasJson.width;
       canvas.loadFromJSON(canvasJson, async () => {
-        if (activeLoadSetIdRef.current !== setId) return;
+        if (!alive()) return;
         // Re-fit the canvas to THIS page's image, then scale the loaded objects from the size
         // they were saved at to the current fit — keeps existing drawings aligned to the page.
         const fit = await applyBackground(canvas, imageUrl);
+        if (!alive()) return;
         rescaleObjects(canvas, savedW ? fit.width / savedW : 1);
         canvas.renderAll();
         historyRef.current?.clear();
@@ -327,6 +331,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     } else {
       canvas.clear();
       await applyBackground(canvas, imageUrl);
+      if (!alive()) return;
       historyRef.current?.clear();
       historyRef.current?.snapshot();
       refreshHistory();

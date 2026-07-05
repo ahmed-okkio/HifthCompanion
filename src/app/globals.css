@@ -558,3 +558,23 @@ textarea,
 [contenteditable="true"] {
   caret-color: auto;
 }
+/* YouTube-style top navigation progress strip. Grows to ~90% while a route
+   is pending, snaps to 100% + fades when TopProgressBar clears `active`. */
+.top-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  z-index: 9999;
+  background: color-mix(in srgb, var(--green-600) 60%, white);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--green-600) 60%, white);
+  opacity: 0;
+  pointer-events: none;
+  transition: width 0.2s ease, opacity 0.4s ease 0.2s;
+}
+.top-progress--active {
+  width: 90%;
+  opacity: 1;
+  transition: width 10s cubic-bezier(0.1, 0.9, 0.2, 1);
+}

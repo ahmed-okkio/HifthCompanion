@@ -14,7 +14,7 @@ import { isStreakAtRisk } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
 import { wholeSurahPages } from '@/lib/homework';
 import { SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, Icon, Avatar, Chevron } from './ui';
-import { SurahPicker, ExamCard, type Entry } from './TeacherStudent';
+import { SurahPicker, ExamCard, StudentProfileCard, type Entry } from './TeacherStudent';
 import type { RosterMember } from '@/lib/services/membership';
 import { displayName } from '@/lib/displayName';
 
@@ -46,6 +46,8 @@ export default function StudentCircle({
   initialExams,
   roster,
   selfUserId,
+  memorized,
+  defaultSetId,
 }: {
   circle: Circle;
   membership: Membership;
@@ -56,6 +58,8 @@ export default function StudentCircle({
   initialExams: Exam[];
   roster: RosterMember[];
   selfUserId: string;
+  memorized: { juz: number; surahs: number };
+  defaultSetId: string | null;
 }) {
   const { t, locale } = useI18n();
   const [logs, setLogs] = useState(initialLogs);
@@ -63,6 +67,18 @@ export default function StudentCircle({
 
   const atRisk = useMemo(() => isStreakAtRisk(logs), [logs]);
   const statuses = circle.student_statuses;
+
+  // Sidebar KPIs — mirror the teacher's view. Attendance from marked sessions;
+  // open-homework from prescriptions with no completing log yet (today's cutoff).
+  const attendance = useMemo(
+    () => initialSessions.filter((s) => s.attendance_status).map((s) => ({ status: s.attendance_status! })),
+    [initialSessions],
+  );
+  const openHomework = useMemo(() => {
+    const linked = new Map<string, number>();
+    for (const l of logs) if (l.homework_id) linked.set(l.homework_id, (linked.get(l.homework_id) ?? 0) + 1);
+    return initialHomework.filter((h) => homeworkStatus(h, linked.get(h.id) ?? 0, today()) === 'open').length;
+  }, [initialHomework, logs]);
 
   function addLog(log: ProgressLog) {
     setLogs((prev) => [log, ...prev]);
@@ -84,8 +100,14 @@ export default function StudentCircle({
         </div>
       )}
 
-      {/* Feed (tabs) + always-on schedule sidebar; KPIs above stay pinned. */}
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] items-start">
+      {/* Profile/stats col (mirrors teacher view) + feed (tabs) + schedule sidebar. */}
+      <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)_320px] items-start">
+        <StudentProfileCard
+          name={displayName(roster.find((m) => m.user_id === selfUserId) ?? { user_id: selfUserId })}
+          circleName={circle.name} defaultSetId={defaultSetId}
+          memorized={memorized} attendance={attendance} openHomework={openHomework}
+        />
+
         <div className="flex flex-col gap-6 min-w-0">
           <TabBar
             tabs={[

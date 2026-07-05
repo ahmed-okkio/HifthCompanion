@@ -69,6 +69,16 @@ export async function listHomework(membershipId: string): Promise<Homework[]> {
   return data ?? [];
 }
 
+/** Teacher deletes a whole prescription group (all rows sharing group_id). RLS
+    restricts this to the owning teacher; linked progress_logs have their
+    homework_id nulled by the FK, so the student's submissions survive. */
+export async function deleteHomework(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
+  const supabase = await createClientAction();
+  const { error } = await supabase.from('homework').delete().in('id', ids);
+  if (error) throw error;
+}
+
 /** Teacher edits a homework deadline — including reopening a missed one (D10/E5). */
 export async function editDeadline(
   homeworkId: string,

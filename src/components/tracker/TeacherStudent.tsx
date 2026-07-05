@@ -11,8 +11,8 @@ import {
   createAdhocSession, materializeSession, setSchedule, setSessionAttendance, setSessionCanceled,
 } from '@/lib/services/sessions';
 import { sectionSessions, floatingNow, type SessionSlot } from '@/lib/recurrence';
-import { prescribeHomework, editDeadline } from '@/lib/services/homework';
-import { gradeLog } from '@/lib/services/progressLog';
+import { prescribeHomework, editDeadline, deleteHomework } from '@/lib/services/homework';
+import { gradeLog, logAndReview } from '@/lib/services/progressLog';
 import { scheduleExam, gradeExam, deleteExam } from '@/lib/services/exam';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
@@ -74,32 +74,14 @@ export default function TeacherStudent({
   const openHomework = initialHomework.filter(
     (h) => homeworkStatus(h, linkedCount.get(h.id) ?? 0, today()) === 'open',
   ).length;
-  const att = useMemo(() => attendanceStats(attendance), [attendance]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_280px] gap-5">
       {/* Left sidebar — profile identity + KPIs + Mushaf (Pr1); stacks on top on mobile (Pr2) */}
-      <aside className="flex flex-col gap-3 self-start">
-        <div className="card flex flex-col items-center text-center gap-2" style={{ padding: '22px' }}>
-          <Avatar seed={displayName(member)} size={64} />
-          <h1 className="font-bold tracking-tight truncate max-w-full"
-              style={{ color: 'var(--text-primary)', fontSize: 'var(--type-heading-m-size)' }}>
-            {displayName(member)}
-          </h1>
-          <span className="text-xs truncate max-w-full" style={{ color: 'var(--text-muted)' }}>{circle.name}</span>
-          <div className="mt-1"><MushafButton setId={defaultSetId} /></div>
-        </div>
-
-        <div className="card flex flex-col gap-3" style={{ padding: '16px' }}>
-          <div className="grid grid-cols-2 gap-2">
-            <RingTile value={memorized.juz} max={TOTAL_JUZ} label={t('analytics.juz')} />
-            <RingTile value={memorized.surahs} max={TOTAL_SURAHS} label={t('analytics.surahs')} />
-          </div>
-          <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-          <AttendanceLine marked={att.marked} rate={att.rate} />
-        </div>
-        <StatCard icon={<Icon name="hourglass" />} value={openHomework} label={t('homework.openHomework')} />
-      </aside>
+      <StudentProfileCard
+        name={displayName(member)} circleName={circle.name} defaultSetId={defaultSetId}
+        memorized={memorized} attendance={attendance} openHomework={openHomework}
+      />
 
       {/* Right column — the feed: tabs + panels, unchanged */}
       <div className="flex flex-col gap-5 min-w-0">
@@ -121,7 +103,7 @@ export default function TeacherStudent({
             initialSchedule={member.schedule}
           />
         )}
-        {tab === 'homework' && <HomeworkPanel membershipId={member.id} initial={initialHomework} logs={logs} teacherStatuses={circle.teacher_statuses} />}
+        {tab === 'homework' && <HomeworkPanel membershipId={member.id} initial={initialHomework} logs={logs} teacherStatuses={circle.teacher_statuses} studentStatuses={circle.student_statuses} />}
         {tab === 'exams' && <ExamsPanel membershipId={member.id} initial={initialExams} locale={locale} />}
         {tab === 'notes' && <NotesThread membershipId={member.id} initial={initialNotes} />}
       </div>
@@ -133,6 +115,47 @@ export default function TeacherStudent({
 }
 
 // --- Profile stat block: compact ring tile + colored attendance line ---------
+
+/**
+ * Profile identity + KPIs + Mushaf sidebar. Shared by the teacher's student
+ * detail view and the student's own self-service view (same three cards).
+ */
+export function StudentProfileCard({
+  name, circleName, defaultSetId, memorized, attendance, openHomework,
+}: {
+  name: string;
+  circleName: string;
+  defaultSetId: string | null;
+  memorized: { juz: number; surahs: number };
+  attendance: { status: AttendanceStatus }[];
+  openHomework: number;
+}) {
+  const { t } = useI18n();
+  const att = useMemo(() => attendanceStats(attendance), [attendance]);
+  return (
+    <aside className="flex flex-col gap-3 self-start">
+      <div className="card flex flex-col items-center text-center gap-2" style={{ padding: '22px' }}>
+        <Avatar seed={name} size={64} />
+        <h1 className="font-bold tracking-tight truncate max-w-full"
+            style={{ color: 'var(--text-primary)', fontSize: 'var(--type-heading-m-size)' }}>
+          {name}
+        </h1>
+        <span className="text-xs truncate max-w-full" style={{ color: 'var(--text-muted)' }}>{circleName}</span>
+        <div className="mt-1"><MushafButton setId={defaultSetId} /></div>
+      </div>
+
+      <div className="card flex flex-col gap-3" style={{ padding: '16px' }}>
+        <div className="grid grid-cols-2 gap-2">
+          <RingTile value={memorized.juz} max={TOTAL_JUZ} label={t('analytics.juz')} />
+          <RingTile value={memorized.surahs} max={TOTAL_SURAHS} label={t('analytics.surahs')} />
+        </div>
+        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+        <AttendanceLine marked={att.marked} rate={att.rate} />
+      </div>
+      <StatCard icon={<Icon name="hourglass" />} value={openHomework} label={t('homework.openHomework')} />
+    </aside>
+  );
+}
 
 /** Ring above value/label, centered — the side-by-side variant. */
 function RingTile({ value, max, label }: { value: number; max: number; label: string }) {
@@ -534,12 +557,13 @@ export type Entry =
   | { kind: 'juz'; juz: number };
 
 function HomeworkPanel({
-  membershipId, initial, logs, teacherStatuses,
+  membershipId, initial, logs, teacherStatuses, studentStatuses,
 }: {
   membershipId: string;
   initial: Homework[];
   logs: ProgressLog[];
   teacherStatuses: StatusConfig[];
+  studentStatuses: StatusConfig[];
 }) {
   const { t, locale } = useI18n();
   const [items, setItems] = useState(initial);
@@ -597,6 +621,15 @@ function HomeworkPanel({
     await Promise.all(ids.map((id) => editDeadline(id, next)));
     setItems((p) => p.map((h) => (ids.includes(h.id) ? { ...h, deadline: next } : h)));
   }
+
+  // Delete a whole prescription group; linked logs survive (FK set null).
+  async function handleDeleteHomework(ids: string[]) {
+    await deleteHomework(ids);
+    setItems((p) => p.filter((h) => !ids.includes(h.id)));
+  }
+
+  // Teacher-submitted homework result → prepend it to the log feed.
+  const onResult = (log: ProgressLog) => setLogRows((p) => [log, ...p]);
 
   // Unified review feed: prescription groups + self-submissions in one list,
   // newest first. Each entry carries a sort timestamp (a group uses its newest
@@ -661,6 +694,8 @@ function HomeworkPanel({
             key={entry.key} group={entry.group} locale={locale}
             linkedCount={linkedCount} logsByHomework={logsByHomework}
             teacherStatuses={teacherStatuses} onGraded={onGraded} onEditDeadline={handleEditDeadline}
+            onDelete={handleDeleteHomework} onResult={onResult} membershipId={membershipId}
+            studentStatuses={studentStatuses}
           />
         ) : (
           <div key={entry.key} className="card" style={{ padding: '12px 16px' }}>
@@ -681,7 +716,7 @@ function HomeworkPanel({
 // Header (type + status) is always shown; instructions, deadline editor, entries
 // and their gradeable logs appear only once the card is selected.
 function PrescriptionCard({
-  group, locale, linkedCount, logsByHomework, teacherStatuses, onGraded, onEditDeadline,
+  group, locale, linkedCount, logsByHomework, teacherStatuses, onGraded, onEditDeadline, onDelete, onResult, membershipId, studentStatuses,
 }: {
   group: { key: string; items: Homework[] };
   locale: 'en' | 'ar';
@@ -690,6 +725,10 @@ function PrescriptionCard({
   teacherStatuses: StatusConfig[];
   onGraded: (id: string, grade: { teacher_status: string | null; teacher_comment: string | null }) => void;
   onEditDeadline: (ids: string[], value: string) => void;
+  onDelete: (ids: string[]) => void;
+  onResult: (log: ProgressLog) => void;
+  membershipId: string;
+  studentStatuses: StatusConfig[];
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -738,11 +777,121 @@ function PrescriptionCard({
                 {subs.length === 0
                   ? <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('homework.noSubmissionsYet')}</span>
                   : subs.map((l, i) => <GradeableLog key={l.id} log={l} statuses={teacherStatuses} onGraded={onGraded} divided={i > 0} />)}
+                <TeacherResultForm hw={h} membershipId={membershipId} studentStatuses={studentStatuses} teacherStatuses={teacherStatuses} onResult={onResult} />
               </div>
             </div>
           );
         })}
+        <button
+          onClick={() => { if (confirm(t('homework.deleteConfirm'))) onDelete(ids); }}
+          className="btn btn-danger-ghost self-start" style={{ minHeight: 36, fontSize: 13 }}
+        >
+          {t('homework.delete')}
+        </button>
       </>)}
+    </div>
+  );
+}
+
+// --- Teacher submits a log for a homework on the student's behalf --------------
+// Mirrors the student's homework-attach form (StudentCircle LogForm): creates a
+// normal unreviewed submission (student_status) linked to the homework, using
+// the homework's own scope. The teacher can then grade it like any other log.
+function TeacherResultForm({
+  hw, membershipId, studentStatuses, teacherStatuses, onResult,
+}: {
+  hw: Homework;
+  membershipId: string;
+  studentStatuses: StatusConfig[];
+  teacherStatuses: StatusConfig[];
+  onResult: (log: ProgressLog) => void;
+}) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const [studentStatus, setStudentStatus] = useState(studentStatuses[0]?.label ?? '');
+  const [note, setNote] = useState('');
+  const [logDate, setLogDate] = useState(today());
+  // Review, submitted in the same shot (D6-teacher): grade + comment + reviewed_at.
+  const [teacherStatus, setTeacherStatus] = useState<string | null>(null);
+  const [comment, setComment] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit() {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const log = await logAndReview({
+        membership_id: membershipId,
+        homework_id: hw.id,
+        log_date: logDate,
+        log_type: hw.type,
+        page_start: hw.page_start,
+        page_end: hw.page_end,
+        surah: hw.surah,
+        ayah_start: hw.ayah_start,
+        ayah_end: hw.ayah_end,
+        student_status: studentStatus || null,
+        student_notes: note || null,
+        teacher_status: teacherStatus,
+        teacher_comment: comment || null,
+      });
+      onResult(log);
+      setOpen(false);
+      setNote('');
+      setComment('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} className="btn btn-ghost self-start" style={{ minHeight: 32, fontSize: 12 }}>
+        {t('homework.submitForStudent')}
+      </button>
+    );
+  }
+
+  const chipRow = (opts: StatusConfig[], value: string | null, set: (v: string) => void) => (
+    <div className="flex flex-wrap gap-2">
+      {opts.map((s) => (
+        <button key={s.label} onClick={() => set(s.label)} className="badge" style={{
+          cursor: 'pointer',
+          background: value === s.label ? 'var(--accent)' : undefined,
+          color: value === s.label ? '#fff' : undefined,
+        }}>
+          {s.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-2 mt-1">
+      <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+        {t('log.date')}
+        <input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)}
+               className="input input-sm" style={{ minHeight: 34 }} />
+      </label>
+      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('log.selfStatus')}</span>
+      {chipRow(studentStatuses, studentStatus, setStudentStatus)}
+      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('log.note')} className="input input-sm" style={{ minHeight: 34 }} />
+      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('grade.teacherStatus')}</span>
+      {chipRow(teacherStatuses, teacherStatus, setTeacherStatus)}
+      <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('grade.comment')} className="input input-sm" style={{ minHeight: 34 }} />
+      {error && <span className="text-xs" style={{ color: 'var(--danger)' }}>{error}</span>}
+      <div className="flex gap-2">
+        <button onClick={submit} disabled={busy} className="btn btn-primary self-start" style={{ minHeight: 36, fontSize: 13 }}>
+          {t('log.submit')}
+        </button>
+        <button onClick={() => setOpen(false)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 13 }}>
+          {t('common.cancel')}
+        </button>
+      </div>
     </div>
   );
 }

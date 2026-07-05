@@ -6,7 +6,6 @@
 // gate stops trapping the user (O4). Middleware exempts /onboarding + gates
 // non-onboarded users, so no auth/onboarded check is needed here.
 
-import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import MemorizationEditor from '@/components/MemorizationEditor';
 import AuthBrand from '@/components/AuthBrand';
@@ -14,12 +13,11 @@ import { saveMemorization } from '@/lib/services/profile';
 import type { MemorizedRange } from '@/types';
 
 export default function OnboardingPage() {
-  const router = useRouter();
   const { t } = useI18n();
 
   const onSave = async (ranges: MemorizedRange[], weakest: number[]) => {
     await saveMemorization(ranges, weakest);
-    router.push('/reader');
+    window.location.assign('/reader');
   };
 
   return (

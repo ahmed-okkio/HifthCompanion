@@ -1,13 +1,11 @@
 'use client';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import AuthBrand from '@/components/AuthBrand';
 import { useI18n } from '@/components/I18nProvider';
 
 export default function LoginPage() {
-  const router = useRouter();
   const supabase = createClient();
   const { t } = useI18n();
   const [email, setEmail] = useState('');
@@ -20,7 +18,7 @@ export default function LoginPage() {
     setError('');
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { setError(error.message); setLoading(false); }
-    else router.push('/reader');
+    else window.location.assign('/reader');
   }
 
   return (

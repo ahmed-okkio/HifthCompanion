@@ -8,6 +8,7 @@ const en = {
   'common.save': 'Save',
   'common.cancel': 'Cancel',
   'common.delete': 'Delete',
+  'common.add': 'Add',
   'common.edit': 'Edit',
   'common.back': 'Back',
   'common.loading': 'Loading…',
@@ -151,6 +152,8 @@ const en = {
 
   'sessions.title': 'Upcoming sessions',
   'sessions.tabSessions': 'Sessions',
+  'sessions.nextSession': 'Next Session',
+  'sessions.upcomingTitle': 'Agenda',
   'circle.membersTitle': 'Circle members',
   'circle.roleTeacher': 'Teacher',
   'circle.you': 'You',
@@ -235,6 +238,17 @@ const en = {
   'menu.myHifth': 'My hifth',
   'menu.account': 'Account',
   'menu.logout': 'Log out',
+
+  // Exams
+  'exam.title': 'Exams',
+  'exam.schedule': 'Schedule Exam',
+  'exam.date': 'Exam Date',
+  'exam.statusScheduled': 'Scheduled',
+  'exam.statusPassed': 'Passed',
+  'exam.statusFailed': 'Failed',
+  'exam.grade': 'Grade Exam',
+  'exam.notes': 'Teacher Notes',
+  'exam.noExams': 'No exams scheduled.',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -244,6 +258,7 @@ const ar: Record<MessageKey, string> = {
   'common.save': 'حفظ',
   'common.cancel': 'إلغاء',
   'common.delete': 'حذف',
+  'common.add': 'إضافة',
   'common.edit': 'تعديل',
   'common.back': 'رجوع',
   'common.loading': 'جارٍ التحميل…',
@@ -387,6 +402,8 @@ const ar: Record<MessageKey, string> = {
 
   'sessions.title': 'الجلسات القادمة',
   'sessions.tabSessions': 'الجلسات',
+  'sessions.nextSession': 'الجلسة القادمة',
+  'sessions.upcomingTitle': 'الأجندة',
   'circle.membersTitle': 'أعضاء الحلقة',
   'circle.roleTeacher': 'المعلّم',
   'circle.you': 'أنت',
@@ -471,6 +488,17 @@ const ar: Record<MessageKey, string> = {
   'menu.myHifth': 'حفظي',
   'menu.account': 'الحساب',
   'menu.logout': 'تسجيل الخروج',
+
+  // Exams
+  'exam.title': 'الاختبارات',
+  'exam.schedule': 'جدولة اختبار',
+  'exam.date': 'تاريخ الاختبار',
+  'exam.statusScheduled': 'مُجدول',
+  'exam.statusPassed': 'مجتاز',
+  'exam.statusFailed': 'غير مجتاز',
+  'exam.grade': 'تقييم الاختبار',
+  'exam.notes': 'ملاحظات المعلم',
+  'exam.noExams': 'لا توجد اختبارات مجدولة.',
 };
 
 export const dictionaries: Record<Locale, Record<MessageKey, string>> = { en, ar };

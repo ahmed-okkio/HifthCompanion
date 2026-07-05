@@ -13,6 +13,7 @@ import { getSessionsForMemberships, getSessions } from '@/lib/services/sessions'
 import { sectionSessions, floatingNow } from '@/lib/recurrence';
 import { listHomework } from '@/lib/services/homework';
 import { listNotes } from '@/lib/services/membershipNotes';
+import { getExamsForMembership } from '@/lib/services/exam';
 import { displayName } from '@/lib/displayName';
 import { BackButton } from '@/components/tracker/ui';
 
@@ -104,12 +105,13 @@ export default async function CirclePage({
     );
   }
 
-  const [initialLogs, initialSessions, initialHomework, initialNotes, roster] = await Promise.all([
+  const [initialLogs, initialSessions, initialHomework, initialNotes, roster, initialExams] = await Promise.all([
     getLogsForMembership(membership.id),
     getSessions(membership.id),
     listHomework(membership.id),
     listNotes(membership.id),
     getCircleRoster(circleId),
+    getExamsForMembership(membership.id),
   ]);
 
   return (
@@ -124,6 +126,7 @@ export default async function CirclePage({
             initialLogs={initialLogs}
             initialHomework={initialHomework}
             initialNotes={initialNotes}
+            initialExams={initialExams}
             roster={roster}
             selfUserId={user.id}
           />

@@ -39,6 +39,7 @@ const globalForDb = global as unknown as {
   mockSession?: any[];
   mockHomework?: any[];
   mockMembershipNote?: any[];
+  mockExam?: any[];
 };
 
 if (!globalForDb.mockSets) {
@@ -56,6 +57,7 @@ if (!globalForDb.mockProgressLog) globalForDb.mockProgressLog = [];
 if (!globalForDb.mockSession) globalForDb.mockSession = [];
 if (!globalForDb.mockHomework) globalForDb.mockHomework = [];
 if (!globalForDb.mockMembershipNote) globalForDb.mockMembershipNote = [];
+if (!globalForDb.mockExam) globalForDb.mockExam = [];
 
 // Seeded config defaults mirroring the circle migration.
 const SEED_STUDENT_STATUSES = [
@@ -77,14 +79,16 @@ const TRACKER_STORAGE: Record<string, string> = {
   session: 'mock_supabase_session',
   homework: 'mock_supabase_homework',
   membership_note: 'mock_supabase_membership_note',
+  exam: 'mock_supabase_exam',
 };
-const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockHomework' | 'mockMembershipNote'> = {
+const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockHomework' | 'mockMembershipNote' | 'mockExam'> = {
   circle: 'mockCircle',
   membership: 'mockMembership',
   progress_log: 'mockProgressLog',
   session: 'mockSession',
   homework: 'mockHomework',
   membership_note: 'mockMembershipNote',
+  exam: 'mockExam',
 };
 function trackerGet(table: string): any[] {
   if (IS_SERVER) return (globalForDb as any)[TRACKER_GLOBAL[table]]!;
@@ -594,6 +598,7 @@ export function __resetMockStore() {
   globalForDb.mockSession = [];
   globalForDb.mockHomework = [];
   globalForDb.mockMembershipNote = [];
+  globalForDb.mockExam = [];
 }
 
 export function __seedMockStore(payload: Partial<{
@@ -603,6 +608,7 @@ export function __seedMockStore(payload: Partial<{
   session: any[];
   homework: any[];
   membership_note: any[];
+  exam: any[];
 }>) {
   if (payload.circle) globalForDb.mockCircle!.push(...payload.circle);
   if (payload.membership) globalForDb.mockMembership!.push(...payload.membership);
@@ -610,4 +616,5 @@ export function __seedMockStore(payload: Partial<{
   if (payload.session) globalForDb.mockSession!.push(...payload.session);
   if (payload.homework) globalForDb.mockHomework!.push(...payload.homework);
   if (payload.membership_note) globalForDb.mockMembershipNote!.push(...payload.membership_note);
+  if (payload.exam) globalForDb.mockExam!.push(...payload.exam);
 }

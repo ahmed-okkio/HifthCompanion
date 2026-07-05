@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type {
-  Circle, Homework, LogType, Membership, ProgressLog, Recurrence, Session, StatusConfig,
+  Circle, Homework, LogType, Membership, ProgressLog, Recurrence, Session, StatusConfig, Exam
 } from '@/types';
 import { createLog, deleteLog, type NewProgressLog } from '@/lib/services/progressLog';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
@@ -13,8 +13,8 @@ import { recurringSlots } from '@/lib/recurrence';
 import { isStreakAtRisk } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
 import { wholeSurahPages } from '@/lib/homework';
-import { SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, Icon, Avatar } from './ui';
-import { SurahPicker, type Entry } from './TeacherStudent';
+import { SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, Icon, Avatar, Chevron } from './ui';
+import { SurahPicker, ExamCard, type Entry } from './TeacherStudent';
 import type { RosterMember } from '@/lib/services/membership';
 import { displayName } from '@/lib/displayName';
 
@@ -43,6 +43,7 @@ export default function StudentCircle({
   initialLogs,
   initialHomework,
   initialNotes,
+  initialExams,
   roster,
   selfUserId,
 }: {
@@ -52,6 +53,7 @@ export default function StudentCircle({
   initialLogs: ProgressLog[];
   initialHomework: Homework[];
   initialNotes: NoteWithAuthor[];
+  initialExams: Exam[];
   roster: RosterMember[];
   selfUserId: string;
 }) {
@@ -129,6 +131,7 @@ export default function StudentCircle({
             bar row (≈ tab-bar height + the column's gap), not level with it. */}
         <aside className="order-first lg:order-none lg:sticky lg:top-6 self-start min-w-0 lg:mt-[66px] flex flex-col gap-6">
           <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} />
+          <UpcomingExams exams={initialExams} />
           <CircleMembers roster={roster} selfUserId={selfUserId} />
         </aside>
       </div>
@@ -169,7 +172,7 @@ function UpcomingSessions({ sessions, schedule }: { sessions: Session[]; schedul
     <div className="flex flex-col gap-3">
       {/* Recurring schedule — one card per weekday, reusing the session look */}
       <div className="flex flex-col gap-2">
-        <SectionTitle>{t('sessions.tabSessions')}</SectionTitle>
+        <SectionTitle>{t('sessions.nextSession' as any) ?? t('sessions.tabSessions')}</SectionTitle>
         {weekSlots && weekSlots.length > 0 ? weekSlots.map((iso) => {
           const d = new Date(iso);
           return (
@@ -191,13 +194,6 @@ function UpcomingSessions({ sessions, schedule }: { sessions: Session[]; schedul
                   {d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: true })}
                 </span>
               </div>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                   strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0" style={{ color: 'var(--text-muted)' }}>
-                <path d="M17 2l4 4-4 4" />
-                <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
-                <path d="M7 22l-4-4 4-4" />
-                <path d="M21 13v1a4 4 0 0 1-4 4H3" />
-              </svg>
             </div>
           );
         }) : (
@@ -699,3 +695,21 @@ function AyahSelect({
   );
 }
 
+
+
+
+function UpcomingExams({ exams }: { exams: Exam[] }) {
+  const { t, locale } = useI18n();
+  if (exams.length === 0) return null;
+  // Scheduled first, then most recently scheduled.
+  const sorted = [...exams].sort((a, b) =>
+    (a.status === 'scheduled' ? 0 : 1) - (b.status === 'scheduled' ? 0 : 1)
+    || b.scheduled_date.localeCompare(a.scheduled_date));
+
+  return (
+    <div className="flex flex-col gap-2">
+      <SectionTitle>{t('exam.title')}</SectionTitle>
+      {sorted.map((exam) => <ExamCard key={exam.id} exam={exam} locale={locale} />)}
+    </div>
+  );
+}

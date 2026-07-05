@@ -7,6 +7,7 @@ import { getLogsForMembership } from '@/lib/services/progressLog';
 import { getSessions } from '@/lib/services/sessions';
 import { listHomework } from '@/lib/services/homework';
 import { listNotes } from '@/lib/services/membershipNotes';
+import { getExamsForMembership } from '@/lib/services/exam';
 import { getMyChrome, getStudentMemorization } from '@/lib/services/profile';
 import { rangesTotals } from '@/lib/analytics';
 import TeacherStudent from '@/components/tracker/TeacherStudent';
@@ -30,13 +31,14 @@ export default async function StudentDetailPage({
   // Only active students have a control surface (pending = RLS-empty, C1/S1).
   if (!member || member.role !== 'student' || member.status !== 'active') notFound();
 
-  const [logs, sessions, defaultSetId, homework, notes, memorizedRanges] = await Promise.all([
+  const [logs, sessions, defaultSetId, homework, notes, memorizedRanges, exams] = await Promise.all([
     getLogsForMembership(membershipId),
     getSessions(membershipId),
     getStudentDefaultSetId(membershipId),
     listHomework(membershipId),
     listNotes(membershipId),
     getStudentMemorization(member.user_id),
+    getExamsForMembership(membershipId),
   ]);
 
   const account = await getMyChrome(user);
@@ -60,6 +62,7 @@ export default async function StudentDetailPage({
             logs={logs}
             memorized={memorized}
             initialNotes={notes}
+            initialExams={exams}
           />
         </div>
       </main>

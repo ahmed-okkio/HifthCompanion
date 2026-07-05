@@ -48,10 +48,10 @@ export default async function SharedPage() {
                    style={{ padding: '14px 18px' }}>
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />
                   <span className="font-medium text-sm truncate" style={{ color: 'var(--text-primary)' }}>
-                    {set.name}
+                    {owner}
                   </span>
                   <span className="text-xs ml-auto flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
-                    {owner}
+                    {set.name}
                   </span>
                 </a>
               );

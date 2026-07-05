@@ -138,6 +138,29 @@ export interface ProgressLog {
   updated_at: string;
 }
 
+export type ExamStatus = 'scheduled' | 'passed' | 'failed';
+
+/** One covered chunk of an exam — a whole/partial surah or a whole juz. */
+export type ExamEntry =
+  | { kind: 'surah'; surah: number; ayah_start: number | null; ayah_end: number | null }
+  | { kind: 'juz'; juz: number };
+
+export interface Exam {
+  id: string;
+  membership_id: string;
+  scheduled_date: string;
+  page_start: number;
+  page_end: number;
+  surah: number | null;
+  ayah_start: number | null;
+  ayah_end: number | null;
+  // Full covered set (mix of juz + surah), preserved for display. Empty for legacy rows.
+  entries: ExamEntry[];
+  status: ExamStatus;
+  teacher_notes: string | null;
+  created_at: string;
+}
+
 /** A homework prescription for one student (D6/D9). Status is derived, not stored. */
 export interface Homework {
   id: string;

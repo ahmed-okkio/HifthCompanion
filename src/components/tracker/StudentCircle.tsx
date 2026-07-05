@@ -388,18 +388,34 @@ function LogEntryForm({
     );
   }
 
+  const labelCls = 'text-xs font-medium';
+  const labelStyle = { color: 'var(--text-secondary)' };
+
   return (
-    <div className="card flex flex-col gap-3" style={{ padding: '16px 18px', animation: 'fade-in-scale 0.2s var(--ease-out) both', transformOrigin: 'top' }}>
-      <div className="flex flex-wrap gap-2 items-end">
-        <label className="flex flex-col gap-1">
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('log.type')}</span>
-          <select value={logType} onChange={(e) => setLogType(e.target.value as LogType)} className="input" style={{ minHeight: 40 }}>
-            {LOG_TYPES.map((lt) => <option key={lt} value={lt}>{t(`logType.${lt}`)}</option>)}
-          </select>
+    <div className="card flex flex-col gap-5" style={{ padding: '20px 22px', animation: 'fade-in-scale 0.2s var(--ease-out) both', transformOrigin: 'top' }}>
+      {/* Type + Date, balanced two-up. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <label className="flex flex-col gap-1.5">
+          <span className={labelCls} style={labelStyle}>{t('log.type')}</span>
+          <div style={{ position: 'relative' }}>
+            <span aria-hidden style={{ position: 'absolute', insetInlineStart: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)', display: 'flex' }}>
+              <Icon name="book" size={16} />
+            </span>
+            <select value={logType} onChange={(e) => setLogType(e.target.value as LogType)}
+                    className="input" style={{ minHeight: 44, width: '100%', paddingInlineStart: 38 }}>
+              {LOG_TYPES.map((lt) => <option key={lt} value={lt}>{t(`logType.${lt}`)}</option>)}
+            </select>
+          </div>
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('log.date')}</span>
-          <input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)} className="input" style={{ minHeight: 40 }} />
+        <label className="flex flex-col gap-1.5">
+          <span className={labelCls} style={labelStyle}>{t('log.date')}</span>
+          <div style={{ position: 'relative' }}>
+            <span aria-hidden style={{ position: 'absolute', insetInlineStart: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)', display: 'flex' }}>
+              <Icon name="calendar" size={16} />
+            </span>
+            <input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)}
+                   className="input" style={{ minHeight: 44, width: '100%', paddingInlineStart: 38 }} />
+          </div>
         </label>
       </div>
 
@@ -407,16 +423,27 @@ function LogEntryForm({
 
       <ChipRow label={t('log.selfStatus')} options={statuses.map((s) => s.label)} value={status} onChange={setStatus} />
 
-      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('log.note')} className="input" />
+      {/* Note — textarea with a live character counter. */}
+      <label className="flex flex-col gap-1.5">
+        <span className={labelCls} style={labelStyle}>{t('log.note')}</span>
+        <div style={{ position: 'relative' }}>
+          <textarea value={note} maxLength={200} onChange={(e) => setNote(e.target.value)}
+                    placeholder={t('log.notePlaceholder')} rows={3}
+                    className="input" style={{ width: '100%', resize: 'vertical', paddingBottom: 24 }} />
+          <span style={{ position: 'absolute', insetInlineEnd: 10, bottom: 8, fontSize: 11, color: 'var(--text-muted)', pointerEvents: 'none' }}>
+            {note.length} / 200
+          </span>
+        </div>
+      </label>
 
       {error && <span className="text-xs" style={{ color: 'var(--danger)' }}>{error}</span>}
 
-      <div className="flex gap-2">
-        <button onClick={submit} disabled={busy || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44 }}>
-          {t('log.submit')}
-        </button>
-        <button onClick={() => setLogging(false)} className="btn btn-ghost" style={{ minHeight: 44 }}>
+      <div className="flex justify-end gap-2">
+        <button onClick={() => setLogging(false)} className="btn btn-outline" style={{ minHeight: 44, padding: '0 20px' }}>
           {t('common.cancel')}
+        </button>
+        <button onClick={submit} disabled={busy || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44, padding: '0 24px' }}>
+          {t('log.submit')}
         </button>
       </div>
     </div>

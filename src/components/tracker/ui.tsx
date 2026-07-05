@@ -281,6 +281,7 @@ export function SurahCombobox({
   locale,
   placeholder,
   surahs,
+  fluid,
 }: {
   value: number;
   onChange: (surah: number) => void;
@@ -288,6 +289,8 @@ export function SurahCombobox({
   placeholder?: string;
   /** Restrict the list to these surah numbers (default: all 114). */
   surahs?: number[];
+  /** Stretch to fill the container instead of the default 200px field width. */
+  fluid?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -320,7 +323,7 @@ export function SurahCombobox({
   };
 
   return (
-    <div ref={wrap} style={{ position: 'relative', width: 200, maxWidth: '100%' }}>
+    <div ref={wrap} style={{ position: 'relative', width: fluid ? '100%' : 200, maxWidth: '100%' }}>
       <input
         className="input input-sm"
         style={{ minHeight: 40, width: '100%', paddingInlineEnd: 32 }}
@@ -518,6 +521,19 @@ const ICON_PATHS: Record<string, ReactNode> = {
     </>
   ),
   check: <path d="M20 6 9 17l-5-5" />,
+  list: (
+    <>
+      <path d="M8 6h13M8 12h13M8 18h13" />
+      <path d="M3 6h.01M3 12h.01M3 18h.01" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  trending: <path d="M22 7 13.5 15.5 8.5 10.5 2 17M16 7h6v6" />,
   hourglass: <path d="M5 22h14M5 2h14M17 22v-4.17a2 2 0 0 0-.59-1.41L12 12l-4.41 4.41A2 2 0 0 0 7 17.83V22M7 2v4.17a2 2 0 0 0 .59 1.41L12 12l4.41-4.41A2 2 0 0 0 17 6.17V2" />,
   alert: (
     <>
@@ -554,47 +570,31 @@ export function Icon({ name, size = 18 }: { name: keyof typeof ICON_PATHS; size?
   );
 }
 
-/** Wide segmented control with a single highlight pill that slides between
- *  options. Full-width, equal segments; used for status pickers and mode
- *  toggles. RTL-safe (logical inset). */
+/** Wide segmented control: equal segments in a rounded frame, divided by thin
+ *  separators. The active segment fills with the accent (fades, no slide).
+ *  Used for status pickers and mode toggles. RTL-safe. */
 export function SegmentedControl({
   options,
   value,
   onChange,
 }: {
-  options: { key: string; label: string }[];
+  options: { key: string; label: string; icon?: ReactNode }[];
   value: string;
   onChange: (key: string) => void;
 }) {
   const n = options.length;
-  const idx = Math.max(0, options.findIndex((o) => o.key === value));
   return (
     <div
       style={{
-        position: 'relative',
         display: 'grid',
         gridTemplateColumns: `repeat(${n}, 1fr)`,
         background: 'var(--bg-input)',
         border: '1px solid var(--border-default)',
-        borderRadius: 'var(--radius-full)',
-        padding: 4,
+        borderRadius: 'var(--radius-md)',
+        overflow: 'hidden',
       }}
     >
-      {/* Sliding highlight — one pill, translated to the active segment. */}
-      <span
-        aria-hidden
-        style={{
-          position: 'absolute',
-          top: 4,
-          bottom: 4,
-          insetInlineStart: `calc(${idx} * (100% - 8px) / ${n} + 4px)`,
-          width: `calc((100% - 8px) / ${n})`,
-          background: 'var(--accent)',
-          borderRadius: 'var(--radius-full)',
-          transition: 'inset-inline-start var(--duration-normal) var(--ease-out)',
-        }}
-      />
-      {options.map((o) => {
+      {options.map((o, i) => {
         const on = o.key === value;
         return (
           <button
@@ -603,21 +603,23 @@ export function SegmentedControl({
             onClick={() => onChange(o.key)}
             aria-pressed={on}
             style={{
-              position: 'relative',
-              zIndex: 1,
               minHeight: 44,
               padding: '0 12px',
-              background: 'transparent',
               border: 'none',
+              borderInlineStart: i > 0 ? '1px solid var(--border-default)' : 'none',
               cursor: 'pointer',
               fontSize: 14,
               fontWeight: 600,
               whiteSpace: 'nowrap',
+              background: on ? 'var(--accent)' : 'transparent',
               color: on ? 'var(--accent-contrast, #fff)' : 'var(--text-secondary)',
-              transition: 'color var(--duration-normal) var(--ease-out)',
+              transition: 'background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
             }}
           >
-            {o.label}
+            <span className="flex items-center justify-center gap-2">
+              {o.icon}
+              {o.label}
+            </span>
           </button>
         );
       })}

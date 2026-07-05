@@ -99,24 +99,19 @@ export default function TeacherStudent({
       <div className="flex flex-col gap-5 min-w-0">
         <TabBar
           tabs={[
-            { key: 'schedule', label: t('tracker.tabSchedule') },
+            { key: 'sessions', label: t('sessions.tabSessions') },
             { key: 'homework', label: t('homework.title') },
             { key: 'notes', label: t('notes.title') },
-            { key: 'sessions', label: t('sessions.tabSessions') },
           ]}
           active={tab}
           onSelect={setTab}
         />
 
-        {/* Sessions + Schedule share one component (stays mounted between the two
-            so schedule edits reflect in the list live). */}
-        {(tab === 'sessions' || tab === 'schedule') && (
+        {tab === 'sessions' && (
           <StudentSessions
             membershipId={member.id}
             initial={initialSessions}
             initialSchedule={member.schedule}
-            view={tab}
-            onGoToSchedule={() => setTab('schedule')}
           />
         )}
         {tab === 'homework' && <HomeworkPanel membershipId={member.id} initial={initialHomework} logs={logs} teacherStatuses={circle.teacher_statuses} />}
@@ -157,17 +152,17 @@ function MushafButton({ setId }: { setId: string | null }) {
 // --- Sessions: weekly slot + attendance + ad-hoc (D1/D4/D5) -------------------
 
 function StudentSessions({
-  membershipId, initial, initialSchedule, view, onGoToSchedule,
+  membershipId, initial, initialSchedule,
 }: {
   membershipId: string;
   initial: Session[];
   initialSchedule: { weekdays: number[]; time: string } | null;
-  view: 'sessions' | 'schedule';
-  onGoToSchedule: () => void;
 }) {
   const { t, locale } = useI18n();
   const [sessions, setSessions] = useState(initial);
   const [sessTab, setSessTab] = useState<'upcoming' | 'history'>('upcoming');
+  // Schedule editor is collapsed behind a button (set once, tweaked rarely).
+  const [showSchedule, setShowSchedule] = useState(false);
   const [weekdays, setWeekdays] = useState<number[]>(initialSchedule?.weekdays ?? []);
   const [time, setTime] = useState(initialSchedule?.time ?? '17:00');
   const [adhocDate, setAdhocDate] = useState('');
@@ -313,10 +308,17 @@ function StudentSessions({
           {err}
         </div>
       )}
-      {/* Schedule + ad-hoc live on their own tab (set once, forgotten). */}
-      {view === 'schedule' && (
+      {/* Schedule + ad-hoc collapsed behind a button (set once, tweaked rarely). */}
+      <button onClick={() => setShowSchedule((v) => !v)} className="btn btn-outline self-start"
+              style={{ minHeight: 40, fontSize: 13, padding: '0 16px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <Icon name="calendar" size={16} />
+        {weekdays.length ? t('sessions.editSchedule') : t('sessions.setSchedule')}
+        <Chevron open={showSchedule} />
+      </button>
+
+      {showSchedule && (
       <div className="card flex flex-col gap-3" style={{ padding: '16px 18px' }}>
-        <SectionTitle>{t('sessions.tabSessions')}</SectionTitle>
+        <SectionTitle>{t('tracker.tabSchedule')}</SectionTitle>
         <div className="flex flex-wrap gap-2">
           {dayLabels.map((label, d) => {
             const on = weekdays.includes(d);
@@ -353,16 +355,6 @@ function StudentSessions({
           </button>
         </div>
       </div>
-      )}
-
-      {view === 'sessions' && (<>
-      {/* No weekly schedule yet → nudge to the Schedule tab. */}
-      {weekdays.length === 0 && (
-        <button onClick={onGoToSchedule} className="btn btn-outline self-start"
-                style={{ minHeight: 40, fontSize: 13, padding: '0 16px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <Icon name="calendar" size={16} />
-          {t('sessions.setSchedule')}
-        </button>
       )}
 
       {empty && (
@@ -418,7 +410,6 @@ function StudentSessions({
             ))}
         </div>
       )}
-      </>)}
     </div>
   );
 }
@@ -751,66 +742,102 @@ export function SurahPicker({
       : { kind: 'surah', surah, ayah_start: lo, ayah_end: hi }]);
   }
 
+  const fieldLabel = { color: 'var(--text-secondary)' } as const;
+  const addEntry = mode === 'juz' ? () => onChange([...entries, { kind: 'juz', juz }]) : add;
+  const addLabel = mode === 'juz' ? t('homework.addJuz') : t('homework.addSurah');
+  // Wide dashed "add" button — a quiet way to append another entry.
+  const dashedAdd: React.CSSProperties = {
+    minHeight: 44, border: '1px dashed var(--border-default)', borderRadius: 'var(--radius-md)',
+    background: 'transparent', color: 'var(--text-accent)', fontSize: 14, fontWeight: 600,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer',
+    transition: 'background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)',
+  };
+  // Inline hover/press feedback (dashed button isn't a .btn, so no CSS states).
+  const dashedFx = {
+    onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.background = 'var(--accent-muted)';
+      e.currentTarget.style.borderColor = 'var(--accent)';
+    },
+    onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.style.background = 'transparent';
+      e.currentTarget.style.borderColor = 'var(--border-default)';
+      e.currentTarget.style.transform = 'none';
+    },
+    onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'scale(0.99)'; },
+    onMouseUp: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'none'; },
+  };
+
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-4">
       {/* Mode toggle: prescribe a surah range or a whole juz. */}
       <SegmentedControl
         options={[
-          { key: 'surah', label: t('homework.modeSurah') },
-          { key: 'juz', label: t('homework.modeJuz') },
+          { key: 'surah', label: t('homework.modeSurah'), icon: <Icon name="book" size={16} /> },
+          { key: 'juz', label: t('homework.modeJuz'), icon: <Icon name="list" size={16} /> },
         ]}
         value={mode}
         onChange={(k) => setMode(k as 'surah' | 'juz')}
       />
+
       {mode === 'juz' ? (
-        <div className="flex flex-wrap gap-2 items-end">
-          <label className="flex flex-col gap-1">
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('homework.juz')}</span>
-            <select value={juz} onChange={(e) => setJuz(Number(e.target.value))} className="input" style={{ minHeight: 40, width: 'auto', paddingInlineStart: 10, paddingInlineEnd: 28 }}>
+        // Juz field + a wide dashed Add button on the right.
+        <div className="flex items-end gap-3">
+          <label className="flex flex-col gap-1.5" style={{ width: 150 }}>
+            <span className="text-xs font-medium" style={fieldLabel}>{t('homework.juz')}</span>
+            <select value={juz} onChange={(e) => setJuz(Number(e.target.value))}
+                    className="input" style={{ minHeight: 44, width: '100%' }}>
               {Array.from({ length: TOTAL_JUZ }, (_, i) => i + 1).map((j) => (
                 <option key={j} value={j}>{j}</option>
               ))}
             </select>
           </label>
-          <button onClick={() => onChange([...entries, { kind: 'juz', juz }])} className="btn btn-outline"
-                  style={{ minHeight: 40, fontSize: 13, padding: '0 16px' }}>
-            {t('homework.addJuz')}
+          <button type="button" onClick={addEntry} className="flex-1" style={dashedAdd} {...dashedFx}>
+            <span aria-hidden style={{ fontSize: 17, lineHeight: 1, fontWeight: 500 }}>+</span>
+            {addLabel}
           </button>
         </div>
       ) : (
-      <div className="flex flex-wrap gap-2 items-end">
-        <label className="flex flex-col gap-1">
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('log.surah')}</span>
-          <SurahCombobox value={surah} onChange={pickSurah} locale={locale} placeholder={t('homework.searchSurah')} />
-        </label>
-        <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-          {t('log.ayahFrom')}
-          <input type="number" inputMode="numeric" min={1} max={max} value={startText}
-                 onChange={(e) => setStartText(e.target.value)}
-                 onBlur={() => setStartText(String(coerce(startText, 1)))}
-                 className="input input-sm" style={{ minHeight: 40, width: 80 }} />
-        </label>
-        <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-          {t('log.ayahTo')}
-          <input type="number" inputMode="numeric" min={1} max={max} value={endText}
-                 onChange={(e) => setEndText(e.target.value)}
-                 onBlur={() => setEndText(String(coerce(endText, max)))}
-                 className="input input-sm" style={{ minHeight: 40, width: 80 }} />
-        </label>
-        <button onClick={add} className="btn btn-outline" style={{ minHeight: 40, fontSize: 13, padding: '0 16px' }}>
-          {t('homework.addSurah')}
-        </button>
-      </div>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-end gap-2">
+            <label className="flex flex-col gap-1.5 flex-1 min-w-0">
+              <span className="text-xs font-medium" style={fieldLabel}>{t('log.surah')}</span>
+              <SurahCombobox fluid value={surah} onChange={pickSurah} locale={locale} placeholder={t('homework.searchSurah')} />
+            </label>
+            <label className="flex flex-col gap-1.5" style={{ width: 76 }}>
+              <span className="text-xs font-medium" style={fieldLabel}>{t('log.ayahFrom')}</span>
+              <input type="number" inputMode="numeric" min={1} max={max} value={startText}
+                     onChange={(e) => setStartText(e.target.value)}
+                     onBlur={() => setStartText(String(coerce(startText, 1)))}
+                     className="input" style={{ minHeight: 44, width: '100%' }} />
+            </label>
+            <label className="flex flex-col gap-1.5" style={{ width: 76 }}>
+              <span className="text-xs font-medium" style={fieldLabel}>{t('log.ayahTo')}</span>
+              <input type="number" inputMode="numeric" min={1} max={max} value={endText}
+                     onChange={(e) => setEndText(e.target.value)}
+                     onBlur={() => setEndText(String(coerce(endText, max)))}
+                     className="input" style={{ minHeight: 44, width: '100%' }} />
+            </label>
+          </div>
+          <button type="button" onClick={addEntry} style={dashedAdd} {...dashedFx}>
+            <span aria-hidden style={{ fontSize: 17, lineHeight: 1, fontWeight: 500 }}>+</span>
+            {addLabel}
+          </button>
+        </div>
       )}
+
       {entries.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {entries.map((e, i) => (
-            <span key={i} className="badge" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span key={i} className="flex items-center gap-2"
+                  style={{ padding: '6px 8px 6px 12px', borderRadius: 'var(--radius-full)', background: 'var(--accent-muted)', color: 'var(--text-accent)', fontSize: 13, fontWeight: 500 }}>
               {e.kind === 'juz'
                 ? `${t('homework.juz')} ${e.juz}`
                 : `${getSurahName(e.surah, locale)}${e.ayah_start ? ` ${e.ayah_start}–${e.ayah_end}` : ` ${t('homework.whole')}`}`}
-              <button onClick={() => onChange(entries.filter((_, j) => j !== i))}
-                      style={{ cursor: 'pointer', fontWeight: 700 }} aria-label="remove">×</button>
+              <button onClick={() => onChange(entries.filter((_, j) => j !== i))} aria-label={t('memorization.remove')}
+                      className="flex items-center justify-center"
+                      style={{ width: 18, height: 18, borderRadius: 'var(--radius-full)', background: 'var(--bg-surface)', color: 'var(--text-muted)', fontSize: 12, lineHeight: 1, cursor: 'pointer' }}>
+                ×
+              </button>
             </span>
           ))}
         </div>

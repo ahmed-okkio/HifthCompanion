@@ -231,6 +231,21 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     try {
       const json = canvas.toJSON();
       delete (json as any).backgroundImage;
+      // Empty page carries no annotation — delete any existing row instead of
+      // storing a `{objects:[]}` shell. Keeps the table free of junk rows as it grows.
+      if (!(json as any).objects?.length) {
+        const { error } = await supabase.from('annotations')
+          .delete().match({ set_id: setId, page_number: page });
+        if (error) {
+          console.error('[AnnotationCanvas] Delete error:', error);
+          if (lockedSet && isRlsDenial(error)) {
+            accessRevokedRef.current = true;
+            setAccessRevoked(true);
+            if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
+          }
+        }
+        return;
+      }
       const canvasJson = { width: canvas.getWidth(), height: canvas.getHeight(), ...json };
       const { error } = await supabase.from('annotations').upsert(
         { set_id: setId, page_number: page, canvas_json: canvasJson, updated_at: new Date().toISOString() },

@@ -554,6 +554,77 @@ export function Icon({ name, size = 18 }: { name: keyof typeof ICON_PATHS; size?
   );
 }
 
+/** Wide segmented control with a single highlight pill that slides between
+ *  options. Full-width, equal segments; used for status pickers and mode
+ *  toggles. RTL-safe (logical inset). */
+export function SegmentedControl({
+  options,
+  value,
+  onChange,
+}: {
+  options: { key: string; label: string }[];
+  value: string;
+  onChange: (key: string) => void;
+}) {
+  const n = options.length;
+  const idx = Math.max(0, options.findIndex((o) => o.key === value));
+  return (
+    <div
+      style={{
+        position: 'relative',
+        display: 'grid',
+        gridTemplateColumns: `repeat(${n}, 1fr)`,
+        background: 'var(--bg-input)',
+        border: '1px solid var(--border-default)',
+        borderRadius: 'var(--radius-full)',
+        padding: 4,
+      }}
+    >
+      {/* Sliding highlight — one pill, translated to the active segment. */}
+      <span
+        aria-hidden
+        style={{
+          position: 'absolute',
+          top: 4,
+          bottom: 4,
+          insetInlineStart: `calc(${idx} * (100% - 8px) / ${n} + 4px)`,
+          width: `calc((100% - 8px) / ${n})`,
+          background: 'var(--accent)',
+          borderRadius: 'var(--radius-full)',
+          transition: 'inset-inline-start var(--duration-normal) var(--ease-out)',
+        }}
+      />
+      {options.map((o) => {
+        const on = o.key === value;
+        return (
+          <button
+            key={o.key}
+            type="button"
+            onClick={() => onChange(o.key)}
+            aria-pressed={on}
+            style={{
+              position: 'relative',
+              zIndex: 1,
+              minHeight: 44,
+              padding: '0 12px',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              color: on ? 'var(--accent-contrast, #fff)' : 'var(--text-secondary)',
+              transition: 'color var(--duration-normal) var(--ease-out)',
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Tab bar for switching between views. Minimal — just a row of buttons. */
 export function TabBar({
   tabs,

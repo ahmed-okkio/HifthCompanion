@@ -12,8 +12,10 @@ import {
   homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus,
 } from '@/lib/homework';
 import { isStreakAtRisk } from '@/lib/streak';
-import { getSurahForPage, getAyahsOnPage } from '@/lib/quran';
-import { SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, HOMEWORK_STATUS_STYLE, Icon } from './ui';
+import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
+import { wholeSurahPages } from '@/lib/homework';
+import { SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, Icon } from './ui';
+import { SurahPicker, type Entry } from './TeacherStudent';
 
 const LOG_TYPES: LogType[] = ['memorization', 'general_revision', 'targeted_revision'];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -97,11 +99,10 @@ export default function StudentCircle({
           )}
 
           {tab === 'log' && (<>
-            {/* Open self-submission (F1/F2/F3) */}
-            <div className="card flex flex-col gap-3" style={{ padding: '16px 18px' }}>
-              <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('log.new')}</h2>
-              <LogForm membershipId={membership.id} statuses={statuses} onCreated={addLog} />
-            </div>
+            {/* Open self-submission (F1/F2/F3) — same collapse-behind-a-button +
+                surah picker pattern as the teacher's prescribe form, but it
+                creates a log entry instead of homework. */}
+            <LogEntryForm membershipId={membership.id} statuses={statuses} onCreated={addLog} />
 
             {/* My logs */}
             <div className="flex flex-col gap-2">
@@ -315,7 +316,114 @@ function HomeworkCard({
   );
 }
 
-// --- Shared log form (open + homework-linked) --------------------------------
+// --- Open self-submission: prescribe-style form that creates log(s) ----------
+
+/** A picker entry → the page range + optional surah/ayah scope of a log. */
+function entryToLog(e: Entry): Pick<NewProgressLog, 'page_start' | 'page_end' | 'surah' | 'ayah_start' | 'ayah_end'> {
+  if (e.kind === 'juz') {
+    const [ps, pe] = juzPageBounds(e.juz);
+    return { page_start: ps, page_end: pe, surah: null, ayah_start: null, ayah_end: null };
+  }
+  const [ps, pe] = wholeSurahPages(e.surah);
+  return {
+    page_start: e.ayah_start ? getPageForAyah(e.surah, e.ayah_start) : ps,
+    page_end: e.ayah_end ? getPageForAyah(e.surah, e.ayah_end) : pe,
+    surah: e.surah,
+    ayah_start: e.ayah_start,
+    ayah_end: e.ayah_end,
+  };
+}
+
+function LogEntryForm({
+  membershipId, statuses, onCreated,
+}: {
+  membershipId: string;
+  statuses: StatusConfig[];
+  onCreated: (log: ProgressLog) => void;
+}) {
+  const { t, locale } = useI18n();
+  // Collapsed behind a button by default, like the teacher's prescribe form.
+  const [logging, setLogging] = useState(false);
+  const [logType, setLogType] = useState<LogType>('memorization');
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [status, setStatus] = useState(statuses[0]?.label ?? '');
+  const [note, setNote] = useState('');
+  const [logDate, setLogDate] = useState(today());
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function submit() {
+    if (busy || entries.length === 0) return;
+    setBusy(true);
+    setError('');
+    try {
+      // One log per picked entry (mirrors prescribe writing one row per surah).
+      for (const e of entries) {
+        const log = await createLog({
+          membership_id: membershipId,
+          homework_id: null,
+          log_date: logDate,
+          log_type: logType,
+          ...entryToLog(e),
+          student_status: status,
+          student_notes: note || null,
+        });
+        onCreated(log);
+      }
+      setEntries([]);
+      setNote('');
+      setLogging(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!logging) {
+    return (
+      <button onClick={() => setLogging(true)} className="btn btn-primary self-center" style={{ minHeight: 44 }}>
+        {t('log.new')}
+      </button>
+    );
+  }
+
+  return (
+    <div className="card flex flex-col gap-3" style={{ padding: '16px 18px', animation: 'fade-in-scale 0.2s var(--ease-out) both', transformOrigin: 'top' }}>
+      <div className="flex flex-wrap gap-2 items-end">
+        <label className="flex flex-col gap-1">
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('log.type')}</span>
+          <select value={logType} onChange={(e) => setLogType(e.target.value as LogType)} className="input" style={{ minHeight: 40 }}>
+            {LOG_TYPES.map((lt) => <option key={lt} value={lt}>{t(`logType.${lt}`)}</option>)}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1">
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('log.date')}</span>
+          <input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)} className="input" style={{ minHeight: 40 }} />
+        </label>
+      </div>
+
+      <SurahPicker entries={entries} onChange={setEntries} locale={locale} />
+
+      <ChipRow label={t('log.selfStatus')} options={statuses.map((s) => s.label)} value={status} onChange={setStatus} />
+
+      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('log.note')} className="input" />
+
+      {error && <span className="text-xs" style={{ color: 'var(--danger)' }}>{error}</span>}
+
+      <div className="flex gap-2">
+        <button onClick={submit} disabled={busy || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44 }}>
+          {t('log.submit')}
+        </button>
+        <button onClick={() => setLogging(false)} className="btn btn-ghost" style={{ minHeight: 44 }}>
+          {t('common.cancel')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// --- Shared log form (homework-linked attach) --------------------------------
 
 function LogForm({
   membershipId, statuses, onCreated, homeworkId = null, lockedType,
@@ -489,17 +597,7 @@ function ChipRow({
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{label}</span>
-      <div className="flex flex-wrap gap-2">
-        {options.map((o) => (
-          <button key={o} onClick={() => onChange(o)} className="badge" style={{
-            cursor: 'pointer',
-            background: value === o ? 'var(--accent)' : undefined,
-            color: value === o ? '#fff' : undefined,
-          }}>
-            {o}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl options={options.map((o) => ({ key: o, label: o }))} value={value} onChange={onChange} />
     </div>
   );
 }

@@ -21,7 +21,7 @@ import {
 import { AYAH_COUNTS, TOTAL_JUZ, getSurahName } from '@/lib/quran';
 import {
   SectionTitle, EmptyState, Avatar, StatCard, DateChip, StatusDot, TabBar,
-  SurahCombobox, HOMEWORK_STATUS_STYLE, Chevron, Icon,
+  SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, Chevron, Icon,
 } from './ui';
 import { cumulativeTotals, attendanceStats } from '@/lib/analytics';
 
@@ -99,10 +99,10 @@ export default function TeacherStudent({
       <div className="flex flex-col gap-5 min-w-0">
         <TabBar
           tabs={[
-            { key: 'sessions', label: t('tracker.tabSchedule') },
+            { key: 'schedule', label: t('tracker.tabSchedule') },
             { key: 'homework', label: t('homework.title') },
             { key: 'notes', label: t('notes.title') },
-            { key: 'schedule', label: t('sessions.tabSessions') },
+            { key: 'sessions', label: t('sessions.tabSessions') },
           ]}
           active={tab}
           onSelect={setTab}
@@ -488,7 +488,7 @@ const STATUS_KEY = {
   missed: 'homework.statusMissed',
 } as const satisfies Record<HomeworkStatus, string>;
 
-type Entry =
+export type Entry =
   | { kind: 'surah'; surah: number; ayah_start: number | null; ayah_end: number | null }
   | { kind: 'juz'; juz: number };
 
@@ -708,7 +708,7 @@ function PrescriptionCard({
 
 // --- Surah picker: build the list of surah entries for a prescription (H1) ----
 
-function SurahPicker({
+export function SurahPicker({
   entries, onChange, locale,
 }: {
   entries: Entry[];
@@ -754,14 +754,14 @@ function SurahPicker({
   return (
     <div className="flex flex-col gap-2">
       {/* Mode toggle: prescribe a surah range or a whole juz. */}
-      <div className="flex gap-1">
-        {(['surah', 'juz'] as const).map((m) => (
-          <button key={m} onClick={() => setMode(m)} className={mode === m ? 'btn btn-primary' : 'btn btn-ghost'}
-                  style={{ minHeight: 34, fontSize: 12, padding: '0 14px' }}>
-            {t(m === 'surah' ? 'homework.modeSurah' : 'homework.modeJuz')}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        options={[
+          { key: 'surah', label: t('homework.modeSurah') },
+          { key: 'juz', label: t('homework.modeJuz') },
+        ]}
+        value={mode}
+        onChange={(k) => setMode(k as 'surah' | 'juz')}
+      />
       {mode === 'juz' ? (
         <div className="flex flex-wrap gap-2 items-end">
           <label className="flex flex-col gap-1">

@@ -29,7 +29,9 @@ export function homeworkStatus(
  */
 export function wholeSurahPages(surah: number): [number, number] {
   const start = SURAH_FIRST_PAGES[surah];
-  const end = surah >= TOTAL_SURAHS ? TOTAL_PAGES : SURAH_FIRST_PAGES[surah + 1] - 1;
+  // Short surahs share a page with the next one, so next-first-page - 1 can fall
+  // below `start`. Floor at `start` (surah lives entirely on that one page).
+  const end = surah >= TOTAL_SURAHS ? TOTAL_PAGES : Math.max(start, SURAH_FIRST_PAGES[surah + 1] - 1);
   return [start, end];
 }
 

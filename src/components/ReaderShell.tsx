@@ -208,12 +208,15 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   }, [activeSetId, user]);
 
   // R3/R4: upsert the saved page's count in memory (count 0 removes the row). No refetch.
-  const patchMarked = useCallback((page: number, count: number) => {
+  // Ignore saves for a different set — a set-switch flushes the OUTGOING set, whose onSaved
+  // would otherwise pollute the incoming set's list (draw in set A showing in set B).
+  const patchMarked = useCallback((setId: string, page: number, count: number) => {
+    if (setId !== activeSetId) return;
     setMarkedRows(prev => {
       const rest = prev.filter(r => r.page !== page);
       return count > 0 ? [...rest, { page, count }] : rest;
     });
-  }, []);
+  }, [activeSetId]);
 
   const navRef = useRef<HTMLDivElement>(null);
   const [navHeight, setNavHeight] = useState(FALLBACK_NAV_HEIGHT);

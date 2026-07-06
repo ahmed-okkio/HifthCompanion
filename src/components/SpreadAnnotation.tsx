@@ -20,7 +20,7 @@ interface Props {
   /** When set (e.g. `/share/{setId}`), prev/next links target the share route instead of /reader. */
   sharePageBasePath?: string;
   /** PRD 0009 R3: patch the reader's Marked tab after a save (page, new mark count). */
-  onSaved?: (page: number, count: number) => void;
+  onSaved?: (setId: string, page: number, count: number) => void;
 }
 
 /**

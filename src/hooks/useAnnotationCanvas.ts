@@ -55,7 +55,7 @@ interface UseAnnotationCanvasProps {
   /** PRD 0009 R3: fired after a successful save with the page's new mark count
    *  (objects.length; 0 on the empty-delete path). Lets the reader patch the Marked
    *  tab in place without refetching. */
-  onSaved?: (page: number, count: number) => void;
+  onSaved?: (setId: string, page: number, count: number) => void;
 }
 
 export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet = false, tools, onCommit, onSaved }: UseAnnotationCanvasProps) {
@@ -238,7 +238,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
       const r = await store.save(setId, page, payload);
       if (r.status === 'saved') {
         // R3/R4: patch the Marked tab in place — new count, or 0 (row removed).
-        onSavedRef.current?.(page, payload.objects.length);
+        onSavedRef.current?.(setId, page, payload.objects.length);
       } else if (r.status === 'denied') {
         // ponytail: revoke only on RLS denial (store already classified it), never on a
         // transient/network error. An owner (lockedSet false) just logs and retries.

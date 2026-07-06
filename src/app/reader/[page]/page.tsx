@@ -5,6 +5,8 @@ import ShareCard from '@/components/ShareCard';
 import NotesPanel from '@/components/NotesPanel';
 import { getNotes } from '@/lib/services/notes';
 import { Icon } from '@/components/tracker/ui';
+import { getLocale } from '@/lib/i18n/server';
+import { getDictionary } from '@/lib/i18n/dictionaries';
 
 interface Props {
   params: Promise<{ page: string }>;
@@ -37,6 +39,7 @@ export default async function ReaderPage({ params, searchParams }: Props) {
     notFound();
   }
 
+  const dict = getDictionary(await getLocale());
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -70,20 +73,20 @@ export default async function ReaderPage({ params, searchParams }: Props) {
       ) : !user ? (
         <div className="card p-8 text-center flex flex-col items-center justify-center animate-fade-in-scale" style={{ animationDelay: '100ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>
           <div className="mb-4 opacity-50" style={{ color: 'var(--text-muted)' }}><Icon name="lock" size={36} /></div>
-          <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Sign in to annotate</h3>
+          <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{dict['reader.signInToAnnotate']}</h3>
           <p className="text-sm mt-2 max-w-[240px]" style={{ color: 'var(--text-muted)' }}>
-            You must be logged in to draw on pages, create annotation sets, and save notes.
+            {dict['reader.signInHint']}
           </p>
-          <a href="/login" className="btn btn-primary mt-6">Log in / Sign up</a>
+          <a href="/login" className="btn btn-primary mt-6">{dict['reader.logInSignUp']}</a>
         </div>
       ) : (
         <div className="card p-6 text-center animate-fade-in-scale" style={{ animationDelay: '100ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>
           <div className="mb-3 opacity-50" style={{ color: 'var(--text-muted)' }}><Icon name="folder" size={30} /></div>
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>No annotation sets</h3>
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{dict['reader.noAnnotationSets']}</h3>
           <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
-            Create a set to start taking notes.
+            {dict['reader.createSetHint']}
           </p>
-          <a href="/sets" className="btn btn-outline mt-4">Create Set</a>
+          <a href="/sets" className="btn btn-outline mt-4">{dict['sets.createSet']}</a>
         </div>
       )}
 

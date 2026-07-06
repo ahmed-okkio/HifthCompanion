@@ -3,6 +3,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SURAH_PAGE_GROUPS, activeGroupPage, filterSurahGroups, getJuzForPage, getSurahName, pageFromLocation, spreadOf, spreadUrl, type SurahPageGroup } from '@/lib/quran';
 import { pinStorageKey } from '@/lib/bookmark';
+import { useI18n } from '@/components/I18nProvider';
 
 interface Props {
   onSelect?: (surahNumber: number) => void;
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, basePath, topOffset = 72, isSpread = false }: Props) {
+  const { t } = useI18n();
   const [query, setQuery] = useState('');
   const [pinnedPage, setPinnedPage] = useState<number | null>(null);
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -228,7 +230,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
           className="font-semibold"
           style={{ color: 'var(--text-primary)', fontSize: 'var(--type-heading-m-size)' }}
         >
-          Surahs
+          {t('reader.surahs')}
         </h2>
         {activeSurahName && (
           <p className="mt-1 flex items-center gap-2 truncate" style={{ fontSize: 'var(--type-small-size)' }}>
@@ -243,7 +245,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
                 color: 'var(--green-600)',
               }}
             >
-              Juz {getJuzForPage(activePage)}
+              {t('reader.juz', { n: getJuzForPage(activePage) })}
             </span>
             <span className="truncate" style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{activeSurahName}</span>
           </p>
@@ -258,9 +260,9 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
             <input
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Search Surah"
+              placeholder={t('reader.searchSurah')}
               className="w-full input input-sm"
-              aria-label="Search Surah"
+              aria-label={t('reader.searchSurah')}
               style={{ background: 'var(--surface-main)', paddingLeft: '3rem' }}
             />
           </div>
@@ -276,8 +278,8 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
                 <button
                   type="button"
                   onClick={() => togglePin(group.page)}
-                  title={pinnedPage === group.page ? 'Remove bookmark (default page)' : 'Bookmark as default page'}
-                  aria-label={pinnedPage === group.page ? 'Remove default bookmark' : 'Bookmark as default page'}
+                  title={pinnedPage === group.page ? t('reader.removeBookmark') : t('reader.bookmarkAsDefault')}
+                  aria-label={pinnedPage === group.page ? t('reader.removeDefaultBookmark') : t('reader.bookmarkAsDefault')}
                   aria-pressed={pinnedPage === group.page}
                   className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center opacity-0 transition-opacity duration-150 focus-visible:opacity-100 group-hover/row:opacity-100"
                   style={{
@@ -349,7 +351,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
                       color: active ? 'var(--green-600)' : 'var(--text-muted)',
                     }}
                   >
-                    Page {group.page}
+                    {t('reader.pageNum', { n: group.page })}
                   </span>
                 </button>
               </li>
@@ -384,7 +386,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v14M19 12l-7 7-7-7" />
             )}
           </svg>
-          <span className="truncate">{activeSurahName || 'Current surah'}</span>
+          <span className="truncate">{activeSurahName || t('reader.currentSurah')}</span>
         </button>
       )}
 

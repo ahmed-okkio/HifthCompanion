@@ -1,12 +1,16 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import HomeReaderDemo from '@/components/HomeReaderDemo';
+import { getLocale } from '@/lib/i18n/server';
+import { getDictionary } from '@/lib/i18n/dictionaries';
 
-export const metadata = {
-  title: 'HifthCompanion — Read, Annotate & Memorize the Quran',
-};
+export async function generateMetadata() {
+  const dict = getDictionary(await getLocale());
+  return { title: dict['home.metaTitle'] };
+}
 
-export default function Home() {
+export default async function Home() {
+  const dict = getDictionary(await getLocale());
   return (
     <main
       className="relative min-h-[100dvh] flex flex-col items-center overflow-hidden"
@@ -50,7 +54,7 @@ export default function Home() {
             letterSpacing: '0.04em', textTransform: 'uppercase',
           }}
         >
-          Read · Annotate · Memorize
+          {dict['home.tagline']}
         </span>
 
         <h1
@@ -61,23 +65,23 @@ export default function Home() {
             animationDelay: '0.05s',
           }}
         >
-          Your digital{' '}
+          {dict['home.heroTitlePrefix']}{' '}
           <span
             style={{
               background: 'linear-gradient(120deg, var(--green-600), #C9A24B)',
               WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
             }}
           >
-            Mushaf
+            {dict['home.heroTitleMushaf']}
           </span>
-          <br />for hifth that sticks
+          <br />{dict['home.heroTitleSuffix']}
         </h1>
 
         <p
           className="home-rise mt-6 max-w-[34ch] sm:max-w-[50ch]"
           style={{ color: 'var(--text-secondary)', fontSize: 'clamp(1.05rem, 2.4vw, 1.3rem)', lineHeight: 1.55, animationDelay: '0.1s' }}
         >
-          Read, annotate, and memorize the Quran in one calm workspace — built for students and teachers.
+          {dict['home.heroSubtitle']}
         </p>
 
         <div
@@ -94,7 +98,7 @@ export default function Home() {
               boxShadow: '0 10px 24px rgba(15,138,103,0.28)',
             }}
           >
-            Open the Mushaf
+            {dict['home.openMushaf']}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
@@ -108,7 +112,7 @@ export default function Home() {
               border: '1px solid var(--border-subtle)', fontSize: '1.02rem', textDecoration: 'none',
             }}
           >
-            Log in
+            {dict['home.logIn']}
           </Link>
         </div>
 
@@ -123,7 +127,7 @@ export default function Home() {
         className="relative w-full text-center text-xs tracking-wider uppercase border-t"
         style={{ padding: '18px 0', color: 'var(--text-muted)', borderColor: 'var(--border-subtle)' }}
       >
-        HifthCompanion © 2026
+        {dict['home.footer']}
       </footer>
     </main>
   );

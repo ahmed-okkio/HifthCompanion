@@ -9,6 +9,7 @@ import AnnotationToolbar from '@/components/AnnotationToolbar';
 import ToolHoverPopover from '@/components/ToolHoverPopover';
 import ZoomControl from '@/components/ZoomControl';
 import SpreadToggle from '@/components/SpreadToggle';
+import { useI18n } from '@/components/I18nProvider';
 
 interface Props {
   /** [low, high] page numbers. RTL: low/odd renders on the RIGHT, high/even on the LEFT. */
@@ -30,6 +31,7 @@ interface Props {
  * arrays and calls the right canvas's undo/redo.
  */
 export default function SpreadAnnotation({ pages, sets, user, lockedSet = false, sharePageBasePath }: Props) {
+  const { t } = useI18n();
   const tools = useToolState();
   const { activeTool, setActiveTool, activeColor, setActiveColor, opacity, setOpacity, penWidth, setPenWidth } = tools;
 
@@ -73,7 +75,7 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
   }, [sync]);
 
   const clear = useCallback(() => {
-    if (!confirm('Clear all annotations on both pages?')) return;
+    if (!confirm(t('annot.confirmClearBoth'))) return;
     rightRef.current?.clear();
     leftRef.current?.clear();
   }, []);

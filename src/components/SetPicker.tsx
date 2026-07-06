@@ -1,5 +1,6 @@
 'use client';
 import type { AnnotationSet } from '@/types';
+import { useI18n } from '@/components/I18nProvider';
 
 interface Props {
   user: { id: string } | null;
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function SetPicker({ user, sets, selectedSetId, saving, onSetChange }: Props) {
+  const { t } = useI18n();
   return (
     <div className="mb-3 flex items-center gap-2 justify-between rounded-2xl border border-[var(--border-subtle)] bg-white/72 px-3 py-2 shadow-sm backdrop-blur min-h-[52px] lg:min-h-0">
       {user ? (
@@ -24,12 +26,12 @@ export default function SetPicker({ user, sets, selectedSetId, saving, onSetChan
             {sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         ) : (
-          <a href="/sets" className="text-sm" style={{ color: 'var(--text-accent)' }}>Create set</a>
+          <a href="/sets" className="text-sm" style={{ color: 'var(--text-accent)' }}>{t('sets.createSet')}</a>
         )
       ) : (
-        <a href="/login" className="text-sm" style={{ color: 'var(--text-accent)' }}>Log in to annotate</a>
+        <a href="/login" className="text-sm" style={{ color: 'var(--text-accent)' }}>{t('sets.loginToAnnotate')}</a>
       )}
-      {saving && <span className="text-sm" style={{ color: 'var(--text-accent)' }}>Saving…</span>}
+      {saving && <span className="text-sm" style={{ color: 'var(--text-accent)' }}>{t('sets.saving')}</span>}
     </div>
   );
 }

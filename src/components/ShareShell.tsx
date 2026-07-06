@@ -9,6 +9,7 @@ import NavRail from './NavRail';
 import ProfileMenu from './ProfileMenu';
 import shareStyles from './ShareShell.module.css';
 import navStyles from './ReaderNav.module.css';
+import { useI18n } from '@/components/I18nProvider';
 
 const FALLBACK_NAV_HEIGHT = 56;
 
@@ -33,6 +34,7 @@ interface Props {
  * toolbar, so there is no fixed bottom bar to pad against.
  */
 export default function ShareShell({ basePath, pageNum, setName, ownerName, children, account = null }: Props) {
+  const { t } = useI18n();
   const navRef = useRef<HTMLDivElement>(null);
   const [navHeight, setNavHeight] = useState(FALLBACK_NAV_HEIGHT);
   const [surahOpen, setSurahOpen] = useState(false);
@@ -74,7 +76,7 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
               <button
                 type="button"
                 onClick={() => setNavOpen(true)}
-                aria-label="Open navigation"
+                aria-label={t('share.openNavigation')}
                 className="lg:hidden inline-flex items-center justify-center"
                 style={{ width: 40, height: 40, marginInlineStart: -6, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
               >
@@ -87,8 +89,8 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
               <button
                 type="button"
                 onClick={() => setSurahOpen(true)}
-                title="Open surah list"
-                aria-label="Open surah list"
+                title={t('share.openSurahList')}
+                aria-label={t('share.openSurahList')}
                 className={navStyles.surahButton}
               >
                 <svg width="16" height="16" className={navStyles.navIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -124,7 +126,7 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
                     {/* S2 — guest/unresolvable owner: set name alone. */}
                     <span className={navStyles.contextSurah}>{setName}</span>
                     <span className={navStyles.contextSep} aria-hidden>·</span>
-                    <span className={navStyles.contextJuz}>Read-only</span>
+                    <span className={navStyles.contextJuz}>{t('share.readOnly')}</span>
                   </>
                 )}
               </span>
@@ -133,7 +135,7 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
             <div className={navStyles.navigator}>
               <Link
                 href={`${basePath}/${nextPage}`}
-                title="Next page"
+                title={t('share.nextPage')}
                 aria-disabled={pageNum === TOTAL_PAGES}
                 className={navStyles.navButton}
                 style={pageNum === TOTAL_PAGES ? { pointerEvents: 'none', opacity: 0.35 } : undefined}
@@ -153,7 +155,7 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
 
               <Link
                 href={`${basePath}/${prevPage}`}
-                title="Previous page"
+                title={t('share.previousPage')}
                 aria-disabled={pageNum === 1}
                 className={navStyles.navButton}
                 style={pageNum === 1 ? { pointerEvents: 'none', opacity: 0.35 } : undefined}
@@ -169,7 +171,7 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
                 <ProfileMenu name={account.name} email={account.email} />
               ) : (
                 <Link href="/login" className={navStyles.loginButton}>
-                  Log In
+                  {t('share.logIn')}
                 </Link>
               )}
             </div>

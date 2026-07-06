@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/components/I18nProvider';
 
 /** The floating desktop zoom control (50%–200%, step 10, + reset). Extracted from
  *  AnnotationCanvas so single mode and the M4 spread shell render the same control — in spread
@@ -14,10 +15,11 @@ export default function ZoomControl({
   onZoomIn: () => void;
   onReset: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div
       data-testid="zoom-control"
-      aria-label="Zoom controls"
+      aria-label={t('reader.zoomControls')}
       className="hidden lg:flex items-center justify-center"
       style={{
         marginTop: 'var(--space-12)',
@@ -32,7 +34,7 @@ export default function ZoomControl({
     >
       <button
         type="button"
-        aria-label="Zoom out"
+        aria-label={t('reader.zoomOut')}
         onClick={onZoomOut}
         disabled={zoom <= 50}
         className="flex items-center justify-center"
@@ -49,7 +51,7 @@ export default function ZoomControl({
 
       <button
         type="button"
-        aria-label="Zoom in"
+        aria-label={t('reader.zoomIn')}
         onClick={onZoomIn}
         disabled={zoom >= 200}
         className="flex items-center justify-center"
@@ -64,7 +66,7 @@ export default function ZoomControl({
 
       <button
         type="button"
-        aria-label="Reset zoom"
+        aria-label={t('reader.resetZoom')}
         onClick={onReset}
         className="flex items-center gap-2"
         style={{ height: '38px', padding: '0 var(--space-12)', borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: 'var(--neutral-600)', whiteSpace: 'nowrap' }}
@@ -74,7 +76,7 @@ export default function ZoomControl({
         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M20 9a8 8 0 00-14.9-3M4 15a8 8 0 0014.9 3" />
         </svg>
-        Reset
+        {t('reader.reset')}
       </button>
     </div>
   );

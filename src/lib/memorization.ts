@@ -1,5 +1,10 @@
 import type { MemorizedRange } from '@/types';
-import { AYAH_COUNTS, TOTAL_SURAHS, juzPageBounds, getAyahsOnPage } from '@/lib/quran';
+import { AYAH_COUNTS, TOTAL_SURAHS, TOTAL_JUZ, getAyahCount } from '@/lib/quran';
+import juzStartAyahData from '@/data/juzStartAyah.json';
+
+/** First ayah (surah:ayah) of each juz (1–30). Canonical ayah-precise boundaries. */
+const JUZ_START_AYAH: Record<number, { surah: number; ayah: number }> =
+  juzStartAyahData as Record<number, { surah: number; ayah: number }>;
 
 /** True iff every range is a valid ayah span. Empty list is valid. */
 export function validate(ranges: MemorizedRange[]): boolean {
@@ -50,14 +55,27 @@ export function subtractRanges(base: MemorizedRange[], minus: MemorizedRange[]):
   return normalize(out);
 }
 
-/** Surah+ayah ranges covered by a juz (1–30), derived from its page bounds. */
+/** Surah+ayah ranges covered by a juz (1–30), from canonical ayah-precise
+ *  boundaries. Page-based derivation over-included surahs that merely shared a
+ *  boundary page (e.g. Al-Jathiyah leaking into juz 26). */
 export function juzToRanges(juz: number): MemorizedRange[] {
-  const [start, end] = juzPageBounds(juz);
+  const startRef = JUZ_START_AYAH[juz];
+  if (!startRef) return [];
+  // Last ayah of this juz = the ayah just before the next juz's first (or the
+  // very last ayah of the Qur'an for juz 30).
+  const next = JUZ_START_AYAH[juz + 1];
+  const endRef =
+    juz >= TOTAL_JUZ || !next
+      ? { surah: TOTAL_SURAHS, ayah: getAyahCount(TOTAL_SURAHS) }
+      : next.ayah > 1
+        ? { surah: next.surah, ayah: next.ayah - 1 }
+        : { surah: next.surah - 1, ayah: getAyahCount(next.surah - 1) };
+
   const ranges: MemorizedRange[] = [];
-  for (let p = start; p <= end; p++) {
-    for (const { surah, ayah } of getAyahsOnPage(p)) {
-      ranges.push({ surah, from: ayah, to: ayah });
-    }
+  for (let s = startRef.surah; s <= endRef.surah; s++) {
+    const from = s === startRef.surah ? startRef.ayah : 1;
+    const to = s === endRef.surah ? endRef.ayah : getAyahCount(s);
+    ranges.push({ surah: s, from, to });
   }
   return normalize(ranges);
 }

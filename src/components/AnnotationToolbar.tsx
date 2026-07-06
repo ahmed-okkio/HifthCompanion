@@ -1,6 +1,7 @@
 'use client';
 import { useRef } from 'react';
 import { type Tool, ALL_TOOLS, TOOL_ICONS, TOOL_LABELS, PRESET_COLORS } from '@/lib/canvasTools';
+import { useI18n } from '@/components/I18nProvider';
 
 interface Props {
   activeTool: Tool;
@@ -35,6 +36,7 @@ export default function AnnotationToolbar({
   onToolClick, onColorChange, onUndo, onRedo, onClear,
   onHoverEnter, onHoverLeave, moveActive, onMoveToggle,
 }: Props) {
+  const { t } = useI18n();
   const buttonRefs = useRef<Record<Tool, HTMLButtonElement | null>>({} as Record<Tool, HTMLButtonElement | null>);
 
   // Horizontal bar: popover drops BELOW the hovered tool button. Clamp horizontally to viewport.
@@ -98,7 +100,7 @@ export default function AnnotationToolbar({
         <button
           type="button"
           onClick={onMoveToggle}
-          title="Move"
+          title={t('annot.move')}
           className="flex flex-col items-center justify-center gap-1"
           style={{
             ...cellBase,
@@ -113,7 +115,7 @@ export default function AnnotationToolbar({
               <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20" />
             </svg>
           </span>
-          <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>Move</span>
+          <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>{t('annot.move')}</span>
         </button>
 
         {/* Tools — equal-width cells filling the bar height */}
@@ -154,7 +156,7 @@ export default function AnnotationToolbar({
           onClick={onUndo}
           disabled={!canUndo}
           suppressHydrationWarning
-          title="Undo"
+          title={t('annot.undo')}
           aria-disabled={!canUndo}
           className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6"
           style={{
@@ -168,14 +170,14 @@ export default function AnnotationToolbar({
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
           </svg>
-          <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>Undo</span>
+          <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>{t('annot.undo')}</span>
         </button>
 
         <button
           onClick={onRedo}
           disabled={!canRedo}
           suppressHydrationWarning
-          title="Redo"
+          title={t('annot.redo')}
           aria-disabled={!canRedo}
           className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6"
           style={{
@@ -189,13 +191,13 @@ export default function AnnotationToolbar({
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
           </svg>
-          <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>Redo</span>
+          <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>{t('annot.redo')}</span>
         </button>
 
         <button
           onClick={onClear}
-          title="Clear all drawings"
-          aria-label="Clear all drawings"
+          title={t('annot.clearAll')}
+          aria-label={t('annot.clearAll')}
           className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6"
           style={{
             ...cellBase,
@@ -208,7 +210,7 @@ export default function AnnotationToolbar({
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
-          <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>Clear</span>
+          <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>{t('annot.clear')}</span>
         </button>
 
         <Divider />

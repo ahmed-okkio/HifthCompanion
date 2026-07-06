@@ -4,6 +4,7 @@ import { useNotes } from '@/hooks/useNotes';
 import NoteItem from '@/components/NoteItem';
 import NoteForm from '@/components/NoteForm';
 import PanelCard, { PanelIcon, ICON_PATHS } from '@/components/PanelCard';
+import { useI18n } from '@/components/I18nProvider';
 
 interface Props {
   setId: string;
@@ -18,25 +19,26 @@ export default function NotesPanel({ setId, pageNum, initialNotes, readOnly = fa
     setNewBody, setEditBody, setCollapsed,
     handleCreate, handleUpdate, handleDelete, startEdit, cancelEdit,
   } = useNotes(setId, pageNum, initialNotes);
+  const { t } = useI18n();
 
   return (
     <PanelCard
       testid="notes-card"
       icon={<PanelIcon d={ICON_PATHS.note} />}
-      title="Notes"
+      title={t('notes.title')}
       trailing={
         <>
           <span className="badge">{notes.length}</span>
-          {readOnly && <span className="badge badge-muted">Read-only</span>}
+          {readOnly && <span className="badge badge-muted">{t('notes.readOnly')}</span>}
           <button
             onClick={() => setCollapsed(c => !c)}
             className="btn btn-ghost flex items-center gap-1"
             style={{ padding: '2px 8px', fontSize: '11px' }}
           >
             {collapsed ? (
-              <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>Show</>
+              <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>{t('notes.show')}</>
             ) : (
-              <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>Hide</>
+              <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>{t('notes.hide')}</>
             )}
           </button>
         </>
@@ -65,7 +67,7 @@ export default function NotesPanel({ setId, pageNum, initialNotes, readOnly = fa
                   color: 'var(--text-muted)',
                 }}
               >
-                No notes yet for this page.
+                {t('notes.empty')}
               </p>
             )}
             {notes.map(note => (

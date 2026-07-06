@@ -7,6 +7,7 @@ import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { TopProgressBar } from "@/components/TopProgressBar";
 import { dirFor } from "@/lib/i18n/config";
 import { getLocale } from "@/lib/i18n/server";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 
 // UI typeface: Plus Jakarta Sans — a modern, geometric sans for a premium feel.
 // We keep the existing --font-geist-sans / --font-geist-mono variable names so nothing
@@ -28,20 +29,23 @@ const brand = Outfit({
   weight: ["400"],
 });
 
-export const metadata: Metadata = {
-  title: "HifthCompanion — Quran Annotation & Study",
-  description: "Read, annotate, and study the Quran with powerful drawing tools and shareable annotations.",
-  // manifest.ts is auto-linked by Next; appleWebApp + apple-touch-icon make the
-  // app installable on iOS (M4-1).
-  appleWebApp: {
-    capable: true,
-    title: "HifthCompanion",
-    statusBarStyle: "default",
-  },
-  icons: {
-    apple: "/apple-touch-icon.png",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const dict = getDictionary(await getLocale());
+  return {
+    title: dict['common.metaTitle'],
+    description: dict['common.metaDescription'],
+    // manifest.ts is auto-linked by Next; appleWebApp + apple-touch-icon make the
+    // app installable on iOS (M4-1).
+    appleWebApp: {
+      capable: true,
+      title: "HifthCompanion",
+      statusBarStyle: "default",
+    },
+    icons: {
+      apple: "/apple-touch-icon.png",
+    },
+  };
+}
 
 // themeColor belongs in the viewport export in Next 16. Matches --green-600.
 export const viewport: Viewport = {

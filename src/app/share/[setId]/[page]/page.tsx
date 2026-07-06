@@ -10,6 +10,8 @@ import { getNotes } from '@/lib/services/notes';
 import { getMyChrome, getProfilesByIds } from '@/lib/services/profile';
 import { displayName } from '@/lib/displayName';
 import { getStudentPagePathForOwner } from '@/lib/services/membership';
+import { getLocale } from '@/lib/i18n/server';
+import { getDictionary } from '@/lib/i18n/dictionaries';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +46,7 @@ export default async function SharePage({ params, searchParams }: Props) {
   // The old route's path segment was a userId; the real set id lived in `?set=`.
   if (legacySet) redirect(`/share/${legacySet}/${page}`);
 
+  const dict = getDictionary(await getLocale());
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -98,7 +101,7 @@ export default async function SharePage({ params, searchParams }: Props) {
           <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
-          <span>Editing <strong>{ownerName}</strong>&rsquo;s &ldquo;{annotationSet.name}&rdquo; — shared with you</span>
+          <span>{dict['share.editingSetBanner'].replace('{owner}', ownerName).replace('{name}', annotationSet.name)}</span>
         </div>
       </div>
     );
@@ -122,7 +125,7 @@ export default async function SharePage({ params, searchParams }: Props) {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              <span>Open student profile</span>
+              <span>{dict['share.openStudentProfile']}</span>
             </a>
           )}
           <NotesPanel setId={setId} pageNum={pageNum} initialNotes={initialNotes} />

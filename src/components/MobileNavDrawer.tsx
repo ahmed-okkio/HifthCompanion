@@ -10,7 +10,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { RAIL_ITEMS, isRailItemActive, type RailItemDef } from './NavRail';
+import { RAIL_ITEMS, LABEL_KEYS, isRailItemActive, type RailItemDef } from './NavRail';
 import { useI18n } from './I18nProvider';
 
 interface Props {
@@ -20,7 +20,7 @@ interface Props {
 
 export default function MobileNavDrawer({ open, onOpenChange }: Props) {
   const pathname = usePathname() ?? '';
-  const { locale } = useI18n();
+  const { locale, t } = useI18n();
   // Anchored to the inline-start edge (insetInlineStart: 0 → left in LTR, right in RTL).
   // The hidden transform must push it off that same edge: -X in LTR, +X in RTL. Mixing
   // a logical anchor with a fixed physical translateX is what broke the RTL drawer.
@@ -79,7 +79,7 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            aria-label="Close navigation"
+            aria-label={t('nav.closeNavigation')}
             className="flex items-center justify-center"
             style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm-px)', background: 'var(--surface-app)', border: '1px solid var(--border-subtle)', cursor: 'pointer', color: 'var(--text-muted)' }}
           >
@@ -94,7 +94,13 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
         <ul role="list" className="thin-scroll" style={{ listStyle: 'none', margin: 0, padding: 'var(--space-8)', display: 'flex', flexDirection: 'column', gap: '2px', overflowY: 'auto' }}>
           {items.map((item) => (
             <li key={item.id}>
-              <Row item={item} active={isRailItemActive(item, pathname)} onNavigate={() => onOpenChange(false)} />
+              <Row
+                item={item}
+                label={LABEL_KEYS[item.id] ? t(LABEL_KEYS[item.id]) : item.label}
+                active={isRailItemActive(item, pathname)}
+                onNavigate={() => onOpenChange(false)}
+                comingSoon={t('nav.comingSoon', { label: LABEL_KEYS[item.id] ? t(LABEL_KEYS[item.id]) : item.label })}
+              />
             </li>
           ))}
         </ul>
@@ -103,7 +109,7 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
   );
 }
 
-function Row({ item, active, onNavigate }: { item: RailItemDef; active: boolean; onNavigate: () => void }) {
+function Row({ item, label, active, onNavigate, comingSoon }: { item: RailItemDef; label: string; active: boolean; onNavigate: () => void; comingSoon: string }) {
   const isInert = !item.href;
 
   const style: React.CSSProperties = {
@@ -127,14 +133,14 @@ function Row({ item, active, onNavigate }: { item: RailItemDef; active: boolean;
   const inner = (
     <>
       <span className="flex items-center justify-center shrink-0">{item.icon(active)}</span>
-      <span>{item.label}</span>
+      <span>{label}</span>
       {isInert && <span className="ml-auto text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>soon</span>}
     </>
   );
 
   if (isInert) {
     return (
-      <button type="button" aria-disabled title={`${item.label} — coming soon`} style={style}>
+      <button type="button" aria-disabled title={comingSoon} style={style}>
         {inner}
       </button>
     );

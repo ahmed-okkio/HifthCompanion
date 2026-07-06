@@ -12,6 +12,7 @@ import SetsCard from '@/components/SetsCard';
 import ZoomControl from '@/components/ZoomControl';
 import SpreadToggle from '@/components/SpreadToggle';
 import { useAnnotationCanvas, type ToolState } from '@/hooks/useAnnotationCanvas';
+import { useI18n } from '@/components/I18nProvider';
 
 /** M4 spread mode: zoom/pan state lifted to the shell so ONE control scales BOTH pages (F3). */
 export interface CanvasView {
@@ -69,6 +70,7 @@ function AnnotationCanvasInner(
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,
   } = useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet, tools, onCommit });
+  const { t } = useI18n();
 
   // Spread shell drives undo/redo/clear through this handle (F4). clear skips the per-canvas
   // confirm — the shell shows ONE combined confirm before fanning out.
@@ -179,7 +181,7 @@ function AnnotationCanvasInner(
             fontWeight: 500,
           }}
         >
-          Your access to this set was removed
+          {t('annot.accessRevoked')}
         </div>
       )}
       {/* V3 Story 9 — single workspace column: horizontal annotation bar ABOVE the page,
@@ -271,7 +273,7 @@ function AnnotationCanvasInner(
               <button
                 onClick={() => goSpread(pageNum + 2)}
                 disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
-                aria-label="Next page"
+                aria-label={t('reader.nextPage')}
                 style={{
                   width: 'clamp(50px, 4vw, 120px)', minWidth: 50, flexShrink: 0,
                   border: 'none',
@@ -321,7 +323,7 @@ function AnnotationCanvasInner(
                   zoomed page (and blocks drawing); absent otherwise so annotation drawing works. */}
               {eff.moveTool && (
                 <div
-                  aria-label="Drag to move the page"
+                  aria-label={t('annot.dragToMove')}
                   onMouseDown={eff.onPanDown}
                   onMouseMove={eff.onPanMove}
                   onMouseUp={eff.endPan}
@@ -334,7 +336,7 @@ function AnnotationCanvasInner(
               <button
                 onClick={() => goSpread(pageNum - 2)}
                 disabled={pageNum <= 1}
-                aria-label="Previous page"
+                aria-label={t('reader.prevPage')}
                 style={{
                   width: 'clamp(50px, 4vw, 120px)', minWidth: 50, flexShrink: 0,
                   border: 'none',
@@ -379,7 +381,7 @@ function AnnotationCanvasInner(
               <button
                 onClick={() => go(pageNum + (controlled ? 2 : 1))}
                 disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
-                aria-label="Next page"
+                aria-label={t('reader.nextPage')}
                 style={{
                   position: 'absolute', right: 'calc(100% + 20px)', top: 0, bottom: 0,
                   width: '16vw', zIndex: 4, border: 'none',
@@ -428,7 +430,7 @@ function AnnotationCanvasInner(
                   zoomed page (and blocks drawing); absent otherwise so annotation drawing works. */}
               {eff.moveTool && (
                 <div
-                  aria-label="Drag to move the page"
+                  aria-label={t('annot.dragToMove')}
                   onMouseDown={eff.onPanDown}
                   onMouseMove={eff.onPanMove}
                   onMouseUp={eff.endPan}
@@ -440,7 +442,7 @@ function AnnotationCanvasInner(
               <button
                 onClick={() => go(pageNum - (controlled ? 2 : 1))}
                 disabled={pageNum <= 1}
-                aria-label="Previous page"
+                aria-label={t('reader.prevPage')}
                 style={{
                   position: 'absolute', left: 'calc(100% + 20px)', top: 0, bottom: 0,
                   width: '16vw', zIndex: 4, border: 'none',

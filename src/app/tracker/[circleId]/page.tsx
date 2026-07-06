@@ -18,6 +18,8 @@ import { listNotes } from '@/lib/services/membershipNotes';
 import { getExamsForMembership } from '@/lib/services/exam';
 import { displayName } from '@/lib/displayName';
 import { BackButton } from '@/components/tracker/ui';
+import { getLocale } from '@/lib/i18n/server';
+import { getDictionary } from '@/lib/i18n/dictionaries';
 
 export default async function CirclePage({
   params,
@@ -25,6 +27,7 @@ export default async function CirclePage({
   params: Promise<{ circleId: string }>;
 }) {
   const { circleId } = await params;
+  const dict = getDictionary(await getLocale());
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -65,7 +68,7 @@ export default async function CirclePage({
       .slice(0, 20);
 
     return (
-      <AppShell breadcrumb={[{ label: 'Circles', href: '/tracker' }, { label: circle.name }]} user={account}>
+      <AppShell breadcrumb={[{ label: dict['nav.circles'], href: '/tracker' }, { label: circle.name }]} user={account}>
         <main className="px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
           <div className="max-w-5xl mx-auto w-full" style={{ position: 'relative' }}>
             <BackButton href="/tracker" />
@@ -96,7 +99,7 @@ export default async function CirclePage({
       last_name: tp?.last_name,
     });
     return (
-      <AppShell breadcrumb={[{ label: 'Circles', href: '/tracker' }, { label: circle.name }]} user={account}>
+      <AppShell breadcrumb={[{ label: dict['nav.circles'], href: '/tracker' }, { label: circle.name }]} user={account}>
         <main className="max-w-2xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
           <AcceptInvite
             membershipId={membership.id}
@@ -121,7 +124,7 @@ export default async function CirclePage({
   const memorized = rangesTotals(memorizedRanges);
 
   return (
-    <AppShell breadcrumb={[{ label: 'Circles', href: '/tracker' }, { label: circle.name }]} user={account}>
+    <AppShell breadcrumb={[{ label: dict['nav.circles'], href: '/tracker' }, { label: circle.name }]} user={account}>
       <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
           <BackButton href="/tracker" />

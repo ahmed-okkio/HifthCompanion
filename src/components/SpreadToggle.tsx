@@ -1,6 +1,7 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import { spreadOf, spreadUrl } from '@/lib/quran';
+import { useI18n } from '@/components/I18nProvider';
 
 /** localStorage key holding the persisted spread/single preference ('1' = spread). */
 export const SPREAD_MODE_KEY = 'reader-spread-mode';
@@ -11,6 +12,7 @@ export const SPREAD_MODE_KEY = 'reader-spread-mode';
  * helpers. Desktop-only (`hidden lg:flex`) and /reader-only (share routes never go spread).
  */
 export default function SpreadToggle({ page, active, basePath }: { page: number; active: boolean; basePath?: string }) {
+  const { t } = useI18n();
   const router = useRouter();
   const pathname = usePathname();
   const base = basePath ?? '/reader';
@@ -55,7 +57,7 @@ export default function SpreadToggle({ page, active, basePath }: { page: number;
         <rect x="3" y="4" width="8" height="16" rx="1" strokeWidth={2} />
         <rect x="13" y="4" width="8" height="16" rx="1" strokeWidth={2} />
       </svg>
-      {active ? 'Single page' : 'Double page'}
+      {active ? t('reader.singlePage') : t('reader.doublePage')}
     </button>
   );
 }

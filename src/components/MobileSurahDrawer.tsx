@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { activeGroupPage, filterSurahGroups, getSurahName, pageFromLocation, spreadUrl, type SurahPageGroup } from '@/lib/quran';
 import { pinStorageKey } from '@/lib/bookmark';
+import { useI18n } from '@/components/I18nProvider';
 
 interface Props {
   open: boolean;
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/reader', isSpread = false }: Props) {
+  const { t } = useI18n();
   const [query, setQuery] = useState('');
   const [bookmarkedPage, setBookmarkedPage] = useState<number | null>(null);
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -120,7 +122,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Surah navigation"
+        aria-label={t('reader.surahNavigation')}
         style={{
           position: 'fixed',
           bottom: 0,
@@ -171,12 +173,12 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-12)' }}>
               <span style={{ fontSize: 'var(--type-heading-m-size)', fontWeight: 'var(--type-heading-m-weight)' as React.CSSProperties['fontWeight'], color: 'var(--text-primary)' }}>
-                Surahs
+                {t('reader.surahs')}
               </span>
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
-                aria-label="Close surah list"
+                aria-label={t('reader.closeSurahList')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -212,15 +214,15 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                 ref={searchInputRef}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Search surah"
+                placeholder={t('reader.searchSurah')}
                 className="input input-sm w-full"
-                aria-label="Search surah"
+                aria-label={t('reader.searchSurah')}
                 style={{ background: 'transparent', paddingLeft: '2.75rem' }}
               />
             </div>
           </div>
           <p style={{ margin: '8px 4px 0', fontSize: 'var(--type-caption-size)', color: 'var(--text-muted)' }}>
-            Hold a surah to bookmark it as your default page.
+            {t('reader.holdToBookmark')}
           </p>
         </div>
 
@@ -312,13 +314,13 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                         gap: '6px',
                       }}
                     >
-                      Page {group.page}{group.surahs.length > 1 ? ` · ${group.surahs.length} surahs` : ''}
+                      {t('reader.pageNum', { n: group.page })}{group.surahs.length > 1 ? ` · ${t('reader.surahsCount', { count: group.surahs.length })}` : ''}
                       {bookmarkedPage === group.page && (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--green-600)', fontWeight: 700 }}>
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" aria-hidden>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.2L5 21V4a1 1 0 0 1 1-1z" />
                           </svg>
-                          Default
+                          {t('reader.default')}
                         </span>
                       )}
                     </div>

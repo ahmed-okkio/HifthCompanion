@@ -23,6 +23,16 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useI18n } from './I18nProvider';
+
+// RAIL_ITEMS.label stays English (module-level, no hook access) — both NavRail
+// and MobileNavDrawer look the id up in LABEL_KEYS (exported) to localize it.
+export const LABEL_KEYS: Record<string, 'nav.myMushaf' | 'nav.circles' | 'nav.sets' | 'nav.sharedMushafs'> = {
+  surahs: 'nav.myMushaf',
+  circles: 'nav.circles',
+  sets: 'nav.sets',
+  shared: 'nav.sharedMushafs',
+};
 
 // ---------------------------------------------------------------------------
 // Logo block — green rounded square with book glyph
@@ -141,6 +151,7 @@ interface NavRailProps {
 
 export default function NavRail({ activeView }: NavRailProps) {
   const pathname = usePathname() ?? '';
+  const { t } = useI18n();
 
   const resolveActive = (item: RailItemDef) =>
     activeView !== undefined ? item.id === activeView : isRailItemActive(item, pathname);
@@ -148,7 +159,7 @@ export default function NavRail({ activeView }: NavRailProps) {
   return (
     <nav
       data-testid="nav-rail"
-      aria-label="Main navigation"
+      aria-label={t('nav.mainNavigation')}
       style={{
         width: '96px',
         height: '100%',
@@ -172,7 +183,7 @@ export default function NavRail({ activeView }: NavRailProps) {
         <ul role="list" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-4)', width: '100%' }}>
           {RAIL_ITEMS.map((item) => (
             <li key={item.id} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-              <RailButton item={item} isActive={resolveActive(item)} />
+              <RailButton item={item} isActive={resolveActive(item)} label={LABEL_KEYS[item.id] ? t(LABEL_KEYS[item.id]) : item.label} />
             </li>
           ))}
         </ul>
@@ -185,7 +196,8 @@ export default function NavRail({ activeView }: NavRailProps) {
 // RailButton — single rail item (link when functional, inert button otherwise)
 // ---------------------------------------------------------------------------
 
-function RailButton({ item, isActive }: { item: RailItemDef; isActive: boolean }) {
+function RailButton({ item, isActive, label }: { item: RailItemDef; isActive: boolean; label: string }) {
+  const { t } = useI18n();
   const isInert = !item.href;
 
   const sharedStyle: React.CSSProperties = {
@@ -238,14 +250,14 @@ function RailButton({ item, isActive }: { item: RailItemDef; isActive: boolean }
           color: isActive ? 'var(--green-600)' : isInert ? 'var(--neutral-400)' : 'var(--neutral-500)',
         }}
       >
-        {item.label}
+        {label}
       </span>
     </>
   );
 
   if (isInert) {
     return (
-      <button type="button" aria-label={item.label} aria-disabled title={`${item.label} — coming soon`} style={sharedStyle}>
+      <button type="button" aria-label={label} aria-disabled title={t('nav.comingSoon', { label })} style={sharedStyle}>
         {inner}
       </button>
     );
@@ -254,9 +266,9 @@ function RailButton({ item, isActive }: { item: RailItemDef; isActive: boolean }
   return (
     <Link
       href={item.href!}
-      aria-label={item.label}
+      aria-label={label}
       aria-current={isActive ? 'page' : undefined}
-      title={item.label}
+      title={label}
       style={sharedStyle}
       onMouseEnter={hoverIn}
       onMouseLeave={hoverOut}

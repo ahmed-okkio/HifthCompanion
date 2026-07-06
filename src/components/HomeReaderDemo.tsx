@@ -8,7 +8,11 @@
 import Image from 'next/image';
 import { ALL_TOOLS, TOOL_ICONS, TOOL_LABELS, PRESET_COLORS } from '@/lib/canvasTools';
 import { getPageImageUrl } from '@/lib/quran';
+import { getLocale } from '@/lib/i18n/server';
+import { getDictionary } from '@/lib/i18n/dictionaries';
 
+// ponytail: surah names are proper nouns (Quran chapter names), left as-is —
+// same treatment as the brand wordmark. Only the surrounding UI chrome is localized.
 const SURAHS = [
   { n: 1, name: 'Al-Fatihah', page: 1 },
   { n: 2, name: 'Al-Baqarah', page: 2 },
@@ -19,16 +23,17 @@ const SURAHS = [
   { n: 7, name: "Al-A'raf", page: 151 },
 ];
 
-const NOTES = [
-  { c: '#22c55e', t: 'Waqf — pause on ٱلرَّحِيمِ' },
-  { c: '#f97316', t: 'Revise ayah 6 tomorrow' },
-  { c: '#3b82f6', t: 'Tajweed: madd in ٱلضَّآلِّينَ' },
+const NOTE_KEYS = [
+  { c: '#22c55e', key: 'home.demoNote1' as const },
+  { c: '#f97316', key: 'home.demoNote2' as const },
+  { c: '#3b82f6', key: 'home.demoNote3' as const },
 ];
 
 // Active (highlighted) tool in the static toolbar.
 const ACTIVE_TOOL = 'highlighter';
 
-export default function HomeReaderDemo() {
+export default async function HomeReaderDemo() {
+  const dict = getDictionary(await getLocale());
   return (
     <div
       className="relative w-full overflow-hidden mx-auto"
@@ -45,7 +50,7 @@ export default function HomeReaderDemo() {
           <span className="font-bold hidden sm:inline" style={{ fontFamily: 'var(--font-brand), system-ui, sans-serif', fontSize: 15, letterSpacing: '-0.01em' }}>Hifth Companion</span>
         </span>
         <span className="inline-flex items-center justify-self-center" style={{ gap: 8, height: 32, padding: '0 13px', borderRadius: 'var(--radius-md-px)', border: '1px solid var(--neutral-200)', boxShadow: 'var(--shadow-e1)', fontSize: 12.5, color: 'var(--text-muted)' }}>
-          <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10.5 }}>Page</span>
+          <span style={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10.5 }}>{dict['home.page']}</span>
           <span className="font-bold" style={{ color: 'var(--green-700)' }}>1</span>
           <span>/</span>
           <span className="font-bold" style={{ color: 'var(--text-primary)' }}>604</span>
@@ -57,7 +62,7 @@ export default function HomeReaderDemo() {
       <div className="flex items-stretch">
         {/* Surah panel (static) — hidden below md */}
         <aside className="hidden md:flex flex-col flex-shrink-0" style={{ width: 184, borderRight: '1px solid var(--border-subtle)', background: 'var(--surface-main)' }} aria-hidden>
-          <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-subtle)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Surahs</div>
+          <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-subtle)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>{dict['home.surahs']}</div>
           <ul style={{ listStyle: 'none', margin: 0, padding: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
             {SURAHS.map((s) => {
               const active = s.n === 1;
@@ -66,7 +71,7 @@ export default function HomeReaderDemo() {
                   <span className="inline-flex items-center justify-center flex-shrink-0" style={{ width: 24, height: 24, borderRadius: 8, fontSize: 11, fontWeight: 700, background: active ? 'var(--green-600)' : 'var(--neutral-100)', color: active ? '#fff' : 'var(--text-muted)' }}>{s.n}</span>
                   <span className="flex flex-col" style={{ minWidth: 0 }}>
                     <span className="font-semibold truncate" style={{ fontSize: 13, color: active ? 'var(--green-700)' : 'var(--text-primary)' }}>{s.name}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Page {s.page}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{dict['home.page']} {s.page}</span>
                   </span>
                 </li>
               );
@@ -91,7 +96,7 @@ export default function HomeReaderDemo() {
             <span aria-hidden style={{ width: 1, height: 30, background: 'var(--border-subtle)', margin: '0 3px', flexShrink: 0 }} />
             <span className="flex flex-col items-center justify-center shrink-0" style={{ gap: 3, width: 50, height: 48, color: 'var(--danger-500)' }}>
               <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              <span style={{ fontSize: 9.5, fontWeight: 600, lineHeight: 1 }}>Clear</span>
+              <span style={{ fontSize: 9.5, fontWeight: 600, lineHeight: 1 }}>{dict['home.clear']}</span>
             </span>
             <span aria-hidden style={{ width: 1, height: 30, background: 'var(--border-subtle)', margin: '0 3px', flexShrink: 0 }} />
             <span className="flex items-center shrink-0" style={{ gap: 7, paddingInline: 4 }}>
@@ -125,14 +130,14 @@ export default function HomeReaderDemo() {
         {/* Notes panel (static) — hidden below md */}
         <aside className="hidden md:flex flex-col flex-shrink-0" style={{ width: 208, borderLeft: '1px solid var(--border-subtle)', background: 'var(--surface-main)' }} aria-hidden>
           <div className="flex items-center justify-between" style={{ padding: '12px 14px', borderBottom: '1px solid var(--border-subtle)' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>Notes</span>
-            <span className="inline-flex items-center" style={{ gap: 5, height: 24, padding: '0 9px', borderRadius: 'var(--radius-full)', background: 'var(--green-soft)', color: 'var(--green-700)', fontSize: 11, fontWeight: 700 }}>My Notes</span>
+            <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>{dict['home.notes']}</span>
+            <span className="inline-flex items-center" style={{ gap: 5, height: 24, padding: '0 9px', borderRadius: 'var(--radius-full)', background: 'var(--green-soft)', color: 'var(--green-700)', fontSize: 11, fontWeight: 700 }}>{dict['home.myNotes']}</span>
           </div>
           <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {NOTES.map((nt, i) => (
+            {NOTE_KEYS.map((nt, i) => (
               <div key={i} className="flex items-start" style={{ gap: 9, padding: '10px 11px', borderRadius: 'var(--radius-md-px)', background: 'var(--surface-app)', border: '1px solid var(--border-subtle)' }}>
                 <span className="flex-shrink-0" style={{ width: 9, height: 9, borderRadius: '50%', background: nt.c, marginTop: 5 }} />
-                <span style={{ fontSize: 12.5, lineHeight: 1.4, color: 'var(--text-secondary)' }}>{nt.t}</span>
+                <span style={{ fontSize: 12.5, lineHeight: 1.4, color: 'var(--text-secondary)' }}>{dict[nt.key]}</span>
               </div>
             ))}
           </div>

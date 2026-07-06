@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import type { AnnotationSet } from '@/types';
 import { createAnnotationSet } from '@/lib/services/annotationSets';
 import PanelCard, { PanelIcon, ICON_PATHS } from '@/components/PanelCard';
+import { useI18n } from '@/components/I18nProvider';
 
 interface Props {
   user: { id: string } | null;
@@ -17,6 +18,7 @@ interface Props {
 // AnnotationCanvas so it shares the canvas state). Carries the annotation-set selector
 // (#set-picker-top, preserved for E2E + soft-swap) plus an inline "New set" flow.
 export default function SetsCard({ user, sets, selectedSetId, saving, onSetChange }: Props) {
+  const { t } = useI18n();
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [adding, setAdding] = useState(false);
@@ -37,7 +39,7 @@ export default function SetsCard({ user, sets, selectedSetId, saving, onSetChang
       startTransition(() => router.refresh());
     } catch (e) {
       console.error('[SetsCard] create set failed', e);
-      setError('Could not create set. Please try again.');
+      setError(t('sets.createFailed'));
     } finally {
       setBusy(false);
     }
@@ -47,9 +49,9 @@ export default function SetsCard({ user, sets, selectedSetId, saving, onSetChang
     <PanelCard
       testid="sets-card"
       icon={<PanelIcon d={ICON_PATHS.layers} />}
-      title="Sets"
+      title={t('sets.title')}
       trailing={saving && (
-        <span style={{ fontSize: 'var(--type-meta-size)', color: 'var(--text-accent)' }}>Saving…</span>
+        <span style={{ fontSize: 'var(--type-meta-size)', color: 'var(--text-accent)' }}>{t('sets.saving')}</span>
       )}
     >
       <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -67,7 +69,7 @@ export default function SetsCard({ user, sets, selectedSetId, saving, onSetChang
               </select>
             ) : (
               <p style={{ fontSize: 'var(--type-caption-size)', color: 'var(--text-muted)' }}>
-                No annotation sets yet.
+                {t('sets.noneYet')}
               </p>
             )}
 
@@ -81,18 +83,18 @@ export default function SetsCard({ user, sets, selectedSetId, saving, onSetChang
                     if (e.key === 'Enter') handleCreate();
                     if (e.key === 'Escape') { setAdding(false); setName(''); }
                   }}
-                  placeholder="Set name…"
+                  placeholder={t('sets.setNamePlaceholder')}
                   className="input input-sm"
                 />
                 {error && <p style={{ fontSize: 11, color: 'var(--danger)' }}>{error}</p>}
                 <div className="flex gap-2">
                   <button onClick={handleCreate} disabled={!name.trim() || busy}
                           className="btn btn-primary flex-1" style={{ minHeight: 34, fontSize: 12 }}>
-                    Create
+                    {t('common.create')}
                   </button>
                   <button onClick={() => { setAdding(false); setName(''); setError(''); }}
                           className="btn btn-ghost" style={{ minHeight: 34, fontSize: 12 }}>
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                 </div>
               </div>
@@ -102,13 +104,13 @@ export default function SetsCard({ user, sets, selectedSetId, saving, onSetChang
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                New set
+                {t('sets.newSet')}
               </button>
             )}
           </>
         ) : (
           <a href="/login" style={{ fontSize: 'var(--type-small-size)', color: 'var(--text-accent)' }}>
-            Log in to annotate
+            {t('sets.loginToAnnotate')}
           </a>
         )}
       </div>

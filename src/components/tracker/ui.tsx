@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import type { HomeworkStatus } from '@/lib/homework';
 import { TOTAL_SURAHS, getSurahName } from '@/lib/quran';
+import { useI18n } from '@/components/I18nProvider';
 
 /** Badge palette per homework status — open/completed/missed at a glance. */
 export const HOMEWORK_STATUS_STYLE: Record<HomeworkStatus, CSSProperties> = {
@@ -227,6 +228,7 @@ export function NumberStepper({
   max: number;
   onChange: (v: number) => void;
 }) {
+  const { t } = useI18n();
   const clamp = (v: number) => Math.max(min, Math.min(max, Number.isNaN(v) ? min : v));
   // Draft mirrors the field while typing so intermediate states ("", "6" on the
   // way to "60") aren't clamped mid-keystroke; commit on blur.
@@ -262,7 +264,7 @@ export function NumberStepper({
           overflow: 'hidden',
         }}
       >
-        <button type="button" aria-label="−" tabIndex={-1} style={btn}
+        <button type="button" aria-label={t('common.decrement')} tabIndex={-1} style={btn}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => step(-1)}>
           −
@@ -294,7 +296,7 @@ export function NumberStepper({
             color: 'var(--text-primary)',
           }}
         />
-        <button type="button" aria-label="+" tabIndex={-1} style={btn}
+        <button type="button" aria-label={t('common.increment')} tabIndex={-1} style={btn}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => step(1)}>
           +
@@ -481,18 +483,21 @@ export function PagedList<T>({
  *  centered container: on wide screens it floats in the left gutter beside the
  *  column; on narrow screens (no gutter) it falls back to an in-flow row above. */
 export function BackButton({ href }: { href: string }) {
+  const { t, locale } = useI18n();
   const box: CSSProperties = {
     width: 36, height: 36, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)',
     background: 'var(--bg-surface)', color: 'var(--text-secondary)',
+    // Back arrow points toward the start edge; mirror the glyph in RTL.
+    transform: locale === 'ar' ? 'scaleX(-1)' : undefined,
   };
   return (
     <>
-      <a href={href} aria-label="Back"
+      <a href={href} aria-label={t('common.back')}
          className="hidden lg:inline-flex items-center justify-center"
          style={{ ...box, position: 'absolute', top: 0, insetInlineEnd: '100%', marginInlineEnd: 16 }}>
         <Icon name="arrow-left" size={18} />
       </a>
-      <a href={href} aria-label="Back"
+      <a href={href} aria-label={t('common.back')}
          className="inline-flex lg:hidden items-center justify-center"
          style={{ ...box, marginBottom: 16 }}>
         <Icon name="arrow-left" size={18} />

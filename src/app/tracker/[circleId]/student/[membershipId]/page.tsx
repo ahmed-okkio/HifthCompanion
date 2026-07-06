@@ -13,6 +13,8 @@ import { rangesTotals } from '@/lib/analytics';
 import TeacherStudent from '@/components/tracker/TeacherStudent';
 import { BackButton } from '@/components/tracker/ui';
 import { displayName } from '@/lib/displayName';
+import { getLocale } from '@/lib/i18n/server';
+import { getDictionary } from '@/lib/i18n/dictionaries';
 
 export default async function StudentDetailPage({
   params,
@@ -20,6 +22,7 @@ export default async function StudentDetailPage({
   params: Promise<{ circleId: string; membershipId: string }>;
 }) {
   const { circleId, membershipId } = await params;
+  const dict = getDictionary(await getLocale());
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
@@ -46,7 +49,7 @@ export default async function StudentDetailPage({
 
   return (
     <AppShell breadcrumb={[
-      { label: 'Circles', href: '/tracker' },
+      { label: dict['nav.circles'], href: '/tracker' },
       { label: circle.name, href: `/tracker/${circleId}` },
       { label: displayName(member) },
     ]} user={account}>

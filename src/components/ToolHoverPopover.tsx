@@ -1,5 +1,6 @@
 'use client';
 import { type Tool } from '@/lib/canvasTools';
+import { useI18n } from '@/components/I18nProvider';
 
 const POPOVER_TOOLS: Tool[] = ['pen', 'circle', 'underline', 'highlighter'];
 
@@ -18,6 +19,7 @@ export default function ToolHoverPopover({
   hoveredTool, hoverPos, penWidth, opacity,
   onPenWidthChange, onOpacityChange, onMouseEnter, onMouseLeave,
 }: Props) {
+  const { t } = useI18n();
   if (!hoveredTool || !hoverPos || !POPOVER_TOOLS.includes(hoveredTool)) return null;
 
   return (
@@ -38,7 +40,7 @@ export default function ToolHoverPopover({
       >
         {(hoveredTool === 'pen' || hoveredTool === 'circle' || hoveredTool === 'underline') && (
           <div className="flex items-center gap-3" style={{ minHeight: '28px' }}>
-            <span style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)' }}>Size</span>
+            <span style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('annot.size')}</span>
             <input
               type="range" min="1" max="40" step="1" value={penWidth}
               onChange={e => onPenWidthChange(Number(e.target.value))}
@@ -50,7 +52,7 @@ export default function ToolHoverPopover({
         )}
         {hoveredTool === 'highlighter' && (
           <div className="flex items-center gap-3" style={{ minHeight: '28px' }}>
-            <span style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)' }}>Opacity</span>
+            <span style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('annot.opacity')}</span>
             <input
               type="range" min="0.1" max="0.9" step="0.05" value={opacity}
               onChange={e => onOpacityChange(parseFloat(e.target.value))}

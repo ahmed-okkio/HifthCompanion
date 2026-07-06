@@ -6,6 +6,7 @@ import ProfileMenu from './ProfileMenu';
 import Brand from './Brand';
 import Link from 'next/link';
 import styles from './ReaderNav.module.css';
+import { useI18n } from './I18nProvider';
 
 export default function ReaderNav({
   currentPage,
@@ -28,6 +29,7 @@ export default function ReaderNav({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useI18n();
   const [jumpInput, setJumpInput] = useState('');
   const [jumpFocused, setJumpFocused] = useState(false);
 
@@ -57,7 +59,7 @@ export default function ReaderNav({
             <button
               type="button"
               onClick={onOpenNav}
-              aria-label="Open navigation"
+              aria-label={t('nav.openNavigation')}
               className="lg:hidden inline-flex items-center justify-center"
               style={{ width: 40, height: 40, marginInlineStart: -6, marginInlineEnd: 2, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
             >
@@ -77,8 +79,8 @@ export default function ReaderNav({
             <button
               type="button"
               onClick={onOpenSurah}
-              title="Open surah list"
-              aria-label="Open surah list"
+              title={t('share.openSurahList')}
+              aria-label={t('share.openSurahList')}
               className={styles.surahButton}
             >
               {/* Bug 2 fix: explicit width/height prevents FOUC at intrinsic size */}
@@ -93,7 +95,7 @@ export default function ReaderNav({
             </button>
           )}
           <div className={styles.pageShell}>
-            <span className={styles.pageLabel}>Page</span>
+            <span className={styles.pageLabel}>{t('home.page')}</span>
             {jumpFocused ? (
               <input
                 type="number"
@@ -116,7 +118,7 @@ export default function ReaderNav({
             ) : (
               <span
                 onClick={() => setJumpFocused(true)}
-                title="Click to jump to page"
+                title={t('reader.clickToJumpPage')}
                 className={styles.pageCurrent}
                 role="button"
                 tabIndex={0}
@@ -138,7 +140,7 @@ export default function ReaderNav({
               href="/login"
               className={styles.loginButton}
             >
-              Log In
+              {t('share.logIn')}
             </Link>
           )}
         </div>

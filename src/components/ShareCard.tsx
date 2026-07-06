@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { addByEmail, searchAccountsByEmail, list, remove, type AccountMatch, type Collaborator } from '@/lib/services/collaborators';
 import PanelCard, { PanelIcon, ICON_PATHS } from '@/components/PanelCard';
 import { Avatar, Icon } from '@/components/tracker/ui';
+import { useI18n } from '@/components/I18nProvider';
 
 interface Props {
   userId: string;
@@ -23,6 +24,7 @@ type Lookup =
  * contains "Share" so `button:has-text("Share")` still matches.
  */
 export default function ShareCard({ userId, pageNum, sets }: Props) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [selectedSetId, setSelectedSetId] = useState(sets[0]?.id ?? '');
@@ -62,7 +64,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
   }, [email]);
 
   const fullName = (c: { first_name?: string; last_name?: string }) =>
-    [c.first_name, c.last_name].filter(Boolean).join(' ').trim() || 'Someone';
+    [c.first_name, c.last_name].filter(Boolean).join(' ').trim() || t('share.someone');
 
   const handleAdd = async (emailToAdd: string) => {
     if (!emailToAdd.trim() || pending) return;
@@ -71,12 +73,12 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
     try {
       const r = await addByEmail(selectedSetId, emailToAdd);
       const name = fullName(r);
-      setMessage(r.alreadyCollaborator ? `${name} already has access` : `Added ${name}`);
+      setMessage(r.alreadyCollaborator ? t('share.alreadyHasAccess', { name }) : t('share.added', { name }));
       setEmail('');
       setLookup({ state: 'idle' });
       list(selectedSetId).then(setCollaborators).catch(() => {});
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Something went wrong');
+      setMessage(err instanceof Error ? err.message : t('share.somethingWentWrong'));
     } finally {
       setPending(false);
     }
@@ -119,12 +121,12 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
   };
 
   return (
-    <PanelCard testid="share-card" icon={<PanelIcon d={ICON_PATHS.share} />} title="Share">
+    <PanelCard testid="share-card" icon={<PanelIcon d={ICON_PATHS.share} />} title={t('share.shareButton')}>
       <div style={{ padding: 'var(--space-16)' }}>
         {/* Set selector — only when multiple sets exist */}
         {sets.length > 1 && (
           <div style={{ marginBottom: 'var(--space-12)' }}>
-            <label style={sectionLabel}>Annotation Set</label>
+            <label style={sectionLabel}>{t('share.annotationSet')}</label>
             <select
               value={selectedSetId}
               onChange={e => setSelectedSetId(e.target.value)}
@@ -139,7 +141,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
         )}
 
         {/* Read-only link */}
-        <label style={sectionLabel}>Read-only link</label>
+        <label style={sectionLabel}>{t('share.readOnlyLink')}</label>
         {!open ? (
           <button
             onClick={() => setOpen(true)}
@@ -150,7 +152,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
             </svg>
-            Create Share Link
+            {t('share.createShareLink')}
           </button>
         ) : (
           <div>
@@ -158,7 +160,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
               <input
                 readOnly
                 value={shareUrl}
-                aria-label="Share URL"
+                aria-label={t('share.shareUrlAriaLabel')}
                 className="input input-sm flex-1 font-mono truncate"
                 style={{ fontSize: '10px' }}
               />
@@ -167,19 +169,19 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
                 className="btn btn-primary"
                 style={{ fontSize: '12px', padding: '6px 14px', flexShrink: 0 }}
               >
-                {copied ? <span className="flex items-center gap-1"><Icon name="check" size={13} /> Copied</span> : 'Copy'}
+                {copied ? <span className="flex items-center gap-1"><Icon name="check" size={13} /> {t('common.copied')}</span> : t('common.copy')}
               </button>
             </div>
             <div className="flex items-center justify-between">
               <p style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                Anyone with this link can view (read-only).
+                {t('share.viewOnlyHintShort')}
               </p>
               <button
                 onClick={() => setOpen(false)}
                 className="btn btn-ghost"
                 style={{ fontSize: '11px', padding: '2px 8px' }}
               >
-                Close
+                {t('share.close')}
               </button>
             </div>
           </div>
@@ -194,7 +196,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
               borderTop: '1px solid var(--neutral-200)',
             }}
           >
-            <label style={sectionLabel}>People with edit access</label>
+            <label style={sectionLabel}>{t('share.peopleWithEditAccess')}</label>
 
             <input
               type="email"
@@ -205,8 +207,8 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
                 const first = lookup.accounts.find(a => a.id !== userId);
                 if (first) handleAdd(first.email);
               }}
-              placeholder="Search by email…"
-              aria-label="Email to grant edit access"
+              placeholder={t('share.searchByEmailPlaceholder')}
+              aria-label={t('share.emailToGrantAccessAriaLabel')}
               disabled={pending}
               className="input input-sm w-full"
               style={{ fontSize: '12px' }}
@@ -214,7 +216,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
 
             {/* Matching accounts — pick a row to grant access */}
             {lookup.state === 'searching' && (
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>Searching…</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>{t('share.searching')}</p>
             )}
             {lookup.state === 'results' && (() => {
               const candidates = lookup.accounts.filter(
@@ -223,7 +225,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
               if (candidates.length === 0) {
                 return (
                   <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-                    No matching accounts.
+                    {t('share.noMatchingAccounts')}
                   </p>
                 );
               }
@@ -261,7 +263,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
                         </span>
                         <span className="truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{a.email}</span>
                       </div>
-                      <span className="badge shrink-0" style={{ fontSize: 10 }}>Add</span>
+                      <span className="badge shrink-0" style={{ fontSize: 10 }}>{t('common.add')}</span>
                     </button>
                   ))}
                 </div>
@@ -285,7 +287,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
                       className="btn btn-ghost shrink-0"
                       style={{ fontSize: '11px', padding: '2px 8px' }}
                     >
-                      Remove
+                      {t('share.remove')}
                     </button>
                   </li>
                 ))}

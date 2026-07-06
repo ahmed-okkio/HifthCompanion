@@ -13,6 +13,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import Brand from './Brand';
+import { useI18n } from './I18nProvider';
 
 export type Crumb = { label: string; href?: string };
 
@@ -29,6 +30,7 @@ export default function AppHeader({
   /** When set, renders a mobile-only hamburger that opens the nav drawer. */
   onOpenNav?: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <header
       className="sticky top-0 z-50 w-full border-b"
@@ -47,7 +49,7 @@ export default function AppHeader({
             <button
               type="button"
               onClick={onOpenNav}
-              aria-label="Open navigation"
+              aria-label={t('nav.openNavigation')}
               className="lg:hidden flex items-center justify-center shrink-0"
               style={{ width: 40, height: 40, marginInlineStart: -8, borderRadius: 'var(--radius-sm-px)', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
             >

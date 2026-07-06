@@ -14,7 +14,7 @@ interface Props {
 }
 
 export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/reader', isSpread = false }: Props) {
-  const { t } = useI18n();
+  const { t, locale, fmtNum } = useI18n();
   const [query, setQuery] = useState('');
   const [bookmarkedPage, setBookmarkedPage] = useState<number | null>(null);
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -284,7 +284,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                               flexShrink: 0,
                             }}
                           >
-                            {n}
+                            {fmtNum(n)}
                           </span>
                           <span
                             style={{
@@ -297,7 +297,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                               color: active ? 'var(--text-accent)' : 'var(--text-primary)',
                             }}
                           >
-                            {getSurahName(n)}
+                            {getSurahName(n, locale)}
                           </span>
                         </div>
                       ))}

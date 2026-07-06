@@ -22,7 +22,7 @@ export default function StudentAnalytics({
   logs: ProgressLog[];
   attendance?: Pick<Attendance, 'status'>[];
 }) {
-  const { t, locale } = useI18n();
+  const { t, locale, fmtNum } = useI18n();
 
   const heatmap = useMemo(() => buildHeatmap(logs), [logs]);
   const totals = useMemo(() => cumulativeTotals(logs), [logs]);
@@ -38,17 +38,17 @@ export default function StudentAnalytics({
     <div className="flex flex-col gap-6">
       {/* M2-2 totals */}
       <div className="grid grid-cols-3 gap-3">
-        <Stat label={t('analytics.pages')} value={`${totals.pages} / ${TOTAL_PAGES}`} />
-        <Stat label={t('analytics.juz')} value={`${totals.juz} / ${TOTAL_JUZ}`} />
-        <Stat label={t('analytics.logs')} value={String(totals.logs)} />
+        <Stat label={t('analytics.pages')} value={`${fmtNum(totals.pages)} / ${fmtNum(TOTAL_PAGES)}`} />
+        <Stat label={t('analytics.juz')} value={`${fmtNum(totals.juz)} / ${fmtNum(TOTAL_JUZ)}`} />
+        <Stat label={t('analytics.logs')} value={fmtNum(totals.logs)} />
       </div>
 
       {/* M3-4 attendance */}
       {att.marked > 0 && (
         <div className="grid grid-cols-3 gap-3">
-          <Stat label={t('analytics.attendanceRate')} value={`${Math.round(att.rate * 100)}%`} />
-          <Stat label={t('att.present')} value={String(att.attended)} />
-          <Stat label={t('att.absent')} value={String(att.absent)} />
+          <Stat label={t('analytics.attendanceRate')} value={`${fmtNum(Math.round(att.rate * 100))}%`} />
+          <Stat label={t('att.present')} value={fmtNum(att.attended)} />
+          <Stat label={t('att.absent')} value={fmtNum(att.absent)} />
         </div>
       )}
 
@@ -90,9 +90,9 @@ export default function StudentAnalytics({
           <ul className="flex flex-col gap-1">
             {weak.map((s) => (
               <li key={s.surah} className="flex items-center justify-between text-sm" style={{ color: 'var(--text-secondary)' }}>
-                <span>{s.surah}. {getSurahName(s.surah, locale)}</span>
+                <span>{fmtNum(s.surah)}. {getSurahName(s.surah, locale)}</span>
                 <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {Math.round(s.ratio * 100)}% ({s.negative}/{s.graded})
+                  {fmtNum(Math.round(s.ratio * 100))}% ({fmtNum(s.negative)}/{fmtNum(s.graded)})
                 </span>
               </li>
             ))}

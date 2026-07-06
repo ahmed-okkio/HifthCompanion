@@ -44,7 +44,7 @@ export default function MemorizationEditor({
    *  successful save, then animates back to `saveLabel`. */
   savedLabel?: string;
 }) {
-  const { t, locale } = useI18n();
+  const { t, locale, fmtNum } = useI18n();
   const rtl = locale === 'ar';
 
   const LAST_STEP = 2;
@@ -191,7 +191,7 @@ export default function MemorizationEditor({
                         transition: 'all var(--duration-fast) var(--ease-out)',
                       }}
                     >
-                      {j}
+                      {fmtNum(j)}
                     </button>
                   );
                 })}

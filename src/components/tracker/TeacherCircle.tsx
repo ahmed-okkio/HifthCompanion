@@ -31,7 +31,7 @@ export default function TeacherCircle({
   // Upcoming sessions across all active students, each already labeled server-side.
   agenda: { key: string; scheduled_at: string; isAdhoc: boolean; student: string }[];
 }) {
-  const { t, locale } = useI18n();
+  const { t, locale, fmtNum } = useI18n();
   const router = useRouter();
   const [code, setCode] = useState(circle.invite_code);
   const [copied, setCopied] = useState(false);
@@ -108,9 +108,9 @@ export default function TeacherCircle({
 
       {/* KPI row */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard icon={<Icon name="users" />} value={activeCount} label={t('tracker.active')} />
-        <StatCard icon={<Icon name="hourglass" />} value={pendingCount} label={t('tracker.pending')} />
-        <StatCard icon={<Icon name="calendar" />} value={agenda.length} label={t('sessions.title')} />
+        <StatCard icon={<Icon name="users" />} value={fmtNum(activeCount)} label={t('tracker.active')} />
+        <StatCard icon={<Icon name="hourglass" />} value={fmtNum(pendingCount)} label={t('tracker.pending')} />
+        <StatCard icon={<Icon name="calendar" />} value={fmtNum(agenda.length)} label={t('sessions.title')} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] items-start">
@@ -118,7 +118,7 @@ export default function TeacherCircle({
         <div className="flex flex-col gap-6 min-w-0">
           {/* Roster (D-consent: pending vs active, C1/C5) */}
           <div className="flex flex-col gap-2">
-            <SectionTitle trailing={<span className="badge badge-muted">{students.length}</span>}>
+            <SectionTitle trailing={<span className="badge badge-muted">{fmtNum(students.length)}</span>}>
               {t('tracker.roster')}
             </SectionTitle>
             {students.length === 0 && <EmptyState>{t('tracker.noStudents')}</EmptyState>}

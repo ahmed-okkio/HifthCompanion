@@ -165,7 +165,7 @@ export function StudentProfileCard({
   attendance: { status: AttendanceStatus }[];
   openHomework: number;
 }) {
-  const { t } = useI18n();
+  const { t, fmtNum } = useI18n();
   const att = useMemo(() => attendanceStats(attendance), [attendance]);
   return (
     <aside className="flex flex-col gap-3 self-start">
@@ -187,18 +187,19 @@ export function StudentProfileCard({
         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
         <AttendanceLine marked={att.marked} rate={att.rate} />
       </div>
-      <StatCard icon={<Icon name="hourglass" />} value={openHomework} label={t('homework.openHomework')} />
+      <StatCard icon={<Icon name="hourglass" />} value={fmtNum(openHomework)} label={t('homework.openHomework')} />
     </aside>
   );
 }
 
 /** Ring above value/label, centered — the side-by-side variant. */
 function RingTile({ value, max, label }: { value: number; max: number; label: string }) {
+  const { fmtNum } = useI18n();
   return (
     <div className="flex flex-col items-center text-center gap-1.5" style={{ padding: '4px 0' }}>
       <Ring value={value} max={max} size={52} />
       <span className="font-bold leading-tight" style={{ color: 'var(--text-primary)', fontSize: 16 }}>
-        {value} / {max}
+        {fmtNum(value)} / {fmtNum(max)}
       </span>
       <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</span>
     </div>
@@ -207,7 +208,7 @@ function RingTile({ value, max, label }: { value: number; max: number; label: st
 
 /** "Attendance: Good" with a color keyed to the rate. */
 function AttendanceLine({ marked, rate }: { marked: number; rate: number }) {
-  const { t } = useI18n();
+  const { t, fmtNum } = useI18n();
   if (marked === 0) {
     return (
       <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -225,7 +226,7 @@ function AttendanceLine({ marked, rate }: { marked: number; rate: number }) {
       <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('analytics.attendance')}</span>
       <span className="flex items-center gap-1.5 font-semibold" style={{ color }}>
         <StatusDot color={color} />
-        {t(key)} · {Math.round(rate * 100)}%
+        {t(key)} · {fmtNum(Math.round(rate * 100))}%
       </span>
     </div>
   );
@@ -265,7 +266,7 @@ function StudentSessions({
   initial: Session[];
   initialSchedule: { weekdays: number[]; time: string; timezone?: string } | null;
 }) {
-  const { t, locale } = useI18n();
+  const { t, locale, fmtNum } = useI18n();
   const [sessions, setSessions] = useState(initial);
   const [sessTab, setSessTab] = useState<'upcoming' | 'history'>('upcoming');
   // Schedule editor is collapsed behind a button (set once, tweaked rarely).
@@ -375,14 +376,14 @@ function StudentSessions({
           <DateChip iso={slot.scheduled_at} locale={locale} />
           <div className="flex flex-col gap-0.5 min-w-0 flex-1">
             <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              {new Date(slot.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' })}
+              {fmtNum(new Date(slot.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' }))}
               {s?.is_adhoc && <span className="badge" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
               {canceled && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.canceled')}</span>}
               {!canceled && s?.attendance_status && (
                 <span className="badge" style={{ fontSize: 10 }}>{t(`att.${s.attendance_status}`)}</span>
               )}
             </span>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtTime(slot.scheduled_at, locale)}</span>
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtNum(fmtTime(slot.scheduled_at, locale))}</span>
           </div>
           {cancelable && (
             <button onClick={() => handleCancel(slot)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11 }}>
@@ -490,8 +491,8 @@ function StudentSessions({
         <div className="flex flex-col gap-2">
           <TabBar
             tabs={[
-              { key: 'upcoming', label: `${t('sessions.upcoming')} (${sections.upcoming.length})` },
-              { key: 'history', label: `${t('sessions.history')} (${sections.history.length})` },
+              { key: 'upcoming', label: `${t('sessions.upcoming')} (${fmtNum(sections.upcoming.length)})` },
+              { key: 'history', label: `${t('sessions.history')} (${fmtNum(sections.history.length)})` },
             ]}
             active={sessTab}
             onSelect={(k) => setSessTab(k as 'upcoming' | 'history')}
@@ -533,6 +534,7 @@ function PagedHistory({
   slots: SessionSlot[];
   render: (slot: SessionSlot) => React.ReactNode;
 }) {
+  const { fmtNum } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   const [perPage, setPerPage] = useState(4);
   const [page, setPage] = useState(0);
@@ -568,7 +570,7 @@ function PagedHistory({
                   onClick={() => setPage(cur - 1)} aria-label="Previous">
             <span className="rtl:-scale-x-100">‹</span>
           </button>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{cur + 1} / {pages}</span>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtNum(cur + 1)} / {fmtNum(pages)}</span>
           <button className="btn btn-ghost" style={arrow} disabled={cur >= pages - 1}
                   onClick={() => setPage(cur + 1)} aria-label="Next">
             <span className="rtl:-scale-x-100">›</span>
@@ -765,7 +767,7 @@ function PrescriptionCard({
   membershipId: string;
   studentStatuses: StatusConfig[];
 }) {
-  const { t } = useI18n();
+  const { t, fmtNum } = useI18n();
   const [open, setOpen] = useState(false);
   const status = aggregateStatus(group.items.map((h) => homeworkStatus(h, linkedCount.get(h.id) ?? 0, today())));
   const ids = group.items.map((h) => h.id);
@@ -800,7 +802,7 @@ function PrescriptionCard({
                   {t('homework.prescribedLabel')}
                 </span>
                 <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${h.page_start}–${h.page_end}`}
+                  {homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${fmtNum(h.page_start)}–${fmtNum(h.page_end)}`}
                   {h.surah && h.ayah_start == null ? ` ${t('homework.whole')}` : ''}
                 </span>
               </div>
@@ -940,7 +942,7 @@ export function SurahPicker({
   onChange: (e: Entry[]) => void;
   locale: 'en' | 'ar';
 }) {
-  const { t } = useI18n();
+  const { t, fmtNum } = useI18n();
   const [mode, setMode] = useState<'surah' | 'juz'>('surah');
   const [isRange, setIsRange] = useState(false);
   const [juz, setJuz] = useState(1);
@@ -1105,8 +1107,8 @@ export function SurahPicker({
             <span key={i} className="flex items-center gap-2"
                   style={{ padding: '6px 8px 6px 12px', borderRadius: 'var(--radius-full)', background: 'var(--accent-muted)', color: 'var(--text-accent)', fontSize: 13, fontWeight: 500 }}>
               {e.kind === 'juz'
-                ? `${t('homework.juz')} ${e.juz}`
-                : `${getSurahName(e.surah, locale)}${e.ayah_start ? ` ${e.ayah_start}–${e.ayah_end}` : ` ${t('homework.whole')}`}`}
+                ? `${t('homework.juz')} ${fmtNum(e.juz)}`
+                : `${getSurahName(e.surah, locale)}${e.ayah_start ? ` ${fmtNum(e.ayah_start)}–${fmtNum(e.ayah_end!)}` : ` ${t('homework.whole')}`}`}
               <button onClick={() => onChange(entries.filter((_, j) => j !== i))} aria-label={t('memorization.remove')}
                       className="flex items-center justify-center"
                       style={{ width: 18, height: 18, borderRadius: 'var(--radius-full)', background: 'var(--bg-surface)', color: 'var(--text-muted)', fontSize: 12, lineHeight: 1, cursor: 'pointer' }}>
@@ -1337,7 +1339,7 @@ function ExamCoveragePicker({
  * ranges ("Juz 1–3", "Al-Fatiha – Al-Baqarah") to avoid bloat. Legacy rows with
  * no entries fall back to the surah span derived from the page bounds.
  */
-function examTarget(exam: Exam, locale: 'en' | 'ar', juzWord: string): string {
+function examTarget(exam: Exam, locale: 'en' | 'ar', juzWord: string, fmtNum: (v: string | number) => string): string {
   if (!exam.entries || exam.entries.length === 0) {
     if (exam.surah) return getSurahName(exam.surah, locale);
     const first = getSurahForPage(exam.page_start);
@@ -1356,7 +1358,7 @@ function examTarget(exam: Exam, locale: 'en' | 'ar', juzWord: string): string {
       while (j + 1 < es.length && es[j + 1].kind === 'juz'
              && (es[j + 1] as { juz: number }).juz === (es[j] as { juz: number }).juz + 1) j++;
       const lo = (es[i] as { juz: number }).juz, hi = (es[j] as { juz: number }).juz;
-      parts.push(lo === hi ? `${juzWord} ${lo}` : `${juzWord} ${lo}–${hi}`);
+      parts.push(lo === hi ? `${juzWord} ${fmtNum(lo)}` : `${juzWord} ${fmtNum(lo)}–${fmtNum(hi)}`);
       i = j + 1;
     } else if (e.ayah_start == null) {
       // Run of consecutive whole surahs → collapse to a name range.
@@ -1368,7 +1370,7 @@ function examTarget(exam: Exam, locale: 'en' | 'ar', juzWord: string): string {
       parts.push(lo === hi ? getSurahName(lo, locale) : `${getSurahName(lo, locale)} – ${getSurahName(hi, locale)}`);
       i = j + 1;
     } else {
-      parts.push(`${getSurahName(e.surah, locale)} ${e.ayah_start}–${e.ayah_end}`);
+      parts.push(`${getSurahName(e.surah, locale)} ${fmtNum(e.ayah_start)}–${fmtNum(e.ayah_end!)}`);
       i++;
     }
   }
@@ -1388,9 +1390,9 @@ export function ExamCard({
   onGrade?: (id: string, status: ExamStatus, notes: string | null) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
 }) {
-  const { t } = useI18n();
+  const { t, fmtNum } = useI18n();
   const [notes, setNotes] = useState(exam.teacher_notes ?? '');
-  const target = examTarget(exam, locale, t('homework.juz'));
+  const target = examTarget(exam, locale, t('homework.juz'), fmtNum);
 
   return (
     <div className="card flex flex-col gap-2" style={{ padding: '12px 16px' }}>
@@ -1399,7 +1401,7 @@ export function ExamCard({
         <span className="flex flex-col gap-0.5 min-w-0 flex-1">
           <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{target}</span>
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            {new Date(exam.scheduled_date).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' })}
+            {fmtNum(new Date(exam.scheduled_date).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' }))}
           </span>
         </span>
         <span className="badge shrink-0" style={{ fontSize: 10, ...EXAM_STATUS_STYLE[exam.status] }}>{t(EXAM_STATUS_KEY[exam.status])}</span>
@@ -1451,7 +1453,7 @@ function GradeableLog({
   // Top divider only when stacked among sibling logs; standalone cards omit it.
   divided?: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, fmtNum } = useI18n();
   const [status, setStatus] = useState<string | null>(null);
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
@@ -1475,12 +1477,12 @@ function GradeableLog({
       <button onClick={() => setOpen((o) => !o)} className="flex items-center justify-between gap-2 text-start"
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
         <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-          {t(`logType.${l.log_type}`)} · p{l.page_start}–{l.page_end}
-          {l.surah && l.ayah_start ? ` · ${l.surah}:${l.ayah_start}${l.ayah_end && l.ayah_end !== l.ayah_start ? `–${l.ayah_end}` : ''}` : ''}
+          {t(`logType.${l.log_type}`)} · p{fmtNum(l.page_start)}–{fmtNum(l.page_end)}
+          {l.surah && l.ayah_start ? ` · ${fmtNum(l.surah)}:${fmtNum(l.ayah_start)}${l.ayah_end && l.ayah_end !== l.ayah_start ? `–${fmtNum(l.ayah_end)}` : ''}` : ''}
         </span>
         <span className="flex items-center gap-2 shrink-0">
           {!l.reviewed_at && <span className="badge" style={{ fontSize: 10, ...HOMEWORK_STATUS_STYLE.open }}>{t('grade.needsReview')}</span>}
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{l.log_date}</span>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtNum(l.log_date)}</span>
           <Chevron open={open} />
         </span>
       </button>

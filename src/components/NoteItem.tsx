@@ -19,7 +19,7 @@ export default function NoteItem({
   note, isEditing, editBody, isPending, readOnly,
   onEditBodyChange, onSave, onCancel, onEdit, onDelete,
 }: Props) {
-  const { t } = useI18n();
+  const { t, fmtNum } = useI18n();
   return (
     /* V3 Story 13 — Note card: white, radius-lg, neutral-200 border, green left accent bar.
        Category color is presentation-only; green is the default accent (no DB field). */
@@ -126,9 +126,9 @@ export default function NoteItem({
                 marginTop: 'var(--space-8)',
               }}
             >
-              {new Date(note.created_at).toLocaleDateString(undefined, {
+              {fmtNum(new Date(note.created_at).toLocaleDateString(undefined, {
                 month: 'short', day: 'numeric', year: 'numeric',
-              })}
+              }))}
             </p>
           </>
         )}

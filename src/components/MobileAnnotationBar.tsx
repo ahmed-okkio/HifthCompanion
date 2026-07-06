@@ -1,7 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { type Tool, ALL_TOOLS, TOOL_ICONS, TOOL_LABELS, PRESET_COLORS } from '@/lib/canvasTools';
+import { type Tool, ALL_TOOLS, TOOL_ICONS, PRESET_COLORS } from '@/lib/canvasTools';
 import { useI18n } from '@/components/I18nProvider';
+import type { MessageKey } from '@/lib/i18n/dictionaries';
 
 interface Props {
   activeTool: Tool;
@@ -49,6 +50,8 @@ export default function MobileAnnotationBar({
   mode, onModeChange, onToolClick, onColorChange, onUndo, onRedo, onClear,
 }: Props) {
   const { t } = useI18n();
+  const toolLabel = (tool: Tool) => t(`tool.${tool}` as MessageKey);
+  const colorLabel = (name: string) => t(`color.${name}` as MessageKey);
   const drawing = mode === 'draw';
   const [open, setOpen] = useState<Popover>(null);
   const toggle = (p: Popover) => setOpen(cur => (cur === p ? null : p));
@@ -108,8 +111,8 @@ export default function MobileAnnotationBar({
             <button
               key={t}
               onClick={() => { onToolClick(t); close(); }}
-              title={TOOL_LABELS[t]}
-              aria-label={TOOL_LABELS[t]}
+              title={toolLabel(t)}
+              aria-label={toolLabel(t)}
               className="[&>svg]:h-5 [&>svg]:w-5"
               style={{
                 width: 46, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -120,7 +123,7 @@ export default function MobileAnnotationBar({
               }}
             >
               {TOOL_ICONS[t]}
-              <span className="sr-only">{TOOL_LABELS[t]}</span>
+              <span className="sr-only">{toolLabel(t)}</span>
             </button>
           ))}
         </div>
@@ -133,8 +136,8 @@ export default function MobileAnnotationBar({
             <button
               key={c.value}
               onClick={() => { onColorChange(c.value); close(); }}
-              title={c.name}
-              aria-label={c.name}
+              title={colorLabel(c.name)}
+              aria-label={colorLabel(c.name)}
               style={{
                 width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
                 backgroundColor: c.value,
@@ -142,7 +145,7 @@ export default function MobileAnnotationBar({
                 boxShadow: activeColor === c.value ? '0 0 0 2px var(--bg-base)' : 'none',
               }}
             >
-              <span className="sr-only">{c.name}</span>
+              <span className="sr-only">{colorLabel(c.name)}</span>
             </button>
           ))}
         </div>

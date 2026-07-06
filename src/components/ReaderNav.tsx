@@ -29,7 +29,7 @@ export default function ReaderNav({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t } = useI18n();
+  const { t, fmtNum } = useI18n();
   const [jumpInput, setJumpInput] = useState('');
   const [jumpFocused, setJumpFocused] = useState(false);
 
@@ -124,11 +124,11 @@ export default function ReaderNav({
                 tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter') setJumpFocused(true); }}
               >
-                {isSpread ? spreadUrl(currentPage) : currentPage}
+                {isSpread ? fmtNum(spreadUrl(currentPage)) : fmtNum(currentPage)}
               </span>
             )}
             <span className={styles.pageDivider}>/</span>
-            <span className={styles.pageTotal}>{TOTAL_PAGES}</span>
+            <span className={styles.pageTotal}>{fmtNum(TOTAL_PAGES)}</span>
           </div>
         </div>
 

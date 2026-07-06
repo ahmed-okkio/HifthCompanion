@@ -1,12 +1,14 @@
 'use client';
 
 import { createContext, useCallback, useContext, useMemo } from 'react';
-import { LOCALE_COOKIE, type Locale } from '@/lib/i18n/config';
+import { LOCALE_COOKIE, localizeDigits, type Locale } from '@/lib/i18n/config';
 import { getDictionary, type MessageKey } from '@/lib/i18n/dictionaries';
 
 type I18nContextValue = {
   locale: Locale;
   t: (key: MessageKey, vars?: Record<string, string | number>) => string;
+  /** Format a number/string with locale-appropriate digits (Eastern Arabic in ar). */
+  fmtNum: (value: string | number) => string;
   setLocale: (locale: Locale) => void;
 };
 
@@ -29,9 +31,15 @@ export function I18nProvider({
           str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
         }
       }
-      return str;
+      // Localize any digits in the final string (interpolated or literal).
+      return localizeDigits(str, locale);
     },
-    [dict],
+    [dict, locale],
+  );
+
+  const fmtNum = useCallback(
+    (value: string | number) => localizeDigits(value, locale),
+    [locale],
   );
 
   const setLocale = useCallback((next: Locale) => {
@@ -41,8 +49,8 @@ export function I18nProvider({
   }, []);
 
   const value = useMemo<I18nContextValue>(
-    () => ({ locale, t, setLocale }),
-    [locale, t, setLocale],
+    () => ({ locale, t, fmtNum, setLocale }),
+    [locale, t, fmtNum, setLocale],
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

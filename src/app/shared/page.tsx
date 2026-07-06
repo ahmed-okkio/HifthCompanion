@@ -4,6 +4,9 @@ import AppShell from '@/components/AppShell';
 import { sharedWithMe } from '@/lib/services/collaborators';
 import { getMyChrome, getProfilesByIds } from '@/lib/services/profile';
 import { displayName } from '@/lib/displayName';
+import { getLocale } from '@/lib/i18n/server';
+import { getDictionary } from '@/lib/i18n/dictionaries';
+import { localizeDigits } from '@/lib/i18n/config';
 
 export default async function SharedPage() {
   const supabase = await createClient();
@@ -12,6 +15,8 @@ export default async function SharedPage() {
     redirect('/login');
   }
 
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
   // sharedWithMe() is collaborator-scoped (set_collaborators.user_id = me), so
   // sets the viewer owns never appear here. Circle accept adds the grant.
   const shared = await sharedWithMe();
@@ -24,18 +29,18 @@ export default async function SharedPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-              Shared Mushafs
+              {dict['nav.sharedMushafs']}
             </h1>
             <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-              Annotation sets others have shared with you
+              {dict['shared.pageSubtitle']}
             </p>
           </div>
-          <span className="badge">{shared.length} shared</span>
+          <span className="badge">{dict['shared.countBadge'].replace('{count}', localizeDigits(shared.length, locale))}</span>
         </div>
 
         {shared.length === 0 ? (
           <div className="card text-center" style={{ padding: '32px 18px', color: 'var(--text-muted)' }}>
-            <p className="text-sm">No one has shared a mushaf with you yet.</p>
+            <p className="text-sm">{dict['shared.emptyState']}</p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -63,7 +68,7 @@ export default async function SharedPage() {
         className="w-full text-center text-xs tracking-wider uppercase border-t"
         style={{ padding: '10px 0', color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
       >
-        HifthCompanion © 2026
+        {dict['home.footer']}
       </footer>
     </AppShell>
   );

@@ -11,6 +11,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { HomeworkStatus } from '@/lib/homework';
 import { TOTAL_SURAHS, getSurahName } from '@/lib/quran';
 import { useI18n } from '@/components/I18nProvider';
+import { localizeDigits, isLocale } from '@/lib/i18n/config';
 
 /** Badge palette per homework status — open/completed/missed at a glance. */
 export const HOMEWORK_STATUS_STYLE: Record<HomeworkStatus, CSSProperties> = {
@@ -177,12 +178,13 @@ export function Ring({ value, max, size = 44 }: { value: number; max: number; si
 export function RingStatCard({ value, max, label, size = 44 }: {
   value: number; max: number; label: string; size?: number;
 }) {
+  const { fmtNum } = useI18n();
   return (
     <div className="card flex items-center gap-3" style={{ padding: '14px 16px' }}>
       <Ring value={value} max={max} size={size} />
       <div className="flex flex-col min-w-0">
         <span className="font-bold leading-tight truncate" style={{ color: 'var(--text-primary)', fontSize: 22 }}>
-          {value} / {max}
+          {fmtNum(value)} / {fmtNum(max)}
         </span>
         <span className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{label}</span>
       </div>
@@ -208,7 +210,7 @@ export function DateChip({ iso, locale }: { iso: string; locale: string }) {
       <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.4 }}>
         {d.toLocaleDateString(locale, { weekday: 'short' })}
       </span>
-      <span style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.1 }}>{d.getDate()}</span>
+      <span style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.1 }}>{localizeDigits(d.getDate(), isLocale(locale) ? locale : 'en')}</span>
     </span>
   );
 }
@@ -327,6 +329,7 @@ export function SurahCombobox({
   /** Stretch to fill the container instead of the default 200px field width. */
   fluid?: boolean;
 }) {
+  const { fmtNum } = useI18n();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const wrap = useRef<HTMLDivElement>(null);
@@ -362,7 +365,7 @@ export function SurahCombobox({
       <input
         className="input input-sm"
         style={{ minHeight: 40, width: '100%', paddingInlineEnd: 32 }}
-        value={open ? query : value ? `${value}. ${getSurahName(value, locale)}` : ''}
+        value={open ? query : value ? `${fmtNum(value)}. ${getSurahName(value, locale)}` : ''}
         placeholder={placeholder}
         onFocus={() => {
           setOpen(true);
@@ -437,7 +440,7 @@ export function SurahCombobox({
                   color: s === value ? 'var(--text-accent)' : 'var(--text-primary)',
                 }}
               >
-                {s}. {getSurahName(s, locale)}
+                {fmtNum(s)}. {getSurahName(s, locale)}
               </button>
             </li>
           ))}

@@ -43,6 +43,16 @@
   src: url(https://fonts.gstatic.com/s/notosansarabic/v33/nwpxtLGrOAZMl5nJ_wfgRg3DrWFZWsnVBJ_sS6tlqHHFlhQ5l3sQWIHPqzCfL2uvuw.ttf) format('truetype');
 }
 
+/* Noto Sans Arabic at weight 700 reads much heavier/darker than the Latin bold
+   it sits beside — the size-adjust that flatters lighter Arabic amplifies bold
+   strokes. Step bold down one notch in the Arabic UI only (keyed off the
+   <html lang="ar"> the layout sets). English locale is untouched; covers both
+   utility classes (.font-bold / .font-semibold) and inline font-weight. */
+html[lang="ar"] .font-bold,
+html[lang="ar"] [style*="font-weight:700"] { font-weight: 600 !important; }
+html[lang="ar"] .font-semibold,
+html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
+
 /* ============================================================================
    DESIGN TOKEN LAYER — V3 "knowledge workspace" refresh (PRD 0002, Story 1)
    ----------------------------------------------------------------------------

@@ -6,21 +6,21 @@
  */
 
 import Image from 'next/image';
-import { ALL_TOOLS, TOOL_ICONS, TOOL_LABELS, PRESET_COLORS } from '@/lib/canvasTools';
-import { getPageImageUrl } from '@/lib/quran';
+import { ALL_TOOLS, TOOL_ICONS, PRESET_COLORS } from '@/lib/canvasTools';
+import { getPageImageUrl, getSurahName } from '@/lib/quran';
 import { getLocale } from '@/lib/i18n/server';
-import { getDictionary } from '@/lib/i18n/dictionaries';
+import { localizeDigits } from '@/lib/i18n/config';
+import { getDictionary, type MessageKey } from '@/lib/i18n/dictionaries';
 
-// ponytail: surah names are proper nouns (Quran chapter names), left as-is —
-// same treatment as the brand wordmark. Only the surrounding UI chrome is localized.
+// Surah names resolve through getSurahName(locale); only page/number are local.
 const SURAHS = [
-  { n: 1, name: 'Al-Fatihah', page: 1 },
-  { n: 2, name: 'Al-Baqarah', page: 2 },
-  { n: 3, name: 'Aal-i-Imran', page: 50 },
-  { n: 4, name: "An-Nisa'", page: 77 },
-  { n: 5, name: "Al-Ma'idah", page: 106 },
-  { n: 6, name: "Al-An'am", page: 128 },
-  { n: 7, name: "Al-A'raf", page: 151 },
+  { n: 1, page: 1 },
+  { n: 2, page: 2 },
+  { n: 3, page: 50 },
+  { n: 4, page: 77 },
+  { n: 5, page: 106 },
+  { n: 6, page: 128 },
+  { n: 7, page: 151 },
 ];
 
 const NOTE_KEYS = [
@@ -33,7 +33,8 @@ const NOTE_KEYS = [
 const ACTIVE_TOOL = 'highlighter';
 
 export default async function HomeReaderDemo() {
-  const dict = getDictionary(await getLocale());
+  const locale = await getLocale();
+  const dict = getDictionary(locale);
   return (
     <div
       className="relative w-full overflow-hidden mx-auto"
@@ -68,10 +69,10 @@ export default async function HomeReaderDemo() {
               const active = s.n === 1;
               return (
                 <li key={s.n} className="flex items-center" style={{ gap: 10, padding: '8px 10px', borderRadius: 'var(--radius-md-px)', background: active ? 'var(--green-soft)' : 'transparent' }}>
-                  <span className="inline-flex items-center justify-center flex-shrink-0" style={{ width: 24, height: 24, borderRadius: 8, fontSize: 11, fontWeight: 700, background: active ? 'var(--green-600)' : 'var(--neutral-100)', color: active ? '#fff' : 'var(--text-muted)' }}>{s.n}</span>
+                  <span className="inline-flex items-center justify-center flex-shrink-0" style={{ width: 24, height: 24, borderRadius: 8, fontSize: 11, fontWeight: 700, background: active ? 'var(--green-600)' : 'var(--neutral-100)', color: active ? '#fff' : 'var(--text-muted)' }}>{localizeDigits(s.n, locale)}</span>
                   <span className="flex flex-col" style={{ minWidth: 0 }}>
-                    <span className="font-semibold truncate" style={{ fontSize: 13, color: active ? 'var(--green-700)' : 'var(--text-primary)' }}>{s.name}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{dict['home.page']} {s.page}</span>
+                    <span className="font-semibold truncate" style={{ fontSize: 13, color: active ? 'var(--green-700)' : 'var(--text-primary)' }}>{getSurahName(s.n, locale)}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{dict['home.page']} {localizeDigits(s.page, locale)}</span>
                   </span>
                 </li>
               );
@@ -89,7 +90,7 @@ export default async function HomeReaderDemo() {
                 <span key={t} className="flex flex-col items-center justify-center shrink-0"
                   style={{ gap: 3, width: 50, height: 48, borderRadius: 'var(--radius-btn-px)', background: active ? 'var(--green-soft)' : 'transparent', color: active ? 'var(--text-accent)' : 'var(--text-muted)' }}>
                   <span className="flex items-center justify-center [&>svg]:!h-[18px] [&>svg]:!w-[18px]" style={{ width: 18, height: 18 }}>{TOOL_ICONS[t]}</span>
-                  <span style={{ fontSize: 9.5, fontWeight: 600, lineHeight: 1 }}>{TOOL_LABELS[t]}</span>
+                  <span style={{ fontSize: 9.5, fontWeight: 600, lineHeight: 1 }}>{dict[`tool.${t}` as MessageKey]}</span>
                 </span>
               );
             })}

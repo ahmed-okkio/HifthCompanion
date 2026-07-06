@@ -1,7 +1,8 @@
 'use client';
 import { useRef } from 'react';
-import { type Tool, ALL_TOOLS, TOOL_ICONS, TOOL_LABELS, PRESET_COLORS } from '@/lib/canvasTools';
+import { type Tool, ALL_TOOLS, TOOL_ICONS, PRESET_COLORS } from '@/lib/canvasTools';
 import { useI18n } from '@/components/I18nProvider';
+import type { MessageKey } from '@/lib/i18n/dictionaries';
 
 interface Props {
   activeTool: Tool;
@@ -37,6 +38,10 @@ export default function AnnotationToolbar({
   onHoverEnter, onHoverLeave, moveActive, onMoveToggle,
 }: Props) {
   const { t } = useI18n();
+  // Tool/color names are English module constants (TOOL_LABELS/PRESET_COLORS);
+  // resolve display text through the dictionary here where the hook is available.
+  const toolLabel = (tool: Tool) => t(`tool.${tool}` as MessageKey);
+  const colorLabel = (name: string) => t(`color.${name}` as MessageKey);
   const buttonRefs = useRef<Record<Tool, HTMLButtonElement | null>>({} as Record<Tool, HTMLButtonElement | null>);
 
   // Horizontal bar: popover drops BELOW the hovered tool button. Clamp horizontally to viewport.
@@ -124,7 +129,7 @@ export default function AnnotationToolbar({
             key={t}
             ref={el => { buttonRefs.current[t] = el; }}
             onClick={() => onToolClick(t)}
-            title={TOOL_LABELS[t]}
+            title={toolLabel(t)}
             className="flex flex-col items-center justify-center gap-1"
             style={{
               ...cellBase,
@@ -144,7 +149,7 @@ export default function AnnotationToolbar({
               {TOOL_ICONS[t]}
             </span>
             <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>
-              {TOOL_LABELS[t]}
+              {toolLabel(t)}
             </span>
           </button>
         ))}
@@ -221,7 +226,7 @@ export default function AnnotationToolbar({
             <button
               key={c.value}
               onClick={() => onColorChange(c.value)}
-              title={c.name}
+              title={colorLabel(c.name)}
               className="flex-shrink-0 rounded-full"
               style={{
                 width: '20px',

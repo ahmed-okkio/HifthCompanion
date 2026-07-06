@@ -13,7 +13,7 @@ export default function NotesThread({
   membershipId: string;
   initial: NoteWithAuthor[];
 }) {
-  const { t, locale } = useI18n();
+  const { t, locale, fmtNum } = useI18n();
   const [notes, setNotes] = useState(initial);
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
@@ -32,7 +32,7 @@ export default function NotesThread({
 
   return (
     <div className="flex flex-col gap-2">
-      <SectionTitle trailing={notes.length > 0 && <span className="badge badge-muted">{notes.length}</span>}>
+      <SectionTitle trailing={notes.length > 0 && <span className="badge badge-muted">{fmtNum(notes.length)}</span>}>
         {t('notes.title')}
       </SectionTitle>
       <div className="flex gap-2 items-end">

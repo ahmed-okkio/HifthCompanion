@@ -61,7 +61,7 @@ export default function StudentCircle({
   memorized: { juz: number; surahs: number };
   defaultSetId: string | null;
 }) {
-  const { t, locale } = useI18n();
+  const { t, locale, fmtNum } = useI18n();
   const [logs, setLogs] = useState(initialLogs);
   const [tab, setTab] = useState('homework');
 
@@ -135,7 +135,7 @@ export default function StudentCircle({
 
             {/* My logs */}
             <div className="flex flex-col gap-2">
-              <SectionTitle trailing={<span className="badge badge-muted">{logs.length}</span>}>
+              <SectionTitle trailing={<span className="badge badge-muted">{fmtNum(logs.length)}</span>}>
                 {t('log.mine')}
               </SectionTitle>
               {logs.length === 0 && <EmptyState>{t('log.empty')}</EmptyState>}
@@ -248,11 +248,11 @@ function UpcomingSessions({ sessions, schedule }: { sessions: Session[]; schedul
 // --- Circle members (roster, read-only identity) -----------------------------
 
 function CircleMembers({ roster, selfUserId }: { roster: RosterMember[]; selfUserId: string }) {
-  const { t } = useI18n();
+  const { t, fmtNum } = useI18n();
   if (roster.length === 0) return null;
   return (
     <div className="flex flex-col gap-2">
-      <SectionTitle trailing={<span className="badge badge-muted">{roster.length}</span>}>
+      <SectionTitle trailing={<span className="badge badge-muted">{fmtNum(roster.length)}</span>}>
         {t('circle.membersTitle')}
       </SectionTitle>
       <div className="flex flex-col gap-2">
@@ -326,7 +326,7 @@ function HomeworkCard({
   membershipId: string;
   onCreated: (log: ProgressLog) => void;
 }) {
-  const { t, locale } = useI18n();
+  const { t, locale, fmtNum } = useI18n();
   const [attaching, setAttaching] = useState<string | null>(null); // per-entry (row) attach form
   const groupStatus = aggregateStatus(
     items.map((h) => homeworkStatus(h, (linked.get(h.id) ?? []).length, today())),
@@ -354,13 +354,13 @@ function HomeworkCard({
           <div key={h.id} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }} className="flex flex-col gap-1">
             {items.length > 1 && (
               <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                {homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${h.page_start}–${h.page_end}`}
+                {homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${fmtNum(h.page_start)}–${fmtNum(h.page_end)}`}
                 {h.surah && h.ayah_start == null ? ` ${t('homework.whole')}` : ''}
               </span>
             )}
             {linkedLogs.map((l) => (
               <div key={l.id} className="text-xs flex items-center gap-1" style={{ color: 'var(--text-secondary)', paddingInlineStart: 8 }}>
-                <Icon name="check" size={13} /> p{l.page_start}–{l.page_end} · {l.log_date}
+                <Icon name="check" size={13} /> p{fmtNum(l.page_start)}–{fmtNum(l.page_end)} · {l.log_date}
                 {l.student_status ? ` · ${l.student_status}` : ''}
               </div>
             ))}
@@ -413,7 +413,7 @@ function LogEntryForm({
   statuses: StatusConfig[];
   onCreated: (log: ProgressLog) => void;
 }) {
-  const { t, locale } = useI18n();
+  const { t, locale, fmtNum } = useI18n();
   // Collapsed behind a button by default, like the teacher's prescribe form.
   const [logging, setLogging] = useState(false);
   const [logType, setLogType] = useState<LogType>('memorization');
@@ -503,7 +503,7 @@ function LogEntryForm({
                     placeholder={t('log.notePlaceholder')} rows={3}
                     className="input" style={{ width: '100%', resize: 'vertical', paddingBottom: 24 }} />
           <span style={{ position: 'absolute', insetInlineEnd: 10, bottom: 8, fontSize: 11, color: 'var(--text-muted)', pointerEvents: 'none' }}>
-            {note.length} / 200
+            {fmtNum(note.length)} / {fmtNum(200)}
           </span>
         </div>
       </label>
@@ -536,7 +536,7 @@ function LogForm({
   initialPageStart?: number;
   initialPageEnd?: number;
 }) {
-  const { t } = useI18n();
+  const { t, fmtNum } = useI18n();
   // Prescribed homework has a scope the teacher already set — the student only
   // reports a status. Pages/ayahs are pickable only on a self-raised log.
   const hideRange = homeworkId != null;
@@ -632,7 +632,7 @@ function LogForm({
           {refine && ayahOptions.length > 0 && (
             <div className="flex items-end gap-2">
               <span className="text-xs" style={{ color: 'var(--text-muted)', paddingBottom: 10 }}>
-                {t('log.surah')} {refineSurah}
+                {t('log.surah')} {fmtNum(refineSurah)}
               </span>
               <AyahSelect label={t('log.ayahFrom')} value={effAyahStart} options={ayahOptions} onChange={setAyahStart} />
               <AyahSelect label={t('log.ayahTo')} value={effAyahEnd} options={ayahOptions} onChange={setAyahEnd} />
@@ -658,13 +658,13 @@ function LogForm({
 // --- My-logs row -------------------------------------------------------------
 
 function LogRow({ log: l, onDelete }: { log: ProgressLog; onDelete: (id: string) => void }) {
-  const { t } = useI18n();
+  const { t, fmtNum } = useI18n();
   return (
     <div className="card" style={{ padding: '12px 16px' }}>
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-          {t(`logType.${l.log_type}`)} · p{l.page_start}–{l.page_end}
-          {l.surah && l.ayah_start ? ` · ${l.surah}:${l.ayah_start}${l.ayah_end && l.ayah_end !== l.ayah_start ? `–${l.ayah_end}` : ''}` : ''}
+          {t(`logType.${l.log_type}`)} · p{fmtNum(l.page_start)}–{fmtNum(l.page_end)}
+          {l.surah && l.ayah_start ? ` · ${fmtNum(l.surah)}:${fmtNum(l.ayah_start)}${l.ayah_end && l.ayah_end !== l.ayah_start ? `–${fmtNum(l.ayah_end)}` : ''}` : ''}
           {l.homework_id && <span className="badge badge-muted" style={{ fontSize: 10, marginInlineStart: 6 }}>{t('homework.assignedToYou')}</span>}
         </span>
         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{l.log_date}</span>
@@ -706,12 +706,13 @@ function AyahSelect({
 }: {
   label: string; value: number; options: number[]; onChange: (v: number) => void;
 }) {
+  const { fmtNum } = useI18n();
   return (
     <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
       {label}
       <select value={value} onChange={(e) => onChange(Number(e.target.value))}
               className="input input-sm" style={{ minHeight: 40 }}>
-        {options.map((a) => <option key={a} value={a}>{a}</option>)}
+        {options.map((a) => <option key={a} value={a}>{fmtNum(a)}</option>)}
       </select>
     </label>
   );

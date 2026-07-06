@@ -174,11 +174,11 @@ function Section({
   memberships: MembershipWithCircle[];
   hrefBase: string;
 }) {
-  const { t } = useI18n();
+  const { t, fmtNum } = useI18n();
   if (memberships.length === 0) return null;
   return (
     <div className="flex flex-col gap-2">
-      <SectionTitle trailing={<span className="badge-muted badge">{memberships.length}</span>}>
+      <SectionTitle trailing={<span className="badge-muted badge">{fmtNum(memberships.length)}</span>}>
         {title}
       </SectionTitle>
       <div className="grid gap-3 sm:grid-cols-2">

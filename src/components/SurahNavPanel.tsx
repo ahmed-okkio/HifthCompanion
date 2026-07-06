@@ -15,7 +15,7 @@ interface Props {
 }
 
 export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, basePath, topOffset = 72, isSpread = false }: Props) {
-  const { t } = useI18n();
+  const { t, locale, fmtNum } = useI18n();
   const [query, setQuery] = useState('');
   const [pinnedPage, setPinnedPage] = useState<number | null>(null);
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -65,7 +65,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
 
   const activeSurahName = useMemo(() => {
     const g = SURAH_PAGE_GROUPS.find(group => group.page === activePage);
-    return g?.surahs.map(n => getSurahName(n)).join(' · ') ?? '';
+    return g?.surahs.map(n => getSurahName(n, locale)).join(' · ') ?? '';
   }, [activePage]);
 
   const filtered = useMemo(() => filterSurahGroups(query), [query]);
@@ -281,7 +281,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
                   title={pinnedPage === group.page ? t('reader.removeBookmark') : t('reader.bookmarkAsDefault')}
                   aria-label={pinnedPage === group.page ? t('reader.removeDefaultBookmark') : t('reader.bookmarkAsDefault')}
                   aria-pressed={pinnedPage === group.page}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center opacity-0 transition-opacity duration-150 focus-visible:opacity-100 group-hover/row:opacity-100"
+                  className="absolute start-2 top-1/2 -translate-y-1/2 z-10 flex h-8 w-8 items-center justify-center opacity-0 transition-opacity duration-150 focus-visible:opacity-100 group-hover/row:opacity-100"
                   style={{
                     color: pinnedPage === group.page ? 'var(--green-600)' : 'var(--text-muted)',
                     opacity: pinnedPage === group.page ? 1 : undefined,
@@ -297,13 +297,13 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
                   onClick={() => { void handleSelect(group); }}
                   onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-50)'; }}
                   onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
-                  className="group flex w-full items-center gap-3 px-4 text-left transition-colors duration-150"
+                  className="group flex w-full items-center gap-3 px-4 text-start transition-colors duration-150"
                   style={{
                     minHeight: '72px',
                     paddingBlock: '20px',
-                    paddingRight: '40px',
+                    paddingInlineStart: '40px',
                     background: active ? 'var(--green-soft)' : 'transparent',
-                    borderLeft: active
+                    borderInlineStart: active
                       ? '4px solid var(--green-600)'
                       : '4px solid transparent',
                   }}
@@ -324,7 +324,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
                             color: active ? 'var(--green-600)' : 'var(--text-secondary)',
                           }}
                         >
-                          {n}
+                          {fmtNum(n)}
                         </span>
                         <span
                           className="block truncate leading-snug"
@@ -334,7 +334,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
                             color: active ? 'var(--green-800)' : 'var(--text-primary)',
                           }}
                         >
-                          {getSurahName(n)}
+                          {getSurahName(n, locale)}
                         </span>
                       </span>
                     ))}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
@@ -35,6 +35,11 @@ export default function TeacherCircle({
   const router = useRouter();
   const [code, setCode] = useState(circle.invite_code);
   const [copied, setCopied] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  // Origin resolved after mount to avoid an SSR/hydration mismatch on location.
+  const [origin, setOrigin] = useState('');
+  useEffect(() => setOrigin(process.env.NEXT_PUBLIC_SITE_URL || location.origin), []);
+  const inviteLink = `${origin}/tracker/join/${code}`;
   const [students, setStudents] = useState(initialStudents);
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +53,7 @@ export default function TeacherCircle({
   }
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(code);
+    await navigator.clipboard.writeText(inviteLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
@@ -199,34 +204,46 @@ export default function TeacherCircle({
 
         {/* Sidebar: invite */}
         <aside className="card flex flex-col gap-4" style={{ padding: '18px' }}>
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-              {t('tracker.inviteCode')}
-            </span>
-            <code className="text-base font-mono font-bold text-center"
-                  style={{ color: 'var(--text-accent)', letterSpacing: '0.18em', background: 'var(--accent-muted)', padding: '12px 10px', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-accent)' }}>
-              {code}
-            </code>
-            <div className="flex gap-2">
-              <button onClick={handleCopy} className="btn btn-outline flex-1" style={{ minHeight: 38, fontSize: 13 }}>
-                {t(copied ? 'common.copied' : 'common.copy')}
-              </button>
-              <button onClick={handleRotate} className="btn btn-ghost flex-1" style={{ minHeight: 38, fontSize: 13 }}>
-                {t('tracker.rotateCode')}
-              </button>
+          {/* One green CTA for the whole invite component — expands link + email. */}
+          <button onClick={() => setInviteOpen((o) => !o)}
+                  className="btn btn-primary flex items-center justify-center gap-2"
+                  style={{ minHeight: 44 }} aria-expanded={inviteOpen}>
+            {t('tracker.invite')}
+            <Chevron open={inviteOpen} color="currentColor" />
+          </button>
+          {/* CSS-only expand: grid-rows 0fr→1fr animates height with no JS measuring. */}
+          <div style={{ display: 'grid', gridTemplateRows: inviteOpen ? '1fr' : '0fr', transition: 'grid-template-rows 0.25s ease' }}>
+            <div className="flex flex-col gap-4" style={{ overflow: 'hidden', minHeight: 0 }}>
+              <div className="flex flex-col gap-2" style={{ marginTop: 4 }}>
+                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                  {t('tracker.inviteLink')}
+                </span>
+                <code className="text-xs font-mono break-all"
+                      style={{ color: 'var(--text-accent)', background: 'var(--accent-muted)', padding: '12px 10px', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-accent)' }}>
+                  {inviteLink}
+                </code>
+                <div className="flex gap-2">
+                  <button onClick={handleCopy} className="btn btn-outline flex-1" style={{ minHeight: 38, fontSize: 13 }}>
+                    {t(copied ? 'common.copied' : 'common.copy')}
+                  </button>
+                  <button onClick={handleRotate} className="btn btn-ghost flex-1" style={{ minHeight: 38, fontSize: 13 }}>
+                    {t('tracker.rotateCode')}
+                  </button>
+                </div>
+              </div>
+              <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                  {t('tracker.inviteByEmail')}
+                </span>
+                <input value={email} onChange={(e) => setEmail(e.target.value)} type="email"
+                       onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
+                       placeholder={t('tracker.inviteByEmail')} className="input" />
+                <button onClick={handleInvite} disabled={!email.trim()} className="btn btn-outline" style={{ minHeight: 40 }}>
+                  {t('common.create')}
+                </button>
+              </div>
             </div>
-          </div>
-          <div style={{ height: 1, background: 'var(--border-subtle)' }} />
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
-              {t('tracker.inviteByEmail')}
-            </span>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email"
-                   onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
-                   placeholder={t('tracker.inviteByEmail')} className="input" />
-            <button onClick={handleInvite} disabled={!email.trim()} className="btn btn-primary" style={{ minHeight: 40 }}>
-              {t('common.create')}
-            </button>
           </div>
           <div style={{ height: 1, background: 'var(--border-subtle)' }} />
           <button onClick={handleDelete} className="btn btn-danger-ghost" style={{ minHeight: 38, fontSize: 13 }}>

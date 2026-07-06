@@ -10,6 +10,7 @@ import { useI18n } from '@/components/I18nProvider';
 import MemorizationEditor from '@/components/MemorizationEditor';
 import AuthBrand from '@/components/AuthBrand';
 import { saveMemorization } from '@/lib/services/profile';
+import { safeNext } from '@/lib/nextParam';
 import type { MemorizedRange } from '@/types';
 
 export default function OnboardingPage() {
@@ -17,7 +18,7 @@ export default function OnboardingPage() {
 
   const onSave = async (ranges: MemorizedRange[], weakest: number[]) => {
     await saveMemorization(ranges, weakest);
-    window.location.assign('/reader');
+    window.location.assign(safeNext(new URLSearchParams(location.search).get('next')));
   };
 
   return (

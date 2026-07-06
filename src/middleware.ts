@@ -27,10 +27,14 @@ export async function middleware(request: NextRequest) {
 
   const protectedPaths = ['/sets', '/reader', '/tracker'];
   const isProtected = protectedPaths.some(p => request.nextUrl.pathname.startsWith(p));
+  // Where to return after auth/onboarding — preserves invite links (/tracker/join/*).
+  const next = request.nextUrl.pathname + request.nextUrl.search;
 
   // If in E2E mode, skip auth check
   if (isProtected && !isE2E && !effectiveUser) {
-    return NextResponse.redirect(new URL('/login', request.url));
+    const login = new URL('/login', request.url);
+    login.searchParams.set('next', next);
+    return NextResponse.redirect(login);
   }
 
   // Onboarding gate: force a real authed user with no completed onboarding to
@@ -45,7 +49,9 @@ export async function middleware(request: NextRequest) {
       .eq('user_id', user.id)
       .maybeSingle();
     if (!data || data.onboarded_at == null) {
-      return NextResponse.redirect(new URL('/onboarding', request.url));
+      const onb = new URL('/onboarding', request.url);
+      onb.searchParams.set('next', next);
+      return NextResponse.redirect(onb);
     }
   }
 

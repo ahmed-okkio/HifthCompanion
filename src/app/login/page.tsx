@@ -1,9 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import AuthBrand from '@/components/AuthBrand';
 import { useI18n } from '@/components/I18nProvider';
+import { safeNext } from '@/lib/nextParam';
 
 export default function LoginPage() {
   const supabase = createClient();
@@ -12,13 +13,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Resolved after mount to keep the ?next= carry-over out of SSR (hydration).
+  const [search, setSearch] = useState('');
+  useEffect(() => setSearch(location.search), []);
 
   async function handleLogin() {
     setLoading(true);
     setError('');
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { setError(error.message); setLoading(false); }
-    else window.location.assign('/reader');
+    else window.location.assign(safeNext(new URLSearchParams(location.search).get('next')));
   }
 
   return (
@@ -97,7 +101,7 @@ export default function LoginPage() {
         {/* Footer link */}
         <p className="text-center mt-5 text-sm" style={{ color: 'var(--text-muted)' }}>
           {t('auth.noAccount')}{' '}
-          <Link href="/signup"
+          <Link href={`/signup${search}`}
                 className="font-semibold hover:underline"
                 style={{ color: 'var(--text-accent)' }}>
             {t('auth.signUpLink')}

@@ -61,7 +61,10 @@ export default function TrackerHome({
     setBusy(true);
     setError(null);
     try {
-      const h = await getCircleByCode(code);
+      // Accept either a raw code or a full invite link (…/tracker/join/<code>).
+      const raw = code.includes('/join/') ? code.split('/join/').pop()! : code;
+      const parsed = raw.split(/[/?#]/)[0].trim();
+      const h = await getCircleByCode(parsed);
       if (!h) throw new Error('No circle with that code');
       await joinCircle(h.id); // lands as 'pending' — consent gate (C4)
       setCode('');

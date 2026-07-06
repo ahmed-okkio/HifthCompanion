@@ -1,9 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import AuthBrand from '@/components/AuthBrand';
 import { useI18n } from '@/components/I18nProvider';
+import { safeNext } from '@/lib/nextParam';
 
 export default function SignupPage() {
   const supabase = createClient();
@@ -15,6 +16,9 @@ export default function SignupPage() {
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Resolved after mount to keep the ?next= carry-over out of SSR (hydration).
+  const [search, setSearch] = useState('');
+  useEffect(() => setSearch(location.search), []);
 
   const ready = !!firstName.trim() && !!lastName.trim() && !!email && !!password;
 
@@ -22,11 +26,14 @@ export default function SignupPage() {
     if (!ready) return;
     setLoading(true);
     setMessage('');
+    const next = safeNext(new URLSearchParams(location.search).get('next'));
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || location.origin}/auth/callback`,
+        // Thread `next` through the email-confirm link so the callback lands the
+        // new user back on their invite (or /reader) after confirming.
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
         // Mirrored into a public.profiles row by the on_auth_user_created
         // trigger so tracker rosters can show real display names.
         data: { first_name: firstName.trim(), last_name: lastName.trim() },
@@ -146,7 +153,7 @@ export default function SignupPage() {
         {/* Footer link */}
         <p className="text-center mt-5 text-sm" style={{ color: 'var(--text-muted)' }}>
           {t('auth.haveAccount')}{' '}
-          <Link href="/login"
+          <Link href={`/login${search}`}
                 className="font-semibold hover:underline"
                 style={{ color: 'var(--text-accent)' }}>
             {t('auth.logInLink')}

@@ -55,10 +55,12 @@ interface Props {
   flush?: 'start' | 'end';
   /** When set (e.g. `/share/{setId}`), prev/next links target the share route instead of /reader. */
   sharePageBasePath?: string;
+  /** PRD 0009 R3: patch the reader's Marked tab after a save (page, new mark count). */
+  onSaved?: (page: number, count: number) => void;
 }
 
 function AnnotationCanvasInner(
-  { pageNum, imageUrl, sets, user, lockedSet = false, showSetsCard = true, tools, onCommit, view, flush, sharePageBasePath }: Props,
+  { pageNum, imageUrl, sets, user, lockedSet = false, showSetsCard = true, tools, onCommit, view, flush, sharePageBasePath, onSaved }: Props,
   ref: React.Ref<CanvasHandle>,
 ) {
   const {
@@ -69,7 +71,7 @@ function AnnotationCanvasInner(
     setSelectedSetId, setActiveColor, setOpacity, setPenWidth,
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,
-  } = useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet, tools, onCommit });
+  } = useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet, tools, onCommit, onSaved });
   const { t } = useI18n();
 
   // Spread shell drives undo/redo/clear through this handle (F4). clear skips the per-canvas

@@ -9,6 +9,7 @@ import { getCircle } from '@/lib/services/circle';
 import { getCircleMembers, getCircleMembersWithProfiles, getCircleRoster, getStudentDefaultSetId } from '@/lib/services/membership';
 import { getStudentMemorization } from '@/lib/services/profile';
 import { rangesTotals } from '@/lib/analytics';
+import { markedPages as fetchMarkedPages } from '@/lib/services/markedPages';
 import { getProfilesByIds } from '@/lib/services/profile';
 import { getLogsForMembership } from '@/lib/services/progressLog';
 import { getSessionsForMemberships, getSessions } from '@/lib/services/sessions';
@@ -122,6 +123,8 @@ export default async function CirclePage({
     getStudentMemorization(user.id),
   ]);
   const memorized = rangesTotals(memorizedRanges);
+  // C2: student sees their own default-set marked pages (own-set RLS).
+  const marked = defaultSetId ? await fetchMarkedPages(supabase, defaultSetId) : [];
 
   return (
     <AppShell breadcrumb={[{ label: dict['nav.circles'], href: '/tracker' }, { label: circle.name }]} user={account}>
@@ -140,6 +143,7 @@ export default async function CirclePage({
             selfUserId={user.id}
             memorized={memorized}
             defaultSetId={defaultSetId}
+            markedPages={marked}
           />
         </div>
       </main>

@@ -27,6 +27,8 @@ import {
   SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, Chevron, Icon,
 } from './ui';
 import { attendanceStats } from '@/lib/analytics';
+import MarkedPagesList from '@/components/MarkedPagesList';
+import type { MarkedPage } from '@/lib/markedPages';
 
 const LOG_TYPES: LogType[] = ['memorization', 'general_revision', 'targeted_revision'];
 const ATT_STATUSES: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'];
@@ -50,6 +52,7 @@ export default function TeacherStudent({
   memorized,
   initialNotes,
   initialExams,
+  markedPages,
 }: {
   circle: Circle;
   member: MemberWithProfile;
@@ -61,6 +64,8 @@ export default function TeacherStudent({
   memorized: { juz: number; surahs: number };
   initialNotes: NoteWithAuthor[];
   initialExams: Exam[];
+  /** PRD 0009 C1: default-set marked pages, read-only here. */
+  markedPages: MarkedPage[];
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -92,6 +97,7 @@ export default function TeacherStudent({
       <StudentProfileCard
         name={displayName(member)} circleName={circle.name} defaultSetId={defaultSetId}
         memorized={memorized} attendance={attendance} openHomework={openHomework}
+        markedPages={markedPages}
       />
 
       {/* Right column — the feed: tabs + panels, unchanged */}
@@ -156,7 +162,7 @@ export default function TeacherStudent({
  * detail view and the student's own self-service view (same three cards).
  */
 export function StudentProfileCard({
-  name, circleName, defaultSetId, memorized, attendance, openHomework,
+  name, circleName, defaultSetId, memorized, attendance, openHomework, markedPages,
 }: {
   name: string;
   circleName: string;
@@ -164,6 +170,8 @@ export function StudentProfileCard({
   memorized: { juz: number; surahs: number };
   attendance: { status: AttendanceStatus }[];
   openHomework: number;
+  /** PRD 0009 C1/C2: default-set marked pages, read-only. Omit to hide the card. */
+  markedPages?: MarkedPage[];
 }) {
   const { t, fmtNum } = useI18n();
   const att = useMemo(() => attendanceStats(attendance), [attendance]);
@@ -188,6 +196,16 @@ export function StudentProfileCard({
         <AttendanceLine marked={att.marked} rate={att.rate} />
       </div>
       <StatCard icon={<Icon name="hourglass" />} value={fmtNum(openHomework)} label={t('homework.openHomework')} />
+
+      {/* PRD 0009 C1/C3: default-set marked pages, read-only. Empty set → in-card empty state. */}
+      {markedPages && (
+        <div className="card flex flex-col gap-2" style={{ padding: '16px 0 8px' }}>
+          <div className="px-4"><SectionTitle>{t('reader.marked')}</SectionTitle></div>
+          <div className="overflow-y-auto thin-scroll" style={{ maxHeight: 320 }}>
+            <MarkedPagesList rows={markedPages} />
+          </div>
+        </div>
+      )}
     </aside>
   );
 }

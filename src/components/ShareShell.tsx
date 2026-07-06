@@ -10,6 +10,9 @@ import ProfileMenu from './ProfileMenu';
 import shareStyles from './ShareShell.module.css';
 import navStyles from './ReaderNav.module.css';
 import { useI18n } from '@/components/I18nProvider';
+import { createClient } from '@/lib/supabase/client';
+import { markedPages as fetchMarkedPages } from '@/lib/services/markedPages';
+import type { MarkedPage } from '@/lib/markedPages';
 
 const FALLBACK_NAV_HEIGHT = 56;
 
@@ -55,6 +58,18 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
 
   const prevPage = clampPage(pageNum - 1);
   const nextPage = clampPage(pageNum + 1);
+
+  // SH1: fetch-only Marked tab for the shared set. Nothing editable here, so no save-patching.
+  const shareSetId = basePath.split('/').pop() ?? '';
+  const [markedRows, setMarkedRows] = useState<MarkedPage[]>([]);
+  useEffect(() => {
+    if (!shareSetId) return;
+    let cancelled = false;
+    fetchMarkedPages(createClient(), shareSetId)
+      .then(rows => { if (!cancelled) setMarkedRows(rows); })
+      .catch(() => { if (!cancelled) setMarkedRows([]); });
+    return () => { cancelled = true; };
+  }, [shareSetId]);
 
   return (
     <div
@@ -197,7 +212,7 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
             overflow: 'hidden',
           }}
         >
-          <SurahNavPanel currentPage={pageNum} basePath={basePath} topOffset={navHeight} />
+          <SurahNavPanel currentPage={pageNum} basePath={basePath} topOffset={navHeight} markedPages={markedRows} />
         </div>
         <div
           className="lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col"

@@ -19,6 +19,8 @@ interface Props {
   lockedSet?: boolean;
   /** When set (e.g. `/share/{setId}`), prev/next links target the share route instead of /reader. */
   sharePageBasePath?: string;
+  /** PRD 0009 R3: patch the reader's Marked tab after a save (page, new mark count). */
+  onSaved?: (page: number, count: number) => void;
 }
 
 /**
@@ -30,7 +32,7 @@ interface Props {
  * Per PRD D10 each canvas keeps its OWN CanvasHistory; this controller only owns the order
  * arrays and calls the right canvas's undo/redo.
  */
-export default function SpreadAnnotation({ pages, sets, user, lockedSet = false, sharePageBasePath }: Props) {
+export default function SpreadAnnotation({ pages, sets, user, lockedSet = false, sharePageBasePath, onSaved }: Props) {
   const { t } = useI18n();
   const tools = useToolState();
   const { activeTool, setActiveTool, activeColor, setActiveColor, opacity, setOpacity, penWidth, setPenWidth } = tools;
@@ -155,6 +157,7 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
             lockedSet={lockedSet}
             tools={tools}
             onCommit={() => onCommit(0)}
+            onSaved={onSaved}
             view={view}
             flush="start"
             sharePageBasePath={sharePageBasePath}
@@ -171,6 +174,7 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
             showSetsCard={false}
             tools={tools}
             onCommit={() => onCommit(1)}
+            onSaved={onSaved}
             view={view}
             flush="end"
             sharePageBasePath={sharePageBasePath}

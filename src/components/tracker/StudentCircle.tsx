@@ -16,6 +16,7 @@ import { wholeSurahPages } from '@/lib/homework';
 import { SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, Icon, Avatar, Chevron } from './ui';
 import { SurahPicker, ExamCard, StudentProfileCard, type Entry } from './TeacherStudent';
 import type { RosterMember } from '@/lib/services/membership';
+import type { MarkedPage } from '@/lib/markedPages';
 import { displayName } from '@/lib/displayName';
 
 const LOG_TYPES: LogType[] = ['memorization', 'general_revision', 'targeted_revision'];
@@ -48,6 +49,7 @@ export default function StudentCircle({
   selfUserId,
   memorized,
   defaultSetId,
+  markedPages,
 }: {
   circle: Circle;
   membership: Membership;
@@ -60,6 +62,8 @@ export default function StudentCircle({
   selfUserId: string;
   memorized: { juz: number; surahs: number };
   defaultSetId: string | null;
+  /** PRD 0009 C2: the student's own default-set marked pages, read-only. */
+  markedPages: MarkedPage[];
 }) {
   const { t, locale, fmtNum } = useI18n();
   const [logs, setLogs] = useState(initialLogs);
@@ -106,6 +110,7 @@ export default function StudentCircle({
           name={displayName(roster.find((m) => m.user_id === selfUserId) ?? { user_id: selfUserId })}
           circleName={circle.name} defaultSetId={defaultSetId}
           memorized={memorized} attendance={attendance} openHomework={openHomework}
+          markedPages={markedPages}
         />
 
         <div className="flex flex-col gap-6 min-w-0">

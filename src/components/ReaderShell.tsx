@@ -1,6 +1,6 @@
 'use client';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AnnotationSet } from '@/types';
 import { getPageImageUrl, clampPage, spreadUrl } from '@/lib/quran';
 import { SPREAD_MODE_KEY } from './SpreadToggle';
@@ -11,6 +11,9 @@ import MobileNavDrawer from './MobileNavDrawer';
 import AnnotationCanvas from './AnnotationCanvas';
 import SpreadAnnotation from './SpreadAnnotation';
 import NavRail from './NavRail';
+import { createClient } from '@/lib/supabase/client';
+import { markedPages as fetchMarkedPages } from '@/lib/services/markedPages';
+import type { MarkedPage } from '@/lib/markedPages';
 
 const FALLBACK_NAV_HEIGHT = 72;
 
@@ -190,6 +193,28 @@ export default function ReaderShell({ children, user, sets, account = null, lock
     setPendingRedirect(wantsSpread || wantsSingle || mobileSpread);
   }, [pathname, spread, spreadBase]);
 
+  // PRD 0009 R3/R5: marked-pages aggregate for the active set. Fetched ONCE per set (initial
+  // load + set-switch); page navigation never refetches (this shell is persistent). Draw-saves
+  // patch a single page's count in place via patchMarked (wired to the canvas onSaved callback).
+  const activeSetId = searchParams.get('set') ?? sets[0]?.id ?? '';
+  const [markedRows, setMarkedRows] = useState<MarkedPage[]>([]);
+  useEffect(() => {
+    if (!user || !activeSetId) { setMarkedRows([]); return; }
+    let cancelled = false;
+    fetchMarkedPages(createClient(), activeSetId)
+      .then(rows => { if (!cancelled) setMarkedRows(rows); })
+      .catch(() => { if (!cancelled) setMarkedRows([]); });
+    return () => { cancelled = true; };
+  }, [activeSetId, user]);
+
+  // R3/R4: upsert the saved page's count in memory (count 0 removes the row). No refetch.
+  const patchMarked = useCallback((page: number, count: number) => {
+    setMarkedRows(prev => {
+      const rest = prev.filter(r => r.page !== page);
+      return count > 0 ? [...rest, { page, count }] : rest;
+    });
+  }, []);
+
   const navRef = useRef<HTMLDivElement>(null);
   const [navHeight, setNavHeight] = useState(FALLBACK_NAV_HEIGHT);
   const [surahOpen, setSurahOpen] = useState(false);
@@ -277,7 +302,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
                   boxShadow: 'var(--shadow-e2)',
                 }}
               >
-                <SurahNavPanel currentPage={pageNum} topOffset={navHeight} basePath={sharePageBasePath} isSpread={!!spread} />
+                <SurahNavPanel currentPage={pageNum} topOffset={navHeight} basePath={sharePageBasePath} isSpread={!!spread} markedPages={markedRows} />
               </div>
             </div>
 
@@ -312,6 +337,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
                           user={user}
                           lockedSet={lockedSet}
                           sharePageBasePath={sharePageBasePath}
+                          onSaved={patchMarked}
                         />
                       ) : (
                         <AnnotationCanvas
@@ -321,6 +347,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
                           user={user}
                           lockedSet={lockedSet}
                           sharePageBasePath={sharePageBasePath}
+                          onSaved={patchMarked}
                         />
                       )}
                     </div>

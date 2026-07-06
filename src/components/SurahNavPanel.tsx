@@ -4,6 +4,8 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { SURAH_PAGE_GROUPS, activeGroupPage, filterSurahGroups, getJuzForPage, getSurahName, pageFromLocation, spreadOf, spreadUrl, type SurahPageGroup } from '@/lib/quran';
 import { pinStorageKey } from '@/lib/bookmark';
 import { useI18n } from '@/components/I18nProvider';
+import { sortMarked, type MarkedPage } from '@/lib/markedPages';
+import MarkedPagesList from '@/components/MarkedPagesList';
 
 interface Props {
   onSelect?: (surahNumber: number) => void;
@@ -12,10 +14,14 @@ interface Props {
   topOffset?: number;
   /** M6: when true, surah jumps target the spread URL containing the page (D3). */
   isSpread?: boolean;
+  /** PRD 0009: marked pages for the active set (already fetched by the shell). Undefined ⇒
+   *  the Marked tab isn't wired for this surface (kept hidden). */
+  markedPages?: MarkedPage[];
 }
 
-export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, basePath, topOffset = 72, isSpread = false }: Props) {
+export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, basePath, topOffset = 72, isSpread = false, markedPages }: Props) {
   const { t, locale, fmtNum } = useI18n();
+  const [tab, setTab] = useState<'surahs' | 'marked'>('surahs');
   const [query, setQuery] = useState('');
   const [pinnedPage, setPinnedPage] = useState<number | null>(null);
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -209,6 +215,21 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
     router.push(targetHref, { scroll: false });
   };
 
+  // R2: jump straight to a page (Marked-tab row). Reuses the SAME routing as handleSelect —
+  // flush pending canvas edits, then spread-aware push — minus the Surahs-list scroll bookkeeping,
+  // which is irrelevant to the Marked list. // ponytail: small dup of the routing tail, not a shared abstraction for two call sites.
+  const jumpToPage = async (page: number) => {
+    const flush = (window as any).__hifthFlushReaderCanvas as undefined | (() => Promise<void>);
+    await flush?.();
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('page');
+    const query = params.toString();
+    const pageSeg = isSpread ? spreadUrl(page) : String(page);
+    const targetPath = `${basePath ?? '/reader'}/${pageSeg}`;
+    router.push(query ? `${targetPath}?${query}` : targetPath, { scroll: false });
+  };
+
+  const markedRows = useMemo(() => sortMarked(markedPages ?? []), [markedPages]);
 
   const panel = (
     <aside
@@ -226,13 +247,69 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
     >
 
       <div className="flex-shrink-0 px-4 pt-4 pb-3">
-        <h2
-          className="font-semibold"
-          style={{ color: 'var(--text-primary)', fontSize: 'var(--type-heading-m-size)' }}
-        >
-          {t('reader.surahs')}
-        </h2>
-        {activeSurahName && (
+        {markedPages === undefined ? (
+          <h2
+            className="font-semibold"
+            style={{ color: 'var(--text-primary)', fontSize: 'var(--type-heading-m-size)' }}
+          >
+            {t('reader.surahs')}
+          </h2>
+        ) : (
+          // R1: two-tab header — Surahs (default) | Annotations. Segmented control with a
+          // sliding thumb: an absolute pill translates between the two equal segments.
+          <div
+            role="tablist"
+            className="relative flex items-center isolate"
+            style={{
+              padding: '3px',
+              marginBottom: '12px',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--neutral-100)',
+            }}
+          >
+            <span
+              aria-hidden
+              className="absolute top-[3px] bottom-[3px] transition-transform duration-200 ease-out"
+              style={{
+                zIndex: 0,
+                width: 'calc(50% - 3px)',
+                insetInlineStart: '3px',
+                borderRadius: 'var(--radius-full)',
+                background: 'var(--surface-main)',
+                boxShadow: 'var(--shadow-e1)',
+                transform: tab === 'marked'
+                  ? 'translateX(var(--tab-slide, 100%))'
+                  : 'translateX(0)',
+                // RTL flips the inline axis, so the thumb must slide the other way.
+                ['--tab-slide' as string]: locale === 'ar' ? '-100%' : '100%',
+              }}
+            />
+            {(['surahs', 'marked'] as const).map(key => {
+              const active = tab === key;
+              return (
+                <button
+                  key={key}
+                  role="tab"
+                  type="button"
+                  aria-selected={active}
+                  onClick={() => setTab(key)}
+                  className="relative flex-1 font-semibold transition-colors duration-150"
+                  style={{
+                    zIndex: 1,
+                    padding: '7px 12px',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: 'var(--type-small-size)',
+                    background: 'transparent',
+                    color: active ? 'var(--green-600)' : 'var(--text-muted)',
+                  }}
+                >
+                  {t(key === 'surahs' ? 'reader.surahs' : 'reader.marked')}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        {tab === 'surahs' && activeSurahName && (
           <p className="mt-1 flex items-center gap-2 truncate" style={{ fontSize: 'var(--type-small-size)' }}>
             <span
               className="shrink-0 tabular-nums"
@@ -251,6 +328,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
           </p>
         )}
 
+        {tab === 'surahs' && (
         <div className="mt-3">
           <div className="relative">
             <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
@@ -267,9 +345,24 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
             />
           </div>
         </div>
+        )}
       </div>
 
-      <div ref={scrollListRef} data-testid="surah-scroll-list" className="flex-1 min-h-0 overflow-y-auto thin-scroll">
+      {/* Marked tab (R1/R6). Kept as a sibling so the Surahs list below stays mounted with its
+          scroll-restoration refs/effects intact when the user toggles tabs. Rows render via the
+          shared MarkedPagesList (same list on the tracker), with jump links wired here. */}
+      {markedPages !== undefined && tab === 'marked' && (
+        <div data-testid="marked-scroll-list" className="flex-1 min-h-0 overflow-y-auto thin-scroll">
+          <MarkedPagesList rows={markedRows} onJump={page => { void jumpToPage(page); }} />
+        </div>
+      )}
+
+      <div
+        ref={scrollListRef}
+        data-testid="surah-scroll-list"
+        className="flex-1 min-h-0 overflow-y-auto thin-scroll"
+        style={markedPages !== undefined && tab === 'marked' ? { display: 'none' } : undefined}
+      >
         <ul>
           {filtered.map(group => {
             const active = isActiveGroup(group.page);
@@ -360,7 +453,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
         </ul>
       </div>
 
-      {jumpDir && (
+      {tab === 'surahs' && jumpDir && (
         <button
           type="button"
           onClick={jumpToActive}

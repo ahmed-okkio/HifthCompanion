@@ -10,6 +10,7 @@ import { listNotes } from '@/lib/services/membershipNotes';
 import { getExamsForMembership } from '@/lib/services/exam';
 import { getMyChrome, getStudentMemorization } from '@/lib/services/profile';
 import { rangesTotals } from '@/lib/analytics';
+import { markedPages as fetchMarkedPages } from '@/lib/services/markedPages';
 import TeacherStudent from '@/components/tracker/TeacherStudent';
 import { BackButton } from '@/components/tracker/ui';
 import { displayName } from '@/lib/displayName';
@@ -46,6 +47,9 @@ export default async function StudentDetailPage({
 
   const account = await getMyChrome(user);
   const memorized = rangesTotals(memorizedRanges);
+  // C1: default-set marked pages. RLS: teacher reads via the set_collaborators grant
+  // created at membership-accept. No default set → empty list (C3 empty state).
+  const marked = defaultSetId ? await fetchMarkedPages(supabase, defaultSetId) : [];
 
   return (
     <AppShell breadcrumb={[
@@ -66,6 +70,7 @@ export default async function StudentDetailPage({
             memorized={memorized}
             initialNotes={notes}
             initialExams={exams}
+            markedPages={marked}
           />
         </div>
       </main>

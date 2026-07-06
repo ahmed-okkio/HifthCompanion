@@ -21,7 +21,7 @@ import NotesThread from './NotesThread';
 import {
   homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus,
 } from '@/lib/homework';
-import { AYAH_COUNTS, TOTAL_JUZ, TOTAL_SURAHS, getSurahName, getSurahForPage } from '@/lib/quran';
+import { AYAH_COUNTS, TOTAL_JUZ, TOTAL_SURAHS, getSurahName, getSurahForPage, spreadUrl } from '@/lib/quran';
 import {
   SectionTitle, EmptyState, Avatar, StatCard, Ring, StatusDot, DateChip, TabBar,
   SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, Chevron, Icon,
@@ -202,7 +202,11 @@ export function StudentProfileCard({
         <div className="card flex flex-col gap-2" style={{ padding: '16px 0 8px' }}>
           <div className="px-4"><SectionTitle>{t('reader.marked')}</SectionTitle></div>
           <div className="overflow-y-auto thin-scroll" style={{ maxHeight: 320 }}>
-            <MarkedPagesList rows={markedPages} />
+            <MarkedPagesList
+              rows={markedPages}
+              limit={3}
+              hrefFor={defaultSetId ? (page) => `/share/${defaultSetId}/${spreadUrl(page)}` : undefined}
+            />
           </div>
         </div>
       )}
@@ -1256,7 +1260,7 @@ function ExamCoveragePicker({
   useEffect(() => {
     let entries: Entry[] = [];
     if (mode === 'juz') {
-      const lo = Math.min(juz, juzEnd), hi = isRange ? Math.max(juz, juzEnd) : juz;
+      const lo = isRange ? Math.min(juz, juzEnd) : juz, hi = isRange ? Math.max(juz, juzEnd) : juz;
       for (let j = lo; j <= hi; j++) entries.push({ kind: 'juz', juz: j });
     } else if (isRange) {
       const lo = Math.min(surah, surahEnd), hi = Math.max(surah, surahEnd);

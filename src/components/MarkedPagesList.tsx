@@ -18,14 +18,20 @@ export const BADGE_COLORS: Record<'grey' | 'orange' | 'red', { bg: string; fg: s
  * Empty input renders the "No marked pages yet" state (R6/C3).
  */
 export default function MarkedPagesList({
-  rows, onJump,
+  rows, onJump, hrefFor, limit,
 }: {
   rows: MarkedPage[];
   onJump?: (page: number) => void;
+  /** Render each row as a link to this href (tracker: jump into the mushaf at that page). */
+  hrefFor?: (page: number) => string;
+  /** Cap the list to the top-N rows after sorting (tracker shows top 3). */
+  limit?: number;
 }) {
   const { t, fmtNum } = useI18n();
-  const sorted = React.useMemo(() => sortMarked(rows), [rows]);
-  const max = React.useMemo(() => maxCount(sorted), [sorted]);
+  // max is over the FULL set so the Needs Focus tag stays correct even when the list is capped.
+  const full = React.useMemo(() => sortMarked(rows), [rows]);
+  const max = React.useMemo(() => maxCount(full), [full]);
+  const sorted = React.useMemo(() => (limit ? full.slice(0, limit) : full), [full, limit]);
 
   if (sorted.length === 0) {
     return (
@@ -83,7 +89,17 @@ export default function MarkedPagesList({
         );
         return (
           <li key={row.page}>
-            {onJump ? (
+            {hrefFor ? (
+              <a
+                href={hrefFor(row.page)}
+                onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'var(--neutral-50)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent'; }}
+                className="flex w-full items-center gap-3 px-4 text-start transition-colors duration-150"
+                style={{ minHeight: '56px', paddingBlock: '12px', background: 'transparent' }}
+              >
+                {inner}
+              </a>
+            ) : onJump ? (
               <button
                 type="button"
                 onClick={() => onJump(row.page)}

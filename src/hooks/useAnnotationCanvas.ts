@@ -14,7 +14,35 @@ const SAVE_DELAY_MS = 1500;
 // the browser downscale it to the CSS fit box — the page image reads noticeably crisper. This
 // multiplies fabric's retina scaling only (backing pixels), NOT the canvas coordinate space, so
 // annotation coordinates and saved canvas_json are unaffected.
-const SUPERSAMPLE = 1.5;
+// Backing pixels per on-screen device pixel at a given zoom. 1.0 = exactly 1:1 = "just sharp
+// enough" (source downscaled into the fit box, smooth). Raise slightly for more bite at 100% at the
+// cost of memory; zooming in scales this up on its own until the source's native res caps it.
+const SHARPNESS = 1.5;
+// Cap on backing-store magnification (memory guard: ~3× the fit box).
+const MAX_PIXEL_RATIO = 3;
+
+// Backing-store pixel ratio for a page at a given DISPLAY zoom. We render just enough backing
+// pixels to sit ~1:1 with the device pixels the page actually occupies on screen
+// (fitW × zoom × DPR × SHARPNESS), so 100% isn't wastefully supersampled. Zooming in raises the
+// target, so we re-render sharper to keep pace — until it hits the source's own native width
+// (natW / fitW): past that there are no more real pixels, and CSS upscaling blurs. Floored at DPR
+// (never below the screen), capped for memory.
+// Canvas 2D contexts default imageSmoothingQuality to 'low' — the reason a canvas-painted page
+// looks softer than a plain <img>. Resizing a canvas (setDimensions) resets the context state, so
+// this must be re-applied after every resize, not just once.
+function applyHiQ(canvas: fabric.Canvas): void {
+  const ctx = canvas.getContext();
+  if (ctx) ctx.imageSmoothingQuality = 'high';
+  const topCtx = (canvas as unknown as { getSelectionContext?: () => CanvasRenderingContext2D | null }).getSelectionContext?.();
+  if (topCtx) topCtx.imageSmoothingQuality = 'high';
+}
+
+function pageBackingRatio(natW: number, fitW: number, zoom: number): number {
+  const dpr = (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1);
+  const target = zoom * dpr * SHARPNESS;
+  const nativeCap = fitW > 0 ? natW / fitW : target; // no point rendering past the source's own res
+  return Math.min(MAX_PIXEL_RATIO, Math.max(dpr, Math.min(target, nativeCap)));
+}
 // Bottom breathing room below the page-display-frame inside the desktop app-shell. Reserves
 // space for the floating zoom control that sits below the page (kept off the no-doc-scroll path).
 const PAGE_BOTTOM_GAP = 92;
@@ -169,6 +197,13 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   // Natural (intrinsic) size of the page image currently shown. Each of the 604 pages can have
   // different intrinsic dimensions, so we re-read this for every page rather than assuming one.
   const naturalSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
+  // Current display zoom (1 = 100%), driven from the component's zoom control. Feeds the
+  // backing-store resolution so the canvas re-renders sharper as you zoom in.
+  const displayZoomRef = useRef(1);
+  // This canvas's own backing ratio. fabric.devicePixelRatio is a GLOBAL, so in spread mode the two
+  // canvases stomp each other's value — whichever rendered last wins, blurring the other page. We
+  // stash each instance's ratio here and reassert it before every render (see before:render).
+  const backingRatioRef = useRef(1);
 
   // Fit the page's intrinsic size into its container, preserving aspect ratio (object-fit:
   // contain). Desktop is height-bound (fits the fixed app-shell, no page scroll); mobile is
@@ -187,13 +222,37 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     naturalSizeRef.current = { w: natW, h: natH };
     const fit = computeFitSize(natW, natH);
     setCanvasSize(fit);
+    // Set fabric's retina scaling to the zoom-aware backing ratio before setDimensions applies it,
+    // so the backing store is sampled at the current sweet spot (see pageBackingRatio).
+    backingRatioRef.current = pageBackingRatio(natW, fit.width, displayZoomRef.current);
+    (fabric as unknown as { devicePixelRatio: number }).devicePixelRatio = backingRatioRef.current;
     canvas.setDimensions({ width: fit.width, height: fit.height });
+    applyHiQ(canvas);
     if (canvasRef.current) {
       canvasRef.current.style.width = `${fit.width}px`;
       canvasRef.current.style.height = `${fit.height}px`;
     }
     return fit;
   }, [computeFitSize]);
+
+  // Re-render the backing store for a new display zoom (called as the zoom control settles). The
+  // CSS transform in the component already did the visual scaling; this raises/lowers the raster
+  // resolution to keep the page ~1:1 crisp at the new zoom, until the source's native res caps it.
+  const applyBackingForZoom = useCallback((zoom: number) => {
+    displayZoomRef.current = zoom;
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    const { w: natW } = naturalSizeRef.current;
+    const w = canvas.getWidth();
+    const h = canvas.getHeight();
+    const ratio = pageBackingRatio(natW, w, zoom);
+    if (Math.abs(backingRatioRef.current - ratio) < 0.01) return;
+    backingRatioRef.current = ratio;
+    (fabric as unknown as { devicePixelRatio: number }).devicePixelRatio = ratio;
+    canvas.setDimensions({ width: w, height: h }); // same CSS box, new backing resolution → re-raster
+    applyHiQ(canvas); // setDimensions reset the context → re-apply high-quality smoothing
+    try { canvas.requestRenderAll(); } catch { /* disposed */ }
+  }, []);
 
   // Load the page image, size the canvas to it (per-page intrinsic dims), and paint it as the
   // background scaled to fill that box. Resizing here means changing pages always re-fits.
@@ -374,8 +433,9 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
 
       // Supersample: raise fabric's device-pixel ratio so the backing store renders above the
       // display resolution and downscales crisp. Coordinate space stays at the CSS fit box.
-      (fabric as unknown as { devicePixelRatio: number }).devicePixelRatio =
-        (typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1) * SUPERSAMPLE;
+      // (applyBackground re-sets this per page via pageBackingRatio; this is the initial value.)
+      backingRatioRef.current = pageBackingRatio(natW, fitSize.width, displayZoomRef.current);
+      (fabric as unknown as { devicePixelRatio: number }).devicePixelRatio = backingRatioRef.current;
 
       canvas = new fabric.Canvas(canvasRef.current!, {
         width: fitSize.width,
@@ -389,6 +449,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
         freeDrawingCursor: getToolCursor('pen'),
       });
       canvas.setDimensions({ width: fitSize.width, height: fitSize.height });
+      applyHiQ(canvas);
       if (canvasRef.current) {
         canvasRef.current.style.width = `${fitSize.width}px`;
         canvasRef.current.style.height = `${fitSize.height}px`;
@@ -407,6 +468,18 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
       // instance is actually CREATED. Page navigation must reuse the instance, so this
       // value stays stable across prev/next/jump/surah-select to a different page.
       (window as any).__hifthFabricCreatedCount = ((window as any).__hifthFabricCreatedCount ?? 0) + 1;
+
+      // Reassert high-quality image smoothing before every render. Fabric resets context state on
+      // resize AND some redraw paths, and with two independent canvases (spread mode) one instance
+      // could otherwise render with the default 'low' quality → that page looks blurry while the
+      // other stays crisp. Cheap to set per frame; guarantees both pages match.
+      canvas.on('before:render', () => {
+        if (!canvas) return;
+        // Reassert THIS canvas's retina ratio (the global may have been stomped by the other spread
+        // canvas) and high-quality smoothing, so every page renders at its own backing resolution.
+        (fabric as unknown as { devicePixelRatio: number }).devicePixelRatio = backingRatioRef.current;
+        applyHiQ(canvas);
+      });
 
       await applyBackground(canvas, imageUrlRef.current);
 
@@ -700,5 +773,6 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     setSelectedSetId, setActiveColor, setOpacity, setPenWidth,
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,
+    applyBackingForZoom,
   };
 }

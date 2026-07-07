@@ -1,5 +1,5 @@
 'use client';
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { AnnotationSet } from '@/types';
@@ -71,6 +71,7 @@ function AnnotationCanvasInner(
     setSelectedSetId, setActiveColor, setOpacity, setPenWidth,
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,
+    applyBackingForZoom,
   } = useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet, tools, onCommit, onSaved });
   const { t } = useI18n();
 
@@ -161,6 +162,27 @@ function AnnotationCanvasInner(
   // Controlled (spread) canvases use the shell's shared zoom/pan so both pages scale as one (F3);
   // single mode uses the internal state above.
   const eff: CanvasView = view ?? { zoom, pan, dragging, moveTool, onPanDown, onPanMove, endPan };
+
+  // Zoom-in (>100) keeps the layout box fixed and clips (via the overflow wrapper) so it never
+  // pushes the zoom control — transform:scale is layout-invisible. But that same invisibility
+  // leaves the wrapper full-height on zoom-OUT, so a shrunk page sits in an over-tall box (gap
+  // below it). CSS `zoom` (<100) shrinks the actual layout box so the wrapper hugs the page.
+  // Pan is always 0 at ≤100 (onPanMove bails), so dropping the translate here loses nothing.
+  const innerZoomStyle = (origin: string): CSSProperties => eff.zoom < 100
+    ? { zoom: eff.zoom / 100 }
+    : {
+        transform: `translate(${eff.pan.x}px, ${eff.pan.y}px) scale(${eff.zoom / 100})`,
+        transformOrigin: origin,
+        transition: eff.dragging ? 'none' : 'transform 120ms var(--ease-out, ease)',
+      };
+
+  // Re-rasterize the canvas backing at the new zoom once it settles (debounced so the smooth
+  // CSS-transform zoom isn't fighting a re-render mid-animation). The transform handles the visual
+  // scale instantly; this sharpens the pixels a beat later, up to the source's native res.
+  useEffect(() => {
+    const id = setTimeout(() => applyBackingForZoom(eff.zoom / 100), 160);
+    return () => clearTimeout(id);
+  }, [eff.zoom, applyBackingForZoom]);
 
   return (
     <div className={`flex w-full ${flush === 'end' ? 'justify-end' : flush === 'start' ? 'justify-start' : 'justify-center'}`}>
@@ -270,6 +292,8 @@ function AnnotationCanvasInner(
                 so a zoomed-in page is cropped to its own box and never overflows onto the zoom
                 control below. Drawing is best at 100% (the default). */}
             {controlled ? (
+            // Spread zoom scales about the gutter edge (not each page's own center) so both pages
+            // zoom as one book image instead of growing toward the gutter and clipping each other.
             <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
               {flush === 'end' && (
               <button
@@ -315,7 +339,7 @@ function AnnotationCanvasInner(
               </button>
               )}
             <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-page)', flex: 1, minWidth: 0 }}>
-              <div style={{ transform: `translate(${eff.pan.x}px, ${eff.pan.y}px) scale(${eff.zoom / 100})`, transformOrigin: 'center center', transition: eff.dragging ? 'none' : 'transform 120ms var(--ease-out, ease)' }}>
+              <div style={innerZoomStyle(flush === 'start' ? 'left center' : flush === 'end' ? 'right center' : 'center center')}>
                 <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush}>
                   <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
                 </PageDisplayFrame>
@@ -422,7 +446,7 @@ function AnnotationCanvasInner(
                 </svg>
               </button>
             <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-page)' }}>
-              <div style={{ transform: `translate(${eff.pan.x}px, ${eff.pan.y}px) scale(${eff.zoom / 100})`, transformOrigin: 'center center', transition: eff.dragging ? 'none' : 'transform 120ms var(--ease-out, ease)' }}>
+              <div style={innerZoomStyle('center center')}>
                 <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush}>
                   <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
                 </PageDisplayFrame>

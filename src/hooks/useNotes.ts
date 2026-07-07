@@ -30,13 +30,16 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
       });
   }, [setId, pageNum, supabase]);
 
-  const handleCreate = () => {
-    if (!newBody.trim()) return;
+  // bodyArg lets a shared composer (spread mode) create against this page without
+  // routing through this hook's own newBody state; omitted ⇒ single-panel behavior.
+  const handleCreate = (bodyArg?: string) => {
+    const body = (bodyArg ?? newBody).trim();
+    if (!body) return;
     startTransition(async () => {
       try {
-        const { data, error } = await createNote(setId, pageNum, newBody.trim());
+        const { data, error } = await createNote(setId, pageNum, body);
         if (error) { console.error('[NotesPanel] Create error:', error); return; }
-        if (data) { setNotes(prev => [...prev, data]); setNewBody(''); }
+        if (data) { setNotes(prev => [...prev, data]); if (bodyArg === undefined) setNewBody(''); }
       } catch (err) {
         console.error('[NotesPanel] Create error:', err);
       }

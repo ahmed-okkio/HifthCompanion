@@ -3,7 +3,9 @@ import { TOTAL_PAGES, parseSpread } from '@/lib/quran';
 import { notFound, redirect } from 'next/navigation';
 import ShareCard from '@/components/ShareCard';
 import NotesPanel from '@/components/NotesPanel';
+import SpreadNotesPanel from '@/components/SpreadNotesPanel';
 import { getNotes } from '@/lib/services/notes';
+import type { Note } from '@/types';
 import { Icon } from '@/components/tracker/ui';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
@@ -59,6 +61,11 @@ export default async function ReaderPage({ params, searchParams }: Props) {
   const initialNotes = user && viewSetId
     ? await getNotes(viewSetId, pageNum).catch(() => [])
     : [];
+  // Spread: also fetch the OTHER page so both panels render server-side.
+  const otherPage = spread ? spread[1] : null;
+  const otherNotes: Note[] = user && viewSetId && otherPage
+    ? await getNotes(viewSetId, otherPage).catch(() => [])
+    : [];
 
   return (
     /* V3 Story 13 — Context panel order: Notes (top) → Share → Tags (Stories 14–15 follow).
@@ -68,7 +75,15 @@ export default async function ReaderPage({ params, searchParams }: Props) {
       {/* ── 1. NOTES (top) ── */}
       {user && viewSetId ? (
         <div className="animate-fade-in-scale" style={{ animationDelay: '100ms' }}>
-          <NotesPanel setId={viewSetId} pageNum={pageNum} initialNotes={initialNotes} />
+          {spread ? (
+            <SpreadNotesPanel
+              setId={viewSetId}
+              pages={spread}
+              initialNotes={{ [pageNum]: initialNotes, [otherPage!]: otherNotes }}
+            />
+          ) : (
+            <NotesPanel setId={viewSetId} pageNum={pageNum} initialNotes={initialNotes} />
+          )}
         </div>
       ) : !user ? (
         <div className="card p-8 text-center flex flex-col items-center justify-center animate-fade-in-scale" style={{ animationDelay: '100ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>

@@ -145,8 +145,10 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
         onMouseLeave={onHoverLeave}
       />
 
-      {/* RTL (B2): low/odd page on the RIGHT, high/even on the LEFT. */}
-      <div className="flex flex-row-reverse items-start">
+      {/* Low/odd page on the RIGHT, high/even on the LEFT — a physical book layout, identical
+          in both locales. Pin dir=ltr so the flush/arrow logic (authored physical) isn't
+          logical-flipped under ar's dir=rtl (which double-flipped the pages). */}
+      <div className="flex flex-row-reverse items-start" dir="ltr">
         <div className="flex-1 min-w-0">
           <AnnotationCanvas
             ref={rightRef}

@@ -99,6 +99,7 @@ const en = {
 
   // Per-student notes thread (D11).
   'notes.title': 'Notes',
+  'notes.pageLabel': 'Page',
   'notes.post': 'Post',
   'notes.placeholder': 'Write a note…',
   'notes.empty': 'No notes yet.',
@@ -508,6 +509,7 @@ const ar: Record<MessageKey, string> = {
 
   // سلسلة ملاحظات الطالب (D11).
   'notes.title': 'الملاحظات',
+  'notes.pageLabel': 'صفحة',
   'notes.post': 'نشر',
   'notes.placeholder': 'اكتب ملاحظة…',
   'notes.empty': 'لا توجد ملاحظات بعد.',

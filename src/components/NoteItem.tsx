@@ -13,11 +13,13 @@ interface Props {
   onCancel: () => void;
   onEdit: (note: Note) => void;
   onDelete: (id: string) => void;
+  /** Spread mode: label showing which page this note belongs to (e.g. "Page 3"). */
+  pageBadge?: string;
 }
 
 export default function NoteItem({
   note, isEditing, editBody, isPending, readOnly,
-  onEditBodyChange, onSave, onCancel, onEdit, onDelete,
+  onEditBodyChange, onSave, onCancel, onEdit, onDelete, pageBadge,
 }: Props) {
   const { t, fmtNum } = useI18n();
   return (
@@ -118,18 +120,15 @@ export default function NoteItem({
                 </div>
               )}
             </div>
-            {/* Timestamp */}
-            <p
-              style={{
-                fontSize: 'var(--type-meta-size)',
-                color: 'var(--text-muted)',
-                marginTop: 'var(--space-8)',
-              }}
-            >
-              {fmtNum(new Date(note.created_at).toLocaleDateString(undefined, {
-                month: 'short', day: 'numeric', year: 'numeric',
-              }))}
-            </p>
+            {/* Timestamp (+ page badge in spread mode) */}
+            <div className="flex items-center gap-2" style={{ marginTop: 'var(--space-8)' }}>
+              {pageBadge && <span className="badge badge-muted" style={{ fontSize: 10 }}>{pageBadge}</span>}
+              <p style={{ fontSize: 'var(--type-meta-size)', color: 'var(--text-muted)' }}>
+                {fmtNum(new Date(note.created_at).toLocaleDateString(undefined, {
+                  month: 'short', day: 'numeric', year: 'numeric',
+                }))}
+              </p>
+            </div>
           </>
         )}
       </div>

@@ -8,7 +8,9 @@ export type SaveResult = { status: 'saved' } | { status: 'denied' } | { status: 
 
 export interface AnnotationStore {
   load(setId: string, page: number): Promise<CanvasJson | null>;
-  save(setId: string, page: number, payload: CanvasJson): Promise<SaveResult>;
+  // `count` is the clustered mark count (proximity-grouped); persisted so the marked_pages
+  // RPC returns it instead of raw jsonb_array_length. Defaults to raw object count.
+  save(setId: string, page: number, payload: CanvasJson, count?: number): Promise<SaveResult>;
 }
 
 // A Supabase/Postgres error is an access-revoked signal only if it's an RLS/permission
@@ -29,7 +31,7 @@ export function createAnnotationStore(supabase: any): AnnotationStore {
       return data?.canvas_json ?? null;
     },
 
-    async save(setId, page, payload) {
+    async save(setId, page, payload, count) {
       try {
         // Empty page carries no annotation — delete any existing row instead of
         // storing a `{objects:[]}` shell. Keeps the table free of junk rows as it grows.
@@ -40,7 +42,7 @@ export function createAnnotationStore(supabase: any): AnnotationStore {
           return { status: 'saved' };
         }
         const { error } = await supabase.from('annotations').upsert(
-          { set_id: setId, page_number: page, canvas_json: payload, updated_at: new Date().toISOString() },
+          { set_id: setId, page_number: page, canvas_json: payload, mark_count: count ?? payload.objects.length, updated_at: new Date().toISOString() },
           { onConflict: 'set_id,page_number' }
         );
         if (error) return isRlsDenial(error) ? { status: 'denied' } : { status: 'error', err: error };

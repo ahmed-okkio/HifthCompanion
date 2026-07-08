@@ -2,22 +2,24 @@
 import { type Tool } from '@/lib/canvasTools';
 import { useI18n } from '@/components/I18nProvider';
 
-const POPOVER_TOOLS: Tool[] = ['pen', 'circle', 'underline', 'highlighter'];
+const POPOVER_TOOLS: Tool[] = ['pen', 'circle', 'underline', 'highlighter', 'eraser'];
 
 interface Props {
   hoveredTool: Tool | null;
   hoverPos: { top: number; left: number } | null;
   penWidth: number;
   opacity: number;
+  eraserSize: number;
   onPenWidthChange: (v: number) => void;
   onOpacityChange: (v: number) => void;
+  onEraserSizeChange: (v: number) => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
 }
 
 export default function ToolHoverPopover({
-  hoveredTool, hoverPos, penWidth, opacity,
-  onPenWidthChange, onOpacityChange, onMouseEnter, onMouseLeave,
+  hoveredTool, hoverPos, penWidth, opacity, eraserSize,
+  onPenWidthChange, onOpacityChange, onEraserSizeChange, onMouseEnter, onMouseLeave,
 }: Props) {
   const { t } = useI18n();
   if (!hoveredTool || !hoverPos || !POPOVER_TOOLS.includes(hoveredTool)) return null;
@@ -48,6 +50,18 @@ export default function ToolHoverPopover({
               style={{ height: '4px' }}
             />
             <span style={{ minWidth: '36px', textAlign: 'right', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{penWidth}</span>
+          </div>
+        )}
+        {hoveredTool === 'eraser' && (
+          <div className="flex items-center gap-3" style={{ minHeight: '28px' }}>
+            <span style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('annot.size')}</span>
+            <input
+              type="range" min="8" max="60" step="1" value={eraserSize}
+              onChange={e => onEraserSizeChange(Number(e.target.value))}
+              className="w-full cursor-pointer accent-[var(--green-600)]"
+              style={{ height: '4px' }}
+            />
+            <span style={{ minWidth: '36px', textAlign: 'right', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{eraserSize}</span>
           </div>
         )}
         {hoveredTool === 'highlighter' && (

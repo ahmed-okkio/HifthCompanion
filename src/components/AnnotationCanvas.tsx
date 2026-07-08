@@ -65,10 +65,10 @@ function AnnotationCanvasInner(
 ) {
   const {
     containerRef, wrapperRef, canvasRef,
-    selectedSetId, saving, accessRevoked, activeTool, activeColor, opacity, penWidth,
+    selectedSetId, saving, accessRevoked, activeTool, activeColor, opacity, penWidth, eraserSize,
     canUndo, canRedo, canvasReady, canvasSize, pageMaxHeightOffset, hoveredTool, hoverPos,
     interactionMode, setInteractionMode,
-    setSelectedSetId, setActiveColor, setOpacity, setPenWidth,
+    setActiveColor, setOpacity, setPenWidth, setEraserSize,
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,
     applyBackingForZoom,
@@ -258,8 +258,10 @@ function AnnotationCanvasInner(
           hoverPos={hoverPos}
           penWidth={penWidth}
           opacity={opacity}
+          eraserSize={eraserSize}
           onPenWidthChange={setPenWidth}
           onOpacityChange={setOpacity}
+          onEraserSizeChange={setEraserSize}
           onMouseEnter={onHoverCancelLeave}
           onMouseLeave={onHoverLeave}
         />
@@ -273,7 +275,11 @@ function AnnotationCanvasInner(
             sets={sets}
             selectedSetId={selectedSetId}
             saving={saving}
-            onSetChange={id => { setSelectedSetId(id); updateSelectedSetInUrl(id); }}
+            /* URL is the single source of truth for the active set — the sync effect in
+               useAnnotationCanvas derives selectedSetId from it. Setting state here too raced
+               the async router.replace: the sync effect saw the stale URL and reverted the set,
+               desyncing the canvas so a drawing leaked across sets. */
+            onSetChange={id => updateSelectedSetInUrl(id)}
           />,
           setsSlot,
         )}

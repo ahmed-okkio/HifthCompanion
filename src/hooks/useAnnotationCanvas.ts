@@ -8,8 +8,27 @@ import { calculatePageCanvasSize, type PageCanvasSize } from '@/lib/pageCanvas';
 import { CanvasHistory } from '@/lib/canvasHistory';
 import { type Tool, getToolCursor } from '@/lib/canvasTools';
 import { createAnnotationStore, type CanvasJson } from '@/lib/annotationStore';
+import { pruneDegenerate, clusterCount } from '@/lib/markedPages';
 
 const SAVE_DELAY_MS = 1500;
+// Highlighter is a fixed wide brush (like a real marker), independent of the pen width.
+const HIGHLIGHTER_WIDTH = 22;
+
+// #rrggbb → rgba() so the highlighter brush is translucent WHILE dragging (baking opacity into
+// the stroke colour), not just after release.
+function hexToRgba(hex: string, a: number): string {
+  const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex);
+  if (!m) return hex;
+  return `rgba(${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)},${a})`;
+}
+
+// Marks are drawn, not selected — lock every object so Fabric never shows a selection box or
+// resize handles on it. Kept `evented` so the eraser's findTarget can still hit it. Text is the
+// exception: it must stay selectable to enter edit mode.
+function lockMark(o: fabric.Object | undefined) {
+  if (!o || o.type === 'i-text' || o.type === 'text') return;
+  o.set({ selectable: false, hasControls: false, hasBorders: false });
+}
 // Supersample factor: render the canvas backing store above the display resolution, then let
 // the browser downscale it to the CSS fit box — the page image reads noticeably crisper. This
 // multiplies fabric's retina scaling only (backing pixels), NOT the canvas coordinate space, so
@@ -57,6 +76,7 @@ export interface ToolState {
   activeColor: string; setActiveColor: React.Dispatch<React.SetStateAction<string>>;
   opacity: number; setOpacity: React.Dispatch<React.SetStateAction<number>>;
   penWidth: number; setPenWidth: React.Dispatch<React.SetStateAction<number>>;
+  eraserSize: number; setEraserSize: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export function useToolState(): ToolState {
@@ -64,7 +84,8 @@ export function useToolState(): ToolState {
   const [activeColor, setActiveColor] = useState<string>('#ef4444');
   const [opacity, setOpacity] = useState<number>(0.4);
   const [penWidth, setPenWidth] = useState<number>(6);
-  return { activeTool, setActiveTool, activeColor, setActiveColor, opacity, setOpacity, penWidth, setPenWidth };
+  const [eraserSize, setEraserSize] = useState<number>(20);
+  return { activeTool, setActiveTool, activeColor, setActiveColor, opacity, setOpacity, penWidth, setPenWidth, eraserSize, setEraserSize };
 }
 
 interface UseAnnotationCanvasProps {
@@ -123,7 +144,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   // Tool state: shared (spread, passed in) or own (single mode). useToolState is always called
   // to keep hook order stable; its values are simply ignored when `tools` is provided.
   const internalTools = useToolState();
-  const { activeTool, setActiveTool, activeColor, setActiveColor, opacity, setOpacity, penWidth, setPenWidth } = tools ?? internalTools;
+  const { activeTool, setActiveTool, activeColor, setActiveColor, opacity, setOpacity, penWidth, setPenWidth, eraserSize, setEraserSize } = tools ?? internalTools;
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
@@ -193,6 +214,9 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   // Live ref so the mount-only init effect's handlers always call the current commit.
   const commitRef = useRef(commit);
   commitRef.current = commit;
+  // Live refs the mount-bound path:created handler reads to style a highlighter stroke.
+  const activeToolRef = useRef(activeTool);
+  activeToolRef.current = activeTool;
 
   // Natural (intrinsic) size of the page image currently shown. Each of the 604 pages can have
   // different intrinsic dimensions, so we re-read this for every page rather than assuming one.
@@ -292,12 +316,20 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     try {
       const json = canvas.toJSON();
       delete (json as any).backgroundImage;
+      // Strip zero-size shapes / single-point taps: invisible on the page but they
+      // serialize as objects and inflate the Marked count (and never decrement).
+      (json as any).objects = pruneDegenerate((json as any).objects ?? []);
       // json carries `objects`; the store decides empty→delete vs upsert internally.
       const payload: CanvasJson = { width: canvas.getWidth(), height: canvas.getHeight(), ...(json as any) };
-      const r = await store.save(setId, page, payload);
+      // Proximity-cluster strokes into logical marks (gap scales with page width so it's
+      // resolution-independent). Empty page → count 0 (row is deleted anyway).
+      const count = payload.objects.length === 0
+        ? 0
+        : clusterCount(payload.objects as any, Math.max(16, Math.round(canvas.getWidth() * 0.03)));
+      const r = await store.save(setId, page, payload, count);
       if (r.status === 'saved') {
         // R3/R4: patch the Marked tab in place — new count, or 0 (row removed).
-        onSavedRef.current?.(setId, page, payload.objects.length);
+        onSavedRef.current?.(setId, page, count);
       } else if (r.status === 'denied') {
         // ponytail: revoke only on RLS denial (store already classified it), never on a
         // transient/network error. An owner (lockedSet false) just logs and retries.
@@ -389,6 +421,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
         const fit = await applyBackground(canvas, imageUrl);
         if (!alive()) return;
         rescaleObjects(canvas, savedW ? fit.width / savedW : 1);
+        canvas.getObjects().forEach(lockMark); // loaded objects default to selectable → lock them
         canvas.renderAll();
         historyRef.current?.clear();
         historyRef.current?.snapshot();
@@ -492,11 +525,21 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
         setCanvasReady(true);
       }
 
-      const handleCompletedDraw = () => { commitRef.current(); void saveNowRef.current(); };
+      const handleCompletedDraw = (e: fabric.IEvent) => {
+        const path = (e as any).path as fabric.Object | undefined;
+        if (path && activeToolRef.current === 'highlighter') {
+          // Opacity is already in the stroke colour (rgba). Just multiply + round caps for a
+          // marker feel; multiply keeps the underlying text legible.
+          path.set({ strokeLineCap: 'round', strokeLineJoin: 'round' });
+          (path as any).globalCompositeOperation = 'multiply';
+        }
+        commitRef.current();
+        void saveNowRef.current();
+      };
       canvas.on('path:created', handleCompletedDraw);
       canvas.on('object:modified', () => { commitRef.current(); scheduleSaveRef.current(); });
       canvas.on('object:removed', () => { commitRef.current(); scheduleSaveRef.current(); });
-      canvas.on('object:added', () => { commitRef.current(); });
+      canvas.on('object:added', (e) => { commitRef.current(); lockMark(e.target); });
     };
 
     const ro = new ResizeObserver(() => {
@@ -538,42 +581,124 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
-    canvas.isDrawingMode = !!user && !!selectedSetId && activeTool === 'pen';
-    const cursor = getToolCursor(activeTool);
+    const isBrush = activeTool === 'pen' || activeTool === 'highlighter';
+    canvas.isDrawingMode = !!user && !!selectedSetId && isBrush;
+    // Underline + eraser render their own overlay cursor, so hide Fabric's — otherwise it
+    // re-applies its svg cursor (the big "U") on every mouse move and covers the overlay.
+    const cursor = activeTool === 'underline' || activeTool === 'eraser' ? 'none' : getToolCursor(activeTool);
     canvas.defaultCursor = cursor;
     canvas.hoverCursor = cursor;
     canvas.moveCursor = cursor;
     canvas.freeDrawingCursor = cursor;
     if (canvas.freeDrawingBrush) {
-      canvas.freeDrawingBrush.color = activeColor;
-      canvas.freeDrawingBrush.width = penWidth;
+      // Highlighter: wide marker, opacity baked into the colour so the live drag is translucent
+      // too; multiply is applied to the finished path in path:created.
+      canvas.freeDrawingBrush.color = activeTool === 'highlighter' ? hexToRgba(activeColor, opacity) : activeColor;
+      canvas.freeDrawingBrush.width = activeTool === 'highlighter' ? HIGHLIGHTER_WIDTH : penWidth;
     }
     canvas.renderAll();
-  }, [activeTool, activeColor, penWidth, user, selectedSetId]);
+  }, [activeTool, activeColor, penWidth, opacity, user, selectedSetId]);
 
-  // Eraser
+  // Eraser: a radius brush (size `eraserSize`), not a click-to-delete. Any mark whose bounds
+  // fall within the circle is removed; a dashed-circle overlay follows the cursor at that size.
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
-    const handleEraserMouseDown = (opt: fabric.IEvent) => {
-      if (activeTool !== 'eraser') return;
-      const target = opt.target || canvas.findTarget(opt.e, false);
-      if (target) {
-        canvas.remove(target);
-        canvas.discardActiveObject();
-        canvas.renderAll();
-        commit(true);
-        void saveNow();
+    // Group-selection is never wanted — dragging any drawing tool would otherwise rubber-band
+    // a blue selection box. Marks aren't selectable; the Move tool pans via its own overlay.
+    canvas.selection = false;
+    if (activeTool !== 'eraser') return;
+
+    const r = eraserSize;
+    const upper = (canvas as any).upperCanvasEl as HTMLElement | undefined;
+    const container = upper?.parentElement ?? null;
+
+    // Dashed-circle cursor overlay (CSS px == canvas coord space in the fit box).
+    const cursorEl = document.createElement('div');
+    Object.assign(cursorEl.style, {
+      position: 'absolute', pointerEvents: 'none', boxSizing: 'border-box',
+      border: '1.5px dashed rgba(15,23,42,0.75)', borderRadius: '50%',
+      width: `${r * 2}px`, height: `${r * 2}px`, transform: 'translate(-50%,-50%)',
+      display: 'none', zIndex: '5',
+    } as CSSStyleDeclaration);
+    container?.appendChild(cursorEl);
+    const prevCursor = upper?.style.cursor ?? '';
+    if (upper) upper.style.cursor = 'none'; // overlay replaces the pointer
+
+    // Circle (pointer, r) vs each object's AABB — remove on intersect.
+    const eraseAt = (p: { x: number; y: number }) => {
+      let removed = false;
+      for (const o of canvas.getObjects().slice()) {
+        const b = o.getBoundingRect(true, true); // calculate=true: shapes never setCoords() mid-draw
+        const cx = Math.max(b.left, Math.min(p.x, b.left + b.width));
+        const cy = Math.max(b.top, Math.min(p.y, b.top + b.height));
+        const dx = p.x - cx, dy = p.y - cy;
+        if (dx * dx + dy * dy <= r * r) { canvas.remove(o); removed = true; }
       }
+      if (removed) canvas.renderAll();
+      return removed;
     };
-    if (activeTool === 'eraser') {
-      canvas.on('mouse:down', handleEraserMouseDown);
-      canvas.selection = false;
-    } else {
-      canvas.selection = true;
-    }
-    return () => { canvas.off('mouse:down', handleEraserMouseDown); };
-  }, [activeTool, commit, saveNow]);
+
+    let down = false, didErase = false;
+    const onDown = (opt: fabric.IEvent) => { down = true; if (eraseAt(canvas.getPointer(opt.e))) didErase = true; };
+    const onMove = (opt: fabric.IEvent) => {
+      const p = canvas.getPointer(opt.e);
+      cursorEl.style.display = 'block';
+      cursorEl.style.left = `${p.x}px`;
+      cursorEl.style.top = `${p.y}px`;
+      if (down && eraseAt(p)) didErase = true;
+    };
+    const onUp = () => { down = false; if (didErase) { didErase = false; commit(true); void saveNow(); } };
+    const onOut = () => { cursorEl.style.display = 'none'; };
+
+    canvas.on('mouse:down', onDown);
+    canvas.on('mouse:move', onMove);
+    canvas.on('mouse:up', onUp);
+    canvas.on('mouse:out', onOut);
+    return () => {
+      canvas.off('mouse:down', onDown);
+      canvas.off('mouse:move', onMove);
+      canvas.off('mouse:up', onUp);
+      canvas.off('mouse:out', onOut);
+      cursorEl.remove();
+      if (upper) upper.style.cursor = prevCursor;
+    };
+  }, [activeTool, eraserSize, commit, saveNow]);
+
+  // Underline cursor: a horizontal guide bar at the pointer's y (the exact baseline the line
+  // will be drawn on), in the active colour, so you can see where it lands before dragging.
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas || activeTool !== 'underline') return;
+    const upper = (canvas as any).upperCanvasEl as HTMLElement | undefined;
+    const container = upper?.parentElement ?? null;
+
+    const guide = document.createElement('div');
+    Object.assign(guide.style, {
+      position: 'absolute', pointerEvents: 'none', height: '3px', width: '56px',
+      background: activeColor, borderRadius: '2px', transform: 'translate(-50%,-50%)',
+      display: 'none', zIndex: '5', opacity: '0.9',
+    } as CSSStyleDeclaration);
+    container?.appendChild(guide);
+    const prevCursor = upper?.style.cursor ?? '';
+    if (upper) upper.style.cursor = 'none';
+
+    const onMove = (opt: fabric.IEvent) => {
+      const p = canvas.getPointer(opt.e);
+      guide.style.display = 'block';
+      guide.style.left = `${p.x}px`;
+      guide.style.top = `${p.y}px`;
+    };
+    const onOut = () => { guide.style.display = 'none'; };
+    canvas.on('mouse:move', onMove);
+    canvas.on('mouse:out', onOut);
+    return () => {
+      canvas.off('mouse:move', onMove);
+      canvas.off('mouse:out', onOut);
+      guide.remove();
+      if (upper) upper.style.cursor = prevCursor;
+    };
+  }, [activeTool, activeColor]);
 
   // Soft page/set swap (Story 24): when the route re-renders with a new page (or the user
   // switches set), the Fabric instance is NOT disposed — we flush any pending edits of the
@@ -610,7 +735,8 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     let startY = 0;
 
     const handleMouseDown = (opt: fabric.IEvent) => {
-      if (activeTool === 'pen' || activeTool === 'eraser') return;
+      // pen + highlighter are freehand brushes (isDrawingMode); eraser has its own handler.
+      if (activeTool === 'pen' || activeTool === 'highlighter' || activeTool === 'eraser') return;
       if (activeTool === 'text') {
         const pointer = canvas.getPointer(opt.e);
         const text = new fabric.IText('Type here', {
@@ -631,14 +757,14 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
       isDrawing = true;
       startX = pointer.x;
       startY = pointer.y;
-      if (activeTool === 'highlighter') {
-        shape = new fabric.Rect({ left: startX, top: startY, width: 0, height: 0, fill: activeColor, opacity, selectable: false, hasBorders: false, hasControls: false });
-      } else if (activeTool === 'circle') {
+      if (activeTool === 'circle') {
         shape = new fabric.Ellipse({ left: startX, top: startY, rx: 0, ry: 0, fill: 'transparent', stroke: activeColor, strokeWidth: 2, selectable: false, hasBorders: false, hasControls: false });
       } else if (activeTool === 'underline') {
         shape = new fabric.Line([startX, startY, startX, startY], { stroke: activeColor, strokeWidth: 2, selectable: false, hasBorders: false, hasControls: false });
       }
-      if (shape) { canvas.add(shape); canvas.setActiveObject(shape); }
+      // No setActiveObject: an active shape draws Fabric's selection box. Marks aren't
+      // selectable, so just add it (text is the exception — it needs to be active to edit).
+      if (shape) { canvas.add(shape); }
     };
 
     const handleMouseMove = (opt: fabric.IEvent) => {
@@ -646,9 +772,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
       const pointer = canvas.getPointer(opt.e);
       const x = pointer.x;
       const y = pointer.y;
-      if (activeTool === 'highlighter') {
-        (shape as fabric.Rect).set({ left: Math.min(startX, x), top: Math.min(startY, y), width: Math.abs(startX - x), height: Math.abs(startY - y) });
-      } else if (activeTool === 'circle') {
+      if (activeTool === 'circle') {
         const rx = Math.abs(startX - x) / 2;
         const ry = Math.abs(startY - y) / 2;
         (shape as fabric.Ellipse).set({ left: Math.min(startX, x), top: Math.min(startY, y), rx, ry });
@@ -767,10 +891,10 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
 
   return {
     containerRef, wrapperRef, canvasRef,
-    selectedSetId, saving, accessRevoked, activeTool, activeColor, opacity, penWidth,
+    selectedSetId, saving, accessRevoked, activeTool, activeColor, opacity, penWidth, eraserSize,
     canUndo, canRedo, canvasReady, canvasSize, pageMaxHeightOffset, hoveredTool, hoverPos,
     interactionMode, setInteractionMode,
-    setSelectedSetId, setActiveColor, setOpacity, setPenWidth,
+    setSelectedSetId, setActiveColor, setOpacity, setPenWidth, setEraserSize,
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,
     applyBackingForZoom,

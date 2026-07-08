@@ -35,7 +35,7 @@ interface Props {
 export default function SpreadAnnotation({ pages, sets, user, lockedSet = false, sharePageBasePath, onSaved }: Props) {
   const { t } = useI18n();
   const tools = useToolState();
-  const { activeTool, setActiveTool, activeColor, setActiveColor, opacity, setOpacity, penWidth, setPenWidth } = tools;
+  const { activeTool, setActiveTool, activeColor, setActiveColor, opacity, setOpacity, penWidth, setPenWidth, eraserSize, setEraserSize } = tools;
 
   // Index 0 = RIGHT (low/odd page), index 1 = LEFT (high/even page) — matches the render order.
   const rightRef = useRef<CanvasHandle>(null);
@@ -139,8 +139,10 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
         hoverPos={hoverPos}
         penWidth={penWidth}
         opacity={opacity}
+        eraserSize={eraserSize}
         onPenWidthChange={setPenWidth}
         onOpacityChange={setOpacity}
+        onEraserSizeChange={setEraserSize}
         onMouseEnter={onHoverCancelLeave}
         onMouseLeave={onHoverLeave}
       />

@@ -39,7 +39,7 @@ export default function SpreadToggle({ page, active, basePath }: { page: number;
         marginTop: 'var(--space-12)',
         height: '52px',
         padding: '0 var(--space-16)',
-        background: active ? 'var(--neutral-100)' : 'var(--surface-main)',
+        background: 'var(--surface-main)',
         borderRadius: 'var(--radius-lg-px)',
         border: '1px solid rgba(15, 23, 42, 0.05)',
         boxShadow: 'var(--shadow-e2)',
@@ -51,7 +51,7 @@ export default function SpreadToggle({ page, active, basePath }: { page: number;
         userSelect: 'none',
       }}
       onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = active ? 'var(--neutral-100)' : 'var(--surface-main)'; }}
+      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-main)'; }}
     >
       <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
         <rect x="3" y="4" width="8" height="16" rx="1" strokeWidth={2} />

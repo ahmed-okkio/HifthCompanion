@@ -55,7 +55,6 @@ export default async function StudentDetailPage({
 
   return (
     <AppShell breadcrumb={[
-      { label: dict['nav.circles'], href: '/tracker' },
       { label: circle.name, href: `/tracker/${circleId}` },
       { label: displayName(member) },
     ]} user={account} secondRail={<CircleRail circles={railCircles(await getMyMembershipsWithCircle())} currentId={circleId} />}>

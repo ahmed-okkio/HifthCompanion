@@ -8,6 +8,7 @@ import AnnotationCanvas, { type CanvasHandle, type CanvasView } from '@/componen
 import AnnotationToolbar from '@/components/AnnotationToolbar';
 import ToolHoverPopover from '@/components/ToolHoverPopover';
 import ZoomControl from '@/components/ZoomControl';
+import { LegendButton } from '@/components/LegendModal';
 import SpreadToggle from '@/components/SpreadToggle';
 import { useI18n } from '@/components/I18nProvider';
 
@@ -187,6 +188,7 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
       </div>
 
       <div className="flex justify-center items-center gap-3">
+        <LegendButton />
         <ZoomControl
           zoom={zoom}
           onZoomOut={() => setZoom(z => clampZoom(z - 10))}

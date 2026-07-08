@@ -407,6 +407,10 @@ const en = {
   'reader.noAnnotationSets': 'No annotation sets',
   'reader.createSetHint': 'Create a set to start taking notes.',
   'reader.clickToJumpPage': 'Click to jump to page',
+  'reader.symbolGuide': 'Symbol guide',
+  'legend.waqf': 'Waqf — pause & stop marks',
+  'legend.tajweed': 'Tajweed colours',
+  'legend.other': 'Other marks',
   'share.editingSetBanner': 'Editing {owner}’s “{name}” — shared with you',
   'share.openStudentProfile': 'Open student profile',
 } as const;
@@ -816,6 +820,10 @@ const ar: Record<MessageKey, string> = {
   'reader.noAnnotationSets': 'لا توجد مجموعات تعليقات',
   'reader.createSetHint': 'أنشئ مجموعة لبدء تدوين الملاحظات.',
   'reader.clickToJumpPage': 'اضغط للانتقال إلى صفحة',
+  'reader.symbolGuide': 'دليل الرموز',
+  'legend.waqf': 'علامات الوقف',
+  'legend.tajweed': 'ألوان التجويد',
+  'legend.other': 'علامات أخرى',
   'share.editingSetBanner': 'تعديل “{name}” الخاصة بـ {owner} — مشاركة معك',
   'share.openStudentProfile': 'فتح ملف الطالب',
 };

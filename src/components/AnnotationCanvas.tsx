@@ -10,6 +10,7 @@ import MobileAnnotationBar from '@/components/MobileAnnotationBar';
 import ToolHoverPopover from '@/components/ToolHoverPopover';
 import SetsCard from '@/components/SetsCard';
 import ZoomControl from '@/components/ZoomControl';
+import { LegendButton } from '@/components/LegendModal';
 import SpreadToggle from '@/components/SpreadToggle';
 import { useAnnotationCanvas, type ToolState } from '@/hooks/useAnnotationCanvas';
 import { useI18n } from '@/components/I18nProvider';
@@ -519,6 +520,7 @@ function AnnotationCanvasInner(
                 renders ONE zoom control that scales both pages, so each canvas hides its own. */}
             {!controlled && (
               <div className="flex items-center justify-center gap-3">
+                <LegendButton />
                 <ZoomControl
                   zoom={zoom}
                   onZoomOut={() => setZoom(z => clampZoom(z - 10))}

@@ -20,7 +20,6 @@ import { listHomework } from '@/lib/services/homework';
 import { listNotes } from '@/lib/services/membershipNotes';
 import { getExamsForMembership } from '@/lib/services/exam';
 import { displayName } from '@/lib/displayName';
-import { BackButton } from '@/components/tracker/ui';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 
@@ -77,7 +76,6 @@ export default async function CirclePage({
       <AppShell breadcrumb={[{ label: dict['nav.circles'], href: '/tracker' }, { label: circle.name }]} user={account} secondRail={rail}>
         <main className="px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
           <div className="max-w-5xl mx-auto w-full" style={{ position: 'relative' }}>
-            <BackButton href="/tracker" />
             <TeacherCircle
               circle={circle}
               teacher={members.find((m) => m.role === 'teacher')}
@@ -135,7 +133,6 @@ export default async function CirclePage({
     <AppShell breadcrumb={[{ label: dict['nav.circles'], href: '/tracker' }, { label: circle.name }]} user={account} secondRail={rail}>
       <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
-          <BackButton href="/tracker" />
           <StudentCircle
             circle={circle}
             membership={membership}

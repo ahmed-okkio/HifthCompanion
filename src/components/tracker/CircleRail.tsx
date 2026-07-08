@@ -5,7 +5,8 @@
  * the tracker pages. Active circles render as avatars (current one highlighted),
  * pending invites render dimmed, and a trailing "+" opens the create-circle modal.
  *
- * The rail is desktop-only (AppShell renders it inside a `hidden lg:block` slot).
+ * Responsive: a vertical column on desktop, a horizontal scrollable strip on mobile
+ * (AppShell stacks it above the content there). RTL-safe via logical properties.
  */
 
 import { useState } from 'react';
@@ -44,38 +45,43 @@ export default function CircleRail({ circles, currentId }: { circles: RailCircle
           <button
             key={c.id}
             type="button"
-            title={c.name}
-            aria-label={c.name}
+            aria-label={`${c.name} · ${t(c.teaching ? 'tracker.roleTeacher' : 'tracker.roleStudent')}${c.pending ? ` · ${t('tracker.pendingInvite')}` : ''}`}
             aria-current={active ? 'page' : undefined}
             onClick={() => router.push(`/tracker/${c.id}`)}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)'; setHovered(c.id); }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; setHovered(null); }}
+            onMouseEnter={() => setHovered(c.id)}
+            onMouseLeave={() => setHovered(null)}
+            onFocus={() => setHovered(c.id)}
+            onBlur={() => setHovered(null)}
+            className="relative flex-shrink-0 rounded-full transition-transform duration-150 ease-out hover:scale-110 focus-visible:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green-600)]"
             style={{
-              position: 'relative',
               border: 'none',
               background: 'transparent',
               cursor: 'pointer',
               padding: 0,
-              opacity: c.pending ? 0.45 : 1,
-              borderRadius: '50%',
-              outline: active ? '2px solid var(--green-600)' : 'none',
-              outlineOffset: 2,
-              flexShrink: 0,
-              transform: 'scale(1)',
-              transition: 'transform var(--duration-fast, 0.15s) var(--ease-out, ease)',
+              opacity: c.pending ? 0.55 : 1,
+              // active ring via box-shadow so `outline` stays free for the keyboard focus ring
+              boxShadow: active ? '0 0 0 2px var(--surface-app, #fff), 0 0 0 4px var(--green-600)' : 'none',
             }}
           >
             {active && (
-              <span
-                aria-hidden
-                style={{ position: 'absolute', insetInlineStart: -12, top: '50%', transform: 'translateY(-50%)', width: 3, height: 28, borderRadius: '0 2px 2px 0', background: 'var(--green-600)' }}
-              />
+              <>
+                {/* desktop: bar on the inline-start edge; mobile: bar on top of the avatar */}
+                <span
+                  aria-hidden
+                  className="hidden lg:block"
+                  style={{ position: 'absolute', insetInlineStart: -12, top: '50%', transform: 'translateY(-50%)', width: 3, height: 28, borderRadius: 2, background: 'var(--green-600)' }}
+                />
+                <span
+                  aria-hidden
+                  className="lg:hidden"
+                  style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', width: 28, height: 3, borderRadius: 2, background: 'var(--green-600)' }}
+                />
+              </>
             )}
             <Avatar seed={c.name} size={44} />
             {c.teaching && (
               <span
                 aria-hidden
-                title={t('tracker.roleTeacher')}
                 className="flex items-center justify-center"
                 style={{
                   position: 'absolute', bottom: -2, insetInlineEnd: -2,
@@ -87,7 +93,7 @@ export default function CircleRail({ circles, currentId }: { circles: RailCircle
                 <Icon name="cap" size={11} />
               </span>
             )}
-            <Tooltip show={hovered === c.id} label={c.teaching ? `${c.name} · ${t('tracker.roleTeacher')}` : `${c.name} · ${t('tracker.roleStudent')}`} />
+            <Tooltip show={hovered === c.id} label={`${c.name} · ${t(c.teaching ? 'tracker.roleTeacher' : 'tracker.roleStudent')}`} />
           </button>
         );
       })}
@@ -98,31 +104,18 @@ export default function CircleRail({ circles, currentId }: { circles: RailCircle
         type="button"
         aria-label={t('tracker.createCircle')}
         onClick={() => setCreating(true)}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.1)';
-          e.currentTarget.style.background = 'var(--green-soft, rgba(22,155,82,0.12))';
-          e.currentTarget.style.borderStyle = 'solid';
-          setHovered('__create__');
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.background = 'transparent';
-          e.currentTarget.style.borderStyle = 'dashed';
-          setHovered(null);
-        }}
-        className="flex items-center justify-center"
+        onMouseEnter={() => setHovered('__create__')}
+        onMouseLeave={() => setHovered(null)}
+        onFocus={() => setHovered('__create__')}
+        onBlur={() => setHovered(null)}
+        className="relative flex flex-shrink-0 items-center justify-center rounded-full transition-transform duration-150 ease-out hover:scale-110 focus-visible:scale-110 hover:bg-[var(--green-soft,rgba(22,155,82,0.12))] hover:border-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green-600)]"
         style={{
-          position: 'relative',
           width: 44,
           height: 44,
-          borderRadius: '50%',
           border: '1px dashed var(--border-strong, var(--border-subtle))',
           background: 'transparent',
           cursor: 'pointer',
           color: 'var(--green-600)',
-          flexShrink: 0,
-          transform: 'scale(1)',
-          transition: 'transform var(--duration-fast, 0.15s) var(--ease-out, ease), background var(--duration-fast, 0.15s) ease',
         }}
       >
         <Icon name="plus" size={18} />
@@ -145,6 +138,8 @@ function Tooltip({ show, label }: { show: boolean; label: string }) {
   return (
     <span
       role="tooltip"
+      aria-hidden={!show}
+      className="hidden lg:block"
       style={{
         position: 'absolute',
         insetInlineStart: '100%',

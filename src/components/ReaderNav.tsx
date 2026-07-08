@@ -70,7 +70,9 @@ export default function ReaderNav({
               </svg>
             </button>
           )}
-          <Brand />
+          {/* When the mobile drawer is wired (onOpenNav), the brand lives there;
+              show it in the bar only ≥lg. Share view has no drawer → keep it. */}
+          {onOpenNav ? <span className="hidden lg:flex min-w-0"><Brand /></span> : <Brand />}
 
         </div>
 

@@ -67,15 +67,11 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
       >
         {/* Header */}
         <div className="flex items-center justify-between" style={{ padding: 'var(--space-16)', borderBottom: '1px solid var(--border-subtle)' }}>
-          <span className="flex items-center gap-2">
-            <span className="inline-flex items-center justify-center" style={{ width: 32, height: 32, borderRadius: 'var(--radius-md-px)', background: 'var(--green-600)', color: '#fff' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-              </svg>
-            </span>
-            <span className="font-bold" style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Hifth Companion</span>
-          </span>
+          <Link href="/reader" onClick={() => onOpenChange(false)} className="flex items-center gap-2 min-w-0" style={{ textDecoration: 'none' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt={t('nav.logoAlt')} style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
+            <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-brand), system-ui, sans-serif', fontSize: '1.1rem', letterSpacing: '0.01em' }}>Hifth Companion</span>
+          </Link>
           <button
             type="button"
             onClick={() => onOpenChange(false)}

@@ -60,7 +60,8 @@ export default function AppHeader({
               </svg>
             </button>
           )}
-          <Brand />
+          {/* Brand lives in the mobile drawer instead; header shows it only ≥lg. */}
+          <span className="hidden lg:flex min-w-0"><Brand /></span>
 
           {breadcrumb && (() => {
             const crumbs: Crumb[] = typeof breadcrumb === 'string' ? [{ label: breadcrumb }] : breadcrumb;

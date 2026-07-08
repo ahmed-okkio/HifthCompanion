@@ -14,8 +14,6 @@ import { getMyChrome, getStudentMemorization } from '@/lib/services/profile';
 import { rangesTotals } from '@/lib/analytics';
 import { markedPages as fetchMarkedPages } from '@/lib/services/markedPages';
 import TeacherStudent from '@/components/tracker/TeacherStudent';
-import { BackButton } from '@/components/tracker/ui';
-import { displayName } from '@/lib/displayName';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 
@@ -54,13 +52,9 @@ export default async function StudentDetailPage({
   const marked = defaultSetId ? await fetchMarkedPages(supabase, defaultSetId) : [];
 
   return (
-    <AppShell breadcrumb={[
-      { label: circle.name, href: `/tracker/${circleId}` },
-      { label: displayName(member) },
-    ]} user={account} secondRail={<CircleRail circles={railCircles(await getMyMembershipsWithCircle())} currentId={circleId} />}>
-      <main className="px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+    <AppShell user={account} secondRail={<CircleRail circles={railCircles(await getMyMembershipsWithCircle())} currentId={circleId} />}>
+      <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
-          <BackButton href={`/tracker/${circleId}`} />
           <TeacherStudent
             circle={circle}
             member={member}

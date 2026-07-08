@@ -57,8 +57,9 @@ export default function AppShell({
           <NavRail />
         </div>
         {/* Secondary rail: left column on desktop, full-width strip on mobile
-            (CircleRail is responsive — its own classes flip orientation). */}
-        {secondRail && <div className="flex-shrink-0">{secondRail}</div>}
+            (CircleRail is responsive — its own classes flip orientation).
+            Relative + raised z so its hover tooltips paint over the content column. */}
+        {secondRail && <div className="flex-shrink-0 relative" style={{ zIndex: 20 }}>{secondRail}</div>}
         <div className="flex-1 min-w-0 min-h-0" style={{ overflow: 'hidden' }}>{children}</div>
       </div>
 

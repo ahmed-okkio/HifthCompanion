@@ -127,7 +127,7 @@ export function StatCard({
   icon?: ReactNode;
 }) {
   return (
-    <div className="card flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3" style={{ padding: '14px 16px' }}>
+    <div className="card flex items-center gap-3" style={{ padding: '14px 16px' }}>
       {icon && (
         <span
           aria-hidden

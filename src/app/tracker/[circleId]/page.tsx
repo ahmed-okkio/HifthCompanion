@@ -73,9 +73,9 @@ export default async function CirclePage({
       .slice(0, 20);
 
     return (
-      <AppShell breadcrumb={circle.name} user={account} secondRail={rail}>
-        <main className="px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
-          <div className="max-w-5xl mx-auto w-full" style={{ position: 'relative' }}>
+      <AppShell user={account} secondRail={rail}>
+        <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+          <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
             <TeacherCircle
               circle={circle}
               teacher={members.find((m) => m.role === 'teacher')}
@@ -103,7 +103,7 @@ export default async function CirclePage({
       last_name: tp?.last_name,
     });
     return (
-      <AppShell breadcrumb={circle.name} user={account} secondRail={rail}>
+      <AppShell user={account} secondRail={rail}>
         <main className="max-w-2xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
           <AcceptInvite
             membershipId={membership.id}
@@ -130,7 +130,7 @@ export default async function CirclePage({
   const marked = defaultSetId ? await fetchMarkedPages(supabase, defaultSetId) : [];
 
   return (
-    <AppShell breadcrumb={circle.name} user={account} secondRail={rail}>
+    <AppShell user={account} secondRail={rail}>
       <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
           <StudentCircle

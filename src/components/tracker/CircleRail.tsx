@@ -27,16 +27,17 @@ export default function CircleRail({ circles, currentId }: { circles: RailCircle
   return (
     <nav
       aria-label={t('tracker.title')}
-      className="flex justify-center w-full p-3 lg:h-full lg:w-auto lg:items-stretch lg:p-3 lg:ps-0"
+      className="flex justify-center w-full p-3 lg:h-full lg:w-auto lg:items-stretch lg:p-0"
       style={{ overflow: 'visible' }}
     >
       {/* Horizontal strip on mobile, vertical column on desktop. */}
       <div
-        className="thin-scroll flex flex-row lg:flex-col items-center gap-2 w-full lg:w-auto overflow-x-auto lg:overflow-visible"
+        className="thin-scroll flex flex-row lg:flex-col items-center gap-2 w-full lg:w-auto lg:h-full overflow-x-auto lg:overflow-visible rounded-2xl lg:rounded-none border lg:border-y-0 lg:border-s-0"
         style={{
           padding: 'var(--space-8) var(--space-12)',
-          background: 'var(--neutral-100, rgba(15,23,42,0.04))',
-          borderRadius: 'var(--radius-xl, 20px)',
+          background: 'var(--surface-main)',
+          borderColor: 'var(--border-subtle)',
+          boxShadow: 'var(--shadow-e1)',
         }}
       >
       {circles.map((c) => {
@@ -108,12 +109,11 @@ export default function CircleRail({ circles, currentId }: { circles: RailCircle
         onMouseLeave={() => setHovered(null)}
         onFocus={() => setHovered('__create__')}
         onBlur={() => setHovered(null)}
-        className="relative flex flex-shrink-0 items-center justify-center rounded-full transition-transform duration-150 ease-out hover:scale-110 focus-visible:scale-110 hover:bg-[var(--green-soft,rgba(22,155,82,0.12))] hover:border-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green-600)]"
+        className="relative flex flex-shrink-0 items-center justify-center rounded-full bg-transparent transition-[transform,background-color] duration-150 ease-out hover:scale-110 focus-visible:scale-110 hover:bg-[var(--green-soft)] hover:border-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green-600)]"
         style={{
           width: 44,
           height: 44,
           border: '1px dashed var(--border-strong, var(--border-subtle))',
-          background: 'transparent',
           cursor: 'pointer',
           color: 'var(--green-600)',
         }}

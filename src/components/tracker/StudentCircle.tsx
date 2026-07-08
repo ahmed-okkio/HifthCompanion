@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type {
   Circle, Homework, LogType, Membership, ProgressLog, Recurrence, Session, StatusConfig, Exam
@@ -11,7 +11,8 @@ import NotesThread from './NotesThread';
 import { homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus } from '@/lib/homework';
 import { recurringSlots } from '@/lib/recurrence';
 import { isStreakAtRisk } from '@/lib/streak';
-import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
+import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds, spreadUrl } from '@/lib/quran';
+import MarkedPagesList from '@/components/MarkedPagesList';
 import { wholeSurahPages } from '@/lib/homework';
 import { SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, Icon, Avatar, Chevron } from './ui';
 import { SurahPicker, ExamCard, StudentProfileCard, type Entry } from './TeacherStudent';
@@ -68,6 +69,16 @@ export default function StudentCircle({
   const { t, locale, fmtNum } = useI18n();
   const [logs, setLogs] = useState(initialLogs);
   const [tab, setTab] = useState('homework');
+  // Members live in the desktop sidebar; below lg they become a tab instead.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)');
+    const apply = () => setIsMobile(mq.matches);
+    apply();
+    if (mq.matches) setTab('sessions'); // mobile lands on Next Session by default
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
 
   const atRisk = useMemo(() => isStreakAtRisk(logs), [logs]);
   const statuses = circle.student_statuses;
@@ -110,19 +121,32 @@ export default function StudentCircle({
           name={displayName(roster.find((m) => m.user_id === selfUserId) ?? { user_id: selfUserId })}
           circleName={circle.name} defaultSetId={defaultSetId}
           memorized={memorized} attendance={attendance} openHomework={openHomework}
-          markedPages={markedPages}
+          markedPages={markedPages} markedDesktopOnly
         />
 
         <div className="flex flex-col gap-6 min-w-0">
           <TabBar
             tabs={[
+              // Mobile only: the desktop sidebar + profile annotations become tabs.
+              ...(isMobile ? [{ key: 'sessions', label: t('sessions.nextSession') }] : []),
               { key: 'homework', label: t('homework.title') },
               { key: 'log', label: t('log.tab') },
               { key: 'notes', label: t('notes.title') },
+              ...(isMobile ? [
+                { key: 'annotations', label: t('reader.marked') },
+                { key: 'members', label: t('circle.membersTitle') },
+              ] : []),
             ]}
             active={tab}
             onSelect={setTab}
           />
+
+          {isMobile && tab === 'sessions' && (
+            <div className="flex flex-col gap-6">
+              <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} hideHeading />
+              <UpcomingExams exams={initialExams} />
+            </div>
+          )}
 
           {/* Assigned homework (E2/E3/E4/E6) */}
           {tab === 'homework' && (
@@ -151,12 +175,25 @@ export default function StudentCircle({
 
           {/* Own notes thread (G2/G3) */}
           {tab === 'notes' && <NotesThread membershipId={membership.id} initial={initialNotes} />}
+
+          {isMobile && tab === 'annotations' && (
+            <div className="card flex flex-col gap-2" style={{ padding: '16px 0 8px' }}>
+              <div className="px-4"><SectionTitle>{t('reader.marked')}</SectionTitle></div>
+              <div className="overflow-y-auto thin-scroll" style={{ maxHeight: 400 }}>
+                <MarkedPagesList
+                  rows={markedPages}
+                  limit={3}
+                  hrefFor={defaultSetId ? (page) => `/share/${defaultSetId}/${spreadUrl(page)}` : undefined}
+                />
+              </div>
+            </div>
+          )}
+
+          {isMobile && tab === 'members' && <CircleMembers roster={roster} selfUserId={selfUserId} />}
         </div>
 
-        {/* Schedule sidebar — always visible, read-only (D3); hoisted above the
-            feed on mobile. On lg, offset down so its heading sits under the tab
-            bar row (≈ tab-bar height + the column's gap), not level with it. */}
-        <aside className="order-first lg:order-none lg:sticky lg:top-6 self-start min-w-0 lg:mt-[66px] flex flex-col gap-6">
+        {/* Desktop sidebar (hidden on mobile — those widgets are tabs there). */}
+        <aside className="hidden lg:flex lg:sticky lg:top-6 self-start min-w-0 flex-col gap-6">
           <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} />
           <UpcomingExams exams={initialExams} />
           <CircleMembers roster={roster} selfUserId={selfUserId} />
@@ -168,7 +205,7 @@ export default function StudentCircle({
 
 // --- Upcoming sessions (read-only, D3) ---------------------------------------
 
-function UpcomingSessions({ sessions, schedule }: { sessions: Session[]; schedule: Recurrence | null }) {
+function UpcomingSessions({ sessions, schedule, hideHeading = false }: { sessions: Session[]; schedule: Recurrence | null; hideHeading?: boolean }) {
   const { t, locale } = useI18n();
   const now = Date.now();
 
@@ -199,7 +236,7 @@ function UpcomingSessions({ sessions, schedule }: { sessions: Session[]; schedul
     <div className="flex flex-col gap-3">
       {/* Recurring schedule — one card per weekday, reusing the session look */}
       <div className="flex flex-col gap-2">
-        <SectionTitle>{t('sessions.nextSession' as any) ?? t('sessions.tabSessions')}</SectionTitle>
+        {!hideHeading && <SectionTitle>{t('sessions.nextSession' as any) ?? t('sessions.tabSessions')}</SectionTitle>}
         {weekSlots && weekSlots.length > 0 ? weekSlots.map((iso) => {
           const d = new Date(iso);
           return (

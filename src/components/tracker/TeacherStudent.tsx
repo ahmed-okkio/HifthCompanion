@@ -70,6 +70,15 @@ export default function TeacherStudent({
   const { t, locale } = useI18n();
   const router = useRouter();
   const [tab, setTab] = useState('sessions');
+  // Annotations live in the desktop profile column; below lg they become a tab.
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)');
+    const apply = () => setIsMobile(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
 
   // Deactivate lives here (student profile) only, grey + confirm-gated, so it
   // can't be hit by accident from the roster. Redirects back to the circle.
@@ -97,7 +106,7 @@ export default function TeacherStudent({
       <StudentProfileCard
         name={displayName(member)} circleName={circle.name} defaultSetId={defaultSetId}
         memorized={memorized} attendance={attendance} openHomework={openHomework}
-        markedPages={markedPages}
+        markedPages={markedPages} markedDesktopOnly
       />
 
       {/* Right column — the feed: tabs + panels, unchanged */}
@@ -108,6 +117,7 @@ export default function TeacherStudent({
             { key: 'homework', label: t('homework.title') },
             { key: 'exams', label: t('exam.title') },
             { key: 'notes', label: t('notes.title') },
+            ...(isMobile ? [{ key: 'annotations', label: t('reader.marked') }] : []),
             { key: 'settings', label: t('common.settings') },
           ]}
           active={tab}
@@ -124,6 +134,18 @@ export default function TeacherStudent({
         {tab === 'homework' && <HomeworkPanel membershipId={member.id} initial={initialHomework} logs={logs} teacherStatuses={circle.teacher_statuses} studentStatuses={circle.student_statuses} />}
         {tab === 'exams' && <ExamsPanel membershipId={member.id} initial={initialExams} locale={locale} />}
         {tab === 'notes' && <NotesThread membershipId={member.id} initial={initialNotes} />}
+        {isMobile && tab === 'annotations' && (
+          <div className="card flex flex-col gap-2" style={{ padding: '16px 0 8px' }}>
+            <div className="px-4"><SectionTitle>{t('reader.marked')}</SectionTitle></div>
+            <div className="overflow-y-auto thin-scroll" style={{ maxHeight: 400 }}>
+              <MarkedPagesList
+                rows={markedPages}
+                limit={3}
+                hrefFor={defaultSetId ? (page) => `/share/${defaultSetId}/${spreadUrl(page)}` : undefined}
+              />
+            </div>
+          </div>
+        )}
         {tab === 'settings' && (
           <div className="card flex flex-col gap-3" style={{ padding: '18px 20px' }}>
             <SectionTitle>{t('common.settings')}</SectionTitle>
@@ -162,7 +184,7 @@ export default function TeacherStudent({
  * detail view and the student's own self-service view (same three cards).
  */
 export function StudentProfileCard({
-  name, circleName, defaultSetId, memorized, attendance, openHomework, markedPages,
+  name, circleName, defaultSetId, memorized, attendance, openHomework, markedPages, markedDesktopOnly,
 }: {
   name: string;
   circleName: string;
@@ -172,11 +194,13 @@ export function StudentProfileCard({
   openHomework: number;
   /** PRD 0009 C1/C2: default-set marked pages, read-only. Omit to hide the card. */
   markedPages?: MarkedPage[];
+  /** When set, the marked-pages card only shows ≥lg (mobile surfaces it as a tab instead). */
+  markedDesktopOnly?: boolean;
 }) {
   const { t, fmtNum } = useI18n();
   const att = useMemo(() => attendanceStats(attendance), [attendance]);
   return (
-    <aside className="flex flex-col gap-3 self-start">
+    <aside className="order-first lg:order-none flex flex-col gap-3 self-start">
       <div className="card flex flex-col items-center text-center gap-2" style={{ padding: '22px' }}>
         <Avatar seed={name} size={64} />
         <h1 className="font-bold tracking-tight truncate max-w-full"
@@ -199,7 +223,7 @@ export function StudentProfileCard({
 
       {/* PRD 0009 C1/C3: default-set marked pages, read-only. Empty set → in-card empty state. */}
       {markedPages && (
-        <div className="card flex flex-col gap-2" style={{ padding: '16px 0 8px' }}>
+        <div className={`card flex-col gap-2 ${markedDesktopOnly ? 'hidden lg:flex' : 'flex'}`} style={{ padding: '16px 0 8px' }}>
           <div className="px-4"><SectionTitle>{t('reader.marked')}</SectionTitle></div>
           <div className="overflow-y-auto thin-scroll" style={{ maxHeight: 320 }}>
             <MarkedPagesList

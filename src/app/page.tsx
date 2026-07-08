@@ -3,6 +3,7 @@ import Link from 'next/link';
 import HomeReaderDemo from '@/components/HomeReaderDemo';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
+import { createClient } from '@/lib/supabase/server';
 
 export async function generateMetadata() {
   const dict = getDictionary(await getLocale());
@@ -11,6 +12,8 @@ export async function generateMetadata() {
 
 export default async function Home() {
   const dict = getDictionary(await getLocale());
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   return (
     <main
       className="relative min-h-[100dvh] flex flex-col items-center overflow-hidden"
@@ -103,17 +106,19 @@ export default async function Home() {
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
           </Link>
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center font-bold transition-colors"
-            style={{
-              height: 54, padding: '0 var(--space-32)', borderRadius: 'var(--radius-md)',
-              background: 'var(--surface-main)', color: 'var(--text-primary)',
-              border: '1px solid var(--border-subtle)', fontSize: '1.02rem', textDecoration: 'none',
-            }}
-          >
-            {dict['home.logIn']}
-          </Link>
+          {!user && (
+            <Link
+              href="/login"
+              className="inline-flex items-center justify-center font-bold transition-colors"
+              style={{
+                height: 54, padding: '0 var(--space-32)', borderRadius: 'var(--radius-md)',
+                background: 'var(--surface-main)', color: 'var(--text-primary)',
+                border: '1px solid var(--border-subtle)', fontSize: '1.02rem', textDecoration: 'none',
+              }}
+            >
+              {dict['home.logIn']}
+            </Link>
+          )}
         </div>
 
         {/* Interactive showcase — the real annotator: two flush Mushaf pages with the

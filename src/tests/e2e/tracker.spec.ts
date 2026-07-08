@@ -8,6 +8,9 @@ test.describe('Progression Tracker (Authenticated)', () => {
       { name: 'sb-access-token', value: 'dummy-token', domain: 'localhost', path: '/' },
     ]);
     await context.setExtraHTTPHeaders({ 'x-e2e-test': 'true' });
+    // Start with no circles so /tracker shows the empty state (it redirects to the
+    // first circle otherwise) and the rail "+" create flow is exercised deterministically.
+    await context.request.post('/api/test/tracker', { data: { reset: true } });
   });
 
   test('create a circle and open its teacher view', async ({ page }) => {
@@ -17,18 +20,15 @@ test.describe('Progression Tracker (Authenticated)', () => {
     });
 
     await page.goto('/tracker');
-    await expect(page.locator('h1')).toContainText('Progress Tracker');
+    // No circles yet → empty state; create one via the rail "+".
+    await expect(page.getByText('No circles yet')).toBeVisible();
 
     const name = `Fajr Circle ${Date.now()}`;
+    await page.getByRole('button', { name: 'Create Hifth Circle' }).click();
     await page.getByPlaceholder('Name your Hifth Circle…').fill(name);
     await page.getByRole('button', { name: 'Create', exact: true }).click();
 
-    // Appears under "Hifth Circles I teach" as a card link.
-    const card = page.getByRole('link', { name: new RegExp(name) });
-    await expect(card).toBeVisible();
-
-    // Open it → teacher view shows the invite code + roster.
-    await card.click();
+    // Creating switches straight into the new circle's teacher view.
     await expect(page).toHaveURL(/\/tracker\/[^/]+$/);
     await expect(page.getByText('Invite code')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Students' })).toBeVisible();
@@ -78,11 +78,9 @@ test.describe('Progression Tracker (Two-actor)', () => {
     const teacher = await teacherCtx.newPage();
     await teacher.goto('/tracker');
     const name = `Two Actor ${Date.now()}`;
+    await teacher.getByRole('button', { name: 'Create Hifth Circle' }).click();
     await teacher.getByPlaceholder('Name your Hifth Circle…').fill(name);
     await teacher.getByRole('button', { name: 'Create', exact: true }).click();
-    const card = teacher.getByRole('link', { name: new RegExp(name) });
-    await expect(card).toBeVisible();
-    await card.click();
     await expect(teacher).toHaveURL(/\/tracker\/[^/]+$/);
     const circleId = teacher.url().split('/').pop()!;
     await expect(teacher.getByText('Invite code')).toBeVisible();
@@ -90,12 +88,10 @@ test.describe('Progression Tracker (Two-actor)', () => {
     const inviteCode = (await teacher.locator('code').first().innerText()).trim();
     expect(inviteCode.length).toBeGreaterThan(0);
 
-    // 2) Student joins by code → lands on the ACCEPT screen (C3/C4): a code visit
-    //    does NOT silently create an active membership.
+    // 2) Student opens the invite link → joins as pending and lands on the ACCEPT
+    //    screen (C3/C4): visiting the link does NOT silently create an active membership.
     const student = await studentCtx.newPage();
-    await student.goto('/tracker');
-    await student.getByPlaceholder('Invite code').fill(inviteCode);
-    await student.getByRole('button', { name: 'Join', exact: true }).click();
+    await student.goto(`/tracker/join/${inviteCode}`);
     await expect(student).toHaveURL(new RegExp(`/tracker/${circleId}$`));
     // Accept screen names the join + the teacher's mushaf visibility.
     await expect(student.getByText('Join this Hifth Circle')).toBeVisible();

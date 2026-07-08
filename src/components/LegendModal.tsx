@@ -41,24 +41,26 @@ const OTHER: Glyph[] = [
   { char: 'ۦ', name: 'Small yā', nameAr: 'ياء صغيرة', meaning: 'Silent yā marker', meaningAr: 'ياء لا تُلفظ' },
 ];
 
-// Tajweed swatch. `ar` is the Arabic rule term; `en` is the English gloss.
-type Swatch = { color: string; name: string; ar: string; en: string };
+// Tajweed swatch. `ar`/`arDesc` are the Arabic term + gloss; `en`/`enDesc` the English pair.
+type Swatch = { color: string; name: string; ar: string; en: string; arDesc: string };
 
 // Matches this mushaf's own legend (the two reference images). ponytail: hex values
 // are sampled from the legend swatches — the necessary-prolongation red is still a guess.
 const TAJWEED: Swatch[] = [
-  { color: '#a51d24', name: 'Necessary prolongation', ar: 'مدّ لزوماً', en: '6 vowels' },
-  { color: '#e80589', name: 'Obligatory prolongation', ar: 'مدّ واجب', en: '4 or 5 vowels' },
-  { color: '#d58310', name: 'Permissible prolongation', ar: 'مدّ جوازاً', en: '2, 4 or 6 vowels' },
-  { color: '#c4a94d', name: 'Natural prolongation', ar: 'مدّ حركتان', en: '2 vowels' },
-  { color: '#06868d', name: 'Tafkhīm', ar: 'تفخيم', en: 'emphatic (heavy) letter' },
-  { color: '#14afcd', name: 'Qalqalah', ar: 'قلقلة', en: 'echoing / bouncing sound' },
-  { color: '#04a650', name: 'Ikhfāʾ & Ghunnah', ar: 'إخفاء ومواقع الغُنّة', en: 'hiding & nasalization (2 vowels)' },
-  { color: '#9a9a95', name: 'Idghām & silent', ar: 'إدغام وما لا يُلفظ', en: 'merging & unpronounced' },
+  { color: '#a51d24', name: 'Necessary prolongation', ar: 'مدّ لزوماً', en: '6 vowels', arDesc: '٦ حركات' },
+  { color: '#e80589', name: 'Obligatory prolongation', ar: 'مدّ واجب', en: '4 or 5 vowels', arDesc: '٤ أو ٥ حركات' },
+  { color: '#d58310', name: 'Permissible prolongation', ar: 'مدّ جوازاً', en: '2, 4 or 6 vowels', arDesc: '٢ أو ٤ أو ٦ حركات' },
+  { color: '#c4a94d', name: 'Natural prolongation', ar: 'مدّ حركتان', en: '2 vowels', arDesc: 'حركتان' },
+  { color: '#06868d', name: 'Tafkhīm', ar: 'تفخيم', en: 'emphatic (heavy) letter', arDesc: 'حرف مفخّم (ثقيل)' },
+  { color: '#14afcd', name: 'Qalqalah', ar: 'قلقلة', en: 'echoing / bouncing sound', arDesc: 'صوت القلقلة المرتد' },
+  { color: '#04a650', name: 'Ikhfāʾ & Ghunnah', ar: 'إخفاء ومواقع الغُنّة', en: 'hiding & nasalization (2 vowels)', arDesc: 'إخفاء وغُنّة (حركتان)' },
+  { color: '#9a9a95', name: 'Idghām & silent', ar: 'إدغام وما لا يُلفظ', en: 'merging & unpronounced', arDesc: 'إدغام وحرف لا يُلفظ' },
 ];
 
-/** Two-line label: bold primary + muted secondary, each bidi-isolated so RTL/LTR don't mix. */
-function Label({ primary, secondary, primaryAr }: { primary: string; secondary: string; primaryAr: boolean }) {
+/** Two-line label: bold primary + muted secondary. Each line's dir/font follow its own
+ *  language and it's bidi-isolated, so an Arabic term inside an English line (or vice
+ *  versa) keeps its own run and never reorders the rest. */
+function Label({ primary, secondary, primaryAr, secondaryAr }: { primary: string; secondary: string; primaryAr: boolean; secondaryAr: boolean }) {
   return (
     <div style={{ minWidth: 0 }}>
       <div
@@ -68,8 +70,8 @@ function Label({ primary, secondary, primaryAr }: { primary: string; secondary: 
         {primary}
       </div>
       <div
-        dir={primaryAr ? 'ltr' : 'rtl'}
-        style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: primaryAr ? undefined : ARABIC, unicodeBidi: 'isolate' }}
+        dir={secondaryAr ? 'rtl' : 'ltr'}
+        style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: secondaryAr ? ARABIC : undefined, unicodeBidi: 'isolate' }}
       >
         {secondary}
       </div>
@@ -87,8 +89,9 @@ function GlyphRow({ g, locale }: { g: Glyph; locale: Locale }) {
       </span>
       <Label
         primary={ar ? g.nameAr : g.name}
-        secondary={ar ? g.meaning : g.meaningAr}
+        secondary={ar ? g.meaningAr : g.meaning}
         primaryAr={ar}
+        secondaryAr={ar}
       />
     </div>
   );
@@ -101,11 +104,12 @@ function SwatchRow({ s, locale }: { s: Swatch; locale: Locale }) {
       <span style={{ width: 48, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
         <span style={{ width: 22, height: 22, borderRadius: '50%', background: s.color, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.12)' }} />
       </span>
-      {/* AR: Arabic term is primary, English gloss secondary. EN: English name primary, Arabic term secondary. */}
+      {/* AR: Arabic term + Arabic gloss. EN: English name + Arabic term — English gloss. */}
       <Label
         primary={ar ? s.ar : s.name}
-        secondary={ar ? s.en : `${s.ar} — ${s.en}`}
+        secondary={ar ? s.arDesc : `${s.ar} — ${s.en}`}
         primaryAr={ar}
+        secondaryAr={ar}
       />
     </div>
   );

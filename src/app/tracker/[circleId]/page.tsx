@@ -1,12 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import AppShell from '@/components/AppShell';
+import CircleRail from '@/components/tracker/CircleRail';
+import { railCircles } from '@/lib/tracker/railCircles';
 import { getMyChrome } from '@/lib/services/profile';
 import TeacherCircle from '@/components/tracker/TeacherCircle';
 import StudentCircle from '@/components/tracker/StudentCircle';
 import AcceptInvite from '@/components/tracker/AcceptInvite';
 import { getCircle } from '@/lib/services/circle';
-import { getCircleMembers, getCircleMembersWithProfiles, getCircleRoster, getStudentDefaultSetId } from '@/lib/services/membership';
+import { getCircleMembers, getCircleMembersWithProfiles, getCircleRoster, getStudentDefaultSetId, getMyMembershipsWithCircle } from '@/lib/services/membership';
 import { getStudentMemorization } from '@/lib/services/profile';
 import { rangesTotals } from '@/lib/analytics';
 import { markedPages as fetchMarkedPages } from '@/lib/services/markedPages';
@@ -39,6 +41,9 @@ export default async function CirclePage({
   const isTeacher = circle.teacher_id === user.id;
   const account = await getMyChrome(user);
 
+  // Circle picker rail — highlights the current circle, shared across all branches below.
+  const rail = <CircleRail circles={railCircles(await getMyMembershipsWithCircle())} currentId={circleId} />;
+
   if (isTeacher) {
     const members = await getCircleMembersWithProfiles(circleId);
     const students = members.filter((m) => m.role === 'student');
@@ -69,7 +74,7 @@ export default async function CirclePage({
       .slice(0, 20);
 
     return (
-      <AppShell breadcrumb={[{ label: dict['nav.circles'], href: '/tracker' }, { label: circle.name }]} user={account}>
+      <AppShell breadcrumb={[{ label: dict['nav.circles'], href: '/tracker' }, { label: circle.name }]} user={account} secondRail={rail}>
         <main className="px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
           <div className="max-w-5xl mx-auto w-full" style={{ position: 'relative' }}>
             <BackButton href="/tracker" />
@@ -100,7 +105,7 @@ export default async function CirclePage({
       last_name: tp?.last_name,
     });
     return (
-      <AppShell breadcrumb={[{ label: dict['nav.circles'], href: '/tracker' }, { label: circle.name }]} user={account}>
+      <AppShell breadcrumb={[{ label: dict['nav.circles'], href: '/tracker' }, { label: circle.name }]} user={account} secondRail={rail}>
         <main className="max-w-2xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
           <AcceptInvite
             membershipId={membership.id}
@@ -127,7 +132,7 @@ export default async function CirclePage({
   const marked = defaultSetId ? await fetchMarkedPages(supabase, defaultSetId) : [];
 
   return (
-    <AppShell breadcrumb={[{ label: dict['nav.circles'], href: '/tracker' }, { label: circle.name }]} user={account}>
+    <AppShell breadcrumb={[{ label: dict['nav.circles'], href: '/tracker' }, { label: circle.name }]} user={account} secondRail={rail}>
       <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
           <BackButton href="/tracker" />

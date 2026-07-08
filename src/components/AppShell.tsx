@@ -23,12 +23,15 @@ export default function AppShell({
   breadcrumb,
   actions,
   user,
+  secondRail,
   children,
 }: {
   breadcrumb?: string | Crumb[];
   /** Page-specific header actions, shown left of the profile menu. */
   actions?: ReactNode;
   user: { name: string; email: string };
+  /** Optional secondary rail (e.g. the tracker circle picker), shown right of NavRail. */
+  secondRail?: ReactNode;
   children: ReactNode;
 }) {
   const [navOpen, setNavOpen] = useState(false);
@@ -47,12 +50,15 @@ export default function AppShell({
         }
       />
 
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0">
         {/* Rail BELOW the header, stretched to the full content height so it
             grows with the page (align-stretch is the flex default). */}
         <div className="hidden lg:block flex-shrink-0" style={{ width: 96 }}>
           <NavRail />
         </div>
+        {/* Secondary rail: left column on desktop, full-width strip on mobile
+            (CircleRail is responsive — its own classes flip orientation). */}
+        {secondRail && <div className="flex-shrink-0">{secondRail}</div>}
         <div className="flex-1 min-w-0 min-h-0" style={{ overflow: 'hidden' }}>{children}</div>
       </div>
 

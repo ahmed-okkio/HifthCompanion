@@ -614,6 +614,14 @@ const ICON_PATHS: Record<string, ReactNode> = {
     </>
   ),
   folder: <path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.55 6a2 2 0 0 1-1.94 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  cap: (
+    <>
+      <path d="M21.42 10.42 12 15 2.58 10.42 12 5.83z" />
+      <path d="M6 12v4c0 1.66 2.69 3 6 3s6-1.34 6-3v-4" />
+      <path d="M21.42 10.42V16" />
+    </>
+  ),
 };
 
 export function Icon({ name, size = 18 }: { name: keyof typeof ICON_PATHS; size?: number }) {

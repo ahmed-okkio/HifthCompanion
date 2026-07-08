@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
 import AppShell from '@/components/AppShell';
+import CircleRail from '@/components/tracker/CircleRail';
+import { railCircles } from '@/lib/tracker/railCircles';
 import { getCircle } from '@/lib/services/circle';
-import { getCircleMembersWithProfiles, getStudentDefaultSetId } from '@/lib/services/membership';
+import { getCircleMembersWithProfiles, getStudentDefaultSetId, getMyMembershipsWithCircle } from '@/lib/services/membership';
 import { getLogsForMembership } from '@/lib/services/progressLog';
 import { getSessions } from '@/lib/services/sessions';
 import { listHomework } from '@/lib/services/homework';
@@ -56,7 +58,7 @@ export default async function StudentDetailPage({
       { label: dict['nav.circles'], href: '/tracker' },
       { label: circle.name, href: `/tracker/${circleId}` },
       { label: displayName(member) },
-    ]} user={account}>
+    ]} user={account} secondRail={<CircleRail circles={railCircles(await getMyMembershipsWithCircle())} currentId={circleId} />}>
       <main className="px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
           <BackButton href={`/tracker/${circleId}`} />

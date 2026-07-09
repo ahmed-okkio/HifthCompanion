@@ -2,8 +2,6 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import SetsList from '@/components/SetsList';
 import { getAnnotationSets } from '@/lib/services/annotationSets';
-import AppShell from '@/components/AppShell';
-import { getMyChrome } from '@/lib/services/profile';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { localizeDigits } from '@/lib/i18n/config';
@@ -11,19 +9,16 @@ import { localizeDigits } from '@/lib/i18n/config';
 export default async function SetsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    redirect('/login');
-  }
+  if (!user) redirect('/login');
 
   const locale = await getLocale();
   const dict = getDictionary(locale);
   // E2: getAnnotationSets() is owner-scoped, so shared sets never leak into "My Annotation Sets".
   // Sets shared *with* the viewer live on /shared, not here.
   const sets = await getAnnotationSets();
-  const account = await getMyChrome(user);
 
   return (
-    <AppShell user={account}>
+    <>
       <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -44,6 +39,6 @@ export default async function SetsPage() {
       >
         {dict['home.footer']}
       </footer>
-    </AppShell>
+    </>
   );
 }

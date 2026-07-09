@@ -1,14 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
-import AppShell from '@/components/AppShell';
-import CircleRail from '@/components/tracker/CircleRail';
-import { railCircles } from '@/lib/tracker/railCircles';
-import { getMyChrome } from '@/lib/services/profile';
 import TeacherCircle from '@/components/tracker/TeacherCircle';
 import StudentCircle from '@/components/tracker/StudentCircle';
 import AcceptInvite from '@/components/tracker/AcceptInvite';
 import { getCircle } from '@/lib/services/circle';
-import { getCircleMembers, getCircleMembersWithProfiles, getCircleRoster, getStudentDefaultSetId, getMyMembershipsWithCircle } from '@/lib/services/membership';
+import { getCircleMembers, getCircleMembersWithProfiles, getCircleRoster, getStudentDefaultSetId } from '@/lib/services/membership';
 import { getStudentMemorization } from '@/lib/services/profile';
 import { rangesTotals } from '@/lib/analytics';
 import { markedPages as fetchMarkedPages } from '@/lib/services/markedPages';
@@ -38,10 +34,6 @@ export default async function CirclePage({
   if (!circle) notFound();
 
   const isTeacher = circle.teacher_id === user.id;
-  const account = await getMyChrome(user);
-
-  // Circle picker rail — highlights the current circle, shared across all branches below.
-  const rail = <CircleRail circles={railCircles(await getMyMembershipsWithCircle())} currentId={circleId} />;
 
   if (isTeacher) {
     const members = await getCircleMembersWithProfiles(circleId);
@@ -73,18 +65,16 @@ export default async function CirclePage({
       .slice(0, 20);
 
     return (
-      <AppShell user={account} secondRail={rail}>
-        <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
-          <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
-            <TeacherCircle
-              circle={circle}
-              teacher={members.find((m) => m.role === 'teacher')}
-              initialStudents={students}
-              agenda={agenda}
-            />
-          </div>
-        </main>
-      </AppShell>
+      <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+        <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
+          <TeacherCircle
+            circle={circle}
+            teacher={members.find((m) => m.role === 'teacher')}
+            initialStudents={students}
+            agenda={agenda}
+          />
+        </div>
+      </main>
     );
   }
 
@@ -103,15 +93,13 @@ export default async function CirclePage({
       last_name: tp?.last_name,
     });
     return (
-      <AppShell user={account} secondRail={rail}>
-        <main className="max-w-2xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
-          <AcceptInvite
-            membershipId={membership.id}
-            circleName={circle.name}
-            teacherName={teacherName}
-          />
-        </main>
-      </AppShell>
+      <main className="max-w-2xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+        <AcceptInvite
+          membershipId={membership.id}
+          circleName={circle.name}
+          teacherName={teacherName}
+        />
+      </main>
     );
   }
 
@@ -130,10 +118,9 @@ export default async function CirclePage({
   const marked = defaultSetId ? await fetchMarkedPages(supabase, defaultSetId) : [];
 
   return (
-    <AppShell user={account} secondRail={rail}>
-      <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
-        <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
-          <StudentCircle
+    <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+      <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
+        <StudentCircle
             circle={circle}
             membership={membership}
             initialSessions={initialSessions}
@@ -146,9 +133,8 @@ export default async function CirclePage({
             memorized={memorized}
             defaultSetId={defaultSetId}
             markedPages={marked}
-          />
-        </div>
-      </main>
-    </AppShell>
+        />
+      </div>
+    </main>
   );
 }

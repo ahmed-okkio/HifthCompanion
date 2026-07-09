@@ -9,20 +9,34 @@
  * (AppShell stacks it above the content there). RTL-safe via logical properties.
  */
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import { createCircle } from '@/lib/services/circle';
 import type { RailCircle } from '@/lib/tracker/railCircles';
 import { Avatar, Icon } from './ui';
+import { LAST_CIRCLE_KEY } from '@/lib/tracker/lastCircle';
 
 export type { RailCircle };
 
-export default function CircleRail({ circles, currentId }: { circles: RailCircle[]; currentId?: string }) {
+export default function CircleRail({ circles }: { circles: RailCircle[] }) {
   const { t } = useI18n();
   const router = useRouter();
+  const pathname = usePathname();
   const [creating, setCreating] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
+  // Active circle derived from the URL (the rail lives in a persistent layout that
+  // doesn't re-render per switch, so it can't get currentId from the server).
+  const routeId = pathname?.match(/^\/tracker\/(?!join(?:\/|$))([^/]+)/)?.[1];
+  // Optimistic selection: highlight the tapped circle immediately, before the route
+  // actually changes. Sync when the pathname catches up.
+  const [selected, setSelected] = useState(routeId);
+  useEffect(() => {
+    setSelected(routeId);
+    // Remember the current circle so the main NavRail's Circles item can jump straight
+    // here next time (one hop, one skeleton — no /tracker index redirect).
+    if (routeId) localStorage.setItem(LAST_CIRCLE_KEY, routeId);
+  }, [routeId]);
 
   return (
     <nav
@@ -41,14 +55,14 @@ export default function CircleRail({ circles, currentId }: { circles: RailCircle
         }}
       >
       {circles.map((c) => {
-        const active = c.id === currentId;
+        const active = c.id === selected;
         return (
           <button
             key={c.id}
             type="button"
             aria-label={`${c.name} · ${t(c.teaching ? 'tracker.roleTeacher' : 'tracker.roleStudent')}${c.pending ? ` · ${t('tracker.pendingInvite')}` : ''}`}
             aria-current={active ? 'page' : undefined}
-            onClick={() => router.push(`/tracker/${c.id}`)}
+            onClick={() => { setSelected(c.id); router.push(`/tracker/${c.id}`); }}
             onMouseEnter={() => setHovered(c.id)}
             onMouseLeave={() => setHovered(null)}
             onFocus={() => setHovered(c.id)}
@@ -126,7 +140,7 @@ export default function CircleRail({ circles, currentId }: { circles: RailCircle
       {creating && (
         <CreateCircleModal
           onClose={() => setCreating(false)}
-          onCreated={(id) => { setCreating(false); router.push(`/tracker/${id}`); }}
+          onCreated={(id) => { setCreating(false); router.push(`/tracker/${id}`); router.refresh(); }}
         />
       )}
     </nav>

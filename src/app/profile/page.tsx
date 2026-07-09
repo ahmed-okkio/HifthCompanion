@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import AppShell from '@/components/AppShell';
+import ProfileMenu from '@/components/ProfileMenu';
 import ProfileClient from '@/components/ProfileClient';
 import { getMyChrome, getMyMemorization } from '@/lib/services/profile';
 
@@ -18,7 +19,7 @@ export default async function ProfilePage() {
   ]);
 
   return (
-    <AppShell user={account}>
+    <AppShell profile={<ProfileMenu name={account.name} email={account.email} />}>
       <main className="max-w-2xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full"
             style={{ overflowY: 'auto', height: '100%' }}>
         <ProfileClient initialRanges={ranges} initialWeakest={weakest} />

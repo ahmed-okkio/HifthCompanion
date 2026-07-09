@@ -7,11 +7,12 @@
  * ReaderShell and AppShell so every page has the cross-app nav on mobile.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { RAIL_ITEMS, LABEL_KEYS, isRailItemActive, type RailItemDef } from './NavRail';
 import { useI18n } from './I18nProvider';
+import { LAST_CIRCLE_KEY } from '@/lib/tracker/lastCircle';
 
 interface Props {
   open: boolean;
@@ -33,6 +34,12 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
   }, [open]);
 
   const items = RAIL_ITEMS;
+
+  // Circles → last-viewed circle (one hop, one skeleton). See NavRail.
+  const [lastCircle, setLastCircle] = useState<string | null>(null);
+  useEffect(() => setLastCircle(localStorage.getItem(LAST_CIRCLE_KEY)), [open, pathname]);
+  const hrefFor = (item: RailItemDef) =>
+    item.id === 'circles' && lastCircle ? `/tracker/${lastCircle}` : item.href;
 
   return (
     <>
@@ -92,6 +99,7 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
             <li key={item.id}>
               <Row
                 item={item}
+                href={hrefFor(item)}
                 label={LABEL_KEYS[item.id] ? t(LABEL_KEYS[item.id]) : item.label}
                 active={isRailItemActive(item, pathname)}
                 onNavigate={() => onOpenChange(false)}
@@ -105,7 +113,7 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
   );
 }
 
-function Row({ item, label, active, onNavigate, comingSoon }: { item: RailItemDef; label: string; active: boolean; onNavigate: () => void; comingSoon: string }) {
+function Row({ item, href, label, active, onNavigate, comingSoon }: { item: RailItemDef; href?: string; label: string; active: boolean; onNavigate: () => void; comingSoon: string }) {
   const isInert = !item.href;
 
   const style: React.CSSProperties = {
@@ -143,7 +151,7 @@ function Row({ item, label, active, onNavigate, comingSoon }: { item: RailItemDe
   }
 
   return (
-    <Link href={item.href!} onClick={onNavigate} aria-current={active ? 'page' : undefined} style={style}>
+    <Link href={href ?? item.href!} onClick={onNavigate} aria-current={active ? 'page' : undefined} style={style}>
       {inner}
     </Link>
   );

@@ -1,8 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import AppShell from '@/components/AppShell';
 import { sharedWithMe } from '@/lib/services/collaborators';
-import { getMyChrome, getProfilesByIds } from '@/lib/services/profile';
+import { getProfilesByIds } from '@/lib/services/profile';
 import { displayName } from '@/lib/displayName';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
@@ -11,20 +10,17 @@ import { localizeDigits } from '@/lib/i18n/config';
 export default async function SharedPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    redirect('/login');
-  }
+  if (!user) redirect('/login');
 
   const locale = await getLocale();
   const dict = getDictionary(locale);
   // sharedWithMe() is collaborator-scoped (set_collaborators.user_id = me), so
   // sets the viewer owns never appear here. Circle accept adds the grant.
   const shared = await sharedWithMe();
-  const account = await getMyChrome(user);
   const profiles = await getProfilesByIds(shared.map((s) => s.user_id));
 
   return (
-    <AppShell user={account}>
+    <>
       <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -70,6 +66,6 @@ export default async function SharedPage() {
       >
         {dict['home.footer']}
       </footer>
-    </AppShell>
+    </>
   );
 }

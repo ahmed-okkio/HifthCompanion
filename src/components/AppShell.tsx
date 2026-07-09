@@ -17,19 +17,20 @@ import { useState, type ReactNode } from 'react';
 import AppHeader, { type Crumb } from './AppHeader';
 import NavRail from './NavRail';
 import MobileNavDrawer from './MobileNavDrawer';
-import ProfileMenu from './ProfileMenu';
 
 export default function AppShell({
   breadcrumb,
   actions,
-  user,
+  profile,
   secondRail,
   children,
 }: {
   breadcrumb?: string | Crumb[];
   /** Page-specific header actions, shown left of the profile menu. */
   actions?: ReactNode;
-  user: { name: string; email: string };
+  /** Profile-menu slot (streamed via Suspense by the layout so chrome doesn't block
+      the page's loading.tsx). */
+  profile?: ReactNode;
   /** Optional secondary rail (e.g. the tracker circle picker), shown right of NavRail. */
   secondRail?: ReactNode;
   children: ReactNode;
@@ -45,7 +46,7 @@ export default function AppShell({
         right={
           <>
             {actions}
-            <ProfileMenu name={user.name} email={user.email} />
+            {profile}
           </>
         }
       />
@@ -53,7 +54,9 @@ export default function AppShell({
       <div className="flex flex-col lg:flex-row flex-1 min-h-0">
         {/* Rail BELOW the header, stretched to the full content height so it
             grows with the page (align-stretch is the flex default). */}
-        <div className="hidden lg:block flex-shrink-0" style={{ width: 96 }}>
+        {/* z above the circle rail (z-20) so the right-edge shadow casts over it,
+            reading as a separator between the two rails. */}
+        <div className="hidden lg:block flex-shrink-0 relative" style={{ width: 96, zIndex: 30, boxShadow: '1px 0 3px -2px rgba(15,23,42,0.10)' }}>
           <NavRail />
         </div>
         {/* Secondary rail: left column on desktop, full-width strip on mobile

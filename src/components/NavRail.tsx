@@ -20,10 +20,11 @@
  *   --space-4, --space-16. No bare hex / hard-coded radius / shadow.
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useI18n } from './I18nProvider';
+import { LAST_CIRCLE_KEY } from '@/lib/tracker/lastCircle';
 
 // RAIL_ITEMS.label stays English (module-level, no hook access) — both NavRail
 // and MobileNavDrawer look the id up in LABEL_KEYS (exported) to localize it.
@@ -153,8 +154,23 @@ export default function NavRail({ activeView }: NavRailProps) {
   const pathname = usePathname() ?? '';
   const { t } = useI18n();
 
+  // Optimistic selection: highlight the tapped item immediately, before the (slower)
+  // cross-section navigation commits. Cleared once the pathname actually changes.
+  const [pending, setPending] = useState<string | null>(null);
+  useEffect(() => setPending(null), [pathname]);
+  const routeActiveId = RAIL_ITEMS.find((i) => isRailItemActive(i, pathname))?.id;
+  const activeId = pending ?? routeActiveId;
+
+  // Send "Circles" straight to the last-viewed circle so it's a single navigation
+  // (one skeleton). Hitting /tracker instead redirects to a circle — a double hop
+  // that flashes the index skeleton, then blank, then the circle skeleton.
+  const [lastCircle, setLastCircle] = useState<string | null>(null);
+  useEffect(() => setLastCircle(localStorage.getItem(LAST_CIRCLE_KEY)), [pathname]);
+  const hrefFor = (item: RailItemDef) =>
+    item.id === 'circles' && lastCircle ? `/tracker/${lastCircle}` : item.href;
+
   const resolveActive = (item: RailItemDef) =>
-    activeView !== undefined ? item.id === activeView : isRailItemActive(item, pathname);
+    activeView !== undefined ? item.id === activeView : item.id === activeId;
 
   return (
     <nav
@@ -183,7 +199,7 @@ export default function NavRail({ activeView }: NavRailProps) {
         <ul role="list" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-4)', width: '100%' }}>
           {RAIL_ITEMS.map((item) => (
             <li key={item.id} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-              <RailButton item={item} isActive={resolveActive(item)} label={LABEL_KEYS[item.id] ? t(LABEL_KEYS[item.id]) : item.label} />
+              <RailButton item={item} href={hrefFor(item)} isActive={resolveActive(item)} label={LABEL_KEYS[item.id] ? t(LABEL_KEYS[item.id]) : item.label} onNavigate={() => setPending(item.id)} />
             </li>
           ))}
         </ul>
@@ -196,7 +212,7 @@ export default function NavRail({ activeView }: NavRailProps) {
 // RailButton — single rail item (link when functional, inert button otherwise)
 // ---------------------------------------------------------------------------
 
-function RailButton({ item, isActive, label }: { item: RailItemDef; isActive: boolean; label: string }) {
+function RailButton({ item, href, isActive, label, onNavigate }: { item: RailItemDef; href?: string; isActive: boolean; label: string; onNavigate?: () => void }) {
   const { t } = useI18n();
   const isInert = !item.href;
 
@@ -265,11 +281,12 @@ function RailButton({ item, isActive, label }: { item: RailItemDef; isActive: bo
 
   return (
     <Link
-      href={item.href!}
+      href={href ?? item.href!}
       aria-label={label}
       aria-current={isActive ? 'page' : undefined}
       title={label}
       style={sharedStyle}
+      onClick={onNavigate}
       onMouseEnter={hoverIn}
       onMouseLeave={hoverOut}
     >

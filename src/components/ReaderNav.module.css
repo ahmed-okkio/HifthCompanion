@@ -488,9 +488,30 @@
 }
 
 @media (max-width: 640px) {
+  /* Phone: brand collapses to just an icon, so the top row has room — pull the
+     page navigator (and its surah burger) back up into a single row instead of
+     leaving it stranded on its own second row with empty space above it. */
   .inner {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: 72px;
+    height: 72px;
+    min-height: 72px;
+    align-items: center;
+    padding-block: 0;
     padding-inline: var(--space-12);
     gap: var(--space-4) var(--space-8);
+  }
+
+  .navigator {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    width: auto;
+  }
+
+  .actions {
+    grid-column: 3;
+    grid-row: 1;
   }
 
   .brandText {

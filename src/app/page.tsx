@@ -4,6 +4,7 @@ import HomeReaderDemo from '@/components/HomeReaderDemo';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 
 export async function generateMetadata() {
   const dict = getDictionary(await getLocale());
@@ -14,6 +15,8 @@ export default async function Home() {
   const dict = getDictionary(await getLocale());
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  // Logged in → splash has nothing to offer; go straight to My Mushaf.
+  if (user) redirect('/reader');
   return (
     <main
       className="relative min-h-[100dvh] flex flex-col items-center overflow-hidden"
@@ -92,7 +95,7 @@ export default async function Home() {
           style={{ animationDelay: '0.15s' }}
         >
           <Link
-            href="/reader"
+            href="/login"
             className="inline-flex items-center justify-center gap-2 font-bold transition-transform hover:-translate-y-0.5"
             style={{
               height: 54, padding: '0 var(--space-32)', borderRadius: 'var(--radius-md)',
@@ -101,24 +104,11 @@ export default async function Home() {
               boxShadow: '0 10px 24px rgba(15,138,103,0.28)',
             }}
           >
-            {dict['home.openMushaf']}
+            {dict['home.logIn']}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M5 12h14M13 6l6 6-6 6" />
             </svg>
           </Link>
-          {!user && (
-            <Link
-              href="/login"
-              className="inline-flex items-center justify-center font-bold transition-colors"
-              style={{
-                height: 54, padding: '0 var(--space-32)', borderRadius: 'var(--radius-md)',
-                background: 'var(--surface-main)', color: 'var(--text-primary)',
-                border: '1px solid var(--border-subtle)', fontSize: '1.02rem', textDecoration: 'none',
-              }}
-            >
-              {dict['home.logIn']}
-            </Link>
-          )}
         </div>
 
         {/* Interactive showcase — the real annotator: two flush Mushaf pages with the

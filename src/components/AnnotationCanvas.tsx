@@ -285,7 +285,7 @@ function AnnotationCanvasInner(
           setsSlot,
         )}
 
-        <div ref={wrapperRef} className="min-w-0 w-full pb-[72px] lg:pb-0">
+        <div ref={wrapperRef} className="min-w-0 w-full">
           {/* V3 Story 12 — zoom controls positioned below the cream hero.
               Uses position:relative on this wrapper + position:absolute on the control
               so the zoom bar contributes ZERO layout height — the desktop no-document-scroll

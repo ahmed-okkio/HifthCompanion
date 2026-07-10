@@ -3,6 +3,7 @@ import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AnnotationSet } from '@/types';
 import { getPageImageUrl, clampPage, spreadUrl } from '@/lib/quran';
+import { LAST_READER_PAGE_KEY } from '@/lib/tracker/lastCircle';
 import { SPREAD_MODE_KEY } from './SpreadToggle';
 import ReaderNav from './ReaderNav';
 import SurahNavPanel from './SurahNavPanel';
@@ -120,6 +121,14 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // Remember the last real reader page so the NavRail "My Mushaf" item links straight
+  // here (one hop, no /reader index redirect). Skip the share view (own base path).
+  useEffect(() => {
+    if (sharePageBasePath) return;
+    const seg = pathname.match(/^\/reader\/([^/]+)$/)?.[1];
+    if (seg) localStorage.setItem(LAST_READER_PAGE_KEY, seg);
+  }, [pathname, sharePageBasePath]);
 
   // Spread mode (M2): `/reader/N-M`. Derived from the same pathname the page number is read
   // from — no prop plumbing, since this shell lives in the layout and never sees the route

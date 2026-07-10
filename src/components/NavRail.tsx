@@ -24,7 +24,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useI18n } from './I18nProvider';
-import { LAST_CIRCLE_KEY } from '@/lib/tracker/lastCircle';
+import { LAST_CIRCLE_KEY, LAST_READER_PAGE_KEY } from '@/lib/tracker/lastCircle';
 
 // RAIL_ITEMS.label stays English (module-level, no hook access) — both NavRail
 // and MobileNavDrawer look the id up in LABEL_KEYS (exported) to localize it.
@@ -165,9 +165,16 @@ export default function NavRail({ activeView }: NavRailProps) {
   // (one skeleton). Hitting /tracker instead redirects to a circle — a double hop
   // that flashes the index skeleton, then blank, then the circle skeleton.
   const [lastCircle, setLastCircle] = useState<string | null>(null);
-  useEffect(() => setLastCircle(localStorage.getItem(LAST_CIRCLE_KEY)), [pathname]);
-  const hrefFor = (item: RailItemDef) =>
-    item.id === 'circles' && lastCircle ? `/tracker/${lastCircle}` : item.href;
+  const [lastReaderPage, setLastReaderPage] = useState<string | null>(null);
+  useEffect(() => {
+    setLastCircle(localStorage.getItem(LAST_CIRCLE_KEY));
+    setLastReaderPage(localStorage.getItem(LAST_READER_PAGE_KEY));
+  }, [pathname]);
+  const hrefFor = (item: RailItemDef) => {
+    if (item.id === 'circles' && lastCircle) return `/tracker/${lastCircle}`;
+    if (item.id === 'surahs' && lastReaderPage) return `/reader/${lastReaderPage}`;
+    return item.href;
+  };
 
   const resolveActive = (item: RailItemDef) =>
     activeView !== undefined ? item.id === activeView : item.id === activeId;

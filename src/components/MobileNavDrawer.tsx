@@ -12,7 +12,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { RAIL_ITEMS, LABEL_KEYS, isRailItemActive, type RailItemDef } from './NavRail';
 import { useI18n } from './I18nProvider';
-import { LAST_CIRCLE_KEY } from '@/lib/tracker/lastCircle';
+import { LAST_CIRCLE_KEY, LAST_READER_PAGE_KEY } from '@/lib/tracker/lastCircle';
 
 interface Props {
   open: boolean;
@@ -35,11 +35,18 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
 
   const items = RAIL_ITEMS;
 
-  // Circles → last-viewed circle (one hop, one skeleton). See NavRail.
+  // Circles → last-viewed circle, My Mushaf → last-viewed page (one hop). See NavRail.
   const [lastCircle, setLastCircle] = useState<string | null>(null);
-  useEffect(() => setLastCircle(localStorage.getItem(LAST_CIRCLE_KEY)), [open, pathname]);
-  const hrefFor = (item: RailItemDef) =>
-    item.id === 'circles' && lastCircle ? `/tracker/${lastCircle}` : item.href;
+  const [lastReaderPage, setLastReaderPage] = useState<string | null>(null);
+  useEffect(() => {
+    setLastCircle(localStorage.getItem(LAST_CIRCLE_KEY));
+    setLastReaderPage(localStorage.getItem(LAST_READER_PAGE_KEY));
+  }, [open, pathname]);
+  const hrefFor = (item: RailItemDef) => {
+    if (item.id === 'circles' && lastCircle) return `/tracker/${lastCircle}`;
+    if (item.id === 'surahs' && lastReaderPage) return `/reader/${lastReaderPage}`;
+    return item.href;
+  };
 
   return (
     <>

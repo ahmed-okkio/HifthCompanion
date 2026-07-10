@@ -45,3 +45,6 @@ next-env.d.ts
 
 bash.exe.stackdump
 *.stackdump
+
+# Playwright auth state (session tokens — never commit)
+playwright/.auth/

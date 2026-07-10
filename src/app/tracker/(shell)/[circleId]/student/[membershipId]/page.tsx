@@ -11,6 +11,7 @@ import { getStudentMemorization } from '@/lib/services/profile';
 import { rangesTotals } from '@/lib/analytics';
 import { markedPages as fetchMarkedPages } from '@/lib/services/markedPages';
 import TeacherStudent from '@/components/tracker/TeacherStudent';
+import MarkCircleReady from '@/components/tracker/CircleReady';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 
@@ -49,6 +50,7 @@ export default async function StudentDetailPage({
 
   return (
     <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+      <MarkCircleReady />
       <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
         <TeacherStudent
           circle={circle}

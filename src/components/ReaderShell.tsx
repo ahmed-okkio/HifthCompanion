@@ -6,6 +6,7 @@ import { getPageImageUrl, clampPage, spreadUrl } from '@/lib/quran';
 import { LAST_READER_PAGE_KEY } from '@/lib/tracker/lastCircle';
 import { SPREAD_MODE_KEY } from './SpreadToggle';
 import ReaderNav from './ReaderNav';
+import Brand from './Brand';
 import SurahNavPanel from './SurahNavPanel';
 import MobileSurahDrawer from './MobileSurahDrawer';
 import MobileNavDrawer from './MobileNavDrawer';
@@ -94,6 +95,33 @@ function ShellSkeleton() {
   );
 }
 
+
+/** Standalone full-frame reader skeleton — includes the top nav bar so it can stand in
+ *  for the WHOLE shell while the layout's data streams (used as the reader layout's
+ *  Suspense fallback). Reuses ShellSkeleton for the three regions. Shown instantly on
+ *  entry so there's no blank delay before the reader paints. */
+export function ReaderShellSkeleton() {
+  return (
+    <div className="lg:h-[100dvh] lg:flex lg:flex-col lg:overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+      {/* Top nav bar placeholder — mirrors ReaderNav height/chrome. */}
+      <div
+        className="lg:flex-shrink-0 flex items-center gap-3"
+        style={{ height: FALLBACK_NAV_HEIGHT, padding: '0 var(--space-16)', background: 'var(--surface-main)', borderBottom: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-e1)' }}
+      >
+        {/* Brand is static — render it for real (only the page navigator + profile shimmer). */}
+        <span className="hidden lg:flex min-w-0"><Brand /></span>
+        <div style={{ ...SHIMMER, width: 180, height: 40, borderRadius: 'var(--radius-md)', margin: '0 auto' }} />
+        <div style={{ ...SHIMMER, width: 36, height: 36, borderRadius: '50%' }} />
+      </div>
+      <div
+        className="flex flex-col mobile-nav-offset lg:flex-1 lg:min-h-0 lg:flex-row lg:items-stretch lg:gap-6 lg:pr-6"
+        style={{ ['--nav-h' as string]: `${FALLBACK_NAV_HEIGHT}px`, background: 'var(--surface-app)' } as React.CSSProperties}
+      >
+        <ShellSkeleton />
+      </div>
+    </div>
+  );
+}
 
 function readPageFromUrl(pathname: string, search: string): number {
   const qp = parseInt(new URLSearchParams(search).get('page') ?? '', 10);

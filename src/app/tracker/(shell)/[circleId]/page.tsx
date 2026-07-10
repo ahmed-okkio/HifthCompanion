@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect, notFound } from 'next/navigation';
+import MarkCircleReady from '@/components/tracker/CircleReady';
 import TeacherCircle from '@/components/tracker/TeacherCircle';
 import StudentCircle from '@/components/tracker/StudentCircle';
 import AcceptInvite from '@/components/tracker/AcceptInvite';
@@ -66,6 +67,7 @@ export default async function CirclePage({
 
     return (
       <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+        <MarkCircleReady />
         <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
           <TeacherCircle
             circle={circle}
@@ -94,6 +96,7 @@ export default async function CirclePage({
     });
     return (
       <main className="max-w-2xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+        <MarkCircleReady />
         <AcceptInvite
           membershipId={membership.id}
           circleName={circle.name}
@@ -119,6 +122,7 @@ export default async function CirclePage({
 
   return (
     <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+      <MarkCircleReady />
       <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
         <StudentCircle
             circle={circle}

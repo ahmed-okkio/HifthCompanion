@@ -16,6 +16,7 @@ import { createCircle } from '@/lib/services/circle';
 import type { RailCircle } from '@/lib/tracker/railCircles';
 import { Avatar, Icon } from './ui';
 import { LAST_CIRCLE_KEY } from '@/lib/tracker/lastCircle';
+import { useCircleReady } from './CircleReady';
 
 export type { RailCircle };
 
@@ -37,6 +38,12 @@ export default function CircleRail({ circles }: { circles: RailCircle[] }) {
     // here next time (one hop, one skeleton — no /tracker index redirect).
     if (routeId) localStorage.setItem(LAST_CIRCLE_KEY, routeId);
   }, [routeId]);
+
+  // Hold the rail as a skeleton until the circle content mounts, so the whole view
+  // reveals together on first open (rail doesn't pop in before the content). Latches
+  // true, so between-circle nav keeps the rail real (content skeleton covers that).
+  const { ready } = useCircleReady();
+  if (!ready) return <RailSkeleton count={circles.length || 3} />;
 
   return (
     <nav
@@ -143,6 +150,37 @@ export default function CircleRail({ circles }: { circles: RailCircle[] }) {
           onCreated={(id) => { setCreating(false); router.push(`/tracker/${id}`); router.refresh(); }}
         />
       )}
+    </nav>
+  );
+}
+
+/** Skeleton rail — same column geometry as the real rail, shimmer dots for circles. */
+function RailSkeleton({ count }: { count: number }) {
+  return (
+    <nav className="flex justify-center w-full p-3 lg:h-full lg:w-auto lg:items-stretch lg:p-0" aria-hidden>
+      <div
+        className="flex flex-row lg:flex-col items-center gap-2 w-full lg:w-auto lg:h-full rounded-2xl lg:rounded-none border lg:border-y-0 lg:border-s-0"
+        style={{
+          padding: 'var(--space-8) var(--space-12)',
+          background: 'var(--surface-main)',
+          borderColor: 'var(--border-subtle)',
+          boxShadow: 'var(--shadow-e1)',
+        }}
+      >
+        {Array.from({ length: Math.min(count, 6) }, (_, i) => (
+          <div
+            key={i}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: '50%',
+              background: 'linear-gradient(90deg, var(--neutral-100), var(--neutral-200), var(--neutral-100))',
+              backgroundSize: '200% 100%',
+              animation: 'shimmer 1.4s linear infinite',
+            }}
+          />
+        ))}
+      </div>
     </nav>
   );
 }

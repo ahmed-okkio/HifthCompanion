@@ -6,6 +6,7 @@ import CircleRail from '@/components/tracker/CircleRail';
 import { railCircles } from '@/lib/tracker/railCircles';
 import { getMyChrome } from '@/lib/services/profile';
 import { getMyMembershipsWithCircle } from '@/lib/services/membership';
+import { CircleReadyProvider } from '@/components/tracker/CircleReady';
 
 /**
  * Persistent chrome for the tracker (index, circles, student sub-pages). Placed ABOVE
@@ -31,11 +32,13 @@ export default async function TrackerShellLayout({ children }: { children: React
   ]);
 
   return (
-    <AppShell
-      profile={<ProfileMenu name={account.name} email={account.email} />}
-      secondRail={<CircleRail circles={railCircles(memberships)} />}
-    >
-      {children}
-    </AppShell>
+    <CircleReadyProvider>
+      <AppShell
+        profile={<ProfileMenu name={account.name} email={account.email} />}
+        secondRail={<CircleRail circles={railCircles(memberships)} />}
+      >
+        {children}
+      </AppShell>
+    </CircleReadyProvider>
   );
 }

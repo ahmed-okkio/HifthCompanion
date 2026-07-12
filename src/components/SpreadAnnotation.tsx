@@ -94,12 +94,22 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
   useEffect(() => { resetView(); }, [pages[0], pages[1]]);
 
   const onPanDown = (e: React.MouseEvent) => { dragRef.current = { sx: e.clientX, sy: e.clientY, bx: pan.x, by: pan.y }; setDragging(true); };
-  const onPanMove = (e: React.MouseEvent) => {
+  const onPanMove = (e: { clientX: number; clientY: number }) => {
     if (!dragRef.current || zoom <= 100) return;
     setPan({ x: dragRef.current.bx + (e.clientX - dragRef.current.sx), y: dragRef.current.by + (e.clientY - dragRef.current.sy) });
   };
   const endPan = () => { dragRef.current = null; setDragging(false); };
   const view: CanvasView = { zoom, pan, dragging, moveTool, onPanDown, onPanMove, endPan };
+
+  // Drive the drag off window listeners while active, so leaving the overlay bounds (the gutter
+  // or the outer canvas edge) never ends the drag mid-swipe or leaks the move into a pen stroke.
+  useEffect(() => {
+    if (!dragging) return;
+    const move = (e: MouseEvent) => onPanMove(e);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', endPan);
+    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', endPan); };
+  }, [dragging]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Hover popover (pen width / opacity) — shell-local since the toolbar lives here now.
   const [hoveredTool, setHoveredTool] = useState<Tool | null>(null);
@@ -151,7 +161,16 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
       {/* Low/odd page on the RIGHT, high/even on the LEFT — a physical book layout, identical
           in both locales. Pin dir=ltr so the flush/arrow logic (authored physical) isn't
           logical-flipped under ar's dir=rtl (which double-flipped the pages). */}
-      <div className="flex flex-row-reverse items-start" dir="ltr">
+      <div className="relative flex flex-row-reverse items-start overflow-hidden" dir="ltr">
+        {/* ONE pan overlay across both pages (move tool) so a drag crossing the gutter doesn't
+            stall on a per-slot mouseleave. Only mounted while zoomed-in + move tool active. */}
+        {moveTool && (
+          <div
+            aria-label={t('annot.dragToMove')}
+            onMouseDown={onPanDown}
+            style={{ position: 'absolute', inset: 0, zIndex: 3, cursor: dragging ? 'grabbing' : 'grab' }}
+          />
+        )}
         <div className="flex-1 min-w-0">
           <AnnotationCanvas
             ref={rightRef}

@@ -347,25 +347,17 @@ function AnnotationCanvasInner(
                 </svg>
               </button>
               )}
-            <div data-page-slot style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-page)', flex: 1, minWidth: 0 }}>
+            {/* Spread: no per-slot clip. The shared parent row (SpreadAnnotation) owns the single
+                overflow:hidden so a panned/zoomed page can slide across the gutter as ONE image
+                instead of each slot clipping its neighbor at the center line. */}
+            <div data-page-slot style={{ position: 'relative', overflow: 'visible', borderRadius: 'var(--radius-page)', flex: 1, minWidth: 0 }}>
               <div style={innerZoomStyle(flush === 'start' ? 'left center' : flush === 'end' ? 'right center' : 'center center')}>
                 <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush}>
                   <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
                 </PageDisplayFrame>
               </div>
-
-              {/* Pan overlay — present while the Move tool is active. Captures drag to move the
-                  zoomed page (and blocks drawing); absent otherwise so annotation drawing works. */}
-              {eff.moveTool && (
-                <div
-                  aria-label={t('annot.dragToMove')}
-                  onMouseDown={eff.onPanDown}
-                  onMouseMove={eff.onPanMove}
-                  onMouseUp={eff.endPan}
-                  onMouseLeave={eff.endPan}
-                  style={{ position: 'absolute', inset: 0, zIndex: 3, cursor: eff.dragging ? 'grabbing' : 'grab' }}
-                />
-              )}
+              {/* Spread pan overlay is rendered ONCE by SpreadAnnotation across both pages, so a
+                  drag that crosses the gutter doesn't hit a per-slot onMouseLeave and stall. */}
             </div>
               {flush === 'start' && (
               <button

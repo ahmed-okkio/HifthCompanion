@@ -352,7 +352,7 @@ function AnnotationCanvasInner(
                 instead of each slot clipping its neighbor at the center line. */}
             <div data-page-slot style={{ position: 'relative', overflow: 'visible', borderRadius: 'var(--radius-page)', flex: 1, minWidth: 0 }}>
               <div style={innerZoomStyle(flush === 'start' ? 'left center' : flush === 'end' ? 'right center' : 'center center')}>
-                <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush}>
+                <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush} noShadow>
                   <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
                 </PageDisplayFrame>
               </div>

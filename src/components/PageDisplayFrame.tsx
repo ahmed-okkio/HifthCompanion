@@ -13,9 +13,12 @@ interface Props {
   noAutoMargin?: boolean;
   /** Spread mode: 'start' = flush-left, 'end' = flush-right. Overrides noAutoMargin. */
   align?: 'start' | 'end';
+  /** Spread mode: drop the per-page shadow — it bleeds across the gutter onto the neighbor page
+   *  now that the slots don't clip. The whole book gets one shadow on the shared row instead. */
+  noShadow?: boolean;
 }
 
-export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, children, ready, noAutoMargin, align }: Props) {
+export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, children, ready, noAutoMargin, align, noShadow }: Props) {
   const marginClass = align === 'start' ? 'mr-auto ml-0' : align === 'end' ? 'ml-auto mr-0' : noAutoMargin ? '' : 'mx-auto';
   return (
     // V3 Story 11 — warm cream reader-canvas hero. The cream surface (#F6F1D9 via
@@ -45,7 +48,7 @@ export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, 
           // object-fit: contain — page scales to fit its size box preserving aspect ratio.
           borderRadius: 'var(--radius-page)',
           // Drop shadow under the page so it lifts off the flat workspace background.
-          boxShadow: '0 6px 16px rgba(15, 23, 42, 0.10)',
+          boxShadow: noShadow ? 'none' : '0 6px 16px rgba(15, 23, 42, 0.10)',
           objectFit: 'contain',
         }}
       >

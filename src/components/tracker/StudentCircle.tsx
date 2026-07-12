@@ -11,7 +11,7 @@ import NotesThread from './NotesThread';
 import { homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus } from '@/lib/homework';
 import { recurringSlots } from '@/lib/recurrence';
 import { isStreakAtRisk } from '@/lib/streak';
-import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds, spreadUrl } from '@/lib/quran';
+import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
 import MarkedPagesList from '@/components/MarkedPagesList';
 import { wholeSurahPages } from '@/lib/homework';
 import { SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, Icon, Avatar, Chevron } from './ui';
@@ -180,10 +180,12 @@ export default function StudentCircle({
             <div className="card flex flex-col gap-2" style={{ padding: '16px 0 8px' }}>
               <div className="px-4"><SectionTitle>{t('reader.marked')}</SectionTitle></div>
               <div className="overflow-y-auto thin-scroll" style={{ maxHeight: 400 }}>
+                {/* hrefFor links single-page; the reader/share auto-redirects to spread per the
+                    viewer's own spread preference (C3), so the link isn't hard-coded to a mode. */}
                 <MarkedPagesList
                   rows={markedPages}
                   limit={3}
-                  hrefFor={defaultSetId ? (page) => `/share/${defaultSetId}/${spreadUrl(page)}` : undefined}
+                  hrefFor={defaultSetId ? (page) => `/share/${defaultSetId}/${page}` : undefined}
                 />
               </div>
             </div>

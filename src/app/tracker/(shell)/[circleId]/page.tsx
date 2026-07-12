@@ -57,8 +57,12 @@ export default async function CirclePage({
           .filter((slot) => new Date(slot.scheduled_at).getTime() >= now)
           .map((slot) => ({
             key: slot.session?.id ?? `${m.id}-${slot.scheduled_at}`,
+            membershipId: m.id,
+            sessionId: slot.session?.id ?? null,
             scheduled_at: slot.scheduled_at,
             isAdhoc: slot.session?.is_adhoc ?? false,
+            canceled: slot.session?.canceled ?? false,
+            movedFrom: slot.session?.moved_from ?? null,
             student: nameById.get(m.id) ?? '',
           }));
       })

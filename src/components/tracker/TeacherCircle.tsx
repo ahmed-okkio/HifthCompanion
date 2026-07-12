@@ -8,11 +8,24 @@ import type { Circle, Membership, MemberWithProfile, Session } from '@/types';
 import { displayName } from '@/lib/displayName';
 import { rotateInviteCode, deleteCircle } from '@/lib/services/circle';
 import { inviteByEmail, setMembershipStatus } from '@/lib/services/membership';
-import { SectionTitle, EmptyState, Avatar, Chevron, DateChip, StatusDot, TabBar } from './ui';
+import { materializeSession, setSessionCanceled, rescheduleSession } from '@/lib/services/sessions';
+import { SectionTitle, EmptyState, Avatar, Chevron, DateChip, StatusDot, TabBar, TimeSelect } from './ui';
 
 // Stdlib formatter — time-of-day only; the DateChip carries the date.
 function fmtTime(iso: string, locale: string) {
   return new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
+}
+
+interface AgendaItem {
+  key: string;
+  membershipId: string;
+  /** null until the virtual slot is materialized (on first cancel/reschedule). */
+  sessionId: string | null;
+  scheduled_at: string;
+  isAdhoc: boolean;
+  canceled: boolean;
+  movedFrom: string | null;
+  student: string;
 }
 
 /**
@@ -29,7 +42,7 @@ export default function TeacherCircle({
   teacher?: MemberWithProfile;
   initialStudents: MemberWithProfile[];
   // Upcoming sessions across all active students, each already labeled server-side.
-  agenda: { key: string; scheduled_at: string; isAdhoc: boolean; student: string }[];
+  agenda: AgendaItem[];
 }) {
   const { t, locale, fmtNum } = useI18n();
   const router = useRouter();
@@ -44,6 +57,56 @@ export default function TeacherCircle({
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState('roster');
+  // Agenda held in state so inline cancel/reschedule reflect without a reload.
+  const [agendaState, setAgendaState] = useState(agenda);
+  const [reschedKey, setReschedKey] = useState<string | null>(null);
+  const [reschedDate, setReschedDate] = useState('');
+  const [reschedTime, setReschedTime] = useState('');
+  // Lift overflow:hidden once the slide-down finishes so the clock popup isn't clipped.
+  const [reschedOpen, setReschedOpen] = useState(false);
+
+  // Real row for an agenda item, materializing the virtual slot on first touch.
+  async function ensureSessionId(item: AgendaItem): Promise<string> {
+    if (item.sessionId) return item.sessionId;
+    const s = await materializeSession(item.membershipId, item.scheduled_at);
+    setAgendaState((p) => p.map((a) => (a.key === item.key ? { ...a, sessionId: s.id } : a)));
+    return s.id;
+  }
+
+  async function handleCancelAgenda(item: AgendaItem) {
+    try {
+      const id = await ensureSessionId(item);
+      await setSessionCanceled(id, !item.canceled);
+      setAgendaState((p) => p.map((a) => (a.key === item.key ? { ...a, canceled: !item.canceled } : a)));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  function openReschedule(item: AgendaItem) {
+    const d = new Date(item.scheduled_at);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    setReschedDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+    setReschedTime(`${pad(d.getHours())}:${pad(d.getMinutes())}`);
+    setReschedOpen(false);
+    setReschedKey(item.key);
+  }
+
+  async function handleRescheduleAgenda(item: AgendaItem) {
+    if (!reschedDate || !reschedTime) return;
+    try {
+      const id = await ensureSessionId(item);
+      const newIso = new Date(`${reschedDate}T${reschedTime}`).toISOString();
+      const movedFrom = item.movedFrom ?? item.scheduled_at;
+      await rescheduleSession(id, newIso, movedFrom);
+      setAgendaState((p) =>
+        p.map((a) => (a.key === item.key ? { ...a, scheduled_at: newIso, movedFrom } : a))
+          .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)));
+      setReschedKey(null);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
   // Invite panel lives in the desktop left column; on mobile it moves into Settings.
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -241,23 +304,52 @@ export default function TeacherCircle({
           {/* Aggregate agenda (D2/D5) — inline under the roster */}
           <div className="flex flex-col gap-2">
             <SectionTitle>{t('sessions.title')}</SectionTitle>
-            {agenda.length === 0 ? (
+            {agendaState.length === 0 ? (
               <EmptyState>{t('sessions.none')}</EmptyState>
             ) : (
-              agenda.map(({ key, scheduled_at, isAdhoc, student }) => (
-                <div key={key} className="card flex items-center gap-3" style={{ padding: '10px 14px' }}>
-                  <DateChip iso={scheduled_at} locale={locale} />
-                  <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                    <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
-                      {student}
-                    </span>
-                    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
-                      {fmtTime(scheduled_at, locale)}
-                    </span>
+              agendaState.map((item) => {
+                const editing = reschedKey === item.key;
+                return (
+                <div key={item.key} className="card flex flex-col gap-2" style={{ padding: '10px 14px', opacity: item.canceled ? 0.5 : 1 }}>
+                  <div className="flex items-center gap-3">
+                    <DateChip iso={item.scheduled_at} locale={locale} />
+                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                      <span className="flex items-center gap-2 text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                        {item.student}
+                        {item.movedFrom && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.rescheduled')}</span>}
+                        {item.canceled && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.canceled')}</span>}
+                      </span>
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {fmtTime(item.scheduled_at, locale)}
+                      </span>
+                    </div>
+                    {item.isAdhoc && <span className="badge shrink-0" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
+                    {!item.canceled && (
+                      <button onClick={() => (editing ? setReschedKey(null) : openReschedule(item))} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        {t('sessions.reschedule')}
+                        <Chevron open={editing} />
+                      </button>
+                    )}
+                    <button onClick={() => handleCancelAgenda(item)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11 }}>
+                      {item.canceled ? t('sessions.reinstate') : t('sessions.cancel')}
+                    </button>
                   </div>
-                  {isAdhoc && <span className="badge shrink-0" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
+                  {editing && (
+                    <div className="flex gap-2 items-end flex-wrap" onAnimationEnd={() => setReschedOpen(true)}
+                         style={{ borderTop: '1px solid var(--border-subtle)', overflow: reschedOpen ? 'visible' : 'hidden', animation: 'slide-down 0.22s var(--ease-out) both' }}>
+                      <input type="date" value={reschedDate} onChange={(e) => setReschedDate(e.target.value)} className="input" style={{ minHeight: 36 }} />
+                      <TimeSelect value={reschedTime} onChange={setReschedTime} style={{ minHeight: 36, width: 130 }} />
+                      <button onClick={() => handleRescheduleAgenda(item)} className="btn btn-primary" style={{ minHeight: 36, fontSize: 12, padding: '0 14px' }}>
+                        {t('common.save')}
+                      </button>
+                      <button onClick={() => setReschedKey(null)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 12 }}>
+                        {t('common.cancel')}
+                      </button>
+                    </div>
+                  )}
                 </div>
-              ))
+                );
+              })
             )}
           </div>
           </>)}

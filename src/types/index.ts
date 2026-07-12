@@ -67,6 +67,9 @@ export interface Session {
   canceled: boolean;
   // Attendance collapsed onto the row (attendance table dropped, D3). null = unmarked.
   attendance_status: AttendanceStatus | null;
+  // Original recurrence instant when this row was rescheduled off its weekly slot
+  // (null = never moved). Used to suppress the virtual twin at that time.
+  moved_from: string | null;
   created_at: string;
 }
 

@@ -545,6 +545,117 @@ export function Chevron({ open, color = 'var(--text-muted)' }: { open?: boolean;
   );
 }
 
+/**
+ * Time combobox (Google-Calendar style): a text field you can TYPE into
+ * ("5:45 PM", "17:30", "5p") plus a clickable dropdown of 30-min AM/PM slots.
+ * Displays 12h; `value`/`onChange` stay 24h "HH:mm" so callers keep parsing with
+ * new Date(). Free-typed text propagates once it parses; junk snaps back on blur.
+ */
+export function TimeSelect({
+  value, onChange, style,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  style?: React.CSSProperties;
+}) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState(to12h(value));
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  // Follow external value changes (e.g. reopening the editor on another slot).
+  const lastValue = useRef(value);
+  if (value !== lastValue.current) {
+    lastValue.current = value;
+    setText(to12h(value));
+  }
+
+  // Close on outside click.
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open]);
+
+  const slots: string[] = [];
+  for (let mm = 0; mm < 24 * 60; mm += 30) {
+    slots.push(`${String(Math.floor(mm / 60)).padStart(2, '0')}:${String(mm % 60).padStart(2, '0')}`);
+  }
+
+  function pick(hhmm: string) {
+    onChange(hhmm);
+    setText(to12h(hhmm));
+    setOpen(false);
+  }
+
+  function commit() {
+    const hhmm = from12h(text);
+    if (hhmm) { onChange(hhmm); setText(to12h(hhmm)); }
+    else setText(to12h(value)); // unparseable → snap back
+  }
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative', ...style }}>
+      <input
+        type="text" value={text} className="input" style={{ width: '100%' }}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => { setText(e.target.value); const h = from12h(e.target.value); if (h) onChange(h); }}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === 'Enter') { commit(); setOpen(false); } if (e.key === 'Escape') setOpen(false); }}
+      />
+      {open && (
+        <ul role="listbox" className="card thin-scroll" style={{
+          position: 'absolute', top: 'calc(100% + 4px)', insetInlineStart: 0, zIndex: 30,
+          minWidth: '100%', maxHeight: 200, overflowY: 'auto', padding: 4, margin: 0, listStyle: 'none',
+        }}>
+          {slots.map((s) => {
+            const sel = s === value;
+            return (
+              <li key={s}>
+                <button type="button" role="option" aria-selected={sel} className="btn btn-ghost"
+                  onMouseDown={(e) => { e.preventDefault(); pick(s); }}
+                  style={{
+                    width: '100%', justifyContent: 'flex-start', textAlign: 'start',
+                    minHeight: 34, padding: '6px 10px', fontSize: 13,
+                    fontWeight: sel ? 600 : 400,
+                    color: sel ? 'var(--text-accent)' : 'var(--text-primary)',
+                  }}>
+                  {to12h(s)}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** "17:30" -> "5:30 PM". */
+function to12h(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  if (Number.isNaN(h)) return '';
+  const period = h < 12 ? 'AM' : 'PM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+/** "5:30 PM" / "17:30" / "5 pm" -> "17:30"; null if unparseable. */
+function from12h(raw: string): string | null {
+  const m = /^\s*(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m?\.?\s*$/i.exec(raw)
+    || /^\s*(\d{1,2}):(\d{2})\s*$/.exec(raw);
+  if (!m) return null;
+  let h = Number(m[1]);
+  const min = m[2] ? Number(m[2]) : 0;
+  const period = m[3]?.toLowerCase();
+  if (h > 23 || min > 59) return null;
+  if (period === 'p' && h < 12) h += 12;
+  if (period === 'a' && h === 12) h = 0;
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
 /** Inline stroke icons (feather/lucide geometry) replacing emoji so glyphs stay
  *  on-brand, currentColor-tinted, and consistent across platforms. */
 const ICON_PATHS: Record<string, ReactNode> = {

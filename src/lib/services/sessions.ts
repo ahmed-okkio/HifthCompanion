@@ -121,6 +121,24 @@ export async function setSessionCanceled(
   if (error) throw error;
 }
 
+/**
+ * Move one session to a new time. `movedFrom` is the original recurrence instant
+ * so its virtual twin stays suppressed; pass the row's existing moved_from when
+ * re-rescheduling so it keeps pointing at the very first slot.
+ */
+export async function rescheduleSession(
+  id: string,
+  newScheduledAt: string,
+  movedFrom: string,
+): Promise<void> {
+  const supabase = await createClientAction();
+  const { error } = await supabase
+    .from('session')
+    .update({ scheduled_at: newScheduledAt, moved_from: movedFrom })
+    .eq('id', id);
+  if (error) throw error;
+}
+
 /** Mark (or clear) a session's attendance on the session row (D3). */
 export async function setSessionAttendance(
   sessionId: string,

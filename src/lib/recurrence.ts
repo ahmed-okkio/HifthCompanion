@@ -135,6 +135,11 @@ export function sectionSessions(
   // `+00:00` vs `.000Z`), so a string compare would miss the dedup and show the
   // slot as both a virtual "awaiting" AND its resolved history row (T6).
   const byTime = new Map(rows.map((r) => [new Date(r.scheduled_at).getTime(), r]));
+  // Instants a row was rescheduled AWAY from: their virtual twins must not
+  // re-appear, else a moved session shows both at its old and new time.
+  const movedFrom = new Set(
+    rows.filter((r) => r.moved_from).map((r) => new Date(r.moved_from!).getTime()),
+  );
 
   // Virtual slots reach back only GRACE_MS before now: a just-passed slot stays
   // markable as "awaiting" for a short grace window, then vanishes forever unless
@@ -143,6 +148,7 @@ export function sectionSessions(
   const windowStart = new Date(nowMs - GRACE_MS);
   const virtual = recurringSlots(rule, windowStart, horizonDays + 1)
     .filter((iso) => !byTime.has(new Date(iso).getTime())) // real row wins the dedup (T6)
+    .filter((iso) => !movedFrom.has(new Date(iso).getTime())) // rescheduled slots don't reappear
     .map((iso) => ({ scheduled_at: iso, session: null }));
 
   const graceStartMs = nowMs - GRACE_MS;

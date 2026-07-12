@@ -244,6 +244,11 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   to { opacity: 1; transform: none; }
 }
 
+@keyframes slide-down {
+  from { opacity: 0; max-height: 0; padding-top: 0; }
+  to { opacity: 1; max-height: 120px; padding-top: 10px; }
+}
+
 @keyframes shimmer {
   from { background-position: 200% 0; }
   to { background-position: -200% 0; }

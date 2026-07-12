@@ -10,7 +10,7 @@ import type {
 } from '@/types';
 import { displayName } from '@/lib/displayName';
 import {
-  createAdhocSession, materializeSession, setSchedule, setSessionAttendance, setSessionCanceled,
+  createAdhocSession, materializeSession, rescheduleSession, setSchedule, setSessionAttendance, setSessionCanceled,
 } from '@/lib/services/sessions';
 import { sectionSessions, floatingNow, type SessionSlot } from '@/lib/recurrence';
 import { prescribeHomework, editDeadline, deleteHomework } from '@/lib/services/homework';
@@ -24,7 +24,7 @@ import {
 import { AYAH_COUNTS, TOTAL_JUZ, TOTAL_SURAHS, getSurahName, getSurahForPage, spreadUrl } from '@/lib/quran';
 import {
   SectionTitle, EmptyState, Avatar, StatCard, Ring, StatusDot, DateChip, TabBar,
-  SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, Chevron, Icon,
+  SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, Chevron, Icon, TimeSelect,
 } from './ui';
 import { attendanceStats } from '@/lib/analytics';
 import MarkedPagesList from '@/components/MarkedPagesList';
@@ -326,6 +326,13 @@ function StudentSessions({
   // Just-marked session id: keeps the slot in Next (showing the selection) for a
   // beat before it reflows into History (T5 linger).
   const [lingerId, setLingerId] = useState<string | null>(null);
+  // Slot currently being rescheduled (keyed by its scheduled_at) + draft fields.
+  const [reschedKey, setReschedKey] = useState<string | null>(null);
+  const [reschedDate, setReschedDate] = useState('');
+  const [reschedTime, setReschedTime] = useState('');
+  // overflow:hidden clips the slide-down while it grows; the clock popup needs
+  // overflow:visible, so lift the clip once the open animation finishes.
+  const [reschedOpen, setReschedOpen] = useState(false);
 
   // Localized weekday short labels (2023-01-01 is a Sunday → index 0 = Sun).
   const dayLabels = useMemo(
@@ -392,6 +399,33 @@ function StudentSessions({
     }
   }
 
+  // Open the inline editor pre-filled with the slot's current local date/time.
+  function openReschedule(slot: SessionSlot) {
+    const d = new Date(slot.scheduled_at);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    setReschedDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`);
+    setReschedTime(`${pad(d.getHours())}:${pad(d.getMinutes())}`);
+    setReschedOpen(false);
+    setReschedKey(slot.scheduled_at);
+  }
+
+  async function handleReschedule(slot: SessionSlot) {
+    if (!reschedDate || !reschedTime) return;
+    try {
+      const s = await ensureRow(slot); // real row at the original time
+      const newIso = new Date(`${reschedDate}T${reschedTime}`).toISOString();
+      // Keep pointing at the FIRST recurrence slot if this row was already moved.
+      const movedFrom = s.moved_from ?? slot.scheduled_at;
+      await rescheduleSession(s.id, newIso, movedFrom);
+      setSessions((p) =>
+        p.map((x) => (x.id === s.id ? { ...x, scheduled_at: newIso, moved_from: movedFrom } : x))
+          .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)));
+      setReschedKey(null);
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
+
   async function handleAttendance(slot: SessionSlot, status: AttendanceStatus) {
     try {
       const s = await ensureRow(slot);
@@ -411,11 +445,13 @@ function StudentSessions({
   }
 
   // One card renderer for all three sections; flags gate attendance/cancel.
-  function SlotCard({ slot, attendance, cancelable }: {
-    slot: SessionSlot; attendance: boolean; cancelable: boolean;
+  function SlotCard({ slot, attendance, cancelable, reschedulable }: {
+    slot: SessionSlot; attendance: boolean; cancelable: boolean; reschedulable?: boolean;
   }) {
     const s = slot.session;
     const canceled = s?.canceled ?? false;
+    const moved = !!s?.moved_from;
+    const editing = reschedKey === slot.scheduled_at;
     return (
       <div className="card flex flex-col gap-2" style={{ padding: '12px 14px', opacity: canceled ? 0.5 : 1 }}>
         <div className="flex items-center gap-3">
@@ -424,6 +460,7 @@ function StudentSessions({
             <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
               {fmtNum(new Date(slot.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' }))}
               {s?.is_adhoc && <span className="badge" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
+              {moved && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.rescheduled')}</span>}
               {canceled && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.canceled')}</span>}
               {!canceled && s?.attendance_status && (
                 <span className="badge" style={{ fontSize: 10 }}>{t(`att.${s.attendance_status}`)}</span>
@@ -431,12 +468,31 @@ function StudentSessions({
             </span>
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtNum(fmtTime(slot.scheduled_at, locale))}</span>
           </div>
+          {reschedulable && !canceled && (
+            <button onClick={() => (editing ? setReschedKey(null) : openReschedule(slot))} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              {t('sessions.reschedule')}
+              <Chevron open={editing} />
+            </button>
+          )}
           {cancelable && (
             <button onClick={() => handleCancel(slot)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11 }}>
               {canceled ? t('sessions.reinstate') : t('sessions.cancel')}
             </button>
           )}
         </div>
+        {editing && (
+          <div className="flex gap-2 items-end flex-wrap" onAnimationEnd={() => setReschedOpen(true)}
+               style={{ borderTop: '1px solid var(--border-subtle)', overflow: reschedOpen ? 'visible' : 'hidden', animation: 'slide-down 0.22s var(--ease-out) both' }}>
+            <input type="date" value={reschedDate} onChange={(e) => setReschedDate(e.target.value)} className="input" style={{ minHeight: 36 }} />
+            <TimeSelect value={reschedTime} onChange={setReschedTime} style={{ minHeight: 36, width: 130 }} />
+            <button onClick={() => handleReschedule(slot)} className="btn btn-primary" style={{ minHeight: 36, fontSize: 12, padding: '0 14px' }}>
+              {t('common.save')}
+            </button>
+            <button onClick={() => setReschedKey(null)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 12 }}>
+              {t('common.cancel')}
+            </button>
+          </div>
+        )}
         {attendance && !canceled && (
           <div className="flex flex-wrap gap-1">
             {ATT_STATUSES.map((st) => {
@@ -527,7 +583,7 @@ function StudentSessions({
               ? t('sessions.awaitingAttendance')
               : t('sessions.next')}
           </SectionTitle>
-          <SlotCard slot={sections.next} attendance={sections.nextEditable} cancelable />
+          <SlotCard slot={sections.next} attendance={sections.nextEditable} cancelable reschedulable />
         </div>
       )}
 
@@ -546,7 +602,7 @@ function StudentSessions({
           {sessTab === 'upcoming' &&
             (sections.upcoming.length > 0 ? (
               sections.upcoming.map((slot) => (
-                <SlotCard key={slot.scheduled_at} slot={slot} attendance={false} cancelable />
+                <SlotCard key={slot.scheduled_at} slot={slot} attendance={false} cancelable reschedulable />
               ))
             ) : (
               <EmptyState>{t('sessions.none')}</EmptyState>

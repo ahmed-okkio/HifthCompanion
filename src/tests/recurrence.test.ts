@@ -79,7 +79,7 @@ describe('sectionSessions', () => {
   const rule: Recurrence = { weekdays: [1], time: '17:00' }; // Mondays 17:00
   const row = (over: Partial<Session> & { scheduled_at: string }): Session => ({
     id: over.scheduled_at, membership_id: 'm', is_adhoc: false, canceled: false,
-    attendance_status: null, created_at: over.scheduled_at, ...over,
+    attendance_status: null, moved_from: null, created_at: over.scheduled_at, ...over,
   });
 
   it('dedups a real row over its virtual twin (T6)', () => {
@@ -134,6 +134,20 @@ describe('sectionSessions', () => {
     expect(next?.scheduled_at).toBe('2026-07-06T17:00:00.000Z');
     expect(nextEditable).toBe(false);
     expect(upcoming[0].scheduled_at).toBe('2026-07-13T17:00:00.000Z');
+  });
+
+  it('a rescheduled row suppresses the virtual twin at its original slot', () => {
+    const now = new Date('2026-07-03T09:00:00Z'); // Fri; Monday 07-06 slot is future
+    // Row moved off the 07-06 17:00 Monday to Tuesday 07-07 15:00.
+    const rows = [row({
+      scheduled_at: '2026-07-07T15:00:00.000Z',
+      moved_from: '2026-07-06T17:00:00.000Z',
+    })];
+    const { next, upcoming } = sectionSessions(rule, rows, now);
+    const times = [next, ...upcoming].filter((s): s is NonNullable<typeof s> => !!s)
+      .map((s) => s.scheduled_at);
+    expect(times).toContain('2026-07-07T15:00:00.000Z'); // the moved row
+    expect(times).not.toContain('2026-07-06T17:00:00.000Z'); // twin suppressed
   });
 
   it('History is resolved rows, newest first, and a marked Next drops out (T2/T5)', () => {

@@ -83,7 +83,7 @@ export function useToolState(): ToolState {
   const [activeTool, setActiveTool] = useState<Tool>('pen');
   const [activeColor, setActiveColor] = useState<string>('#ef4444');
   const [opacity, setOpacity] = useState<number>(0.4);
-  const [penWidth, setPenWidth] = useState<number>(6);
+  const [penWidth, setPenWidth] = useState<number>(4);
   const [eraserSize, setEraserSize] = useState<number>(20);
   return { activeTool, setActiveTool, activeColor, setActiveColor, opacity, setOpacity, penWidth, setPenWidth, eraserSize, setEraserSize };
 }

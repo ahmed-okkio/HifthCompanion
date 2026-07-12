@@ -31,11 +31,15 @@ export default function ReadOnlyCanvas({ pageNum, imageUrl, canvasJson }: Props)
 
      const widthLimit = Math.max(280, containerRef.current!.clientWidth);
      const heightLimit = Math.max(320, window.innerHeight - 24);
+     // Use the page's real intrinsic dims (not a fixed 800x1132) so the box hugs the page and
+     // matches the aspect annotations were saved at — a fixed aspect letterboxes the page and
+     // misaligns the marks. minSize 1: never force-widen a narrow column and break aspect.
      const fitSize = calculatePageCanvasSize(
-       800,
-       1132,
+       img.naturalWidth || 827,
+       img.naturalHeight || 1158,
        widthLimit,
        heightLimit,
+       1,
      );
      setCanvasSize(fitSize);
 
@@ -79,19 +83,17 @@ export default function ReadOnlyCanvas({ pageNum, imageUrl, canvasJson }: Props)
       canvas.loadFromJSON(canvasJson, () => {
 
         const originalWidth = canvasJson.width;
-        const originalHeight = canvasJson.height;
 
-        if (originalWidth && originalHeight) {
-          const scaleX = fitSize.width / originalWidth;
-          const scaleY = fitSize.height / originalHeight;
-
+        if (originalWidth) {
+          // Uniform WIDTH ratio on both axes: the page is width-filled + top-aligned, so the
+          // saved box height is irrelevant. Scaling Y by a height ratio drifts marks vertically
+          // whenever the saved box aspect differs from the current one (the misalignment).
+          const ratio = fitSize.width / originalWidth;
           canvas.getObjects().forEach((obj) => {
-            obj.scaleX = (obj.scaleX ?? 1) * scaleX;
-            obj.scaleY = (obj.scaleY ?? 1) * scaleY;
-
-            obj.left = (obj.left ?? 0) * scaleX;
-            obj.top = (obj.top ?? 0) * scaleY;
-
+            obj.scaleX = (obj.scaleX ?? 1) * ratio;
+            obj.scaleY = (obj.scaleY ?? 1) * ratio;
+            obj.left = (obj.left ?? 0) * ratio;
+            obj.top = (obj.top ?? 0) * ratio;
             obj.setCoords();
           });
         }

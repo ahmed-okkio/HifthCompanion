@@ -345,8 +345,12 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     });
   }, [sizeCanvasForImage]);
 
-  // Scale every object on the canvas by `ratio` (used when the canvas is resized to a different
-  // page/container, so existing drawings stay aligned to the page).
+  // Scale every object by the WIDTH ratio, uniformly on both axes. The page background is always
+  // width-filled (scaleToWidth) and top-aligned (0,0), so a mark's on-page position is governed
+  // purely by the width scale — the saved box HEIGHT is irrelevant (older boxes were taller and
+  // letterboxed the page at the bottom). Scaling Y by a height ratio instead would drift marks
+  // vertically whenever the saved box and current box differ in aspect. Uniform-by-width is
+  // correct across every aspect-history combination.
   const rescaleObjects = useCallback((canvas: fabric.Canvas, ratio: number) => {
     if (!ratio || ratio === 1 || !isFinite(ratio)) return;
     canvas.getObjects().forEach((o) => {

@@ -6,6 +6,8 @@ import ReadOnlyCanvas from '@/components/ReadOnlyCanvas';
 import ShareShell from '@/components/ShareShell';
 import ReaderShell from '@/components/ReaderShell';
 import NotesPanel from '@/components/NotesPanel';
+import SpreadNotesPanel from '@/components/SpreadNotesPanel';
+import type { Note } from '@/types';
 import { getNotes } from '@/lib/services/notes';
 import { getMyChrome, getProfilesByIds } from '@/lib/services/profile';
 import { displayName } from '@/lib/displayName';
@@ -83,6 +85,8 @@ export default async function SharePage({ params, searchParams }: Props) {
     });
     const account = await getMyChrome(user);
     const initialNotes = await getNotes(setId, pageNum).catch(() => []);
+    // Spread: also fetch the other page so the split composer targets both (matches reader).
+    const otherNotes: Note[] = spread ? await getNotes(setId, spread[1]).catch(() => []) : [];
     // If the viewer teaches the set owner, always offer a link back to that
     // student's tracker page (resolved server-side — no cross-page ?back= state).
     const studentPath = await getStudentPagePathForOwner(annotationSet.user_id).catch(() => null);
@@ -128,7 +132,15 @@ export default async function SharePage({ params, searchParams }: Props) {
               <span>{dict['share.openStudentProfile']}</span>
             </a>
           )}
-          <NotesPanel setId={setId} pageNum={pageNum} initialNotes={initialNotes} />
+          {spread ? (
+            <SpreadNotesPanel
+              setId={setId}
+              pages={spread}
+              initialNotes={{ [pageNum]: initialNotes, [spread[1]]: otherNotes }}
+            />
+          ) : (
+            <NotesPanel setId={setId} pageNum={pageNum} initialNotes={initialNotes} />
+          )}
         </div>
       </ReaderShell>
     );

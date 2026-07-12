@@ -191,15 +191,20 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     // the chrome ABOVE the page (toolbar+gaps), whose distance from the column top is constant
     // regardless of centering or page size. Return an equivalent offset so callers keep working.
     const main = frame?.closest('main') as HTMLElement | null;
-    // Anchor on the OUTERMOST page column, not the nearest: in spread mode each canvas has its
-    // own inner column (no toolbar in controlled mode), so the nearest one gives chromeAbove≈0
-    // and over-sizes the page. The outer column (shared toolbar) is the true chrome above the page.
-    let column: HTMLElement | null = null;
-    for (let el = frame?.parentElement ?? null; el; el = el.parentElement) {
-      if (el.matches('[data-page-column]')) column = el;
+    // Anchor on the TOP of the centered content block (its first child), which sits above ALL
+    // page chrome — toolbar AND any banner (the collaborator share view adds one). Both the frame
+    // and this anchor shift together under justify-center, so their distance (= chrome height)
+    // cancels the centering offset and stays constant regardless of page size. Fall back to the
+    // outermost [data-page-column] (spread: shared-toolbar column) when there's no centered block.
+    const centered = frame?.closest('[data-canvas-centered]') as HTMLElement | null;
+    let anchor: HTMLElement | null = (centered?.firstElementChild as HTMLElement | null) ?? null;
+    if (!anchor) {
+      for (let el = frame?.parentElement ?? null; el; el = el.parentElement) {
+        if (el.matches('[data-page-column]')) anchor = el;
+      }
     }
-    if (frame && main && column && main.clientHeight > 0) {
-      const chromeAbove = frame.getBoundingClientRect().top - column.getBoundingClientRect().top;
+    if (frame && main && anchor && main.clientHeight > 0) {
+      const chromeAbove = frame.getBoundingClientRect().top - anchor.getBoundingClientRect().top;
       const avail = main.clientHeight - chromeAbove - PAGE_BOTTOM_GAP;
       const offset = Math.round(window.innerHeight - Math.max(320, avail));
       setPageMaxHeightOffset(offset);

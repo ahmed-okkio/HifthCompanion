@@ -356,7 +356,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
                   which keeps a computed matrix via animation-fill-mode: both) would make it the
                   containing block, pinning the fixed bar to <main> instead of the viewport. */}
               <main className="w-full flex-grow px-4 pt-6 pb-2 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:py-0">
-                <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
+                <div data-canvas-centered className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
 
                   {banner}
 

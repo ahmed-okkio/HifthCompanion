@@ -35,13 +35,27 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
   const handleCreate = (bodyArg?: string) => {
     const body = (bodyArg ?? newBody).trim();
     if (!body) return;
+    // Optimistic: show the note (and clear the input) immediately; reconcile with the server row
+    // when it returns, or roll back and restore the draft on failure.
+    const now = new Date().toISOString();
+    const tempId = `temp-${(globalThis.crypto?.randomUUID?.() ?? String(Date.now() + Math.random()))}`;
+    const optimistic: Note = { id: tempId, set_id: setId, page_number: pageNum, body, x: null, y: null, created_at: now, updated_at: now };
+    setNotes(prev => [...prev, optimistic]);
+    if (bodyArg === undefined) setNewBody('');
     startTransition(async () => {
       try {
         const { data, error } = await createNote(setId, pageNum, body);
-        if (error) { console.error('[NotesPanel] Create error:', error); return; }
-        if (data) { setNotes(prev => [...prev, data]); if (bodyArg === undefined) setNewBody(''); }
+        if (error || !data) {
+          console.error('[NotesPanel] Create error:', error);
+          setNotes(prev => prev.filter(n => n.id !== tempId));
+          if (bodyArg === undefined) setNewBody(body); // give the text back to retry
+          return;
+        }
+        setNotes(prev => prev.map(n => n.id === tempId ? data : n)); // temp → real row
       } catch (err) {
         console.error('[NotesPanel] Create error:', err);
+        setNotes(prev => prev.filter(n => n.id !== tempId));
+        if (bodyArg === undefined) setNewBody(body);
       }
     });
   };

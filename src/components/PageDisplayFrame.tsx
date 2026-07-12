@@ -60,11 +60,13 @@ export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, 
             animation: ready ? 'none' : 'shimmer 1.4s linear infinite',
             opacity: ready ? 0 : 1,
             pointerEvents: 'none',
-            transition: 'opacity 0.25s ease',
+            // Fade OUT smoothly when the page is ready; appear INSTANTLY when a swap starts
+            // (ready→false) so a fast/cached page change still flashes the skeleton.
+            transition: ready ? 'opacity 0.25s ease' : 'none',
           }}
         />
-        {/* Page animates in once the canvas is ready: skeleton (above) fades out, page fades +
-            scales up. */}
+        {/* Page fades in once the canvas is ready; skeleton (above) fades out. No scale — the
+            frame keeps its size the whole time so the page never appears to grow on swap. */}
         <div
           style={{
             width: '100%',
@@ -73,8 +75,8 @@ export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, 
             alignItems: 'center',
             justifyContent: 'center',
             opacity: ready ? 1 : 0,
-            transform: ready ? 'scale(1)' : 'scale(0.985)',
-            transition: 'opacity 0.35s ease, transform 0.35s var(--ease-out, ease)',
+            // Fade IN when ready; hide instantly on swap start so the skeleton shows at once.
+            transition: ready ? 'opacity 0.35s ease' : 'none',
           }}
         >
           {children}

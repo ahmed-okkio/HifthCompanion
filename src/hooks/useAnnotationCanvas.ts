@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { fabric } from 'fabric';
 import { createClient } from '@/lib/supabase/client';
 import type { AnnotationSet } from '@/types';
@@ -9,6 +9,16 @@ import { CanvasHistory } from '@/lib/canvasHistory';
 import { type Tool, getToolCursor } from '@/lib/canvasTools';
 import { createAnnotationStore, type CanvasJson } from '@/lib/annotationStore';
 import { pruneDegenerate, clusterCount } from '@/lib/markedPages';
+import { TOTAL_PAGES } from '@/lib/quran';
+
+// In-memory annotation cache (per tab, cleared on reload) keyed by set+page. Feeds the FIRST
+// paint on navigation so a revisited/prefetched page appears instantly; correctness comes from
+// stale-while-revalidate (every load still hits the network in the background and swaps in the
+// latest if it changed) plus write-through on save. Shared across canvas instances (module scope).
+type AnnotCacheEntry = { json: CanvasJson | null };
+const annotCache = new Map<string, AnnotCacheEntry>();
+const annotKey = (setId: string, page: number) => `${setId}:${page}`;
+const objectsSig = (j: CanvasJson | null) => JSON.stringify((j as any)?.objects ?? []);
 
 const SAVE_DELAY_MS = 1500;
 // Highlighter is a fixed wide brush (like a real marker), independent of the pen width.
@@ -174,6 +184,28 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   // frame's CSS maxHeight tracks the same value used to size the canvas.
   const measurePageOffset = useCallback(() => {
     const frame = containerRef.current;
+    // The workspace <main> is vertically centered (justify-center), so the frame's own top
+    // depends on the frame's height — reading it to size the frame is circular and makes the
+    // page grow over several ResizeObserver frames (visible "starts small, snaps bigger").
+    // Anchor instead on stable measures: the fixed-height workspace (main.clientHeight) minus
+    // the chrome ABOVE the page (toolbar+gaps), whose distance from the column top is constant
+    // regardless of centering or page size. Return an equivalent offset so callers keep working.
+    const main = frame?.closest('main') as HTMLElement | null;
+    // Anchor on the OUTERMOST page column, not the nearest: in spread mode each canvas has its
+    // own inner column (no toolbar in controlled mode), so the nearest one gives chromeAbove≈0
+    // and over-sizes the page. The outer column (shared toolbar) is the true chrome above the page.
+    let column: HTMLElement | null = null;
+    for (let el = frame?.parentElement ?? null; el; el = el.parentElement) {
+      if (el.matches('[data-page-column]')) column = el;
+    }
+    if (frame && main && column && main.clientHeight > 0) {
+      const chromeAbove = frame.getBoundingClientRect().top - column.getBoundingClientRect().top;
+      const avail = main.clientHeight - chromeAbove - PAGE_BOTTOM_GAP;
+      const offset = Math.round(window.innerHeight - Math.max(320, avail));
+      setPageMaxHeightOffset(offset);
+      return offset;
+    }
+    // Fallback (pre-layout, or contexts without the reader <main>, e.g. share view).
     const top = frame ? frame.getBoundingClientRect().top : 0;
     const offset = top > 0 ? Math.round(top) + PAGE_BOTTOM_GAP : FALLBACK_PAGE_OFFSET;
     setPageMaxHeightOffset(offset);
@@ -197,8 +229,14 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   const onSavedRef = useRef(onSaved);
   onSavedRef.current = onSaved;
   const isLoadingRef = useRef(false);
+  // Dirty guard for stale-while-revalidate: set on any real user edit, cleared on each load.
+  // A background revalidation must NOT swap in the fetched JSON if the user has drawn since
+  // landing (that would clobber their in-progress strokes) — it defers to the local edits,
+  // which the debounced save then persists as the new latest.
+  const userEditedSinceLoadRef = useRef(false);
   const commit = useCallback((force = false) => {
     if (isLoadingRef.current) return;
+    userEditedSinceLoadRef.current = true;
     // Undo/redo reloads the canvas via loadFromJSON, which re-fires object:added/removed.
     // Those are NOT user actions: snapshotting or notifying the shell here would re-grow the
     // stack and re-push onto the cross-page undo order (F4), so the oldest stroke can never be
@@ -233,11 +271,18 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   // contain). Desktop is height-bound (fits the fixed app-shell, no page scroll); mobile is
   // width-bound (fills the column width, scroll down for the rest). No per-page tuning — just
   // scale the native image up/down to fit whatever box the layout gives it.
-  const computeFitSize = useCallback((_natW: number, _natH: number): PageCanvasSize => {
-    const wrapperWidth = wrapperRef.current?.clientWidth || window.innerWidth - 72;
+  const computeFitSize = useCallback((natW: number, natH: number): PageCanvasSize => {
+    // Prefer the actual page slot width when present (spread mode: the flex:1 slot sits next to
+    // an in-flow nav arrow, so it's narrower than the whole wrapper — measuring the wrapper would
+    // over-size the page and stretch it after the CSS clamp). Single mode has no slot → wrapper.
+    const slot = containerRef.current?.closest('[data-page-slot]') as HTMLElement | null;
+    const wrapperWidth = slot?.clientWidth || wrapperRef.current?.clientWidth || window.innerWidth - 72;
     const isMobile = window.innerWidth < 1024;
     const availableHeight = isMobile ? 100000 : Math.max(320, window.innerHeight - measurePageOffset());
-    return calculatePageCanvasSize(800, 1132, Math.max(280, wrapperWidth), availableHeight);
+    // Use the page's real aspect so the fit box hugs the page — a hardcoded aspect letterboxes
+    // the loaded image, making it render smaller than the reserved skeleton box. Fall back to a
+    // representative page size (827x1158) before the image's intrinsic size is known.
+    return calculatePageCanvasSize(natW || 827, natH || 1158, wrapperWidth, availableHeight, 1);
   }, [measurePageOffset]);
 
   // Resize the live canvas to the contain-fit box for the given intrinsic size, and publish that
@@ -328,6 +373,9 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
         : clusterCount(payload.objects as any, Math.max(16, Math.round(canvas.getWidth() * 0.03)));
       const r = await store.save(setId, page, payload, count);
       if (r.status === 'saved') {
+        // Write-through: the cache entry for this page can't go stale from our own save, since
+        // we refresh it with the exact payload we just persisted (null when the page is now empty).
+        annotCache.set(annotKey(setId, page), { json: count === 0 ? null : payload });
         // R3/R4: patch the Marked tab in place — new count, or 0 (row removed).
         onSavedRef.current?.(setId, page, count);
       } else if (r.status === 'denied') {
@@ -393,55 +441,130 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     };
   }, [saveNow]);
 
+  // Delayed skeleton: only show the loading skeleton if a page swap takes longer than this. A
+  // cache hit (or a fast network) settles first and cancels the timer, so instant loads never
+  // flash a skeleton; only genuinely slow loads reveal it.
+  const SKELETON_DELAY_MS = 140;
+  const skeletonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleSkeleton = useCallback(() => {
+    if (skeletonTimerRef.current) return; // already pending / showing
+    skeletonTimerRef.current = setTimeout(() => {
+      skeletonTimerRef.current = null;
+      setCanvasReady(false);
+    }, SKELETON_DELAY_MS);
+  }, []);
+  const cancelSkeleton = useCallback(() => {
+    if (skeletonTimerRef.current) { clearTimeout(skeletonTimerRef.current); skeletonTimerRef.current = null; }
+  }, []);
+  useEffect(() => () => cancelSkeleton(), [cancelSkeleton]);
+
+  // Registry of skeleton-schedulers (one per live canvas) so a nav click on one spread page arms
+  // the delayed skeleton on BOTH pages at once (beginPageNav fans out over this set).
+  useEffect(() => {
+    const w = window as any;
+    const set: Set<() => void> = w.__hifthCanvasSkeletons ?? (w.__hifthCanvasSkeletons = new Set());
+    set.add(scheduleSkeleton);
+    return () => { set.delete(scheduleSkeleton); };
+  }, [scheduleSkeleton]);
+
+  // Warm the cache for neighbouring pages on idle so the next prev/next paints from cache.
+  const prefetchAdjacent = useCallback((setId: string, page: number) => {
+    const idle: (cb: () => void) => void =
+      (window as any).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 300));
+    idle(() => {
+      for (const pg of [page - 1, page + 1]) {
+        if (pg < 1 || pg > TOTAL_PAGES) continue;
+        const k = annotKey(setId, pg);
+        if (annotCache.has(k)) continue;
+        store.load(setId, pg).then(json => annotCache.set(k, { json })).catch(() => {});
+      }
+    });
+  }, [store]);
+
   const loadAnnotation = useCallback(async (canvas: fabric.Canvas, setId: string, page: number) => {
     if (lastLoadedRef.current?.setId === setId && lastLoadedRef.current?.pageNum === page) return;
     activeLoadSetIdRef.current = setId;
     isLoadingRef.current = true;
-    setCanvasReady(false);
-
-    let canvasJson: CanvasJson | null;
-    try {
-      canvasJson = await store.load(setId, page);
-    } catch (error) {
-      console.error('[AnnotationCanvas] Load error:', error);
-      return;
-    }
+    // Arm the delayed skeleton (no-op if a nav click already armed it). It only paints if this
+    // load is slow; a cache hit below settles first and cancels it, so cached pages don't flash.
+    scheduleSkeleton();
 
     // Alive = right set still loading AND canvas not disposed. Fabric nulls lowerCanvasEl
     // on dispose(), so operating after that throws "ctx is null" in clear()/clearRect.
     const alive = () => activeLoadSetIdRef.current === setId && (canvas as any).lowerCanvasEl != null;
-    if (!alive()) return;
 
-    if (canvasJson) {
-      const savedW = canvasJson.width;
-      canvas.loadFromJSON(canvasJson, async () => {
-        if (!alive()) return;
-        // Re-fit the canvas to THIS page's image, then scale the loaded objects from the size
-        // they were saved at to the current fit — keeps existing drawings aligned to the page.
+    // Paint a CanvasJson (or null = empty) into the live canvas, re-fitting to this page's image.
+    const render = (json: CanvasJson | null) => new Promise<void>((resolve) => {
+      if (!alive()) return resolve();
+      const finish = async () => {
         const fit = await applyBackground(canvas, imageUrl);
-        if (!alive()) return;
-        rescaleObjects(canvas, savedW ? fit.width / savedW : 1);
+        if (!alive()) return resolve();
+        if (json) rescaleObjects(canvas, json.width ? fit.width / json.width : 1);
         canvas.getObjects().forEach(lockMark); // loaded objects default to selectable → lock them
         canvas.renderAll();
         historyRef.current?.clear();
         historyRef.current?.snapshot();
         refreshHistory();
-        lastLoadedRef.current = { setId, pageNum: page };
-        isLoadingRef.current = false;
-        setCanvasReady(true);
-      });
-    } else {
-      canvas.clear();
-      await applyBackground(canvas, imageUrl);
-      if (!alive()) return;
-      historyRef.current?.clear();
-      historyRef.current?.snapshot();
-      refreshHistory();
+        resolve();
+      };
+      if (json) canvas.loadFromJSON(json, finish);
+      else { canvas.clear(); void finish(); }
+    });
+
+    const settle = () => {
+      cancelSkeleton(); // load finished — never let a pending skeleton flash after the fact
       lastLoadedRef.current = { setId, pageNum: page };
       isLoadingRef.current = false;
+      userEditedSinceLoadRef.current = false;
       setCanvasReady(true);
+      prefetchAdjacent(setId, page);
+    };
+
+    const key = annotKey(setId, page);
+    const cached = annotCache.get(key);
+
+    // Fast path: paint the cached copy immediately (no network wait) — instant first paint.
+    if (cached) {
+      await render(cached.json);
+      if (!alive()) return;
+      settle();
     }
-  }, [store, imageUrl, applyBackground, rescaleObjects, refreshHistory]);
+
+    // Always revalidate from the network (stale-while-revalidate). On a cache miss this IS the
+    // primary load; on a hit it silently swaps in the latest if it changed (e.g. a teacher wrote
+    // to the student's page) — but never over the user's own in-progress edits.
+    let fresh: CanvasJson | null;
+    try {
+      fresh = await store.load(setId, page);
+    } catch (error) {
+      console.error('[AnnotationCanvas] Load error:', error);
+      if (!cached) { isLoadingRef.current = false; }
+      return;
+    }
+    annotCache.set(key, { json: fresh });
+    if (!alive()) return;
+
+    if (!cached) {
+      await render(fresh);
+      if (!alive()) return;
+      settle();
+    } else if (objectsSig(fresh) !== objectsSig(cached.json)
+        && !userEditedSinceLoadRef.current && !saveTimerRef.current) {
+      // Remote change since our cached copy, and the user hasn't drawn since landing → swap it in.
+      await render(fresh);
+      if (!alive()) return;
+      userEditedSinceLoadRef.current = false;
+    }
+  }, [store, imageUrl, applyBackground, rescaleObjects, refreshHistory, prefetchAdjacent, scheduleSkeleton, cancelSkeleton]);
+
+  // Reserve the fit box BEFORE the browser paints so the frame never flashes the wide/short
+  // height:auto fallback (odd aspect) then snap to the page. computeFitSize is now stable
+  // (non-circular offset), so a synchronous pre-paint measurement matches the load-time size.
+  // Uses a representative aspect until the image's own dims are known; the load then re-fits to
+  // that page's real aspect (pages differ in resolution — each keeps its own ratio).
+  useLayoutEffect(() => {
+    if (canvasRef.current && containerRef.current) setCanvasSize(prev => prev ?? computeFitSize(0, 0));
+  }, [computeFitSize]);
 
   // Canvas init + resize.
   // Story 24 (soft page swap): this effect creates/disposes the Fabric instance ONCE
@@ -451,7 +574,6 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   useEffect(() => {
     if (!canvasRef.current || !containerRef.current) return;
     let isMounted = true;
-    setCanvasSize(null);
     const img = new Image();
     img.src = imageUrlRef.current;
     let canvas: fabric.Canvas | null = null;
@@ -898,5 +1020,14 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,
     applyBackingForZoom,
+    // Arm the delayed skeleton the instant a page-nav click happens, not when the route commits:
+    // on a throttled network usePathname (and thus loadAnnotation) only updates after the RSC
+    // fetch, so this covers the gap. It's the DELAYED skeleton (140ms), so a fast/cached turn
+    // that lands first cancels it and never flashes. Fans out so BOTH spread pages arm together.
+    beginPageNav: () => {
+      const set = (window as any).__hifthCanvasSkeletons as Set<() => void> | undefined;
+      if (set && set.size) set.forEach(fn => fn());
+      else scheduleSkeleton();
+    },
   };
 }

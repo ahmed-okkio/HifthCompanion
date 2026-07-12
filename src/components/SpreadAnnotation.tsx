@@ -115,7 +115,7 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
   const onToolClick = (t: Tool) => { setMoveTool(false); setActiveTool(prev => prev === t ? 'pen' : t); };
 
   return (
-    <div className="flex w-full flex-col items-stretch gap-4 sm:gap-5">
+    <div data-page-column className="flex w-full flex-col items-stretch gap-4 sm:gap-5">
       <div className="hidden lg:block">
         <AnnotationToolbar
           activeTool={activeTool}

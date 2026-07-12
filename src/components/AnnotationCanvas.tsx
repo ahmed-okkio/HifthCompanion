@@ -72,7 +72,7 @@ function AnnotationCanvasInner(
     setActiveColor, setOpacity, setPenWidth, setEraserSize,
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,
-    applyBackingForZoom,
+    applyBackingForZoom, beginPageNav,
   } = useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet, tools, onCommit, onSaved });
   const { t } = useI18n();
 
@@ -90,6 +90,7 @@ function AnnotationCanvasInner(
 
   const go = (page: number) => {
     const clamped = clampPage(page);
+    beginPageNav(); // paint the skeleton now, before the (possibly throttled) route commits
     if (sharePageBasePath) {
       router.push(`${sharePageBasePath}/${clamped}`, { scroll: false });
       return;
@@ -105,6 +106,7 @@ function AnnotationCanvasInner(
   // spread preference happens to be set (that made spread nav collapse to single).
   const goSpread = (page: number) => {
     const seg = spreadUrl(clampPage(page));
+    beginPageNav(); // paint the skeleton now, before the (possibly throttled) route commits
     if (sharePageBasePath) {
       router.push(`${sharePageBasePath}/${seg}`, { scroll: false });
       return;
@@ -214,7 +216,7 @@ function AnnotationCanvasInner(
           toolbar.) measurePageOffset reads the live top of .page-display-frame, so moving the
           bar above the page automatically shifts the available height used to fit the page —
           desktop still fits with no document scroll. */}
-      <div className="flex w-full flex-col items-stretch gap-4 sm:gap-5">
+      <div data-page-column className="flex w-full flex-col items-stretch gap-4 sm:gap-5">
         {!controlled && (
         <div className="hidden lg:block">
           <AnnotationToolbar
@@ -345,7 +347,7 @@ function AnnotationCanvasInner(
                 </svg>
               </button>
               )}
-            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-page)', flex: 1, minWidth: 0 }}>
+            <div data-page-slot style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-page)', flex: 1, minWidth: 0 }}>
               <div style={innerZoomStyle(flush === 'start' ? 'left center' : flush === 'end' ? 'right center' : 'center center')}>
                 <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush}>
                   <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />

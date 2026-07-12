@@ -8,6 +8,10 @@ export function calculatePageCanvasSize(
   naturalHeight: number,
   maxWidth: number,
   maxHeight: number,
+  // Per-dimension minimum. Clamps width/height independently, so it can BREAK aspect ratio when
+  // it triggers — only meaningful as a tiny-canvas guard. The reader passes 1 (no floor) because
+  // a narrow spread page slot (< 280) must keep its aspect, not get force-widened and stretched.
+  minSize = 280,
 ): PageCanvasSize {
   const aspectRatio = naturalWidth / naturalHeight;
 
@@ -20,7 +24,7 @@ export function calculatePageCanvasSize(
   }
 
   return {
-    width: Math.max(280, Math.floor(width)),
-    height: Math.max(280, Math.floor(height)),
+    width: Math.max(minSize, Math.floor(width)),
+    height: Math.max(minSize, Math.floor(height)),
   };
 }

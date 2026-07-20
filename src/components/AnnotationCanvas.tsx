@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import type { AnnotationSet } from '@/types';
 import { TOTAL_PAGES, clampPage, spreadUrl } from '@/lib/quran';
 import PageDisplayFrame from '@/components/PageDisplayFrame';
+import PageNavArrow from '@/components/PageNavArrow';
 import AnnotationToolbar from '@/components/AnnotationToolbar';
 import MobileAnnotationBar from '@/components/MobileAnnotationBar';
 import ToolHoverPopover from '@/components/ToolHoverPopover';
@@ -15,16 +16,7 @@ import SpreadToggle from '@/components/SpreadToggle';
 import { useAnnotationCanvas, type ToolState } from '@/hooks/useAnnotationCanvas';
 import { useI18n } from '@/components/I18nProvider';
 
-/** M4 spread mode: zoom/pan state lifted to the shell so ONE control scales BOTH pages (F3). */
-export interface CanvasView {
-  zoom: number;
-  pan: { x: number; y: number };
-  dragging: boolean;
-  moveTool: boolean;
-  onPanDown: (e: React.MouseEvent) => void;
-  onPanMove: (e: React.MouseEvent) => void;
-  endPan: () => void;
-}
+import { useViewportState, useHoverState, type CanvasView } from '@/hooks/canvas/useViewportState';
 
 /** Imperative handle the spread shell controller drives for the unified undo timeline (F4). */
 export interface CanvasHandle {
@@ -47,10 +39,6 @@ interface Props {
   tools?: ToolState;
   /** M4 spread mode: notify the shell controller of a committed action (F4). */
   onCommit?: () => void;
-  /** M4 spread mode: when present, the canvas is "controlled" — it renders only the page (no
-   *  toolbar / mobile bar / zoom control; those live once in the shell) and uses this shared
-   *  zoom/pan so both pages scale together (F3). */
-  view?: CanvasView;
   /** Spread mode horizontal alignment: 'start' = flush-left (right page toward center),
    *  'end' = flush-right (left page toward center). Default 'center' (single mode). */
   flush?: 'start' | 'end';
@@ -58,6 +46,8 @@ interface Props {
   sharePageBasePath?: string;
   /** PRD 0009 R3: patch the reader's Marked tab after a save (page, new mark count). */
   onSaved?: (setId: string, page: number, count: number) => void;
+  /** Pass view from SpreadAnnotation for spread mode. Or use internal state. */
+  view?: CanvasView;
 }
 
 function AnnotationCanvasInner(
@@ -136,35 +126,8 @@ function AnnotationCanvasInner(
     setSetsSlot(document.getElementById('sets-card-portal'));
   }, []);
 
-  // Zoom (desktop): a transform scale on the page, 50%–200%, stepped by 10. Reset returns to
-  // 100% (the per-page contain-fit size). Drawing is best at 100%; this is primarily for reading.
-  const [zoom, setZoom] = useState(100);
-  const clampZoom = (z: number) => Math.min(200, Math.max(50, z));
-  // Pan offset while zoomed in (drag the page around). Reset with zoom.
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [dragging, setDragging] = useState(false);
-  const dragRef = useRef<{ sx: number; sy: number; bx: number; by: number } | null>(null);
-  // Desktop Move tool: when on, dragging pans the (zoomed) page and drawing is suspended.
-  const [moveTool, setMoveTool] = useState(false);
-  const resetView = () => { setZoom(100); setPan({ x: 0, y: 0 }); setMoveTool(false); };
-
-  // Changing pages while zoomed used to push the toolbar/zoom-control off-screen. Reset the view
-  // on every page change so navigation always lands at the clean 100% contain-fit.
-  useEffect(() => { resetView(); }, [pageNum]);
-
-  const onPanDown = (e: React.MouseEvent) => {
-    dragRef.current = { sx: e.clientX, sy: e.clientY, bx: pan.x, by: pan.y };
-    setDragging(true);
-  };
-  const onPanMove = (e: React.MouseEvent) => {
-    if (!dragRef.current || zoom <= 100) return;
-    setPan({ x: dragRef.current.bx + (e.clientX - dragRef.current.sx), y: dragRef.current.by + (e.clientY - dragRef.current.sy) });
-  };
-  const endPan = () => { dragRef.current = null; setDragging(false); };
-
-  // Controlled (spread) canvases use the shell's shared zoom/pan so both pages scale as one (F3);
-  // single mode uses the internal state above.
-  const eff: CanvasView = view ?? { zoom, pan, dragging, moveTool, onPanDown, onPanMove, endPan };
+  const internalView = useViewportState([pageNum]);
+  const eff: CanvasView = view ?? internalView;
 
   // Zoom-in (>100) keeps the layout box fixed and clips (via the overflow wrapper) so it never
   // pushes the zoom control — transform:scale is layout-invisible. But that same invisibility
@@ -225,15 +188,15 @@ function AnnotationCanvasInner(
             canUndo={canUndo}
             canRedo={canRedo}
             saving={saving}
-            onToolClick={t => { setMoveTool(false); handleToolClick(t); }}
+            onToolClick={t => { eff.setMoveTool(false); handleToolClick(t); }}
             onColorChange={setActiveColor}
             onUndo={handleUndo}
             onRedo={handleRedo}
             onClear={handleClear}
             onHoverEnter={onHoverEnter}
             onHoverLeave={onHoverLeave}
-            moveActive={moveTool}
-            onMoveToggle={() => setMoveTool(m => !m)}
+            moveActive={eff.moveTool}
+            onMoveToggle={() => eff.setMoveTool(m => !m)}
           />
         </div>
         )}
@@ -305,47 +268,13 @@ function AnnotationCanvasInner(
             // zoom as one book image instead of growing toward the gutter and clipping each other.
             <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
               {flush === 'end' && (
-              <button
+              <PageNavArrow
+                direction="left"
                 onClick={() => goSpread(pageNum + 2)}
                 disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
                 aria-label={t('reader.nextPage')}
-                style={{
-                  width: 'clamp(50px, 4vw, 120px)', minWidth: 50, flexShrink: 0,
-                  border: 'none',
-                  background: 'transparent', boxShadow: 'none',
-                  cursor: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 'default' : 'pointer',
-                  borderRadius: 'var(--radius-lg-px)',
-                  transition: 'background 220ms ease, box-shadow 220ms ease, transform 120ms var(--ease-out)',
-                  opacity: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 0.3 : 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-                onMouseEnter={e => {
-                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
-                  const el = e.currentTarget;
-                  el.style.background = 'var(--surface-app)';
-                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget;
-                  el.style.background = 'transparent';
-                  el.style.boxShadow = 'none';
-                }}
-                onMouseDown={e => {
-                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
-                  const el = e.currentTarget;
-                  el.style.transform = 'scale(0.94)';
-                  el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.18)';
-                }}
-                onMouseUp={e => {
-                  const el = e.currentTarget;
-                  el.style.transform = '';
-                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
-                }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transition: 'color 220ms ease' }}>
-                  <path d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
+                style={{ width: 'clamp(50px, 4vw, 120px)', minWidth: 50, flexShrink: 0 }}
+              />
               )}
             {/* Spread: no per-slot clip. The shared parent row (SpreadAnnotation) owns the single
                 overflow:hidden so a panned/zoomed page can slide across the gutter as ONE image
@@ -360,92 +289,24 @@ function AnnotationCanvasInner(
                   drag that crosses the gutter doesn't hit a per-slot onMouseLeave and stall. */}
             </div>
               {flush === 'start' && (
-              <button
+              <PageNavArrow
+                direction="right"
                 onClick={() => goSpread(pageNum - 2)}
                 disabled={pageNum <= 1}
                 aria-label={t('reader.prevPage')}
-                style={{
-                  width: 'clamp(50px, 4vw, 120px)', minWidth: 50, flexShrink: 0,
-                  border: 'none',
-                  background: 'transparent', boxShadow: 'none',
-                  cursor: pageNum <= 1 ? 'default' : 'pointer',
-                  borderRadius: 'var(--radius-lg-px)',
-                  transition: 'background 220ms ease, box-shadow 220ms ease, transform 120ms var(--ease-out)',
-                  opacity: pageNum <= 1 ? 0.3 : 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-                onMouseEnter={e => {
-                  if (pageNum <= 1) return;
-                  const el = e.currentTarget;
-                  el.style.background = 'var(--surface-app)';
-                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget;
-                  el.style.background = 'transparent';
-                  el.style.boxShadow = 'none';
-                }}
-                onMouseDown={e => {
-                  if (pageNum <= 1) return;
-                  const el = e.currentTarget;
-                  el.style.transform = 'scale(0.94)';
-                  el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.18)';
-                }}
-                onMouseUp={e => {
-                  const el = e.currentTarget;
-                  el.style.transform = '';
-                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
-                }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transition: 'color 220ms ease' }}>
-                  <path d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+                style={{ width: 'clamp(50px, 4vw, 120px)', minWidth: 50, flexShrink: 0 }}
+              />
               )}
             </div>
             ) : (
             <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-              <button
+              <PageNavArrow
+                direction="left"
                 onClick={() => go(pageNum + (controlled ? 2 : 1))}
                 disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
                 aria-label={t('reader.nextPage')}
-                style={{
-                  position: 'absolute', right: 'calc(100% + 20px)', top: 0, bottom: 0,
-                  width: '16vw', zIndex: 4, border: 'none',
-                  background: 'transparent', boxShadow: 'none',
-                  cursor: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 'default' : 'pointer',
-                  borderRadius: 'var(--radius-lg-px)',
-                  transition: 'background 220ms ease, box-shadow 220ms ease, transform 120ms var(--ease-out)',
-                  opacity: pageNum >= TOTAL_PAGES - (controlled ? 1 : 0) ? 0.3 : 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-                onMouseEnter={e => {
-                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
-                  const el = e.currentTarget;
-                  el.style.background = 'var(--surface-app)';
-                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget;
-                  el.style.background = 'transparent';
-                  el.style.boxShadow = 'none';
-                }}
-                onMouseDown={e => {
-                  if (pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)) return;
-                  const el = e.currentTarget;
-                  el.style.transform = 'scale(0.94)';
-                  el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.18)';
-                }}
-                onMouseUp={e => {
-                  const el = e.currentTarget;
-                  el.style.transform = '';
-                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
-                }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transition: 'color 220ms ease' }}>
-                  <path d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
+                style={{ position: 'absolute', right: 'calc(100% + 20px)', top: 0, bottom: 0, width: '16vw', zIndex: 4 }}
+              />
             <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-page)' }}>
               <div style={innerZoomStyle('center center')}>
                 <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush}>
@@ -466,47 +327,13 @@ function AnnotationCanvasInner(
                 />
               )}
             </div>
-              <button
+              <PageNavArrow
+                direction="right"
                 onClick={() => go(pageNum - (controlled ? 2 : 1))}
                 disabled={pageNum <= 1}
                 aria-label={t('reader.prevPage')}
-                style={{
-                  position: 'absolute', left: 'calc(100% + 20px)', top: 0, bottom: 0,
-                  width: '16vw', zIndex: 4, border: 'none',
-                  background: 'transparent', boxShadow: 'none',
-                  cursor: pageNum <= 1 ? 'default' : 'pointer',
-                  borderRadius: 'var(--radius-lg-px)',
-                  transition: 'background 220ms ease, box-shadow 220ms ease, transform 120ms var(--ease-out)',
-                  opacity: pageNum <= 1 ? 0.3 : 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-                onMouseEnter={e => {
-                  if (pageNum <= 1) return;
-                  const el = e.currentTarget;
-                  el.style.background = 'var(--surface-app)';
-                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
-                }}
-                onMouseLeave={e => {
-                  const el = e.currentTarget;
-                  el.style.background = 'transparent';
-                  el.style.boxShadow = 'none';
-                }}
-                onMouseDown={e => {
-                  if (pageNum <= 1) return;
-                  const el = e.currentTarget;
-                  el.style.transform = 'scale(0.94)';
-                  el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.18)';
-                }}
-                onMouseUp={e => {
-                  const el = e.currentTarget;
-                  el.style.transform = '';
-                  el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
-                }}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transition: 'color 220ms ease' }}>
-                  <path d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+                style={{ position: 'absolute', left: 'calc(100% + 20px)', top: 0, bottom: 0, width: '16vw', zIndex: 4 }}
+              />
             </div>
             )}
 
@@ -516,10 +343,10 @@ function AnnotationCanvasInner(
               <div className="flex items-center justify-center gap-3">
                 <LegendButton />
                 <ZoomControl
-                  zoom={zoom}
-                  onZoomOut={() => setZoom(z => clampZoom(z - 10))}
-                  onZoomIn={() => setZoom(z => clampZoom(z + 10))}
-                  onReset={resetView}
+                  zoom={eff.zoom}
+                  onZoomOut={() => eff.setZoom(z => eff.clampZoom(z - 10))}
+                  onZoomIn={() => eff.setZoom(z => eff.clampZoom(z + 10))}
+                  onReset={eff.resetView}
                 />
                 {/* M5 C1: spread toggle sits by the zoom control (single mode → turn spread ON). */}
                 <SpreadToggle page={pageNum} active={false} basePath={sharePageBasePath} />

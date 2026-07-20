@@ -4,7 +4,8 @@ import type { AnnotationSet } from '@/types';
 import { getPageImageUrl } from '@/lib/quran';
 import { type Tool } from '@/lib/canvasTools';
 import { useToolState } from '@/hooks/useAnnotationCanvas';
-import AnnotationCanvas, { type CanvasHandle, type CanvasView } from '@/components/AnnotationCanvas';
+import AnnotationCanvas, { type CanvasHandle } from '@/components/AnnotationCanvas';
+import { useViewportState, useHoverState } from '@/hooks/canvas/useViewportState';
 import AnnotationToolbar from '@/components/AnnotationToolbar';
 import ToolHoverPopover from '@/components/ToolHoverPopover';
 import ZoomControl from '@/components/ZoomControl';
@@ -83,23 +84,8 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
     leftRef.current?.clear();
   }, []);
 
-  // Shared zoom/pan so one control scales BOTH pages (F3).
-  const [zoom, setZoom] = useState(100);
-  const clampZoom = (z: number) => Math.min(200, Math.max(50, z));
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [dragging, setDragging] = useState(false);
-  const dragRef = useRef<{ sx: number; sy: number; bx: number; by: number } | null>(null);
-  const [moveTool, setMoveTool] = useState(false);
-  const resetView = () => { setZoom(100); setPan({ x: 0, y: 0 }); setMoveTool(false); };
-  useEffect(() => { resetView(); }, [pages[0], pages[1]]);
-
-  const onPanDown = (e: React.MouseEvent) => { dragRef.current = { sx: e.clientX, sy: e.clientY, bx: pan.x, by: pan.y }; setDragging(true); };
-  const onPanMove = (e: { clientX: number; clientY: number }) => {
-    if (!dragRef.current || zoom <= 100) return;
-    setPan({ x: dragRef.current.bx + (e.clientX - dragRef.current.sx), y: dragRef.current.by + (e.clientY - dragRef.current.sy) });
-  };
-  const endPan = () => { dragRef.current = null; setDragging(false); };
-  const view: CanvasView = { zoom, pan, dragging, moveTool, onPanDown, onPanMove, endPan };
+  const view = useViewportState([pages[0], pages[1]]);
+  const { zoom, dragging, moveTool, setMoveTool, onPanDown, onPanMove, endPan, clampZoom, setZoom, resetView } = view;
 
   // Drive the drag off window listeners while active, so leaving the overlay bounds (the gutter
   // or the outer canvas edge) never ends the drag mid-swipe or leaks the move into a pen stroke.
@@ -112,15 +98,7 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
   }, [dragging]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Hover popover (pen width / opacity) — shell-local since the toolbar lives here now.
-  const [hoveredTool, setHoveredTool] = useState<Tool | null>(null);
-  const [hoverPos, setHoverPos] = useState<{ top: number; left: number } | null>(null);
-  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onHoverEnter = (t: Tool, pos: { top: number; left: number }) => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    setHoveredTool(t); setHoverPos(pos);
-  };
-  const onHoverLeave = () => { hoverTimeoutRef.current = setTimeout(() => setHoveredTool(null), 150); };
-  const onHoverCancelLeave = () => { if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current); };
+  const { hoveredTool, hoverPos, onHoverEnter, onHoverLeave, onHoverCancelLeave } = useHoverState();
 
   const onToolClick = (t: Tool) => { setMoveTool(false); setActiveTool(prev => prev === t ? 'pen' : t); };
 

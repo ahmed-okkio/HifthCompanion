@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { displayName } from '@/lib/displayName';
 import { validate, normalize } from '@/lib/memorization';
-import type { Profile, MemorizedRange } from '@/types';
+import type { Profile, MemorizedRange, EmailPrefs } from '@/types';
 
 /**
  * Chrome summary (display name + email) for the account menu, built from the
@@ -41,6 +41,40 @@ export async function getProfilesByIds(ids: string[]): Promise<Map<string, Profi
 
   if (error) throw error;
   return new Map((data ?? []).map((p: Profile) => [p.id, p] as const));
+}
+
+/** The caller's own profile row (null when unauthenticated or no row). */
+export async function getMyProfile(): Promise<Profile | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, first_name, last_name, email_prefs')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ?? null;
+}
+
+/**
+ * Merge `partial` into the caller's own email_prefs. id is always auth.uid() —
+ * the client never supplies it — and the self-only "User updates own profile"
+ * RLS policy is the enforcing backstop. Other profile columns are untouched.
+ */
+export async function saveEmailPrefs(partial: EmailPrefs): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const current = (await getMyProfile())?.email_prefs ?? {};
+  const { error } = await supabase
+    .from('profiles')
+    .update({ email_prefs: { ...current, ...partial }, updated_at: new Date().toISOString() })
+    .eq('id', user.id);
+  if (error) throw error;
 }
 
 /** The caller's own memorized ranges + onboarding timestamp (empty/null if none). */

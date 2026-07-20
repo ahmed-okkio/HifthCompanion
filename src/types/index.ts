@@ -107,10 +107,19 @@ export interface Membership {
   joined_at: string;
 }
 
+/** Per-event email opt-out. Absent key ⇒ enabled; only explicit false disables. */
+export interface EmailPrefs {
+  invite?: boolean;
+  homework?: boolean;
+  session_change?: boolean;
+  reminder?: boolean;
+}
+
 export interface Profile {
   id: string;
   first_name: string;
   last_name: string;
+  email_prefs?: EmailPrefs;
 }
 
 /** A membership enriched with the member's display name (when a profile row is

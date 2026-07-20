@@ -2,6 +2,7 @@
 
 import { createClient, createClientAction } from '@/lib/supabase/server';
 import { recurringSlots } from '@/lib/recurrence';
+import { notifySessionChange } from '@/lib/email/notify';
 import type { AttendanceStatus, Recurrence, Session } from '@/types';
 
 /** Sessions for one membership (a student's own 1:1 slot), soonest first. */
@@ -119,6 +120,14 @@ export async function setSessionCanceled(
     .update({ canceled })
     .eq('id', id);
   if (error) throw error;
+
+  if (canceled) {
+    try {
+      await notifySessionChange(id, null);
+    } catch (err) {
+      console.warn('[email] session cancel notify failed', (err as Error).message);
+    }
+  }
 }
 
 /**
@@ -137,6 +146,12 @@ export async function rescheduleSession(
     .update({ scheduled_at: newScheduledAt, moved_from: movedFrom })
     .eq('id', id);
   if (error) throw error;
+
+  try {
+    await notifySessionChange(id, newScheduledAt, movedFrom);
+  } catch (err) {
+    console.warn('[email] session reschedule notify failed', (err as Error).message);
+  }
 }
 
 /** Mark (or clear) a session's attendance on the session row (D3). */

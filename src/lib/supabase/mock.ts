@@ -40,6 +40,7 @@ const globalForDb = global as unknown as {
   mockHomework?: any[];
   mockMembershipNote?: any[];
   mockExam?: any[];
+  mockProfiles?: any[];
 };
 
 if (!globalForDb.mockSets) {
@@ -58,6 +59,10 @@ if (!globalForDb.mockSession) globalForDb.mockSession = [];
 if (!globalForDb.mockHomework) globalForDb.mockHomework = [];
 if (!globalForDb.mockMembershipNote) globalForDb.mockMembershipNote = [];
 if (!globalForDb.mockExam) globalForDb.mockExam = [];
+// One seeded profile for the mock user; email_prefs '{}' ⇒ all events enabled.
+if (!globalForDb.mockProfiles) globalForDb.mockProfiles = [
+  { id: MOCK_USER_ID, first_name: 'Mock', last_name: 'User', email_prefs: {} },
+];
 
 // Seeded config defaults mirroring the circle migration.
 const SEED_STUDENT_STATUSES = [
@@ -80,8 +85,9 @@ const TRACKER_STORAGE: Record<string, string> = {
   homework: 'mock_supabase_homework',
   membership_note: 'mock_supabase_membership_note',
   exam: 'mock_supabase_exam',
+  profiles: 'mock_supabase_profiles',
 };
-const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockHomework' | 'mockMembershipNote' | 'mockExam'> = {
+const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockHomework' | 'mockMembershipNote' | 'mockExam' | 'mockProfiles'> = {
   circle: 'mockCircle',
   membership: 'mockMembership',
   progress_log: 'mockProgressLog',
@@ -89,6 +95,7 @@ const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProg
   homework: 'mockHomework',
   membership_note: 'mockMembershipNote',
   exam: 'mockExam',
+  profiles: 'mockProfiles',
 };
 function trackerGet(table: string): any[] {
   if (IS_SERVER) return (globalForDb as any)[TRACKER_GLOBAL[table]]!;

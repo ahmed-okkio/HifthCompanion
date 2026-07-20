@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { sendEmail } from '@/lib/email/send';
+import { sendEmail, __resetTransport } from '@/lib/email/send';
 import {
   prefEnabled,
   inviteBody,
@@ -8,33 +8,38 @@ import {
   sessionChangeBody,
 } from '@/lib/email/templates';
 
-describe('sendEmail (L1, L2)', () => {
-  const fetchMock = vi.fn();
+const sendMail = vi.fn();
+const createTransport = vi.fn((_opts: Record<string, unknown>) => ({ sendMail }));
 
+vi.mock('nodemailer', () => ({
+  default: { createTransport: (opts: Record<string, unknown>) => createTransport(opts) },
+}));
+
+describe('sendEmail (L1, L2)', () => {
   beforeEach(() => {
-    fetchMock.mockReset();
-    vi.stubGlobal('fetch', fetchMock);
+    sendMail.mockReset();
+    createTransport.mockClear();
+    __resetTransport();
     vi.spyOn(console, 'warn').mockImplementation(() => {});
-    process.env.RESEND_API_KEY = 'test-key';
-    process.env.RESEND_FROM = 'Hifth <no-reply@example.com>';
+    process.env.SMTP_USER = 'sender@gmail.com';
+    process.env.SMTP_PASSWORD = 'app-password';
+    process.env.EMAIL_FROM = 'Hifth <no-reply@example.com>';
   });
 
   afterEach(() => {
-    vi.unstubAllGlobals();
     vi.restoreAllMocks();
+    delete process.env.SMTP_USER;
+    delete process.env.SMTP_PASSWORD;
+    delete process.env.EMAIL_FROM;
   });
 
-  it('L1: one authenticated POST to the Resend endpoint with from/to/subject/html', async () => {
-    fetchMock.mockResolvedValue({ ok: true, status: 200 });
+  it('L1: one SMTP send with from/to/subject/html', async () => {
+    sendMail.mockResolvedValue({ messageId: 'x' });
 
     const res = await sendEmail('student@example.com', 'Subject', '<p>hi</p>');
 
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe('https://api.resend.com/emails');
-    expect(init.method).toBe('POST');
-    expect(init.headers.Authorization).toBe('Bearer test-key');
-    expect(JSON.parse(init.body)).toEqual({
+    expect(sendMail).toHaveBeenCalledTimes(1);
+    expect(sendMail.mock.calls[0][0]).toEqual({
       from: 'Hifth <no-reply@example.com>',
       to: 'student@example.com',
       subject: 'Subject',
@@ -43,26 +48,35 @@ describe('sendEmail (L1, L2)', () => {
     expect(res).toEqual({ sent: true, skipped: false });
   });
 
-  it('L2: no key ⇒ no network, one warn, skipped result, no throw', async () => {
-    delete process.env.RESEND_API_KEY;
+  it('L1: gmail defaults when host/port unset, transporter reused across sends', async () => {
+    sendMail.mockResolvedValue({ messageId: 'x' });
+
+    await sendEmail('a@b.c', 'S', '<p>h</p>');
+    await sendEmail('a@b.c', 'S', '<p>h</p>');
+
+    expect(createTransport).toHaveBeenCalledTimes(1);
+    expect(createTransport.mock.calls[0][0]).toMatchObject({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: { user: 'sender@gmail.com', pass: 'app-password' },
+    });
+    expect(sendMail).toHaveBeenCalledTimes(2);
+  });
+
+  it('L2: no credentials ⇒ no connection, one warn, skipped result, no throw', async () => {
+    delete process.env.SMTP_PASSWORD;
 
     const res = await sendEmail('a@b.c', 'S', '<p>h</p>');
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(createTransport).not.toHaveBeenCalled();
+    expect(sendMail).not.toHaveBeenCalled();
     expect(console.warn).toHaveBeenCalledTimes(1);
     expect(res).toEqual({ sent: false, skipped: true });
   });
 
-  it('L2: never throws when the network fails', async () => {
-    fetchMock.mockRejectedValue(new Error('offline'));
-    await expect(sendEmail('a@b.c', 'S', '<p>h</p>')).resolves.toEqual({
-      sent: false,
-      skipped: false,
-    });
-  });
-
-  it('L2: never throws on a non-ok API response', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 422 });
+  it('L2: never throws when the transport fails', async () => {
+    sendMail.mockRejectedValue(new Error('EAUTH'));
     await expect(sendEmail('a@b.c', 'S', '<p>h</p>')).resolves.toEqual({
       sent: false,
       skipped: false,

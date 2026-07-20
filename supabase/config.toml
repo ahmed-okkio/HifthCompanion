@@ -236,11 +236,11 @@ otp_expiry = 3600
 # Use a production-ready SMTP server
 [auth.email.smtp]
 enabled = true
-host = "smtp.resend.com"
+host = "smtp.gmail.com"
 port = 465
-user = "resend"
-pass = "env(SMTP_PASSWORD)"
-admin_email = "no-reply@example.com" # replace with an address on the verified Resend domain
+user = "env(SMTP_USER)"
+pass = "env(SMTP_PASSWORD)" # Gmail App Password (2FA required), never the account password
+admin_email = "env(SMTP_USER)" # Gmail only sends as the authenticated account (or a verified alias)
 sender_name = "Hifth Companion"
 
 # Uncomment to customize email template

@@ -48,3 +48,6 @@ bash.exe.stackdump
 
 # Playwright auth state (session tokens — never commit)
 playwright/.auth/
+
+# All log files
+*.log

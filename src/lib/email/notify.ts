@@ -112,12 +112,14 @@ export async function notifyHomework(
   await bestEffort('homework', async (db) => {
     const { data: membership } = await db
       .from('membership')
-      .select('user_id, circle:circle_id(schedule)')
+      // The schedule lives on membership, not circle: the 1:1 restructure
+      // (20260701000001) dropped circle.schedule and added membership.schedule.
+      .select('user_id, schedule')
       .eq('id', membershipId)
       .maybeSingle();
     if (!membership?.user_id) return;
-    const rel = membership.circle as { schedule?: { timezone?: string } | null } | null;
-    const circleTz = (Array.isArray(rel) ? rel[0] : rel)?.schedule?.timezone ?? null;
+    const scheduleTz =
+      (membership.schedule as { timezone?: string } | null)?.timezone ?? null;
     const studentName = await nameOf(db, membership.user_id);
     await deliver(
       db,
@@ -131,7 +133,7 @@ export async function notifyHomework(
             range,
             deadline: deadline ?? pickText(locale, 'no deadline', 'بدون موعد'),
             // Recipient's own zone first — the two parties may differ.
-            timezone: recipientTz ?? circleTz ?? 'UTC',
+            timezone: recipientTz ?? scheduleTz ?? 'UTC',
           },
           locale,
         ),
@@ -154,18 +156,18 @@ export async function notifySessionChange(
   await bestEffort('session_change', async (db) => {
     const { data: session } = await db
       .from('session')
-      // ponytail: one query — the circle's schedule tz rides along with the
-      // membership hop already needed to find the student.
-      .select('scheduled_at, membership(user_id, circle:circle_id(schedule))')
+      // ponytail: one query — the schedule tz rides along with the membership
+      // hop already needed to find the student. It lives on membership, not
+      // circle: the 1:1 restructure (20260701000001) dropped circle.schedule.
+      .select('scheduled_at, membership(user_id, schedule)')
       .eq('id', sessionId)
       .maybeSingle();
-    type Rel = { user_id?: string; circle?: { schedule?: { timezone?: string } | null } | null };
+    type Rel = { user_id?: string; schedule?: { timezone?: string } | null };
     const rel = session?.membership as Rel | Rel[] | null;
     const membership = Array.isArray(rel) ? rel[0] : rel;
     const userId = membership?.user_id;
     if (!userId) return;
-    const circle = membership?.circle;
-    const circleTz = (Array.isArray(circle) ? circle[0] : circle)?.schedule?.timezone ?? null;
+    const scheduleTz = membership?.schedule?.timezone ?? null;
     const studentName = await nameOf(db, userId);
     await deliver(
       db,
@@ -184,7 +186,7 @@ export async function notifySessionChange(
             newTime,
             reinstated,
             // Recipient's own zone first — teacher and student may differ.
-            timezone: recipientTz ?? circleTz ?? 'UTC',
+            timezone: recipientTz ?? scheduleTz ?? 'UTC',
           },
           locale,
         ),

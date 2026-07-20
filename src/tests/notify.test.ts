@@ -55,15 +55,18 @@ describe('notify helpers (S1-S5)', () => {
     locale = null;
     timezone = null;
     tables.circle = { name: 'Al-Fajr', teacher_id: 'teacher-1' };
+    // schedule sits on membership, not circle — circle.schedule was dropped by
+    // the 1:1 restructure (20260701000001). These fixtures previously nested it
+    // under circle, so the suite stayed green while production 42703'd.
     tables.membership = {
       user_id: 'student-1',
-      circle: { schedule: { weekdays: [1], time: '17:00', timezone: 'Europe/Amsterdam' } },
+      schedule: { weekdays: [1], time: '17:00', timezone: 'Europe/Amsterdam' },
     };
     tables.session = {
       scheduled_at: '2026-07-01T10:00:00Z',
       membership: {
         user_id: 'student-1',
-        circle: { schedule: { weekdays: [1], time: '17:00', timezone: 'Europe/Amsterdam' } },
+        schedule: { weekdays: [1], time: '17:00', timezone: 'Europe/Amsterdam' },
       },
     };
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
@@ -149,7 +152,7 @@ describe('notify helpers (S1-S5)', () => {
     expect(html).not.toContain('dir="rtl"');
   });
 
-  it("L5: with no recipient timezone, falls back to the circle's schedule zone", async () => {
+  it("L5: with no recipient timezone, falls back to the membership's schedule zone", async () => {
     timezone = null;
     await notifySessionChange('s-1', null);
     const [, , html] = sendEmail.mock.calls[0];
@@ -159,7 +162,7 @@ describe('notify helpers (S1-S5)', () => {
     expect(html).not.toMatch(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/);
   });
 
-  it("L5: the recipient's own timezone wins over the circle's", async () => {
+  it("L5: the recipient's own timezone wins over the schedule's", async () => {
     timezone = 'Asia/Riyadh'; // UTC+3 ⇒ 1:00 PM, vs Amsterdam's 12:00 PM
     await notifySessionChange('s-1', null);
     const [, , html] = sendEmail.mock.calls[0];
@@ -174,9 +177,9 @@ describe('notify helpers (S1-S5)', () => {
     expect(html).toMatch(/UTC\+3/);
   });
 
-  it('L5: neither recipient nor circle zone ⇒ UTC', async () => {
+  it('L5: neither recipient nor schedule zone ⇒ UTC', async () => {
     timezone = null;
-    (tables.session as { membership: { circle: unknown } }).membership.circle = { schedule: null };
+    (tables.session as { membership: { schedule: unknown } }).membership.schedule = null;
     await notifySessionChange('s-1', null);
     const [, , html] = sendEmail.mock.calls[0];
     expect(html).toContain('10:00 AM');

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { displayName } from '@/lib/displayName';
 import { validate, normalize } from '@/lib/memorization';
+import type { Locale } from '@/lib/i18n/config';
 import type { Profile, MemorizedRange, EmailPrefs } from '@/types';
 
 /**
@@ -51,7 +52,7 @@ export async function getMyProfile(): Promise<Profile | null> {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, first_name, last_name, email_prefs')
+    .select('id, first_name, last_name, email_prefs, locale')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -73,6 +74,38 @@ export async function saveEmailPrefs(partial: EmailPrefs): Promise<void> {
   const { error } = await supabase
     .from('profiles')
     .update({ email_prefs: { ...current, ...partial }, updated_at: new Date().toISOString() })
+    .eq('id', user.id);
+  if (error) throw error;
+}
+
+/**
+ * Persist the caller's UI language so server-side email can be written in it —
+ * the cookie i18n normally reads is unavailable when a teacher's action sends
+ * mail to a student. id is always auth.uid(); the self-only "User updates own
+ * profile" RLS policy is the enforcing backstop.
+ */
+export async function saveLocale(locale: Locale, timezone?: string): Promise<void> {
+  // One round trip when the switcher knows both.
+  await patchOwnProfile(timezone ? { locale, timezone } : { locale });
+}
+
+/**
+ * Persist the caller's IANA timezone so session/deadline times in email render
+ * in *their* zone — teacher and student are often in different ones. Captured
+ * on app load (I18nProvider), best-effort.
+ */
+export async function saveTimezone(timezone: string): Promise<void> {
+  await patchOwnProfile({ timezone });
+}
+
+async function patchOwnProfile(patch: Record<string, unknown>): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ ...patch, updated_at: new Date().toISOString() })
     .eq('id', user.id);
   if (error) throw error;
 }

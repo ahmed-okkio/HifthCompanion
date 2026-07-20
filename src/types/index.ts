@@ -1,3 +1,5 @@
+import type { Locale } from '@/lib/i18n/config';
+
 export interface AnnotationSet {
   id: string;
   user_id: string;
@@ -120,6 +122,8 @@ export interface Profile {
   first_name: string;
   last_name: string;
   email_prefs?: EmailPrefs;
+  /** Preferred UI language, persisted by the language switcher. Null = unknown. */
+  locale?: Locale | null;
 }
 
 /** A membership enriched with the member's display name (when a profile row is

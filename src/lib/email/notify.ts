@@ -9,8 +9,11 @@ import {
   inviteBody,
   homeworkBody,
   sessionChangeBody,
+  pickText,
   type EmailPrefKey,
+  type RecipientLocale,
 } from '@/lib/email/templates';
+import { isLocale } from '@/lib/i18n/config';
 
 /**
  * Service-role client — recipient email addresses are resolved server-side only
@@ -28,13 +31,17 @@ function admin(): SupabaseClient | null {
   return createSupabaseAdmin(url, serviceKey, { auth: { persistSession: false } });
 }
 
-/** Resolve address + prefs, gate, send. Never returns the address. */
+/**
+ * Resolve address + prefs + locale, gate, send. Never returns the address.
+ * The message is built *after* the profile read so it can be written in the
+ * recipient's own language; `build` receives null when that language is unknown
+ * and the templates then default to English (contract L3, amended 2026-07-20).
+ */
 async function deliver(
   db: SupabaseClient,
   userId: string,
   key: EmailPrefKey,
-  subject: string,
-  html: string,
+  build: (locale: RecipientLocale, timezone: string | null) => { subject: string; html: string },
 ): Promise<void> {
   const { data, error } = await db.auth.admin.getUserById(userId);
   if (error) throw error;
@@ -43,11 +50,14 @@ async function deliver(
 
   const { data: profile } = await db
     .from('profiles')
-    .select('email_prefs')
+    .select('email_prefs, locale, timezone')
     .eq('id', userId)
     .maybeSingle();
   if (!prefEnabled(profile?.email_prefs, key)) return;
 
+  const locale = isLocale(profile?.locale) ? profile.locale : null;
+  // Same select, no extra round trip. Null ⇒ the caller's own fallback.
+  const { subject, html } = build(locale, profile?.timezone ?? null);
   await sendEmail(to, subject, html);
 }
 
@@ -85,8 +95,10 @@ export async function notifyInvite(userId: string, circleId: string): Promise<vo
       db,
       userId,
       'invite',
-      'You have been invited to a circle — دعوة إلى حلقة',
-      inviteBody({ teacherName, circleName: circle.name ?? '' }),
+      (locale) => ({
+        subject: pickText(locale, 'You have been invited to a circle', 'دعوة إلى حلقة'),
+        html: inviteBody({ teacherName, circleName: circle.name ?? '' }, locale),
+      }),
     );
   });
 }
@@ -100,17 +112,30 @@ export async function notifyHomework(
   await bestEffort('homework', async (db) => {
     const { data: membership } = await db
       .from('membership')
-      .select('user_id')
+      .select('user_id, circle:circle_id(schedule)')
       .eq('id', membershipId)
       .maybeSingle();
     if (!membership?.user_id) return;
+    const rel = membership.circle as { schedule?: { timezone?: string } | null } | null;
+    const circleTz = (Array.isArray(rel) ? rel[0] : rel)?.schedule?.timezone ?? null;
     const studentName = await nameOf(db, membership.user_id);
     await deliver(
       db,
       membership.user_id,
       'homework',
-      'New homework — واجب جديد',
-      homeworkBody({ studentName, range, deadline: deadline ?? 'no deadline / بدون موعد' }),
+      (locale, recipientTz) => ({
+        subject: pickText(locale, 'New homework', 'واجب جديد'),
+        html: homeworkBody(
+          {
+            studentName,
+            range,
+            deadline: deadline ?? pickText(locale, 'no deadline', 'بدون موعد'),
+            // Recipient's own zone first — the two parties may differ.
+            timezone: recipientTz ?? circleTz ?? 'UTC',
+          },
+          locale,
+        ),
+      }),
     );
   });
 }
@@ -124,23 +149,46 @@ export async function notifySessionChange(
   sessionId: string,
   newTime: string | null,
   oldTime?: string,
+  reinstated = false,
 ): Promise<void> {
   await bestEffort('session_change', async (db) => {
     const { data: session } = await db
       .from('session')
-      .select('scheduled_at, membership(user_id)')
+      // ponytail: one query — the circle's schedule tz rides along with the
+      // membership hop already needed to find the student.
+      .select('scheduled_at, membership(user_id, circle:circle_id(schedule))')
       .eq('id', sessionId)
       .maybeSingle();
-    const membership = session?.membership as { user_id?: string } | { user_id?: string }[] | null;
-    const userId = Array.isArray(membership) ? membership[0]?.user_id : membership?.user_id;
+    type Rel = { user_id?: string; circle?: { schedule?: { timezone?: string } | null } | null };
+    const rel = session?.membership as Rel | Rel[] | null;
+    const membership = Array.isArray(rel) ? rel[0] : rel;
+    const userId = membership?.user_id;
     if (!userId) return;
+    const circle = membership?.circle;
+    const circleTz = (Array.isArray(circle) ? circle[0] : circle)?.schedule?.timezone ?? null;
     const studentName = await nameOf(db, userId);
     await deliver(
       db,
       userId,
       'session_change',
-      newTime ? 'Session rescheduled — تغيير موعد الجلسة' : 'Session canceled — إلغاء الجلسة',
-      sessionChangeBody({ studentName, oldTime: oldTime ?? session?.scheduled_at ?? '', newTime }),
+      (locale, recipientTz) => ({
+        subject: reinstated
+          ? pickText(locale, 'Session back on', 'إعادة الجلسة')
+          : newTime
+            ? pickText(locale, 'Session rescheduled', 'تغيير موعد الجلسة')
+            : pickText(locale, 'Session canceled', 'إلغاء الجلسة'),
+        html: sessionChangeBody(
+          {
+            studentName,
+            oldTime: oldTime ?? session?.scheduled_at ?? '',
+            newTime,
+            reinstated,
+            // Recipient's own zone first — teacher and student may differ.
+            timezone: recipientTz ?? circleTz ?? 'UTC',
+          },
+          locale,
+        ),
+      }),
     );
   });
 }

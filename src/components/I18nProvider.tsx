@@ -1,8 +1,11 @@
 'use client';
 
-import { createContext, useCallback, useContext, useMemo } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
 import { LOCALE_COOKIE, localizeDigits, type Locale } from '@/lib/i18n/config';
 import { getDictionary, type MessageKey } from '@/lib/i18n/dictionaries';
+import { saveTimezone } from '@/lib/services/profile';
+
+const TZ_SYNCED_KEY = 'hc.tz-synced';
 
 type I18nContextValue = {
   locale: Locale;
@@ -22,6 +25,19 @@ export function I18nProvider({
   children: React.ReactNode;
 }) {
   const dict = useMemo(() => getDictionary(locale), [locale]);
+
+  // Capture the user's timezone once per session so email can render times in
+  // their zone even if they never touch the language switcher. Best-effort:
+  // logged-out visitors throw "Not authenticated" and that is fine.
+  // ponytail: sessionStorage guard instead of a read-then-write; the write is
+  // idempotent, this just avoids one request per navigation.
+  useEffect(() => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!tz || sessionStorage.getItem(TZ_SYNCED_KEY) === tz) return;
+    void saveTimezone(tz)
+      .then(() => sessionStorage.setItem(TZ_SYNCED_KEY, tz))
+      .catch(() => {});
+  }, []);
 
   const t = useCallback(
     (key: MessageKey, vars?: Record<string, string | number>) => {

@@ -121,12 +121,12 @@ export async function setSessionCanceled(
     .eq('id', id);
   if (error) throw error;
 
-  if (canceled) {
-    try {
-      await notifySessionChange(id, null);
-    } catch (err) {
-      console.warn('[email] session cancel notify failed', (err as Error).message);
-    }
+  // Both directions notify: a student told a lesson is off, then never told
+  // it is back on, will not turn up.
+  try {
+    await notifySessionChange(id, null, undefined, !canceled);
+  } catch (err) {
+    console.warn('[email] session cancel notify failed', (err as Error).message);
   }
 }
 

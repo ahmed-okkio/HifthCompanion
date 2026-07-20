@@ -6,7 +6,7 @@ import NoteForm from '../components/NoteForm';
 describe('NoteForm', () => {
   it('renders textarea with placeholder', () => {
     render(<NoteForm value="" isPending={false} onChange={vi.fn()} onSubmit={vi.fn()} />);
-    expect(screen.getByPlaceholderText(/Add a note/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Write a note/)).toBeInTheDocument();
   });
 
   it('Add Note button disabled when value empty', () => {
@@ -39,21 +39,21 @@ describe('NoteForm', () => {
   it('calls onSubmit on Ctrl+Enter', () => {
     const onSubmit = vi.fn();
     render(<NoteForm value="hello" isPending={false} onChange={vi.fn()} onSubmit={onSubmit} />);
-    fireEvent.keyDown(screen.getByPlaceholderText(/Add a note/), { key: 'Enter', ctrlKey: true });
+    fireEvent.keyDown(screen.getByPlaceholderText(/Write a note/), { key: 'Enter', ctrlKey: true });
     expect(onSubmit).toHaveBeenCalledOnce();
   });
 
   it('does NOT call onSubmit on plain Enter', () => {
     const onSubmit = vi.fn();
     render(<NoteForm value="hello" isPending={false} onChange={vi.fn()} onSubmit={onSubmit} />);
-    fireEvent.keyDown(screen.getByPlaceholderText(/Add a note/), { key: 'Enter', ctrlKey: false });
+    fireEvent.keyDown(screen.getByPlaceholderText(/Write a note/), { key: 'Enter', ctrlKey: false });
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('calls onChange when typing', () => {
     const onChange = vi.fn();
     render(<NoteForm value="" isPending={false} onChange={onChange} onSubmit={vi.fn()} />);
-    fireEvent.change(screen.getByPlaceholderText(/Add a note/), { target: { value: 'new text' } });
+    fireEvent.change(screen.getByPlaceholderText(/Write a note/), { target: { value: 'new text' } });
     expect(onChange).toHaveBeenCalledWith('new text');
   });
 

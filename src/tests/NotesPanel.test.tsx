@@ -62,7 +62,7 @@ describe('NotesPanel', () => {
     vi.mocked(notesService.createNote).mockResolvedValue({ data: newNote, error: null });
 
     render(<NotesPanel {...defaultProps} />);
-    fireEvent.change(screen.getByPlaceholderText(/Add a note/), { target: { value: 'New note' } });
+    fireEvent.change(screen.getByPlaceholderText(/Write a note/), { target: { value: 'New note' } });
     fireEvent.click(screen.getByText('Add Note'));
 
     await waitFor(() => {
@@ -94,7 +94,7 @@ describe('NotesPanel', () => {
     render(<NotesPanel {...defaultProps} initialNotes={[makeNote()]} readOnly />);
     expect(screen.queryByText('Edit')).toBeNull();
     expect(screen.queryByText('Delete')).toBeNull();
-    expect(screen.queryByPlaceholderText(/Add a note/)).toBeNull();
+    expect(screen.queryByPlaceholderText(/Write a note/)).toBeNull();
   });
 
   it('updates note text on save', async () => {

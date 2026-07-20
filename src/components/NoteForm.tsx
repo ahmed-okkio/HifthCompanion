@@ -28,7 +28,7 @@ export default function NoteForm({ value, isPending, onChange, onSubmit, textare
       <div className="flex items-center justify-between mt-2">
         <span style={{ fontSize: 'var(--type-meta-size)', color: 'var(--text-muted)' }}>{t('notes.ctrlEnterSave')}</span>
         <button
-          onClick={onSubmit}
+          onClick={() => onSubmit()}
           disabled={!value.trim() || isPending}
           className="btn btn-primary flex items-center gap-1"
           style={{ padding: '4px 14px', fontSize: '11px' }}

@@ -27,9 +27,6 @@ export default function ProfileClient({
 
   return (
     <div className="flex flex-col gap-5">
-      <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
-        {t('profile.title')}
-      </h1>
       <MemorizationEditor
         initialRanges={initialRanges}
         initialWeakest={initialWeakest}

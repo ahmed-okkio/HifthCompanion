@@ -46,6 +46,8 @@ describe('sendEmail (L1, L2)', () => {
       to: 'student@example.com',
       subject: 'Subject',
       html: '<p>hi</p>',
+      // Plaintext alternative is sent alongside the HTML to reduce spam flagging.
+      text: 'hi',
     });
     expect(res).toEqual({ sent: true, skipped: false });
   });
@@ -242,13 +244,16 @@ describe('shared HTML shell (L6)', () => {
     }
   });
 
-  it('no <style> block, external CSS, web font, or image', () => {
+  it('no <link>, no insecure/remote images; only the graceful web-font style', () => {
     for (const html of all) {
-      expect(html).not.toContain('<style');
       expect(html).not.toContain('<link');
+      // Logo is omitted unless NEXT_PUBLIC_SITE_URL is set (unset in tests).
       expect(html).not.toContain('<img');
-      expect(html).not.toContain('http://');
-      expect(html).not.toContain('fonts.googleapis');
+      expect(html).not.toContain('http://'); // https only
+      // The sole <style> block is the web-font @import — clients that strip it fall
+      // back to the inline system-font stack, so it degrades gracefully.
+      expect((html.match(/<style/g) ?? []).length).toBe(1);
+      expect(html).toContain('fonts.googleapis.com');
     }
   });
 

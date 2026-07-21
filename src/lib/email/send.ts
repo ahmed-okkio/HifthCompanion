@@ -48,12 +48,26 @@ export async function sendEmail(
       to,
       subject,
       html,
+      // Plaintext alternative — HTML-only mail is a spam signal (esp. Outlook).
+      text: htmlToText(html),
     });
     return { sent: true, skipped: false };
   } catch (err) {
     console.warn('[email] send failed', (err as Error).message);
     return { sent: false, skipped: false };
   }
+}
+
+// ponytail: crude tag-strip, good enough for a plaintext fallback; swap for a
+// real html-to-text lib only if the plaintext ever needs to look nice.
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /** Test-only: drop the cached transporter so env changes take effect. */

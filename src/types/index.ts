@@ -23,6 +23,9 @@ export interface Note {
   body: string;
   x: number | null;
   y: number | null;
+  fabric_object_id?: string | null;
+  author_id?: string | null;
+  deleted_at?: string | null;
   created_at: string;
   updated_at: string;
 }

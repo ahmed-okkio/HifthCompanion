@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { fabric } from 'fabric';
 import { type Tool, getToolCursor } from '@/lib/canvasTools';
+import { ensureObjectId } from '@/lib/canvasHistory';
 
 // Highlighter is a fixed wide brush (like a real marker), independent of the pen width.
 const HIGHLIGHTER_WIDTH = 22;
@@ -34,17 +35,46 @@ interface UseCanvasToolsProps {
   tools: ToolState;
   user: { id: string } | null;
   selectedSetId: string;
+  pageNum: number;
   commit: (force?: boolean) => void;
   saveNow: () => Promise<void>;
   canvasReady: boolean;
 }
 
-export function useCanvasTools({ fabricRef, tools, user, selectedSetId, commit, saveNow, canvasReady }: UseCanvasToolsProps) {
+export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum, commit, saveNow, canvasReady }: UseCanvasToolsProps) {
   const { activeTool, activeColor, opacity, penWidth, eraserSize, setActiveTool } = tools;
   
   const [hoveredTool, setHoveredTool] = useState<Tool | null>(null);
   const [hoverPos, setHoverPos] = useState<{ top: number; left: number } | null>(null);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Link mode: the notes panel (a sibling tree) asks the canvas to let the user pick an
+  // annotation to link a note to. Toggled entirely by window events — no toolbar tool.
+  const [linking, setLinking] = useState(false);
+  const linkingRef = useRef(false);
+  linkingRef.current = linking;
+  // Whether an empty-area click is a valid pick (page placement) or should be ignored.
+  const allowEmptyRef = useRef(false);
+
+  useEffect(() => {
+    const onStart = (e: Event) => {
+      const d = (e as CustomEvent).detail;
+      if (d?.setId !== selectedSetId) return;
+      allowEmptyRef.current = !!d.allowEmpty;
+      setLinking(true);
+    };
+    // A pick on ANY page ends the session — otherwise the spread's other canvas stays in
+    // link mode (its own effect never fired the pick). Same for an explicit cancel.
+    const onStop = (e: Event) => { const d = (e as CustomEvent).detail; if (!d || d.setId === selectedSetId) setLinking(false); };
+    window.addEventListener('hifth:note-link-start', onStart);
+    window.addEventListener('hifth:note-link-cancel', onStop);
+    window.addEventListener('hifth:note-link-picked', onStop);
+    return () => {
+      window.removeEventListener('hifth:note-link-start', onStart);
+      window.removeEventListener('hifth:note-link-cancel', onStop);
+      window.removeEventListener('hifth:note-link-picked', onStop);
+    };
+  }, [selectedSetId]);
 
   // Mobile only: 'move' lets a finger scroll the page (canvas ignores touch); 'draw' captures
   // touch to annotate. Default 'move' so users don't draw by accident when scrolling. Desktop
@@ -106,9 +136,12 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, commit, 
     const canvas = fabricRef.current;
     if (!canvas) return;
     const isBrush = activeTool === 'pen' || activeTool === 'highlighter';
-    canvas.isDrawingMode = !!user && !!selectedSetId && isBrush;
-    // Underline + eraser render their own overlay cursor, so hide Fabric's
-    const cursor = activeTool === 'underline' || activeTool === 'eraser' ? 'none' : getToolCursor(activeTool);
+    // Link mode owns the pointer while active — never draw underneath it.
+    canvas.isDrawingMode = !!user && !!selectedSetId && isBrush && !linking;
+    // Underline, eraser + highlighter render their own overlay cursor, so hide Fabric's
+    const cursor = linking ? 'pointer'
+      : activeTool === 'underline' || activeTool === 'eraser' || activeTool === 'highlighter'
+        ? 'none' : getToolCursor(activeTool);
     canvas.defaultCursor = cursor;
     canvas.hoverCursor = cursor;
     canvas.moveCursor = cursor;
@@ -118,14 +151,14 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, commit, 
       canvas.freeDrawingBrush.width = activeTool === 'highlighter' ? HIGHLIGHTER_WIDTH : penWidth;
     }
     canvas.renderAll();
-  }, [activeTool, activeColor, penWidth, opacity, user, selectedSetId, fabricRef]);
+  }, [activeTool, activeColor, penWidth, opacity, user, selectedSetId, linking, fabricRef]);
 
   // Eraser: a radius brush (size `eraserSize`), not a click-to-delete.
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
     canvas.selection = false;
-    if (activeTool !== 'eraser') return;
+    if (activeTool !== 'eraser' || linking) return;
 
     const r = eraserSize;
     const upper = (canvas as any).upperCanvasEl as HTMLElement | undefined;
@@ -179,18 +212,18 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, commit, 
       cursorEl.remove();
       if (upper) upper.style.cursor = prevCursor;
     };
-  }, [activeTool, eraserSize, commit, saveNow, fabricRef]);
+  }, [activeTool, eraserSize, linking, commit, saveNow, fabricRef]);
 
   // Underline cursor
   useEffect(() => {
     const canvas = fabricRef.current;
-    if (!canvas || activeTool !== 'underline') return;
+    if (!canvas || activeTool !== 'underline' || linking) return;
     const upper = (canvas as any).upperCanvasEl as HTMLElement | undefined;
     const container = upper?.parentElement ?? null;
 
     const guide = document.createElement('div');
     Object.assign(guide.style, {
-      position: 'absolute', pointerEvents: 'none', height: '3px', width: '56px',
+      position: 'absolute', pointerEvents: 'none', height: '3px', width: '11px',
       background: activeColor, borderRadius: '2px', transform: 'translate(-50%,-50%)',
       display: 'none', zIndex: '5', opacity: '0.9',
     } as CSSStyleDeclaration);
@@ -213,7 +246,141 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, commit, 
       guide.remove();
       if (upper) upper.style.cursor = prevCursor;
     };
-  }, [activeTool, activeColor, fabricRef]);
+  }, [activeTool, activeColor, linking, fabricRef]);
+
+  // Link mode: panel asks the user to pick an annotation. Hover shows a ring on the nearest
+  // object; clicking it stamps a stable id, saves, and reports the pick back to the panel.
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas || !linking) return;
+    const upper = (canvas as any).upperCanvasEl as HTMLElement | undefined;
+    const container = upper?.parentElement ?? null;
+
+    // Ring that hugs the target annotation (feedback lands on the object, not empty space).
+    const ring = document.createElement('div');
+    Object.assign(ring.style, {
+      position: 'absolute', pointerEvents: 'none', boxSizing: 'border-box',
+      border: '2px solid var(--accent, #16a34a)', borderRadius: '6px',
+      boxShadow: '0 0 0 3px rgba(22,163,74,0.18)', display: 'none', zIndex: '5',
+      transition: 'left .06s, top .06s, width .06s, height .06s',
+    } as CSSStyleDeclaration);
+    container?.appendChild(ring);
+
+    // Persistent hint — hover feedback is dead on touch, so the mode itself must announce.
+    const hint = document.createElement('div');
+    hint.textContent = allowEmptyRef.current
+      ? 'Tap an annotation to link, or the page to just add it · Esc to cancel'
+      : 'Tap an annotation to link · Esc to cancel';
+    Object.assign(hint.style, {
+      position: 'absolute', pointerEvents: 'none', top: '8px', left: '50%',
+      transform: 'translateX(-50%)', zIndex: '6', whiteSpace: 'nowrap',
+      padding: '4px 10px', borderRadius: '999px', fontSize: '12px',
+      background: 'rgba(15,23,42,0.82)', color: '#fff',
+    } as CSSStyleDeclaration);
+    container?.appendChild(hint);
+
+    // Nearest annotation within a grab threshold — distance 0 when inside the bbox, so a tap
+    // NEAR a thin line/underline still links instead of missing.
+    const THRESHOLD = 24;
+    const nearest = (p: { x: number; y: number }): fabric.Object | null => {
+      let best: fabric.Object | null = null, bestD = THRESHOLD;
+      for (const o of canvas.getObjects()) {
+        const b = o.getBoundingRect(true, true);
+        const dx = Math.max(b.left - p.x, 0, p.x - (b.left + b.width));
+        const dy = Math.max(b.top - p.y, 0, p.y - (b.top + b.height));
+        const d = Math.hypot(dx, dy);
+        if (d <= bestD) { bestD = d; best = o; } // ties favour later (topmost) object
+      }
+      return best;
+    };
+
+    const onMove = (opt: fabric.IEvent) => {
+      const hit = nearest(canvas.getPointer(opt.e));
+      if (!hit) { ring.style.display = 'none'; return; }
+      const b = hit.getBoundingRect(true, true);
+      const PAD = 4;
+      Object.assign(ring.style, {
+        display: 'block',
+        left: `${b.left - PAD}px`, top: `${b.top - PAD}px`,
+        width: `${b.width + PAD * 2}px`, height: `${b.height + PAD * 2}px`,
+      });
+    };
+    const onOut = () => { ring.style.display = 'none'; };
+    const onDown = (opt: fabric.IEvent) => {
+      const hit = nearest(canvas.getPointer(opt.e));
+      if (!hit) {
+        // Empty area: for a draft, this places the note on THIS page (unbound). For an existing
+        // note relink, ignore it — an accidental miss must not silently unlink.
+        if (!allowEmptyRef.current) return;
+        window.dispatchEvent(new CustomEvent('hifth:note-link-picked', {
+          detail: { setId: selectedSetId, pageNum, fabricObjectId: null },
+        }));
+        setLinking(false);
+        return;
+      }
+      const fabricObjectId = ensureObjectId(hit);
+      void saveNow(); // persist the freshly-stamped id so reconcile sees it present
+      window.dispatchEvent(new CustomEvent('hifth:note-link-picked', {
+        detail: { setId: selectedSetId, pageNum, fabricObjectId },
+      }));
+      setLinking(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      window.dispatchEvent(new CustomEvent('hifth:note-link-cancel', { detail: { setId: selectedSetId } }));
+      setLinking(false);
+    };
+
+    canvas.on('mouse:down', onDown);
+    canvas.on('mouse:move', onMove);
+    canvas.on('mouse:out', onOut);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      canvas.off('mouse:down', onDown);
+      canvas.off('mouse:move', onMove);
+      canvas.off('mouse:out', onOut);
+      window.removeEventListener('keydown', onKey);
+      ring.remove();
+      hint.remove();
+    };
+  }, [linking, selectedSetId, pageNum, saveNow, fabricRef]);
+
+  // Highlighter cursor: same disc as the eraser, filled with the live colour + opacity so the
+  // pointer previews the mark it lays down.
+  useEffect(() => {
+    const canvas = fabricRef.current;
+    if (!canvas || activeTool !== 'highlighter' || linking) return;
+    const upper = (canvas as any).upperCanvasEl as HTMLElement | undefined;
+    const container = upper?.parentElement ?? null;
+
+    const cursorEl = document.createElement('div');
+    Object.assign(cursorEl.style, {
+      position: 'absolute', pointerEvents: 'none', boxSizing: 'border-box',
+      border: '1px solid rgba(15,23,42,0.5)', borderRadius: '50%',
+      width: `${HIGHLIGHTER_WIDTH}px`, height: `${HIGHLIGHTER_WIDTH}px`,
+      background: hexToRgba(activeColor, opacity),
+      transform: 'translate(-50%,-50%)', display: 'none', zIndex: '5',
+    } as CSSStyleDeclaration);
+    container?.appendChild(cursorEl);
+    const prevCursor = upper?.style.cursor ?? '';
+    if (upper) upper.style.cursor = 'none';
+
+    const onMove = (opt: fabric.IEvent) => {
+      const p = canvas.getPointer(opt.e);
+      cursorEl.style.display = 'block';
+      cursorEl.style.left = `${p.x}px`;
+      cursorEl.style.top = `${p.y}px`;
+    };
+    const onOut = () => { cursorEl.style.display = 'none'; };
+    canvas.on('mouse:move', onMove);
+    canvas.on('mouse:out', onOut);
+    return () => {
+      canvas.off('mouse:move', onMove);
+      canvas.off('mouse:out', onOut);
+      cursorEl.remove();
+      if (upper) upper.style.cursor = prevCursor;
+    };
+  }, [activeTool, activeColor, opacity, linking, fabricRef]);
 
   // Shape + text drawing
   useEffect(() => {
@@ -226,11 +393,13 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, commit, 
     let startY = 0;
 
     const handleMouseDown = (opt: fabric.IEvent) => {
+      if (linkingRef.current) return; // link mode owns clicks
       if (activeTool === 'pen' || activeTool === 'highlighter' || activeTool === 'eraser') return;
       if (activeTool === 'text') {
         const pointer = canvas.getPointer(opt.e);
         const text = new fabric.IText('Type here', {
           left: pointer.x, top: pointer.y,
+          originX: 'center', originY: 'center',
           fontSize: 18, fill: activeColor,
           fontFamily: 'sans-serif', editable: true,
         });
@@ -293,7 +462,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, commit, 
       canvas.off('mouse:move', handleMouseMove);
       canvas.off('mouse:up', handleMouseUp);
     };
-  }, [activeTool, activeColor, opacity, saveNow, commit, fabricRef]);
+  }, [activeTool, activeColor, opacity, saveNow, commit, fabricRef, selectedSetId, pageNum]);
 
   return {
     hoveredTool, hoverPos, interactionMode, setInteractionMode,

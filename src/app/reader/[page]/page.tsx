@@ -80,9 +80,10 @@ export default async function ReaderPage({ params, searchParams }: Props) {
               setId={viewSetId}
               pages={spread}
               initialNotes={{ [pageNum]: initialNotes, [otherPage!]: otherNotes }}
+              currentUserId={user.id}
             />
           ) : (
-            <NotesPanel setId={viewSetId} pageNum={pageNum} initialNotes={initialNotes} />
+            <NotesPanel setId={viewSetId} pageNum={pageNum} initialNotes={initialNotes} currentUserId={user.id} />
           )}
         </div>
       ) : !user ? (

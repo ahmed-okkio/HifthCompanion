@@ -1,4 +1,5 @@
 'use client';
+import { useEffect, useRef, useState } from 'react';
 import type { Note } from '@/types';
 import { useNotes } from '@/hooks/useNotes';
 import NoteItem from '@/components/NoteItem';
@@ -11,15 +12,93 @@ interface Props {
   pageNum: number;
   initialNotes: Note[];
   readOnly?: boolean;
+  /** Used only to label a note's author as "you" (D6). */
+  currentUserId?: string | null;
 }
 
-export default function NotesPanel({ setId, pageNum, initialNotes, readOnly = false }: Props) {
+/**
+ * Badge → panel (D4). Listens for the badge layer's focus event, scrolls that object's
+ * first note into view and highlights every note bound to it. `pages` is what keeps a
+ * spread's two canvases addressing the right panel — the event carries setId + pageNum.
+ * Shared with SpreadNotesPanel; the highlight clears itself so nothing has to reset it.
+ */
+export function useNoteFocus(setId: string, pages: number[], onReveal?: () => void) {
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const [highlighted, setHighlighted] = useState<string | null>(null);
+  const key = pages.join(',');
+  // Ref so a fresh callback each render doesn't re-subscribe the listener.
+  const onRevealRef = useRef(onReveal);
+  onRevealRef.current = onReveal;
+
+  useEffect(() => {
+    const onFocus = (e: Event) => {
+      const d = (e as CustomEvent).detail as { setId: string; pageNum: number; fabricObjectId: string };
+      if (d.setId !== setId || !key.split(',').includes(String(d.pageNum))) return;
+      setHighlighted(d.fabricObjectId);
+      onRevealRef.current?.(); // a collapsed panel must open, or D4 scrolls nothing
+      requestAnimationFrame(() => {
+        listRef.current
+          ?.querySelector(`[data-note-object="${CSS.escape(d.fabricObjectId)}"]`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    };
+    window.addEventListener('hifth:note-focus', onFocus);
+    return () => window.removeEventListener('hifth:note-focus', onFocus);
+  }, [setId, key]);
+
+  useEffect(() => {
+    if (!highlighted) return;
+    const timer = setTimeout(() => setHighlighted(null), 2500);
+    return () => clearTimeout(timer);
+  }, [highlighted]);
+
+  return { listRef, highlighted };
+}
+
+/** Panel → badge (D5): selecting a bound note flashes its badge on the canvas. */
+export function flashBadge(setId: string, pageNum: number, fabricObjectId?: string | null) {
+  if (!fabricObjectId) return;
+  window.dispatchEvent(new CustomEvent('hifth:note-flash', { detail: { setId, pageNum, fabricObjectId } }));
+}
+
+export default function NotesPanel({ setId, pageNum, initialNotes, readOnly = false, currentUserId }: Props) {
   const {
     notes, newBody, editingId, editBody, collapsed, isPending,
     setNewBody, setEditBody, setCollapsed,
-    handleCreate, handleUpdate, handleDelete, startEdit, cancelEdit,
+    handleCreate, handleUpdate, handleDelete, handleLink, startEdit, cancelEdit,
   } = useNotes(setId, pageNum, initialNotes);
   const { t } = useI18n();
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  // A pending link: 'draft' = the composer's text waits for an annotation; a string = an
+  // existing note's id waits. null = not linking.
+  const [linkTarget, setLinkTarget] = useState<'draft' | string | null>(null);
+  const { listRef, highlighted } = useNoteFocus(setId, [pageNum], () => setCollapsed(false));
+
+  const startLink = (target: 'draft' | string) => {
+    setLinkTarget(target);
+    setCollapsed(false);
+    // A draft can land on empty page area (unbound); an existing-note relink cannot.
+    window.dispatchEvent(new CustomEvent('hifth:note-link-start', { detail: { setId, allowEmpty: target === 'draft' } }));
+  };
+
+  // Canvas reports which annotation the user picked; apply it to the pending target.
+  useEffect(() => {
+    if (readOnly) return;
+    const onPicked = (e: Event) => {
+      const d = (e as CustomEvent).detail as { setId: string; pageNum: number; fabricObjectId: string | null };
+      if (d.setId !== setId || d.pageNum !== pageNum || !linkTarget) return;
+      if (linkTarget === 'draft') handleCreate(undefined, d.fabricObjectId);
+      else handleLink(linkTarget, d.fabricObjectId);
+      setLinkTarget(null);
+    };
+    const onCancel = () => setLinkTarget(null);
+    window.addEventListener('hifth:note-link-picked', onPicked);
+    window.addEventListener('hifth:note-link-cancel', onCancel);
+    return () => {
+      window.removeEventListener('hifth:note-link-picked', onPicked);
+      window.removeEventListener('hifth:note-link-cancel', onCancel);
+    };
+  }, [setId, pageNum, readOnly, linkTarget, handleCreate, handleLink]);
 
   return (
     <PanelCard
@@ -52,12 +131,15 @@ export default function NotesPanel({ setId, pageNum, initialNotes, readOnly = fa
               value={newBody}
               isPending={isPending}
               onChange={setNewBody}
-              onSubmit={handleCreate}
+              onSubmit={(body) => handleCreate(body)}
+              onAddAndLink={() => { if (newBody.trim()) startLink('draft'); }}
+              linkPending={linkTarget === 'draft'}
+              textareaRef={textareaRef}
             />
           )}
 
           {/* Note list */}
-          <div>
+          <div ref={listRef}>
             {notes.length === 0 && (
               <p
                 style={{
@@ -78,6 +160,10 @@ export default function NotesPanel({ setId, pageNum, initialNotes, readOnly = fa
                 editBody={editBody}
                 isPending={isPending}
                 readOnly={readOnly}
+                currentUserId={currentUserId}
+                highlighted={!!note.fabric_object_id && note.fabric_object_id === highlighted}
+                onSelect={() => flashBadge(setId, pageNum, note.fabric_object_id)}
+                onLink={() => startLink(note.id)}
                 onEditBodyChange={setEditBody}
                 onSave={handleUpdate}
                 onCancel={cancelEdit}

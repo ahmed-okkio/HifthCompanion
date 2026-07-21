@@ -13,6 +13,7 @@ import SetsCard from '@/components/SetsCard';
 import ZoomControl from '@/components/ZoomControl';
 import { LegendButton } from '@/components/LegendModal';
 import SpreadToggle from '@/components/SpreadToggle';
+import NoteBadgeLayer from '@/components/NoteBadgeLayer';
 import { useAnnotationCanvas, type ToolState } from '@/hooks/useAnnotationCanvas';
 import { useI18n } from '@/components/I18nProvider';
 
@@ -55,7 +56,7 @@ function AnnotationCanvasInner(
   ref: React.Ref<CanvasHandle>,
 ) {
   const {
-    containerRef, wrapperRef, canvasRef,
+    containerRef, wrapperRef, canvasRef, fabricRef,
     selectedSetId, saving, accessRevoked, activeTool, activeColor, opacity, penWidth, eraserSize,
     canUndo, canRedo, canvasReady, canvasSize, pageMaxHeightOffset, hoveredTool, hoverPos,
     interactionMode, setInteractionMode,
@@ -282,7 +283,10 @@ function AnnotationCanvasInner(
             <div data-page-slot style={{ position: 'relative', overflow: 'visible', borderRadius: 'var(--radius-page)', flex: 1, minWidth: 0 }}>
               <div style={innerZoomStyle(flush === 'start' ? 'left center' : flush === 'end' ? 'right center' : 'center center')}>
                 <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush} noShadow>
-                  <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
+                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
+                    <NoteBadgeLayer fabricRef={fabricRef} setId={selectedSetId} pageNum={pageNum} canvasReady={canvasReady} />
+                  </div>
                 </PageDisplayFrame>
               </div>
               {/* Spread pan overlay is rendered ONCE by SpreadAnnotation across both pages, so a
@@ -310,7 +314,10 @@ function AnnotationCanvasInner(
             <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-page)' }}>
               <div style={innerZoomStyle('center center')}>
                 <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush}>
-                  <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
+                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                    <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
+                    <NoteBadgeLayer fabricRef={fabricRef} setId={selectedSetId} pageNum={pageNum} canvasReady={canvasReady} />
+                  </div>
                 </PageDisplayFrame>
               </div>
 

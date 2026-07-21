@@ -80,7 +80,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   });
 
   const canvasTools = useCanvasTools({
-    fabricRef, tools: resolvedTools, user, selectedSetId,
+    fabricRef, tools: resolvedTools, user, selectedSetId, pageNum,
     commit: persistence.commit, saveNow: persistence.saveNow, canvasReady
   });
 
@@ -216,7 +216,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   }, [selectedSetId, pageNum, persistence.loadAnnotation, persistence.saveCanvas, user]);
 
   return {
-    containerRef, wrapperRef, canvasRef,
+    containerRef, wrapperRef, canvasRef, fabricRef,
     selectedSetId, saving: persistence.saving, accessRevoked: persistence.accessRevoked,
     activeTool, activeColor, opacity, penWidth, eraserSize,
     canUndo: persistence.canUndo, canRedo: persistence.canRedo,

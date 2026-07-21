@@ -6,6 +6,7 @@ import { pruneDegenerate, clusterCount } from '@/lib/markedPages';
 import { CanvasHistory } from '@/lib/canvasHistory';
 import { TOTAL_PAGES } from '@/lib/quran';
 import { type PageCanvasSize } from '@/lib/pageCanvas';
+import { reconcileNoteBindings } from '@/lib/services/notes';
 
 type AnnotCacheEntry = { json: CanvasJson | null };
 const annotCache = new Map<string, AnnotCacheEntry>();
@@ -51,6 +52,10 @@ export function useCanvasPersistence({
   const skeletonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const activeLoadSetIdRef = useRef<string | null>(null);
   const lastLoadedRef = useRef<{ setId: string; pageNum: number } | null>(null);
+  // The canvas instance the last load rendered into. A hot reload disposes + recreates the canvas
+  // while lastLoadedRef (a preserved ref) still matches set/page — without this the dedup skips
+  // the reload and leaves the fresh canvas empty (then the next save overwrites the DB).
+  const lastLoadedCanvasRef = useRef<fabric.Canvas | null>(null);
   const lastSnapshotAtRef = useRef<number>(0);
   const isLoadingRef = useRef(false);
   const userEditedSinceLoadRef = useRef(false);
@@ -111,10 +116,18 @@ export function useCanvasPersistence({
     if (!user || !setId || accessRevokedRef.current) return;
     setSaving(true);
     try {
-      const json = canvas.toJSON();
+      const json = canvas.toJSON(['id'] as any);
       delete (json as any).backgroundImage;
       (json as any).objects = pruneDegenerate((json as any).objects ?? []);
       const payload: CanvasJson = { width: canvas.getWidth(), height: canvas.getHeight(), ...(json as any) };
+      // Never let an empty payload DELETE a page unless the user actually emptied it. A blank
+      // payload otherwise means a save raced the async load (fresh mount / hot reload leaves the
+      // canvas momentarily empty), and deleting here would silently wipe saved annotations.
+      // A real Clear routes through handleClear → commit(true), which sets userEditedSinceLoad.
+      if (payload.objects.length === 0 && (!userEditedSinceLoadRef.current || canvas.getObjects().length > 0)) {
+        console.warn('[AnnotationCanvas] Skipped empty save: no user edit since load (load/HMR race?)');
+        return;
+      }
       const count = payload.objects.length === 0
         ? 0
         : clusterCount(payload.objects as any, Math.max(16, Math.round(canvas.getWidth() * 0.03)));
@@ -122,6 +135,13 @@ export function useCanvasPersistence({
       if (r.status === 'saved') {
         annotCache.set(annotKey(setId, page), { json: count === 0 ? null : payload });
         onSavedRef.current?.(setId, page, count);
+        // Notes follow the objects they're bound to. Only after a confirmed save, and only for
+        // this page — a denied/failed write must not soft-delete anything. `handleClear` lands
+        // here too, with an empty id list.
+        const ids = (payload.objects as any[]).map(o => o?.id).filter(Boolean) as string[];
+        const rec = await reconcileNoteBindings(setId, page, ids);
+        if (rec.error) console.error('[AnnotationCanvas] Note reconcile error:', rec.error);
+        else window.dispatchEvent(new CustomEvent('hifth:notes-stale', { detail: { setId, pageNum: page } }));
       } else if (r.status === 'denied') {
         if (lockedSet) {
           accessRevokedRef.current = true;
@@ -201,7 +221,8 @@ export function useCanvasPersistence({
   }, [sizeCanvasForImage]);
 
   const loadAnnotation = useCallback(async (canvas: fabric.Canvas, setId: string, page: number) => {
-    if (lastLoadedRef.current?.setId === setId && lastLoadedRef.current?.pageNum === page) return;
+    if (lastLoadedRef.current?.setId === setId && lastLoadedRef.current?.pageNum === page
+        && lastLoadedCanvasRef.current === canvas) return;
     activeLoadSetIdRef.current = setId;
     isLoadingRef.current = true;
     scheduleSkeleton();
@@ -228,6 +249,7 @@ export function useCanvasPersistence({
     const settle = () => {
       cancelSkeleton();
       lastLoadedRef.current = { setId, pageNum: page };
+      lastLoadedCanvasRef.current = canvas;
       isLoadingRef.current = false;
       userEditedSinceLoadRef.current = false;
       setCanvasReady(true);
@@ -292,7 +314,7 @@ export function useCanvasPersistence({
     canvas.getObjects().forEach(obj => canvas.remove(obj));
     canvas.renderAll();
     commit(true);
-    scheduleSave();
+    scheduleSave(); // same save path ⇒ same note reconcile, one batch, no separate clear branch
   }, [commit, scheduleSave, fabricRef]);
 
   // Unmount-only cleanup (original lived inside the mount-only init effect). Live values come

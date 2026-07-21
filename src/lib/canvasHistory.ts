@@ -1,5 +1,12 @@
 import { fabric } from 'fabric';
 
+/** Stamps a uuid on an object that has none and returns its id. Lazy by design: called only
+ *  when a note is first bound, never on object:added — unnoted objects stay id-less. */
+export function ensureObjectId(obj: fabric.Object): string {
+  const o = obj as fabric.Object & { id?: string };
+  return (o.id ??= crypto.randomUUID());
+}
+
 export class CanvasHistory {
   private stack: string[] = [];
   private ptr = -1;
@@ -12,7 +19,8 @@ export class CanvasHistory {
 
   snapshot() {
     if (this.frozen) return;
-    const json = JSON.stringify(this.canvas.toJSON());
+    // 'id' is not a Fabric-native prop — without it here, undo/redo strips note bindings.
+    const json = JSON.stringify(this.canvas.toJSON(['id'] as any));
     this.stack = this.stack.slice(0, this.ptr + 1);
     this.stack.push(json);
     this.ptr = this.stack.length - 1;

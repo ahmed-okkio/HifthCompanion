@@ -55,6 +55,8 @@ export default async function SharePage({ params, searchParams }: Props) {
     const dict = getDictionary(await getLocale());
     const initialNotes = await getNotes(setId, pageNum).catch(() => []);
     const otherNotes: Note[] = spread ? await getNotes(setId, spread[1]).catch(() => []) : [];
+    // Only so a collaborator's own notes read as "you" (D6).
+    const { data: { user } } = await (await createClient()).auth.getUser();
 
     return (
       <div className="animate-fade-in-scale flex flex-col gap-3" style={{ animationDelay: '100ms' }}>
@@ -75,9 +77,10 @@ export default async function SharePage({ params, searchParams }: Props) {
             setId={setId}
             pages={spread}
             initialNotes={{ [pageNum]: initialNotes, [spread[1]]: otherNotes }}
+            currentUserId={user?.id}
           />
         ) : (
-          <NotesPanel setId={setId} pageNum={pageNum} initialNotes={initialNotes} />
+          <NotesPanel setId={setId} pageNum={pageNum} initialNotes={initialNotes} currentUserId={user?.id} />
         )}
       </div>
     );
@@ -111,6 +114,8 @@ export default async function SharePage({ params, searchParams }: Props) {
                 pageNum={pageNum}
                 imageUrl={imageUrl}
                 canvasJson={annotationJson ?? null}
+                setId={setId}
+                notes={initialNotes}
               />
             </div>
           </div>

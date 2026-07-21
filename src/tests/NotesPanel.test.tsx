@@ -19,6 +19,7 @@ vi.mock('@/lib/supabase/client', () => ({
       from: () => builder,
       select: () => builder,
       eq: () => builder,
+      is: () => builder,
       order: () => builder,
       // No-op thenable: leaves the effect's promise unresolved so the panel keeps
       // its `initialNotes` prop instead of being overwritten by a fetch result.
@@ -66,7 +67,7 @@ describe('NotesPanel', () => {
     fireEvent.click(screen.getByText('Add Note'));
 
     await waitFor(() => {
-      expect(notesService.createNote).toHaveBeenCalledWith('set-1', 1, 'New note');
+      expect(notesService.createNote).toHaveBeenCalledWith('set-1', 1, 'New note', undefined, undefined, undefined);
       expect(screen.getByText('New note')).toBeDefined();
     });
   });

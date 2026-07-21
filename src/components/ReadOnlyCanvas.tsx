@@ -3,14 +3,19 @@ import { useEffect, useRef, useState } from 'react';
 import { fabric } from 'fabric';
 import PageDisplayFrame from '@/components/PageDisplayFrame';
 import { calculatePageCanvasSize, type PageCanvasSize } from '@/lib/pageCanvas';
+import NoteBadgeLayer from '@/components/NoteBadgeLayer';
+import type { Note } from '@/types';
 
 interface Props {
   pageNum: number;
   imageUrl: string;
   canvasJson: any | null;
+  /** Share view only: notes already fetched server-side (no client fetch, F5). */
+  setId?: string;
+  notes?: Note[];
 }
 
-export default function ReadOnlyCanvas({ pageNum, imageUrl, canvasJson }: Props) {
+export default function ReadOnlyCanvas({ pageNum, imageUrl, canvasJson, setId, notes }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
@@ -119,7 +124,11 @@ export default function ReadOnlyCanvas({ pageNum, imageUrl, canvasJson }: Props)
 
   return (
     <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={24} ready={ready}>
-      <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
+      <div style={{ position: 'relative', display: 'inline-block' }}>
+        <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
+        {/* Read-only: badges only. No note tool, no compose bus — a guest gets no write path (F3). */}
+        {setId && <NoteBadgeLayer fabricRef={fabricRef} setId={setId} pageNum={pageNum} canvasReady={ready} notes={notes ?? []} />}
+      </div>
     </PageDisplayFrame>
   );
 }

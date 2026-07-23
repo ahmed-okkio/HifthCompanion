@@ -187,7 +187,7 @@ export default function MemorizationEditor({
                         cursor: 'pointer',
                         border: on ? '1px solid var(--accent)' : '1px solid var(--border-default)',
                         background: on ? 'var(--accent)' : 'var(--bg-surface)',
-                        color: on ? 'var(--accent-contrast, #fff)' : 'var(--text-muted)',
+                        color: on ? 'var(--accent-contrast)' : 'var(--text-muted)',
                         transition: 'all var(--duration-fast) var(--ease-out)',
                       }}
                     >

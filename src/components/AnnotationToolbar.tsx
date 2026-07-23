@@ -67,7 +67,7 @@ export default function AnnotationToolbar({
     // desktop widths, and the bar scrolls only if the column is extremely narrow.
     minWidth: '44px',
     alignSelf: 'stretch',
-    borderRadius: 'var(--radius-btn-px)',
+    borderRadius: 'var(--radius-md)',
     transition: 'background var(--duration-fast, 120ms) var(--ease-out, ease)',
   };
 
@@ -78,7 +78,7 @@ export default function AnnotationToolbar({
         minHeight: '88px',
         /* Shadow lives on the outer (unclipped) element — clip-path on the inner
            wrapper would otherwise cut the box-shadow off at the border box. */
-        borderRadius: 'var(--radius-lg-px)',
+        borderRadius: 'var(--radius-lg)',
         boxShadow: 'var(--shadow-e2)',
       }}
     >
@@ -91,10 +91,10 @@ export default function AnnotationToolbar({
         style={{
           minHeight: '88px',
           background: 'var(--surface-main)',
-          borderRadius: 'var(--radius-lg-px)',
+          borderRadius: 'var(--radius-lg)',
           border: '1px solid var(--border-subtle)',
           overflow: 'hidden',
-          clipPath: 'inset(0 round var(--radius-lg-px))',
+          clipPath: 'inset(0 round var(--radius-lg))',
         }}
       >
       <div

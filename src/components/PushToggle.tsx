@@ -104,7 +104,7 @@ export default function PushToggle() {
         {enabled ? t('push.disable') : t('push.enable')}
       </button>
       {error && (
-        <span style={{ color: 'var(--danger, #dc2626)', fontSize: 12 }}>{error}</span>
+        <span style={{ color: 'var(--danger)', fontSize: 12 }}>{error}</span>
       )}
     </div>
   );

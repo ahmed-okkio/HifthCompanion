@@ -524,7 +524,7 @@ function StudentSessions({
               style={{ minHeight: 40, fontSize: 13, padding: '0 16px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
         <Icon name="calendar" size={16} />
         {weekdays.length ? t('sessions.editSchedule') : t('sessions.setSchedule')}
-        <Chevron open={showSchedule} color={weekdays.length ? 'var(--text-muted)' : 'var(--accent-contrast, #fff)'} />
+        <Chevron open={showSchedule} color={weekdays.length ? 'var(--text-muted)' : 'var(--accent-contrast)'} />
       </button>
 
       {showSchedule && (
@@ -1001,7 +1001,7 @@ function TeacherResultForm({
         <button key={s.label} onClick={() => set(s.label)} className="badge" style={{
           cursor: 'pointer',
           background: value === s.label ? 'var(--accent)' : undefined,
-          color: value === s.label ? '#fff' : undefined,
+          color: value === s.label ? 'var(--accent-contrast)' : undefined,
         }}>
           {s.label}
         </button>
@@ -1606,7 +1606,7 @@ function GradeableLog({
               <button key={s.label} onClick={() => setStatus(s.label)} className="badge" style={{
                 cursor: 'pointer',
                 background: status === s.label ? 'var(--accent)' : undefined,
-                color: status === s.label ? '#fff' : undefined,
+                color: status === s.label ? 'var(--accent-contrast)' : undefined,
               }}>
                 {s.label}
               </button>

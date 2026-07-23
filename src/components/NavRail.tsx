@@ -16,7 +16,7 @@
  * (`MobileNavDrawer`) renders the exact same set — one source of truth.
  *
  * Tokens consumed: --green-600, --green-soft, --neutral-100, --neutral-400,
- *   --neutral-500, --surface-main, --shadow-e2, --radius-sm-px, --radius-md-px,
+ *   --neutral-500, --surface-main, --shadow-e2, --radius-sm, --radius-md,
  *   --space-4, --space-16. No bare hex / hard-coded radius / shadow.
  */
 
@@ -233,7 +233,7 @@ function RailButton({ item, href, isActive, label, onNavigate }: { item: RailIte
     width: '80px',
     height: '60px',
     border: 'none',
-    borderRadius: 'var(--radius-sm-px)',
+    borderRadius: 'var(--radius-sm)',
     cursor: isInert ? 'default' : 'pointer',
     background: isActive ? 'var(--green-soft)' : 'transparent',
     color: isActive ? 'var(--green-600)' : 'var(--neutral-500)',

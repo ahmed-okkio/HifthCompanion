@@ -4,7 +4,7 @@
   flex-direction: column;
   align-items: center;
   height: 100vh;
-  background-color: #fafaf9; /* stone-50 */
+  background-color: var(--surface-app); /* stone-50 → app background */
   padding: 1rem;
   overflow: hidden;
 }
@@ -16,7 +16,7 @@
   align-items: center;
   width: 100%;
   max-width: 800px;
-  background-color: #ffffff;
+  background-color: var(--surface-main);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   border-radius: 0.5rem;
   overflow: hidden;

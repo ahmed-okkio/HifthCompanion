@@ -28,7 +28,7 @@ const cardStyle: React.CSSProperties = {
   backdropFilter: 'blur(16px)',
   WebkitBackdropFilter: 'blur(16px)',
   border: '1px solid var(--border-subtle)',
-  borderRadius: 'var(--radius-max)',  /* 20px — token cap */
+  borderRadius: 'var(--radius-xl)',  /* 20px — token cap */
   boxShadow: 'var(--shadow-e3)',
   padding: 'var(--space-8)',
   zIndex: 2,
@@ -40,7 +40,7 @@ const triggerStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  borderRadius: 'var(--radius-md-px)',  /* 14px */
+  borderRadius: 'var(--radius-md)',  /* 14px */
   flexShrink: 0,
   transition: 'background var(--duration-fast) var(--ease-out)',
 };
@@ -77,7 +77,7 @@ export default function MobileAnnotationBar({
       <div
         style={{
           position: 'relative',
-          borderRadius: 'var(--radius-max)',
+          borderRadius: 'var(--radius-xl)',
           /* V3 Story 16 — glass bar: white-tinted glass + 16px backdrop blur. Lifted off the
              bottom with a deep shadow so it clearly hovers above the page. */
           background: 'var(--bg-glass)',
@@ -116,7 +116,7 @@ export default function MobileAnnotationBar({
               className="[&>svg]:h-5 [&>svg]:w-5"
               style={{
                 width: 46, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: 'var(--radius-btn-px)',  /* 12px */
+                borderRadius: 'var(--radius-md)',  /* 12px */
                 ...(activeTool === t
                   ? { background: 'var(--accent-muted)', color: 'var(--text-accent)' }
                   : { color: 'var(--text-muted)' }),
@@ -159,7 +159,7 @@ export default function MobileAnnotationBar({
             title={t('annot.clearAll')}
             aria-label={t('annot.clearAll')}
             className="btn btn-danger-ghost"
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 'var(--radius-btn-px)', justifyContent: 'flex-start' }}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 'var(--radius-md)', justifyContent: 'flex-start' }}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -186,7 +186,7 @@ export default function MobileAnnotationBar({
             fontSize: 13,
             fontWeight: 700,
             ...(drawing
-              ? { background: 'var(--accent-solid)', color: '#fff' }
+              ? { background: 'var(--accent-solid)', color: 'var(--accent-contrast)' }
               : { background: 'transparent', color: 'var(--text-muted)', boxShadow: 'inset 0 0 0 1px var(--border-subtle)' }),
           }}
         >

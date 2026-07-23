@@ -108,7 +108,7 @@ export default function CircleRail({ circles }: { circles: RailCircle[] }) {
                 style={{
                   position: 'absolute', bottom: -2, insetInlineEnd: -2,
                   width: 18, height: 18, borderRadius: '50%',
-                  background: 'var(--green-600)', color: '#fff',
+                  background: 'var(--green-600)', color: 'var(--accent-contrast)',
                   border: '2px solid var(--surface-app, #fff)',
                 }}
               >
@@ -201,7 +201,7 @@ function Tooltip({ show, label }: { show: boolean; label: string }) {
         opacity: show ? 1 : 0,
         pointerEvents: 'none',
         whiteSpace: 'nowrap',
-        background: 'var(--neutral-800, #1f2937)',
+        background: 'var(--neutral-800)',
         color: '#fff',
         fontSize: 12,
         fontWeight: 600,

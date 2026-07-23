@@ -35,7 +35,7 @@ export default function ToolHoverPopover({
         style={{
           background: 'var(--surface-main)',
           border: '1px solid var(--neutral-200)',
-          borderRadius: 'var(--radius-md-px)',
+          borderRadius: 'var(--radius-md)',
           boxShadow: 'var(--shadow-e3)',
           padding: 'var(--space-12) var(--space-16)',
         }}

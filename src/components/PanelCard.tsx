@@ -24,7 +24,7 @@ export default function PanelCard({
       data-testid={testid}
       style={{
         background: 'var(--surface-main)',
-        borderRadius: 'var(--radius-lg-px)',
+        borderRadius: 'var(--radius-lg)',
         border: '1px solid var(--neutral-200)',
         boxShadow: 'var(--shadow-e1)',
         overflow: 'hidden',
@@ -41,7 +41,7 @@ export default function PanelCard({
             style={{
               width: 26,
               height: 26,
-              borderRadius: 'var(--radius-sm-px)',
+              borderRadius: 'var(--radius-sm)',
               background: 'var(--accent-muted)',
               color: 'var(--green-600)',
             }}

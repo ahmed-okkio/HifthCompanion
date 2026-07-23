@@ -47,14 +47,14 @@ type Swatch = { color: string; name: string; ar: string; en: string; arDesc: str
 // Matches this mushaf's own legend (the two reference images). ponytail: hex values
 // are sampled from the legend swatches — the necessary-prolongation red is still a guess.
 const TAJWEED: Swatch[] = [
-  { color: '#a51d24', name: 'Necessary prolongation', ar: 'مدّ لزوماً', en: '6 vowels', arDesc: '٦ حركات' },
-  { color: '#e80589', name: 'Obligatory prolongation', ar: 'مدّ واجب', en: '4 or 5 vowels', arDesc: '٤ أو ٥ حركات' },
-  { color: '#d58310', name: 'Permissible prolongation', ar: 'مدّ جوازاً', en: '2, 4 or 6 vowels', arDesc: '٢ أو ٤ أو ٦ حركات' },
-  { color: '#c4a94d', name: 'Natural prolongation', ar: 'مدّ حركتان', en: '2 vowels', arDesc: 'حركتان' },
-  { color: '#06868d', name: 'Tafkhīm', ar: 'تفخيم', en: 'emphatic (heavy) letter', arDesc: 'حرف مفخّم (ثقيل)' },
-  { color: '#14afcd', name: 'Qalqalah', ar: 'قلقلة', en: 'echoing / bouncing sound', arDesc: 'صوت القلقلة المرتد' },
-  { color: '#04a650', name: 'Ikhfāʾ & Ghunnah', ar: 'إخفاء ومواقع الغُنّة', en: 'hiding & nasalization (2 vowels)', arDesc: 'إخفاء وغُنّة (حركتان)' },
-  { color: '#9a9a95', name: 'Idghām & silent', ar: 'إدغام وما لا يُلفظ', en: 'merging & unpronounced', arDesc: 'إدغام وحرف لا يُلفظ' },
+  { color: 'var(--tajweed-madd-lazim)', name: 'Necessary prolongation', ar: 'مدّ لزوماً', en: '6 vowels', arDesc: '٦ حركات' },
+  { color: 'var(--tajweed-madd-wajib)', name: 'Obligatory prolongation', ar: 'مدّ واجب', en: '4 or 5 vowels', arDesc: '٤ أو ٥ حركات' },
+  { color: 'var(--tajweed-madd-jaiz)', name: 'Permissible prolongation', ar: 'مدّ جوازاً', en: '2, 4 or 6 vowels', arDesc: '٢ أو ٤ أو ٦ حركات' },
+  { color: 'var(--tajweed-madd-natural)', name: 'Natural prolongation', ar: 'مدّ حركتان', en: '2 vowels', arDesc: 'حركتان' },
+  { color: 'var(--tajweed-tafkhim)', name: 'Tafkhīm', ar: 'تفخيم', en: 'emphatic (heavy) letter', arDesc: 'حرف مفخّم (ثقيل)' },
+  { color: 'var(--tajweed-qalqalah)', name: 'Qalqalah', ar: 'قلقلة', en: 'echoing / bouncing sound', arDesc: 'صوت القلقلة المرتد' },
+  { color: 'var(--tajweed-ikhfa-ghunnah)', name: 'Ikhfāʾ & Ghunnah', ar: 'إخفاء ومواقع الغُنّة', en: 'hiding & nasalization (2 vowels)', arDesc: 'إخفاء وغُنّة (حركتان)' },
+  { color: 'var(--tajweed-idgham-silent)', name: 'Idghām & silent', ar: 'إدغام وما لا يُلفظ', en: 'merging & unpronounced', arDesc: 'إدغام وحرف لا يُلفظ' },
 ];
 
 /** Two-line label: bold primary + muted secondary. Each line's dir/font follow its own
@@ -224,7 +224,7 @@ export function LegendButton() {
           height: '52px',
           padding: '0 var(--space-16)',
           background: 'var(--surface-main)',
-          borderRadius: 'var(--radius-lg-px)',
+          borderRadius: 'var(--radius-lg)',
           border: '1px solid rgba(15, 23, 42, 0.05)',
           boxShadow: 'var(--shadow-e2)',
           cursor: 'pointer',

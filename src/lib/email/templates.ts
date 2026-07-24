@@ -271,6 +271,84 @@ export function homeworkBody(
   });
 }
 
+/**
+ * Substitute-teacher digest. One template, four audiences×modes:
+ *  - audience 'substitute': the sub is told which student sessions they now
+ *    cover (H1) or no longer cover (H3).
+ *  - audience 'student': the student is told a named sub will run their
+ *    session(s) (H2) or that their own teacher is back on (H3).
+ * `items` are the covered instants, each rendered as its own session card.
+ */
+export function substitutionBody(
+  facts: {
+    audience: 'substitute' | 'student';
+    removed?: boolean;
+    substituteName: string;
+    recipientName: string;
+    items: {
+      studentName: string;
+      circleName?: string;
+      teacherName?: string;
+      when: string;
+      timezone?: string | null;
+    }[];
+  },
+  locale?: RecipientLocale,
+): string {
+  const rtl = locale === 'ar';
+  const ar = rtl;
+  const name = escapeHtml(facts.recipientName);
+  const sub = escapeHtml(facts.substituteName);
+  const forSub = facts.audience === 'substitute';
+
+  // Card label: who the session is with. Sub sees the student; student sees the circle.
+  const content = facts.items
+    .map((it) => {
+      const label = forSub
+        ? escapeHtml(it.studentName)
+        : circleTeacherLine(it.circleName, undefined, ar) || (ar ? 'الجلسة' : 'Session');
+      return sessionCard(label, whenChip(it.when, locale, it.timezone), rtl);
+    })
+    .join('');
+
+  let heading: string;
+  let preheader: string;
+  let message: string;
+  if (forSub && !facts.removed) {
+    heading = ar ? 'جلسات ستغطيها' : 'Sessions you are covering';
+    preheader = ar ? 'طُلب منك تغطية جلسات' : 'You have been asked to cover sessions';
+    message = ar
+      ? `${name}، طُلب منك تغطية الجلسات التالية بدلاً من المعلم.`
+      : `${name}, you have been asked to cover the following session(s).`;
+  } else if (forSub && facts.removed) {
+    heading = ar ? 'تم إلغاء التغطية' : 'Coverage canceled';
+    preheader = ar ? 'لم تعد مطالبًا بتغطية جلسات' : 'You are no longer covering these sessions';
+    message = ar
+      ? `${name}، لم تعد مطالبًا بتغطية الجلسات التالية.`
+      : `${name}, you are no longer covering the following session(s).`;
+  } else if (!forSub && !facts.removed) {
+    heading = ar ? 'معلم بديل لجلستك' : 'A substitute for your session';
+    preheader = ar ? `${sub} سيدير جلستك` : `${sub} will run your session`;
+    message = ar
+      ? `${name}، سيدير ${sub} الجلسة (الجلسات) التالية بدلاً من معلمك.`
+      : `${name}, ${sub} will run your following session(s) in place of your teacher.`;
+  } else {
+    heading = ar ? 'عاد معلمك' : 'Your teacher is back';
+    preheader = ar ? 'سيدير معلمك جلستك كالمعتاد' : 'Your own teacher will run your session';
+    message = ar
+      ? `${name}، سيدير معلمك المعتاد الجلسة (الجلسات) التالية.`
+      : `${name}, your regular teacher will run the following session(s) after all.`;
+  }
+
+  return shell(locale, {
+    preheader,
+    heading,
+    message,
+    content,
+    footer: ar ? FOOTER_AR : FOOTER_EN,
+  });
+}
+
 export function sessionChangeBody(
   facts: {
     studentName: string;

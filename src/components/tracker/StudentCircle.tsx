@@ -19,6 +19,7 @@ import { SurahPicker, ExamCard, StudentProfileCard, type Entry } from './Teacher
 import type { RosterMember } from '@/lib/services/membership';
 import type { MarkedPage } from '@/lib/markedPages';
 import { displayName } from '@/lib/displayName';
+import { CoveredBy } from './subs';
 
 const LOG_TYPES: LogType[] = ['memorization', 'general_revision', 'targeted_revision'];
 const today = () => new Date().toISOString().slice(0, 10);
@@ -51,6 +52,7 @@ export default function StudentCircle({
   memorized,
   defaultSetId,
   markedPages,
+  coveredBy,
 }: {
   circle: Circle;
   membership: Membership;
@@ -65,6 +67,8 @@ export default function StudentCircle({
   defaultSetId: string | null;
   /** PRD 0009 C2: the student's own default-set marked pages, read-only. */
   markedPages: MarkedPage[];
+  /** 0013 F5/D13: sub name keyed by session instant (ms) — "covered by X". */
+  coveredBy?: Record<string, string>;
 }) {
   const { t, locale, fmtNum } = useI18n();
   const [logs, setLogs] = useState(initialLogs);
@@ -143,7 +147,7 @@ export default function StudentCircle({
 
           {isMobile && tab === 'sessions' && (
             <div className="flex flex-col gap-6">
-              <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} hideHeading />
+              <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} coveredBy={coveredBy} hideHeading />
               <UpcomingExams exams={initialExams} />
             </div>
           )}
@@ -196,7 +200,7 @@ export default function StudentCircle({
 
         {/* Desktop sidebar (hidden on mobile — those widgets are tabs there). */}
         <aside className="hidden lg:flex lg:sticky lg:top-6 self-start min-w-0 flex-col gap-6">
-          <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} />
+          <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} coveredBy={coveredBy} />
           <UpcomingExams exams={initialExams} />
           <CircleMembers roster={roster} selfUserId={selfUserId} />
         </aside>
@@ -207,9 +211,10 @@ export default function StudentCircle({
 
 // --- Upcoming sessions (read-only, D3) ---------------------------------------
 
-function UpcomingSessions({ sessions, schedule, hideHeading = false }: { sessions: Session[]; schedule: Recurrence | null; hideHeading?: boolean }) {
+function UpcomingSessions({ sessions, schedule, coveredBy, hideHeading = false }: { sessions: Session[]; schedule: Recurrence | null; coveredBy?: Record<string, string>; hideHeading?: boolean }) {
   const { t, locale } = useI18n();
   const now = Date.now();
+  const subFor = (iso: string) => coveredBy?.[String(new Date(iso).getTime())];
 
   // Generate 1 week of virtual slots to accurately derive local days and times
   // for the schedule, automatically handling timezone boundary crossings.
@@ -260,6 +265,7 @@ function UpcomingSessions({ sessions, schedule, hideHeading = false }: { session
                   {d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: true })}
                 </span>
               </div>
+              {subFor(iso) && <CoveredBy name={subFor(iso)!} />}
             </div>
           );
         }) : (
@@ -282,6 +288,7 @@ function UpcomingSessions({ sessions, schedule, hideHeading = false }: { session
               </span>
             </div>
             <span className="badge shrink-0" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>
+            {subFor(nextAdhoc.scheduled_at) && <CoveredBy name={subFor(nextAdhoc.scheduled_at)!} />}
           </div>
         </div>
       )}

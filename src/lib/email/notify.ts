@@ -9,6 +9,7 @@ import {
   inviteBody,
   homeworkBody,
   sessionChangeBody,
+  substitutionBody,
   pickText,
   type EmailPrefKey,
   type RecipientLocale,
@@ -148,6 +149,109 @@ export async function notifyHomework(
         ),
       }),
     );
+  });
+}
+
+export interface SubAssignment {
+  membershipId: string;
+  scheduledAt: string;
+  substituteUserId: string;
+}
+
+/** membership → student user_id, names, tz, circle/teacher — one query per membership. */
+async function membershipSessionInfo(
+  db: SupabaseClient,
+  membershipId: string,
+): Promise<{
+  studentId: string;
+  studentName: string;
+  circleName: string;
+  teacherName: string;
+  tz: string | null;
+} | null> {
+  const { data } = await db
+    .from('membership')
+    .select('user_id, schedule, circle(name, teacher_id)')
+    .eq('id', membershipId)
+    .maybeSingle();
+  if (!data?.user_id) return null;
+  const circle = relOne(data.circle as { name?: string; teacher_id?: string } | { name?: string; teacher_id?: string }[] | null);
+  return {
+    studentId: data.user_id,
+    studentName: await nameOf(db, data.user_id),
+    circleName: circle?.name ?? '',
+    teacherName: circle?.teacher_id ? await nameOf(db, circle.teacher_id) : '',
+    tz: (data.schedule as { timezone?: string } | null)?.timezone ?? null,
+  };
+}
+
+/**
+ * Substitute assigned (`assignments`) and/or reclaimed (`removed`). Emails the
+ * substitute a digest of the sessions they now / no longer cover (H1/H3) and
+ * each affected student that a named sub — or their own teacher again — will run
+ * their session(s) (H2/H3). Best-effort: a send failure never rolls back the
+ * DB write (H4) — same swallow-and-log shape as every notify above.
+ */
+export async function notifySubstitution(
+  assignments: SubAssignment[] = [],
+  removed: SubAssignment[] = [],
+): Promise<void> {
+  await bestEffort('substitution', async (db) => {
+    // Resolve each touched membership once; reused across both audiences.
+    const ids = [...new Set([...assignments, ...removed].map((a) => a.membershipId))];
+    const info = new Map<string, Awaited<ReturnType<typeof membershipSessionInfo>>>();
+    for (const id of ids) info.set(id, await membershipSessionInfo(db, id));
+
+    // Both flavours build the same per-instant item shape.
+    const itemOf = (a: SubAssignment) => {
+      const m = info.get(a.membershipId);
+      return m
+        ? { studentName: m.studentName, circleName: m.circleName, teacherName: m.teacherName, when: a.scheduledAt, timezone: m.tz }
+        : null;
+    };
+
+    // Digest per substitute (assigned vs reclaimed sent separately). H1 / H3.
+    const bySub = (rows: SubAssignment[], removedFlag: boolean) => {
+      const groups = new Map<string, SubAssignment[]>();
+      for (const r of rows) (groups.get(r.substituteUserId) ?? groups.set(r.substituteUserId, []).get(r.substituteUserId)!).push(r);
+      return [...groups.entries()].map(async ([subId, rs]) => {
+        const items = rs.map(itemOf).filter((x): x is NonNullable<typeof x> => x !== null);
+        if (items.length === 0) return;
+        const subName = await nameOf(db, subId);
+        await deliver(db, subId, 'session_change', (locale) => ({
+          subject: removedFlag
+            ? pickText(locale, 'Substitute coverage canceled', 'إلغاء التغطية')
+            : pickText(locale, 'Sessions you are covering', 'جلسات ستغطيها'),
+          html: substitutionBody({ audience: 'substitute', removed: removedFlag, substituteName: subName, recipientName: subName, items }, locale),
+        }));
+      });
+    };
+
+    // One email per affected student. H2 / H3.
+    const byStudent = (rows: SubAssignment[], removedFlag: boolean) => {
+      const groups = new Map<string, SubAssignment[]>();
+      for (const r of rows) (groups.get(r.membershipId) ?? groups.set(r.membershipId, []).get(r.membershipId)!).push(r);
+      return [...groups.entries()].map(async ([mid, rs]) => {
+        const m = info.get(mid);
+        if (!m) return;
+        const items = rs.map(itemOf).filter((x): x is NonNullable<typeof x> => x !== null);
+        if (items.length === 0) return;
+        const subName = await nameOf(db, rs[0].substituteUserId);
+        await deliver(db, m.studentId, 'session_change', (locale) => ({
+          subject: removedFlag
+            ? pickText(locale, 'Your teacher is back', 'عاد معلمك')
+            : pickText(locale, 'A substitute for your session', 'معلم بديل لجلستك'),
+          html: substitutionBody({ audience: 'student', removed: removedFlag, substituteName: subName, recipientName: m.studentName, items }, locale),
+        }));
+      });
+    };
+
+    await Promise.all([
+      ...bySub(assignments, false),
+      ...bySub(removed, true),
+      ...byStudent(assignments, false),
+      ...byStudent(removed, true),
+    ]);
   });
 }
 

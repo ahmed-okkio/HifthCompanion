@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import AppShell from '@/components/AppShell';
 import ProfileMenu from '@/components/ProfileMenu';
 import CircleRail from '@/components/tracker/CircleRail';
-import { railCircles } from '@/lib/tracker/railCircles';
+import { railCircles, COVERING_RAIL_ID } from '@/lib/tracker/railCircles';
+import { getCovering } from '@/lib/services/substitution';
 import { getMyChrome } from '@/lib/services/profile';
 import { getMyMembershipsWithCircle } from '@/lib/services/membership';
 import { CircleReadyProvider } from '@/components/tracker/CircleReady';
@@ -26,16 +27,25 @@ export default async function TrackerShellLayout({ children }: { children: React
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const [account, memberships] = await Promise.all([
+  const [account, memberships, covering] = await Promise.all([
     getMyChrome(user),
     getMyMembershipsWithCircle(),
+    getCovering(),
   ]);
+
+  // 0013 G1: active coverage rides the rail as its own temporary circle rather
+  // than repeating on every real circle page. It disappears on its own once the
+  // last covered instant expires — the RPC only returns live rows.
+  const circles = railCircles(memberships);
+  if (covering.length > 0) {
+    circles.push({ id: COVERING_RAIL_ID, name: '', pending: false, teaching: false, covering: true });
+  }
 
   return (
     <CircleReadyProvider>
       <AppShell
         profile={<ProfileMenu name={account.name} email={account.email} />}
-        secondRail={<CircleRail circles={railCircles(memberships)} />}
+        secondRail={<CircleRail circles={circles} />}
       >
         {children}
       </AppShell>

@@ -63,11 +63,16 @@ export default function CircleRail({ circles }: { circles: RailCircle[] }) {
       >
       {circles.map((c) => {
         const active = c.id === selected;
+        // The covering entry is a temporary pseudo-circle: its own label, and a
+        // dashed ring so it never reads as one of the user's real circles.
+        const label = c.covering
+          ? t('subs.covering')
+          : `${c.name} · ${t(c.teaching ? 'tracker.roleTeacher' : 'tracker.roleStudent')}`;
         return (
           <button
             key={c.id}
             type="button"
-            aria-label={`${c.name} · ${t(c.teaching ? 'tracker.roleTeacher' : 'tracker.roleStudent')}${c.pending ? ` · ${t('tracker.pendingInvite')}` : ''}`}
+            aria-label={`${label}${c.pending ? ` · ${t('tracker.pendingInvite')}` : ''}`}
             aria-current={active ? 'page' : undefined}
             onClick={() => { setSelected(c.id); router.push(`/tracker/${c.id}`); }}
             onMouseEnter={() => setHovered(c.id)}
@@ -100,7 +105,20 @@ export default function CircleRail({ circles }: { circles: RailCircle[] }) {
                 />
               </>
             )}
-            <Avatar seed={c.name} size={44} />
+            {c.covering ? (
+              <span
+                className="flex items-center justify-center rounded-full"
+                style={{
+                  width: 44, height: 44,
+                  border: '1px dashed var(--border-strong, var(--border-subtle))',
+                  color: 'var(--text-accent)', background: 'var(--surface-main)',
+                }}
+              >
+                <Icon name="cap" size={18} />
+              </span>
+            ) : (
+              <Avatar seed={c.name} size={44} />
+            )}
             {c.teaching && (
               <span
                 aria-hidden
@@ -115,7 +133,7 @@ export default function CircleRail({ circles }: { circles: RailCircle[] }) {
                 <Icon name="cap" size={11} />
               </span>
             )}
-            <Tooltip show={hovered === c.id} label={`${c.name} · ${t(c.teaching ? 'tracker.roleTeacher' : 'tracker.roleStudent')}`} />
+            <Tooltip show={hovered === c.id} label={label} />
           </button>
         );
       })}

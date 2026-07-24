@@ -19,7 +19,6 @@ import { displayName } from '@/lib/displayName';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { listSubstitutions } from '@/lib/services/substitution';
-import CoveringSection from '@/components/tracker/CoveringSection';
 
 export default async function CirclePage({
   params,
@@ -46,7 +45,6 @@ export default async function CirclePage({
       <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <MarkCircleReady />
         <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
-          <CoveringSection />
           <TeacherCircle
             circle={circle}
             teacher={members.find((m) => m.role === 'teacher')}
@@ -112,7 +110,6 @@ export default async function CirclePage({
     <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
       <MarkCircleReady />
       <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
-        <CoveringSection />
         <StudentCircle
             circle={circle}
             membership={membership}

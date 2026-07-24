@@ -11,14 +11,15 @@ import { rangesTotals } from '@/lib/analytics';
 import { markedPages as fetchMarkedPages } from '@/lib/services/markedPages';
 import { getProfilesByIds } from '@/lib/services/profile';
 import { getLogsForMembership } from '@/lib/services/progressLog';
-import { getSessionsForMemberships, getSessions } from '@/lib/services/sessions';
-import { sectionSessions, floatingNow } from '@/lib/recurrence';
+import { getSessions } from '@/lib/services/sessions';
 import { listHomework } from '@/lib/services/homework';
 import { listNotes } from '@/lib/services/membershipNotes';
 import { getExamsForMembership } from '@/lib/services/exam';
 import { displayName } from '@/lib/displayName';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
+import { listSubstitutions } from '@/lib/services/substitution';
+import CoveringSection from '@/components/tracker/CoveringSection';
 
 export default async function CirclePage({
   params,
@@ -39,45 +40,17 @@ export default async function CirclePage({
   if (isTeacher) {
     const members = await getCircleMembersWithProfiles(circleId);
     const students = members.filter((m) => m.role === 'student');
-    const active = students.filter((m) => m.status === 'active');
-    const nameById = new Map(active.map((m) => [m.id, displayName(m)]));
-
-    // Aggregate agenda (D2/D5): each active student's upcoming slots, derived from
-    // their schedule rule + real rows — so recurring virtual sessions show too.
-    const nowDate = floatingNow();
-    const now = nowDate.getTime();
-    const sessions = await getSessionsForMemberships(active.map((m) => m.id));
-    const agenda = active
-      .flatMap((m) => {
-        const rows = sessions.filter((s) => s.membership_id === m.id);
-        // Teacher agenda shows only each student's single next session (D5).
-        const { next } = sectionSessions(m.schedule, rows, nowDate);
-        return [next]
-          .filter((slot): slot is NonNullable<typeof slot> => !!slot)
-          .filter((slot) => new Date(slot.scheduled_at).getTime() >= now)
-          .map((slot) => ({
-            key: slot.session?.id ?? `${m.id}-${slot.scheduled_at}`,
-            membershipId: m.id,
-            sessionId: slot.session?.id ?? null,
-            scheduled_at: slot.scheduled_at,
-            isAdhoc: slot.session?.is_adhoc ?? false,
-            canceled: slot.session?.canceled ?? false,
-            movedFrom: slot.session?.moved_from ?? null,
-            student: nameById.get(m.id) ?? '',
-          }));
-      })
-      .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
-      .slice(0, 20);
-
+    // Sessions are no longer rendered here — the Manage-sessions tab fetches its
+    // own week via getManageSlots, so the dashboard load stays roster-only.
     return (
       <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <MarkCircleReady />
         <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
+          <CoveringSection />
           <TeacherCircle
             circle={circle}
             teacher={members.find((m) => m.role === 'teacher')}
             initialStudents={students}
-            agenda={agenda}
           />
         </div>
       </main>
@@ -124,10 +97,22 @@ export default async function CirclePage({
   // C2: student sees their own default-set marked pages (own-set RLS).
   const marked = defaultSetId ? await fetchMarkedPages(supabase, defaultSetId) : [];
 
+  // Covered-by on the student's own sessions (F5/D13): their own substitution
+  // rows, keyed by instant. Sub-name is best-effort (profile may be RLS-hidden).
+  const mySubs = await listSubstitutions([membership.id]);
+  const mySubProfiles = await getProfilesByIds(mySubs.map((s) => s.substitute_user_id));
+  const coveredBy: Record<string, string> = {};
+  for (const s of mySubs) {
+    const p = mySubProfiles.get(s.substitute_user_id);
+    coveredBy[String(new Date(s.scheduled_at).getTime())] =
+      displayName({ user_id: s.substitute_user_id, first_name: p?.first_name, last_name: p?.last_name });
+  }
+
   return (
     <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
       <MarkCircleReady />
       <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
+        <CoveringSection />
         <StudentCircle
             circle={circle}
             membership={membership}
@@ -141,6 +126,7 @@ export default async function CirclePage({
             memorized={memorized}
             defaultSetId={defaultSetId}
             markedPages={marked}
+            coveredBy={coveredBy}
         />
       </div>
     </main>

@@ -75,6 +75,8 @@ export interface Session {
   // Original recurrence instant when this row was rescheduled off its weekly slot
   // (null = never moved). Used to suppress the virtual twin at that time.
   moved_from: string | null;
+  // Who set attendance (0013 E1/E3). null = student self-write or unmarked.
+  marked_by?: string | null;
   created_at: string;
 }
 
@@ -153,6 +155,8 @@ export interface ProgressLog {
   teacher_status: string | null;
   teacher_comment: string | null;
   reviewed_at: string | null;
+  // Who wrote the grade fields (0013 E2/E3). null = student self-write.
+  graded_by?: string | null;
   created_at: string;
   updated_at: string;
 }

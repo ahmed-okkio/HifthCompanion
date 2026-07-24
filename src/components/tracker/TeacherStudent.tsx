@@ -15,6 +15,8 @@ import {
 import { sectionSessions, floatingNow, type SessionSlot } from '@/lib/recurrence';
 import { prescribeHomework, editDeadline, deleteHomework } from '@/lib/services/homework';
 import { gradeLog, logAndReview } from '@/lib/services/progressLog';
+import { assignSubstitutes, removeSubstitution } from '@/lib/services/substitution';
+import { SubAssignForm, CoveredBy, AttributionProvider, Attribution } from './subs';
 import { scheduleExam, gradeExam, deleteExam } from '@/lib/services/exam';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
@@ -53,6 +55,8 @@ export default function TeacherStudent({
   initialNotes,
   initialExams,
   markedPages,
+  subByInstant,
+  actorNames,
 }: {
   circle: Circle;
   member: MemberWithProfile;
@@ -66,6 +70,10 @@ export default function TeacherStudent({
   initialExams: Exam[];
   /** PRD 0009 C1: default-set marked pages, read-only here. */
   markedPages: MarkedPage[];
+  /** 0013 F5: sub name keyed by session instant (ms). */
+  subByInstant?: Record<string, string>;
+  /** 0013 E4/E5: actor id → name for attendance/grade attribution. */
+  actorNames?: Record<string, string>;
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -101,6 +109,7 @@ export default function TeacherStudent({
   ).length;
 
   return (
+    <AttributionProvider teacherId={circle.teacher_id} names={actorNames ?? {}}>
     <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_280px] gap-5">
       {/* Left sidebar — profile identity + KPIs + Mushaf (Pr1); stacks on top on mobile (Pr2) */}
       <StudentProfileCard
@@ -129,6 +138,7 @@ export default function TeacherStudent({
             membershipId={member.id}
             initial={initialSessions}
             initialSchedule={member.schedule}
+            subByInstant={subByInstant}
           />
         )}
         {tab === 'homework' && <HomeworkPanel membershipId={member.id} initial={initialHomework} logs={logs} teacherStatuses={circle.teacher_statuses} studentStatuses={circle.student_statuses} />}
@@ -174,6 +184,7 @@ export default function TeacherStudent({
       {/* Empty right spacer mirrors the sidebar width so the feed sits centered in the page. */}
       <div className="hidden lg:block" aria-hidden />
     </div>
+    </AttributionProvider>
   );
 }
 
@@ -280,7 +291,8 @@ function AttendanceLine({ marked, rate }: { marked: number; rate: number }) {
 
 // --- Mushaf button (H1/H2/H3) -------------------------------------------------
 
-function MushafButton({ setId }: { setId: string | null }) {
+// Exported for SubStudent (0013 C5) — same read-only /share entry point.
+export function MushafButton({ setId }: { setId: string | null }) {
   const { t } = useI18n();
   // No default set → disabled, no crash (H3). Resolved per render so it follows
   // the student's current default (H2).
@@ -306,14 +318,32 @@ function MushafButton({ setId }: { setId: string | null }) {
 // --- Sessions: weekly slot + attendance + ad-hoc (D1/D4/D5) -------------------
 
 function StudentSessions({
-  membershipId, initial, initialSchedule,
+  membershipId, initial, initialSchedule, subByInstant,
 }: {
   membershipId: string;
   initial: Session[];
   initialSchedule: { weekdays: number[]; time: string; timezone?: string } | null;
+  subByInstant?: Record<string, string>;
 }) {
   const { t, locale, fmtNum } = useI18n();
   const [sessions, setSessions] = useState(initial);
+  // 0013 per-session sub controls (F3/F4/F5): inline assign form key + local
+  // name overrides (undefined = server value, null = just reclaimed).
+  const [assignKey, setAssignKey] = useState<string | null>(null);
+  const [subOverride, setSubOverride] = useState<Record<string, string | null>>({});
+  const subForSlot = (iso: string): string | null => {
+    const k = String(new Date(iso).getTime());
+    return k in subOverride ? subOverride[k] : subByInstant?.[k] ?? null;
+  };
+  async function assignSub(scheduledAt: string, userId: string, email: string) {
+    await assignSubstitutes([{ membershipId, scheduledAt, substituteUserId: userId }]);
+    setSubOverride((p) => ({ ...p, [String(new Date(scheduledAt).getTime())]: email }));
+    setAssignKey(null);
+  }
+  async function reclaimSub(scheduledAt: string) {
+    await removeSubstitution(membershipId, scheduledAt);
+    setSubOverride((p) => ({ ...p, [String(new Date(scheduledAt).getTime())]: null }));
+  }
   const [sessTab, setSessTab] = useState<'upcoming' | 'history'>('upcoming');
   // Schedule editor is collapsed behind a button (set once, tweaked rarely).
   const [showSchedule, setShowSchedule] = useState(false);
@@ -465,9 +495,24 @@ function StudentSessions({
               {!canceled && s?.attendance_status && (
                 <span className="badge" style={{ fontSize: 10 }}>{t(`att.${s.attendance_status}`)}</span>
               )}
+              {/* Canceled rows have no controls, so the chip stays informational here. */}
+              {canceled && subForSlot(slot.scheduled_at) && <CoveredBy name={subForSlot(slot.scheduled_at)!} />}
             </span>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtNum(fmtTime(slot.scheduled_at, locale))}</span>
+            <span className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+              {fmtNum(fmtTime(slot.scheduled_at, locale))}
+              {/* E4/E5: who marked attendance (student self-write → null → nothing). */}
+              {s?.attendance_status && <Attribution actorId={s.marked_by} />}
+            </span>
           </div>
+          {/* One sub per instant: chip + ✕ to clear, assign when empty. */}
+          {!canceled && (subForSlot(slot.scheduled_at) ? (
+            <CoveredBy name={subForSlot(slot.scheduled_at)!} onRemove={() => reclaimSub(slot.scheduled_at)} />
+          ) : (
+            <button onClick={() => setAssignKey(assignKey === slot.scheduled_at ? null : slot.scheduled_at)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              {t('subs.assign')}
+              <Chevron open={assignKey === slot.scheduled_at} />
+            </button>
+          ))}
           {reschedulable && !canceled && (
             <button onClick={() => (editing ? setReschedKey(null) : openReschedule(slot))} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               {t('sessions.reschedule')}
@@ -480,6 +525,11 @@ function StudentSessions({
             </button>
           )}
         </div>
+        {assignKey === slot.scheduled_at && !canceled && !subForSlot(slot.scheduled_at) && (
+          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
+            <SubAssignForm autoFocus onAssign={(uid, name) => assignSub(slot.scheduled_at, uid, name)} onCancel={() => setAssignKey(null)} />
+          </div>
+        )}
         {editing && (
           <div className="flex gap-2 items-end flex-wrap" onAnimationEnd={() => setReschedOpen(true)}
                style={{ borderTop: '1px solid var(--border-subtle)', overflow: reschedOpen ? 'visible' : 'hidden', animation: 'slide-down 0.22s var(--ease-out) both' }}>
@@ -1546,7 +1596,10 @@ export function ExamCard({
 
 // --- A single student log with an inline grader (G1-G4) -----------------------
 
-function GradeableLog({
+// Exported for SubStudent (0013 C4): it already takes the grade labels as a
+// prop, so the covering sub can render the identical control from the RPC's
+// teacher_statuses without ever reading `circle`.
+export function GradeableLog({
   log: l, statuses, onGraded, divided = false,
 }: {
   log: ProgressLog;
@@ -1595,9 +1648,13 @@ function GradeableLog({
 
       {l.reviewed_at ? (
         // Locked/graded — mirrors the student-side treatment (G4).
-        <div className="text-xs mt-1" style={{ color: 'var(--text-accent)' }}>
-          {t('grade.reviewed')}{l.teacher_status ? `: ${l.teacher_status}` : ''}
-          {l.teacher_comment ? ` — ${l.teacher_comment}` : ''}
+        <div className="flex flex-col gap-0.5 mt-1">
+          <div className="text-xs" style={{ color: 'var(--text-accent)' }}>
+            {t('grade.reviewed')}{l.teacher_status ? `: ${l.teacher_status}` : ''}
+            {l.teacher_comment ? ` — ${l.teacher_comment}` : ''}
+          </div>
+          {/* E4/E5: who graded — teacher vs "· sub". */}
+          <Attribution actorId={l.graded_by} />
         </div>
       ) : (
         <div className="flex flex-col gap-2 mt-1">

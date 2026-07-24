@@ -5,6 +5,7 @@ import MarkCircleReady from '@/components/tracker/CircleReady';
 import { getMyMembershipsWithCircle } from '@/lib/services/membership';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { getLocale } from '@/lib/i18n/server';
+import CoveringSection from '@/components/tracker/CoveringSection';
 
 export default async function TrackerPage() {
   const supabase = await createClient();
@@ -23,6 +24,7 @@ export default async function TrackerPage() {
   return (
     <main className="max-w-5xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
       <MarkCircleReady />
+      <CoveringSection />
       <EmptyState>
         <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{dict['tracker.emptyTitle']}</span>
         <span>{dict['tracker.emptyHint']}</span>

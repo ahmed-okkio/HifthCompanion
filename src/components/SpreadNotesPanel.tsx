@@ -99,7 +99,7 @@ export default function SpreadNotesPanel({ setId, pages, initialNotes, readOnly 
               style={{ fontSize: '13px', resize: 'none' }}
             />
             {linkTarget === 'draft' ? (
-              <div className="mt-2" style={{ fontSize: '12px', color: 'var(--accent, #16a34a)', fontWeight: 600, textAlign: 'center' }}>
+              <div className="mt-2" style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, textAlign: 'center' }}>
                 {t('notes.placePrompt')}
               </div>
             ) : (

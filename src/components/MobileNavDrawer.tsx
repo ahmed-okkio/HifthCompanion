@@ -91,7 +91,7 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
             onClick={() => onOpenChange(false)}
             aria-label={t('nav.closeNavigation')}
             className="flex items-center justify-center"
-            style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm-px)', background: 'var(--surface-app)', border: '1px solid var(--border-subtle)', cursor: 'pointer', color: 'var(--text-muted)' }}
+            style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)', background: 'var(--surface-app)', border: '1px solid var(--border-subtle)', cursor: 'pointer', color: 'var(--text-muted)' }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -130,7 +130,7 @@ function Row({ item, href, label, active, onNavigate, comingSoon }: { item: Rail
     width: '100%',
     minHeight: 48,
     padding: '0 var(--space-12)',
-    borderRadius: 'var(--radius-md-px)',
+    borderRadius: 'var(--radius-md)',
     border: 'none',
     background: active ? 'var(--green-soft)' : 'transparent',
     color: active ? 'var(--green-600)' : isInert ? 'var(--neutral-400)' : 'var(--text-primary)',

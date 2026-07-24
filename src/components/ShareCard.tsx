@@ -234,7 +234,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
                   className="flex flex-col"
                   style={{
                     marginTop: 8,
-                    borderRadius: 'var(--radius-md-px)',
+                    borderRadius: 'var(--radius-md)',
                     border: '1px solid var(--border-accent)',
                     overflow: 'hidden',
                   }}

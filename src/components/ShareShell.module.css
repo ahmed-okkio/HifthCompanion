@@ -39,7 +39,7 @@
 }
 
 .surahButton:hover {
-  background: #fff;
+  background: var(--surface-main);
   transform: translateY(-1px);
 }
 

@@ -40,7 +40,7 @@ export default function SpreadToggle({ page, active, basePath }: { page: number;
         height: '52px',
         padding: '0 var(--space-16)',
         background: 'var(--surface-main)',
-        borderRadius: 'var(--radius-lg-px)',
+        borderRadius: 'var(--radius-lg)',
         border: '1px solid rgba(15, 23, 42, 0.05)',
         boxShadow: 'var(--shadow-e2)',
         cursor: 'pointer',

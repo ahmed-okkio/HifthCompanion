@@ -19,7 +19,7 @@ export default function PageNavArrow({ direction, disabled, onClick, 'aria-label
         background: 'transparent',
         boxShadow: 'none',
         cursor: disabled ? 'default' : 'pointer',
-        borderRadius: 'var(--radius-lg-px)',
+        borderRadius: 'var(--radius-lg)',
         transition: 'background 220ms ease, box-shadow 220ms ease, transform 120ms var(--ease-out)',
         opacity: disabled ? 0.3 : 1,
         display: 'flex',

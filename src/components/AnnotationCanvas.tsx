@@ -164,7 +164,7 @@ function AnnotationCanvasInner(
             zIndex: 1000,
             background: 'var(--surface-main)',
             border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-lg-px)',
+            borderRadius: 'var(--radius-lg)',
             boxShadow: 'var(--shadow-e2)',
             padding: 'var(--space-12) var(--space-16)',
             color: 'var(--text-primary)',

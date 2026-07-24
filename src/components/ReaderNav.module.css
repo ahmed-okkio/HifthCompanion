@@ -1,7 +1,7 @@
 /* V3 Story 6 — single top workspace bar.
    72px bar: logo + context-selector slot (left) | centered page navigator |
    account controls + Search/Theme placeholders (right). Calm, legible, token-driven.
-   No hard-coded hex/radius/shadow; radius tops out at --radius-max (20px), no pills. */
+   No hard-coded hex/radius/shadow; radius tops out at --radius-xl (20px), no pills. */
 
 .navbar {
   position: sticky;
@@ -118,7 +118,7 @@
   align-items: center;
   gap: var(--space-8);
   padding: var(--space-4) var(--space-12);
-  border-radius: var(--radius-sm-px);
+  border-radius: var(--radius-sm);
   /* Same colour as the nav bar (white) with a light grey outline (no shadow). */
   border: 1px solid var(--neutral-200);
   background: var(--surface-main);
@@ -343,7 +343,7 @@
    ------------------------------------------------------------------------------------- */
 
 /* Search affordance wrapper — looks like a real search input, is not.
-   radius capped at --radius-max (20px) per PRD constraint (no pills). */
+   radius capped at --radius-xl (20px) per PRD constraint (no pills). */
 .searchStub {
   display: inline-flex;
   align-items: center;
@@ -351,7 +351,7 @@
   padding: 0 var(--space-12);
   height: 2.25rem;
   min-width: 160px;
-  border-radius: var(--radius-max);
+  border-radius: var(--radius-xl);
   border: 1px solid var(--neutral-200);
   background: var(--surface-main);
   color: var(--text-muted);
@@ -446,7 +446,7 @@
   height: 2.25rem;
   border-radius: var(--radius-sm);
   background: var(--accent-solid);
-  color: #fff;
+  color: var(--accent-contrast);
   font-size: 0.875rem;
   font-weight: 700;
   text-decoration: none;

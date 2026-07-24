@@ -32,7 +32,7 @@ export default function NoteForm({ value, isPending, onChange, onSubmit, onAddAn
         onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onSubmit(undefined); }}
       />
       {linkPending ? (
-        <div className="mt-2" style={{ fontSize: '12px', color: 'var(--accent, #16a34a)', fontWeight: 600, textAlign: 'center' }}>
+        <div className="mt-2" style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, textAlign: 'center' }}>
           {t('notes.placePrompt')}
         </div>
       ) : (

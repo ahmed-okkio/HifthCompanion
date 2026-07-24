@@ -74,7 +74,7 @@ export default async function Home() {
           {dict['home.heroTitlePrefix']}{' '}
           <span
             style={{
-              background: 'linear-gradient(120deg, var(--green-600), #C9A24B)',
+              background: 'linear-gradient(120deg, var(--green-600), var(--home-gold))',
               WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
             }}
           >
@@ -100,7 +100,7 @@ export default async function Home() {
             style={{
               height: 54, padding: '0 var(--space-32)', borderRadius: 'var(--radius-md)',
               background: 'linear-gradient(180deg, var(--green-600), var(--green-700))',
-              color: '#fff', fontSize: '1.02rem', textDecoration: 'none',
+              color: 'var(--accent-contrast)', fontSize: '1.02rem', textDecoration: 'none',
               boxShadow: '0 10px 24px rgba(15,138,103,0.28)',
             }}
           >

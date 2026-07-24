@@ -73,7 +73,7 @@ export default function ProfileMenu({ name, email }: { name: string; email: stri
             maxWidth: 'calc(100vw - 24px)',
             background: 'var(--surface-main)',
             border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-lg-px)',
+            borderRadius: 'var(--radius-lg)',
             boxShadow: 'var(--shadow-e3)',
             zIndex: 60,
             overflow: 'hidden',

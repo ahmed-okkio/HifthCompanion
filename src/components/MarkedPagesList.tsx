@@ -6,8 +6,8 @@ import { badgeLevel, isNeedsFocus, maxCount, sortMarked, type MarkedPage } from 
 // PRD 0009 D8/L2: badge fill by mark count. Grey reuses the neutral chip; orange/red use tokens.
 export const BADGE_COLORS: Record<'grey' | 'orange' | 'red', { bg: string; fg: string }> = {
   grey: { bg: 'var(--neutral-100)', fg: 'var(--text-muted)' },
-  orange: { bg: 'var(--warning)', fg: '#fff' },
-  red: { bg: 'var(--danger-500)', fg: '#fff' },
+  orange: { bg: 'var(--warning)', fg: 'var(--accent-contrast)' },
+  red: { bg: 'var(--danger-500)', fg: 'var(--accent-contrast)' },
 };
 
 /**

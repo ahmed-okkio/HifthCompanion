@@ -131,8 +131,8 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
           zIndex: 50,
           height: '85vh',
           background: 'var(--surface-main)',
-          borderTopLeftRadius: 'var(--radius-max)',   /* 20px token */
-          borderTopRightRadius: 'var(--radius-max)',
+          borderTopLeftRadius: 'var(--radius-xl)',   /* 20px token */
+          borderTopRightRadius: 'var(--radius-xl)',
           boxShadow: 'var(--shadow-e3)',
           flexDirection: 'column',
           transform: open ? 'translateY(0)' : 'translateY(100%)',
@@ -165,7 +165,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
         <div style={{ padding: 'var(--space-8) var(--space-12) var(--space-12)', flexShrink: 0 }}>
           <div
             style={{
-              borderRadius: 'var(--radius-lg-px)',  /* 18px token */
+              borderRadius: 'var(--radius-lg)',  /* 18px token */
               border: '1px solid var(--border-subtle)',
               background: 'var(--surface-app)',     /* neutral app bg inside drawer header */
               padding: 'var(--space-12)',
@@ -185,7 +185,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                   justifyContent: 'center',
                   width: '28px',
                   height: '28px',
-                  borderRadius: 'var(--radius-sm-px)',   /* 10px token */
+                  borderRadius: 'var(--radius-sm)',   /* 10px token */
                   background: 'var(--surface-main)',
                   border: '1px solid var(--border-subtle)',
                   cursor: 'pointer',
@@ -253,7 +253,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                     style={{
                       width: '100%',
                       /* V3 Story 16: token radius + token colors */
-                      borderRadius: 'var(--radius-lg-px)',    /* 18px */
+                      borderRadius: 'var(--radius-lg)',    /* 18px */
                       padding: isMultiSurah ? '14px 12px' : '10px 12px',
                       textAlign: 'left',
                       border: active ? '1px solid var(--border-accent)' : '1px solid transparent',
@@ -272,7 +272,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                               justifyContent: 'center',
                               minWidth: '28px',
                               height: '28px',
-                              borderRadius: 'var(--radius-sm-px)',  /* 10px token */
+                              borderRadius: 'var(--radius-sm)',  /* 10px token */
                               padding: '0 6px',
                               fontSize: 'var(--type-caption-size)',  /* 12px */
                               fontWeight: 700,

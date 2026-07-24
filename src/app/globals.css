@@ -76,6 +76,7 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   --green-700: #0D7A5B; /* hover */
   --green-800: #0B694E; /* pressed */
   --green-soft: #ECFDF5; /* soft green background (active states) */
+  --teal-600: #0D9488;  /* btn-primary gradient second stop */
 
   /* Status */
   --success: #10B981;
@@ -83,6 +84,31 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   --warning: #F59E0B;
   --blue-500: #3B82F6;
   --purple-500: #8B5CF6;
+
+  /* Tajweed rule colors (PRD 0012 D7).
+     Fixed Quran domain palette — the color IS the recitation-rule meaning, not
+     UI chrome. Sourced from LegendModal's swatches; do not re-theme. */
+  --tajweed-madd-lazim: #a51d24;    /* necessary prolongation (6 vowels) */
+  --tajweed-madd-wajib: #e80589;    /* obligatory prolongation (4/5) */
+  --tajweed-madd-jaiz: #d58310;     /* permissible prolongation */
+  --tajweed-madd-natural: #c4a94d;  /* natural prolongation (2) */
+  --tajweed-tafkhim: #06868d;       /* emphatic (heavy) letter */
+  --tajweed-qalqalah: #14afcd;      /* echoing / bouncing */
+  --tajweed-ikhfa-ghunnah: #04a650; /* hiding & nasalization */
+  --tajweed-idgham-silent: #9a9a95; /* merging & unpronounced */
+  /* Mushaf mark colors — orange==--warning, red==--danger-500 already; aliased
+     here so mark chrome reads from one domain group. */
+  --mark-orange: var(--warning);
+  --mark-red: var(--danger-500);
+
+  /* Marketing / demo colors (PRD 0012 D7).
+     Landing-page + reader-demo only — deliberately off the app accent scale to
+     read as illustrative, not as product chrome. */
+  --home-note-green: #22c55e;  /* demo annotation note */
+  --home-note-orange: #f97316; /* demo annotation note */
+  --home-note-blue: #3b82f6;   /* demo annotation note */
+  --home-gold: #C9A24B;        /* hero-gradient gold (page.tsx) */
+  --home-marker: #ef4444;      /* demo marker red */
 
   /* Neutrals 950 → 50 */
   --neutral-950: #0F172A;
@@ -103,12 +129,8 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   --surface-workspace: #FCFCFD; /* workspace column */
   --surface-canvas: #F6F1D9;    /* reader cream canvas */
 
-  /* Radius (max 20px — no pills) */
-  --radius-sm-px: 10px;
-  --radius-btn-px: 12px;   /* tool buttons (Story 10 spec) */
-  --radius-md-px: 14px;
-  --radius-lg-px: 18px;
-  --radius-max: 20px;
+  /* Radius (max 20px — no pills). Semantic aliases hold the px values directly
+     (PRD 0012 D5): sm 8 / md 12 / lg 16 / xl 20, plus page/canvas exceptions. */
   /* Reader-canvas hero radius. PRD 0002 Story 11 sanctions 24px for THIS frame
      only — a deliberate exception above the global 20px max. Tokenized so no
      bare >20 literal lives in component code. */
@@ -173,6 +195,7 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   --accent-muted: rgba(15,138,103,0.08);
   --accent-glow: rgba(15,138,103,0.12);
   --accent-solid: var(--green-600);
+  --accent-contrast: #FFFFFF; /* on-accent text/icon color */
 
   /* Danger */
   --danger: var(--danger-500);
@@ -189,11 +212,12 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
      panel, top navbar) — elevation, not a one-sided smudge. */
   --shadow-panel: var(--shadow-e1), var(--shadow-e2);
 
-  /* Radii — re-pointed at the new radius scale (max 20px) */
-  --radius-sm: var(--radius-sm-px);
-  --radius-md: var(--radius-md-px);
-  --radius-lg: var(--radius-lg-px);
-  --radius-xl: var(--radius-max);
+  /* Radii — collapsed 4-step scale (PRD 0012 D5), px values held directly.
+     page 6 and canvas 24 are documented exceptions defined in the raw section. */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
 
   /* Transitions */
@@ -334,14 +358,14 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--accent-solid), #0d9488);
+  background: linear-gradient(135deg, var(--green-600), var(--teal-600));
   color: white;
   border-color: transparent;
   box-shadow: 0 1px 4px rgba(5, 150, 105, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0d9488, var(--accent-solid));
+  background: linear-gradient(135deg, var(--teal-600), var(--green-600));
   box-shadow: 0 2px 12px rgba(5, 150, 105, 0.4);
   transform: translateY(-1px);
 }

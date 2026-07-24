@@ -25,7 +25,7 @@ export default function ZoomControl({
         marginTop: 'var(--space-12)',
         height: '52px',
         background: 'var(--surface-main)',
-        borderRadius: 'var(--radius-lg-px)',
+        borderRadius: 'var(--radius-lg)',
         border: '1px solid rgba(15, 23, 42, 0.05)',
         boxShadow: 'var(--shadow-e2)',
         padding: '0 var(--space-8)',

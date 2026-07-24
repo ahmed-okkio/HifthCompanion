@@ -796,7 +796,7 @@ export function SegmentedControl({
               fontWeight: 600,
               whiteSpace: 'nowrap',
               background: on ? 'var(--accent)' : 'transparent',
-              color: on ? 'var(--accent-contrast, #fff)' : 'var(--text-secondary)',
+              color: on ? 'var(--accent-contrast)' : 'var(--text-secondary)',
               transition: 'background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
             }}
           >

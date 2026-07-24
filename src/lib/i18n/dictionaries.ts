@@ -440,6 +440,7 @@ const en = {
   // 0013 Substitute teacher
   'subs.assign': 'Assign sub',
   'subs.removeSub': 'Remove {name}',
+  'subs.coveringEmpty': 'Nothing to cover right now.',
   'subs.email': 'Substitute’s email',
   'subs.assignTo': 'Assign to {count} selected',
   'subs.confirm': 'Assign {name} as substitute?',
@@ -453,7 +454,6 @@ const en = {
   'subs.noAccount': 'No registered user with that email',
   'subs.covering': 'Covering',
   'subs.awayTeacher': 'for {teacher}',
-  'subs.openStudent': 'Open',
   'subs.selected': '{count} selected',
   'subs.clear': 'Clear',
   'subs.manageTitle': 'Manage sessions',
@@ -905,6 +905,7 @@ const ar: Record<MessageKey, string> = {
   // 0013 Substitute teacher
   'subs.assign': 'تعيين بديل',
   'subs.removeSub': 'إزالة {name}',
+  'subs.coveringEmpty': 'لا توجد جلسات للتغطية حالياً.',
   'subs.email': 'بريد البديل الإلكتروني',
   'subs.assignTo': 'تعيين لـ {count} محددة',
   'subs.confirm': 'تعيين {name} كبديل؟',
@@ -918,7 +919,6 @@ const ar: Record<MessageKey, string> = {
   'subs.noAccount': 'لا يوجد مستخدم مسجل بهذا البريد',
   'subs.covering': 'تغطية',
   'subs.awayTeacher': 'عن {teacher}',
-  'subs.openStudent': 'فتح',
   'subs.selected': '{count} محددة',
   'subs.clear': 'مسح',
   'subs.manageTitle': 'إدارة الجلسات',

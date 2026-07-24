@@ -42,12 +42,18 @@ export default async function StudentDetailPage({
     // (membership/circle/profiles are RLS-hidden from them, D4/D5).
     const rows = await getCoveringFor(membershipId);
     if (rows.length === 0) notFound();
-    const [sessions, subLogs] = await Promise.all([
+    const [sessions, subLogs, subHomework] = await Promise.all([
       getSessions(membershipId),
       getLogsForMembership(membershipId),
+      listHomework(membershipId),
     ]);
     return (
       <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+        {/* Without this the rail never leaves its skeleton on the sub's pages. */}
+        <MarkCircleReady />
+        {/* Same wrapper as the teacher branch below — the sub view is the same
+            screen, so it must sit in the same column width. */}
+        <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
         <SubStudent
           membershipId={membershipId}
           studentName={rows[0].student_name || dict['tracker.roleStudent']}
@@ -57,9 +63,12 @@ export default async function StudentDetailPage({
           initialSessions={sessions}
           logs={subLogs}
           teacherStatuses={rows[0].teacher_statuses ?? []}
+          studentStatuses={rows[0].student_statuses ?? []}
           defaultSetId={rows[0].default_set_id}
           teacherId={rows[0].teacher_id}
+          homework={subHomework}
         />
+        </div>
       </main>
     );
   }

@@ -200,7 +200,9 @@ export function StudentProfileCard({
   name: string;
   circleName: string;
   defaultSetId: string | null;
-  memorized: { juz: number; surahs: number };
+  /** Omit where the viewer can't read the student's hifth profile (a covering
+   *  sub): the juz/surah rings are then hidden rather than shown as zeros. */
+  memorized?: { juz: number; surahs: number };
   attendance: { status: AttendanceStatus }[];
   openHomework: number;
   /** PRD 0009 C1/C2: default-set marked pages, read-only. Omit to hide the card. */
@@ -223,11 +225,13 @@ export function StudentProfileCard({
       </div>
 
       <div className="card flex flex-col gap-3" style={{ padding: '16px' }}>
-        <div className="grid grid-cols-2 gap-2">
-          <RingTile value={memorized.juz} max={TOTAL_JUZ} label={t('analytics.juz')} />
-          <RingTile value={memorized.surahs} max={TOTAL_SURAHS} label={t('analytics.surahs')} />
-        </div>
-        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+        {memorized && (<>
+          <div className="grid grid-cols-2 gap-2">
+            <RingTile value={memorized.juz} max={TOTAL_JUZ} label={t('analytics.juz')} />
+            <RingTile value={memorized.surahs} max={TOTAL_SURAHS} label={t('analytics.surahs')} />
+          </div>
+          <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+        </>)}
         <AttendanceLine marked={att.marked} rate={att.rate} />
       </div>
       <StatCard icon={<Icon name="hourglass" />} value={fmtNum(openHomework)} label={t('homework.openHomework')} />
@@ -745,14 +749,17 @@ export type Entry =
   | { kind: 'surah'; surah: number; ayah_start: number | null; ayah_end: number | null }
   | { kind: 'juz'; juz: number };
 
-function HomeworkPanel({
-  membershipId, initial, logs, teacherStatuses, studentStatuses,
+export function HomeworkPanel({
+  membershipId, initial, logs, teacherStatuses, studentStatuses, canPrescribe = true,
 }: {
   membershipId: string;
   initial: Homework[];
   logs: ProgressLog[];
   teacherStatuses: StatusConfig[];
   studentStatuses: StatusConfig[];
+  /** False for a covering substitute: they mark the work, they don't set it —
+   *  prescribe, deadline edit and delete are all teacher-only (RLS agrees). */
+  canPrescribe?: boolean;
 }) {
   const { t, locale } = useI18n();
   const [items, setItems] = useState(initial);
@@ -837,12 +844,12 @@ function HomeworkPanel({
   return (
     <div className="flex flex-col gap-2">
       {/* Prescribe form collapsed behind a button; review is the default surface (P6/P7). */}
-      {!prescribing && (
+      {canPrescribe && !prescribing && (
         <button onClick={() => setPrescribing(true)} className="btn btn-primary self-center" style={{ minHeight: 44 }}>
           {t('homework.prescribe')}
         </button>
       )}
-      {prescribing && (
+      {canPrescribe && prescribing && (
       <div className="card flex flex-col gap-3" style={{ padding: '16px 18px', animation: 'fade-in-scale 0.2s var(--ease-out) both', transformOrigin: 'top' }}>
         <div className="flex flex-wrap gap-2 items-end">
           <label className="flex flex-col gap-1">
@@ -884,7 +891,7 @@ function HomeworkPanel({
             linkedCount={linkedCount} logsByHomework={logsByHomework}
             teacherStatuses={teacherStatuses} onGraded={onGraded} onEditDeadline={handleEditDeadline}
             onDelete={handleDeleteHomework} onResult={onResult} membershipId={membershipId}
-            studentStatuses={studentStatuses}
+            studentStatuses={studentStatuses} canPrescribe={canPrescribe}
           />
         ) : (
           <div key={entry.key} className="card" style={{ padding: '12px 16px' }}>
@@ -905,8 +912,9 @@ function HomeworkPanel({
 // Header (type + status) is always shown; instructions, deadline editor, entries
 // and their gradeable logs appear only once the card is selected.
 function PrescriptionCard({
-  group, locale, linkedCount, logsByHomework, teacherStatuses, onGraded, onEditDeadline, onDelete, onResult, membershipId, studentStatuses,
+  group, locale, linkedCount, logsByHomework, teacherStatuses, onGraded, onEditDeadline, onDelete, onResult, membershipId, studentStatuses, canPrescribe,
 }: {
+  canPrescribe: boolean;
   group: { key: string; items: Homework[] };
   locale: 'en' | 'ar';
   linkedCount: Map<string, number>;
@@ -939,11 +947,17 @@ function PrescriptionCard({
       </button>
       {open && (<>
         {instr && <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{instr}</span>}
-        <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
-          {t('homework.deadline')}
-          <input type="date" defaultValue={group.items[0].deadline ?? ''} onChange={(e) => onEditDeadline(ids, e.target.value)}
-                 className="input input-sm" style={{ minHeight: 34 }} />
-        </label>
+        {canPrescribe ? (
+          <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+            {t('homework.deadline')}
+            <input type="date" defaultValue={group.items[0].deadline ?? ''} onChange={(e) => onEditDeadline(ids, e.target.value)}
+                   className="input input-sm" style={{ minHeight: 34 }} />
+          </label>
+        ) : group.items[0].deadline && (
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            {t('homework.deadline')}: {group.items[0].deadline}
+          </span>
+        )}
         {group.items.map((h) => {
           const subs = logsByHomework.get(h.id) ?? [];
           return (
@@ -971,12 +985,14 @@ function PrescriptionCard({
             </div>
           );
         })}
-        <button
-          onClick={() => { if (confirm(t('homework.deleteConfirm'))) onDelete(ids); }}
-          className="btn btn-danger-ghost self-start" style={{ minHeight: 36, fontSize: 13 }}
-        >
-          {t('homework.delete')}
-        </button>
+        {canPrescribe && (
+          <button
+            onClick={() => { if (confirm(t('homework.deleteConfirm'))) onDelete(ids); }}
+            className="btn btn-danger-ghost self-start" style={{ minHeight: 36, fontSize: 13 }}
+          >
+            {t('homework.delete')}
+          </button>
+        )}
       </>)}
     </div>
   );

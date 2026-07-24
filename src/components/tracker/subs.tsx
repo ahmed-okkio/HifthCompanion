@@ -115,7 +115,7 @@ export function CoveredBy({ name, onRemove }: { name: string; onRemove?: () => v
   // Teacher-facing: reads as the person, not a tag — avatar, name, role line.
   return (
     <span className="shrink-0 inline-flex items-center gap-2"
-          style={{ maxWidth: 240, padding: '4px 6px 4px 4px', borderRadius: 'var(--radius-md-px)', background: 'var(--surface-muted, var(--neutral-100))' }}>
+          style={{ maxWidth: 240, padding: '4px 6px 4px 4px', borderRadius: 'var(--radius-md)', background: 'var(--surface-app)', border: '1px solid var(--border-subtle)' }}>
       <Avatar seed={name} size={28} />
       <span className="flex flex-col min-w-0" style={{ lineHeight: 1.15 }}>
         <span className="truncate" style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{name}</span>

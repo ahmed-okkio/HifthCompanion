@@ -27,6 +27,8 @@ export interface CoveringSession {
   teacher_name: string;
   /** C4: the circle's grade labels — a sub cannot read `circle` to get them. */
   teacher_statuses: StatusConfig[];
+  /** Homework marking: the student-status chips on the result form. */
+  student_statuses: StatusConfig[];
   /** C5: the covered student's default annotation set (null if they have none). */
   default_set_id: string | null;
   /** E5: the away teacher's id — so their marks attribute to them, not "· sub". */

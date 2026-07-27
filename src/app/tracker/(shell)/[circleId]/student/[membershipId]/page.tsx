@@ -7,6 +7,7 @@ import { getSessions } from '@/lib/services/sessions';
 import { listHomework } from '@/lib/services/homework';
 import { listNotes } from '@/lib/services/membershipNotes';
 import { getExamsForMembership } from '@/lib/services/exam';
+import { listAgenda } from '@/lib/services/agenda';
 import { getStudentMemorization, getProfilesByIds } from '@/lib/services/profile';
 import { listSubstitutions, getCoveringFor } from '@/lib/services/substitution';
 import SubStudent from '@/components/tracker/SubStudent';
@@ -77,7 +78,7 @@ export default async function StudentDetailPage({
   // Only active students have a control surface (pending = RLS-empty, C1/S1).
   if (!member || member.role !== 'student' || member.status !== 'active') notFound();
 
-  const [logs, sessions, defaultSetId, homework, notes, memorizedRanges, exams] = await Promise.all([
+  const [logs, sessions, defaultSetId, homework, notes, memorizedRanges, exams, agenda] = await Promise.all([
     getLogsForMembership(membershipId),
     getSessions(membershipId),
     getStudentDefaultSetId(membershipId),
@@ -85,6 +86,9 @@ export default async function StudentDetailPage({
     listNotes(membershipId),
     getStudentMemorization(member.user_id),
     getExamsForMembership(membershipId),
+    // 0014: teacher-private agenda. RLS (B1) is the gate — this branch is the
+    // circle teacher only, the sub branch above never calls it.
+    listAgenda(membershipId),
   ]);
 
   const memorized = rangesTotals(memorizedRanges);
@@ -128,6 +132,7 @@ export default async function StudentDetailPage({
           markedPages={marked}
           subByInstant={subByInstant}
           actorNames={actorNames}
+          initialAgenda={agenda}
         />
       </div>
     </main>

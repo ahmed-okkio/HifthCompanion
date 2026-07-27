@@ -12,6 +12,7 @@ import { materializeSession, setSessionCanceled, rescheduleSession } from '@/lib
 import { assignSubstitutes, removeSubstitution, getManageSlots } from '@/lib/services/substitution';
 import { SectionTitle, EmptyState, Avatar, Chevron, DateChip, StatusDot, TabBar, TimeSelect } from './ui';
 import { SubAssignForm, CoveredBy } from './subs';
+import { isLive } from '@/lib/agenda';
 
 // Stdlib formatter — time-of-day only; the DateChip carries the date.
 function fmtTime(iso: string, locale: string) {
@@ -40,10 +41,13 @@ export default function TeacherCircle({
   circle,
   teacher,
   initialStudents,
+  nextSlots,
 }: {
   circle: Circle;
   teacher?: MemberWithProfile;
   initialStudents: MemberWithProfile[];
+  /** 0014 G1: each active student's next instant, computed server-side in one query (G3). */
+  nextSlots?: Record<string, { scheduled_at: string; canceled: boolean }>;
 }) {
   const { t, locale, fmtNum } = useI18n();
   const router = useRouter();
@@ -53,6 +57,15 @@ export default function TeacherCircle({
   // Origin resolved after mount to avoid an SSR/hydration mismatch on location.
   const [origin, setOrigin] = useState('');
   useEffect(() => setOrigin(process.env.NEXT_PUBLIC_SITE_URL || location.origin), []);
+  // 0014 G1: live is purely presentational and client-side — null until mounted
+  // so the first render matches the server's.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    const tick = () => setNow(new Date());
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, []);
   const inviteLink = `${origin}/tracker/join/${code}`;
   const [students, setStudents] = useState(initialStudents);
   const [email, setEmail] = useState('');
@@ -345,6 +358,12 @@ export default function TeacherCircle({
             <div className="grid gap-3 sm:grid-cols-2">
               {students.map((m) => {
                 const active = m.status === 'active';
+                // G1/G2: the indicator shows only inside the ±60min window, and only
+                // for active students — the non-active status line below is the other
+                // branch of the same slot, so the two treatments never both render.
+                const slot = nextSlots?.[m.id];
+                const live = active && slot && now && isLive(slot.scheduled_at, now, slot.canceled)
+                  ? slot : null;
                 const header = (
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <Avatar seed={displayName(m)} size={40} />
@@ -354,6 +373,15 @@ export default function TeacherCircle({
                       </span>
                       {/* Active is the default/expected state — no dot needed. Only flag
                           pending/blocked, which need teacher attention. */}
+                      {live && (
+                        <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-accent)' }}>
+                          <StatusDot color="var(--accent)" />
+                          {t('agenda.live')}
+                          <span style={{ color: 'var(--text-muted)' }}>
+                            {fmtTime(live.scheduled_at, locale)}
+                          </span>
+                        </span>
+                      )}
                       {m.status !== 'active' && (
                         <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
                           <StatusDot color={m.status === 'pending' ? 'var(--warning)' : 'var(--text-muted)'} />

@@ -87,6 +87,21 @@ export async function gradeExam(
   return data;
 }
 
+/** Move an exam to another date. Coverage and grade are untouched — a moved exam
+ *  is the same exam, so nothing else on the row may change. */
+export async function rescheduleExam(examId: string, scheduledDate: string): Promise<Exam> {
+  const supabase = await createClientAction();
+  const { data, error } = await supabase
+    .from('exam')
+    .update({ scheduled_date: scheduledDate })
+    .eq('id', examId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function deleteExam(examId: string): Promise<void> {
   const supabase = await createClientAction();
   const { error } = await supabase.from('exam').delete().eq('id', examId);

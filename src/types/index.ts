@@ -218,6 +218,18 @@ export interface UserHifth {
   updated_at: string;
 }
 
+/** Teacher-private agenda to-do for a membership (PRD 0014). Not a session slot —
+ *  the `AgendaItem` in TeacherCircle.tsx is a different thing. */
+export interface AgendaTask {
+  id: string;
+  membership_id: string;
+  author_id: string;
+  body: string;
+  done_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 /** One post in a per-student teacher↔student thread (D11). */
 export interface MembershipNote {
   id: string;

@@ -11,7 +11,8 @@ import { rangesTotals } from '@/lib/analytics';
 import { markedPages as fetchMarkedPages } from '@/lib/services/markedPages';
 import { getProfilesByIds } from '@/lib/services/profile';
 import { getLogsForMembership } from '@/lib/services/progressLog';
-import { getSessions } from '@/lib/services/sessions';
+import { getSessions, getSessionsForMemberships } from '@/lib/services/sessions';
+import { floatingNow, sectionSessions } from '@/lib/recurrence';
 import { listHomework } from '@/lib/services/homework';
 import { listNotes } from '@/lib/services/membershipNotes';
 import { getExamsForMembership } from '@/lib/services/exam';
@@ -41,6 +42,21 @@ export default async function CirclePage({
     const students = members.filter((m) => m.role === 'student');
     // Sessions are no longer rendered here — the Manage-sessions tab fetches its
     // own week via getManageSlots, so the dashboard load stays roster-only.
+    // 0014 G1/G3: one query for the whole roster, next slot derived in memory
+    // (same shape as getManageSlots). No per-student query.
+    const activeStudents = students.filter((m) => m.status === 'active');
+    const rosterSessions = await getSessionsForMemberships(activeStudents.map((m) => m.id));
+    const nowDate = floatingNow();
+    const nextSlots: Record<string, { scheduled_at: string; canceled: boolean }> = {};
+    for (const m of activeStudents) {
+      const { next } = sectionSessions(
+        m.schedule,
+        rosterSessions.filter((s) => s.membership_id === m.id),
+        nowDate,
+      );
+      // G4: no schedule and no rows → no entry, the row renders as it does today.
+      if (next) nextSlots[m.id] = { scheduled_at: next.scheduled_at, canceled: next.session?.canceled ?? false };
+    }
     return (
       <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
         <MarkCircleReady />
@@ -49,6 +65,7 @@ export default async function CirclePage({
             circle={circle}
             teacher={members.find((m) => m.role === 'teacher')}
             initialStudents={students}
+            nextSlots={nextSlots}
           />
         </div>
       </main>

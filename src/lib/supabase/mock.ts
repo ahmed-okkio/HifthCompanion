@@ -39,6 +39,7 @@ const globalForDb = global as unknown as {
   mockSession?: any[];
   mockHomework?: any[];
   mockMembershipNote?: any[];
+  mockAgendaItem?: any[];
   mockExam?: any[];
   mockProfiles?: any[];
 };
@@ -58,6 +59,7 @@ if (!globalForDb.mockProgressLog) globalForDb.mockProgressLog = [];
 if (!globalForDb.mockSession) globalForDb.mockSession = [];
 if (!globalForDb.mockHomework) globalForDb.mockHomework = [];
 if (!globalForDb.mockMembershipNote) globalForDb.mockMembershipNote = [];
+if (!globalForDb.mockAgendaItem) globalForDb.mockAgendaItem = [];
 if (!globalForDb.mockExam) globalForDb.mockExam = [];
 // One seeded profile for the mock user; email_prefs '{}' ⇒ all events enabled.
 if (!globalForDb.mockProfiles) globalForDb.mockProfiles = [
@@ -84,16 +86,18 @@ const TRACKER_STORAGE: Record<string, string> = {
   session: 'mock_supabase_session',
   homework: 'mock_supabase_homework',
   membership_note: 'mock_supabase_membership_note',
+  agenda_item: 'mock_supabase_agenda_item',
   exam: 'mock_supabase_exam',
   profiles: 'mock_supabase_profiles',
 };
-const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockHomework' | 'mockMembershipNote' | 'mockExam' | 'mockProfiles'> = {
+const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockHomework' | 'mockMembershipNote' | 'mockAgendaItem' | 'mockExam' | 'mockProfiles'> = {
   circle: 'mockCircle',
   membership: 'mockMembership',
   progress_log: 'mockProgressLog',
   session: 'mockSession',
   homework: 'mockHomework',
   membership_note: 'mockMembershipNote',
+  agenda_item: 'mockAgendaItem',
   exam: 'mockExam',
   profiles: 'mockProfiles',
 };
@@ -454,6 +458,8 @@ class MockQueryBuilder {
         row = { prescribed_by: this.userId, deadline: null, created_at: now, ...row };
       } else if (table === 'membership_note') {
         row = { author_id: this.userId, created_at: now, ...row };
+      } else if (table === 'agenda_item') {
+        row = { author_id: this.userId, done_at: null, created_at: now, updated_at: now, ...row };
       } else {
         // progress_log
         row = { homework_id: null, log_date: now.slice(0, 10), created_at: now, updated_at: now, reviewed_at: null, ...row };
@@ -605,6 +611,7 @@ export function __resetMockStore() {
   globalForDb.mockSession = [];
   globalForDb.mockHomework = [];
   globalForDb.mockMembershipNote = [];
+  globalForDb.mockAgendaItem = [];
   globalForDb.mockExam = [];
 }
 
@@ -615,6 +622,7 @@ export function __seedMockStore(payload: Partial<{
   session: any[];
   homework: any[];
   membership_note: any[];
+  agenda_item: any[];
   exam: any[];
 }>) {
   if (payload.circle) globalForDb.mockCircle!.push(...payload.circle);
@@ -623,5 +631,6 @@ export function __seedMockStore(payload: Partial<{
   if (payload.session) globalForDb.mockSession!.push(...payload.session);
   if (payload.homework) globalForDb.mockHomework!.push(...payload.homework);
   if (payload.membership_note) globalForDb.mockMembershipNote!.push(...payload.membership_note);
+  if (payload.agenda_item) globalForDb.mockAgendaItem!.push(...payload.agenda_item);
   if (payload.exam) globalForDb.mockExam!.push(...payload.exam);
 }

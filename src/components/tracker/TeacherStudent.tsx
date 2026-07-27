@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import { setMembershipStatus } from '@/lib/services/membership';
 import type {
-  AttendanceStatus, Circle, Exam, ExamStatus, Homework, LogType, MemberWithProfile,
+  AgendaTask, AttendanceStatus, Circle, Exam, ExamStatus, Homework, LogType, MemberWithProfile,
   ProgressLog, Session, StatusConfig,
 } from '@/types';
 import { displayName } from '@/lib/displayName';
@@ -17,7 +17,7 @@ import { prescribeHomework, editDeadline, deleteHomework } from '@/lib/services/
 import { gradeLog, logAndReview } from '@/lib/services/progressLog';
 import { assignSubstitutes, removeSubstitution } from '@/lib/services/substitution';
 import { SubAssignForm, CoveredBy, AttributionProvider, Attribution } from './subs';
-import { scheduleExam, gradeExam, deleteExam } from '@/lib/services/exam';
+import { scheduleExam, gradeExam, deleteExam, rescheduleExam } from '@/lib/services/exam';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
 import {
@@ -29,6 +29,8 @@ import {
   SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, Chevron, Icon, TimeSelect,
 } from './ui';
 import { attendanceStats } from '@/lib/analytics';
+import { isLive } from '@/lib/agenda';
+import AgendaPanel from './AgendaPanel';
 import MarkedPagesList from '@/components/MarkedPagesList';
 import type { MarkedPage } from '@/lib/markedPages';
 
@@ -57,6 +59,7 @@ export default function TeacherStudent({
   markedPages,
   subByInstant,
   actorNames,
+  initialAgenda,
 }: {
   circle: Circle;
   member: MemberWithProfile;
@@ -74,10 +77,15 @@ export default function TeacherStudent({
   subByInstant?: Record<string, string>;
   /** 0013 E4/E5: actor id → name for attendance/grade attribution. */
   actorNames?: Record<string, string>;
+  /** 0014 E5/E6: teacher-private agenda rows, already sectioned by the service. */
+  initialAgenda?: AgendaTask[];
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
-  const [tab, setTab] = useState('sessions');
+  // 0014 D5/E1: Agenda is the landing tab, and it never depends on the clock.
+  const [tab, setTab] = useState('agenda');
+  // 0014 I1: shared by both StudentSessions mounts — see useSessionsState.
+  const sessionsState = useSessionsState(initialSessions, member.schedule);
   // Annotations live in the desktop profile column; below lg they become a tab.
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -97,8 +105,8 @@ export default function TeacherStudent({
   }
   // Attendance rows for analytics live on the session row now (D3) — derive them.
   const attendance = useMemo(
-    () => initialSessions.filter((s) => s.attendance_status).map((s) => ({ status: s.attendance_status! })),
-    [initialSessions],
+    () => sessionsState.sessions.filter((s) => s.attendance_status).map((s) => ({ status: s.attendance_status! })),
+    [sessionsState.sessions],
   );
 
   // KPI inputs — static snapshots from the server payload.
@@ -122,6 +130,7 @@ export default function TeacherStudent({
       <div className="flex flex-col gap-5 min-w-0">
         <TabBar
           tabs={[
+            { key: 'agenda', label: t('agenda.title') },
             { key: 'sessions', label: t('sessions.tabSessions') },
             { key: 'homework', label: t('homework.title') },
             { key: 'exams', label: t('exam.title') },
@@ -133,11 +142,32 @@ export default function TeacherStudent({
           onSelect={setTab}
         />
 
+        {tab === 'agenda' && (
+          <AgendaPanel
+            membershipId={member.id}
+            initial={initialAgenda ?? []}
+            /* H2: live rule, so clearing the schedule swaps the card for the link. */
+            hasSchedule={sessionsState.weekdays.length > 0}
+            /* F7: already-loaded props, no extra fetch. */
+            context={{ homework: initialHomework, logs, sessions: sessionsState.sessions, exams: initialExams }}
+            onNavigate={setTab}
+            /* E2/E3: the same StudentSessions component, rendering only its Next
+               card — not a second copy of it. */
+            sessionCard={
+              <StudentSessions
+                part="next"
+                membershipId={member.id}
+                state={sessionsState}
+                subByInstant={subByInstant}
+              />
+            }
+          />
+        )}
         {tab === 'sessions' && (
           <StudentSessions
+            part="rest"
             membershipId={member.id}
-            initial={initialSessions}
-            initialSchedule={member.schedule}
+            state={sessionsState}
             subByInstant={subByInstant}
           />
         )}
@@ -321,20 +351,59 @@ export function MushafButton({ setId }: { setId: string | null }) {
 
 // --- Sessions: weekly slot + attendance + ad-hoc (D1/D4/D5) -------------------
 
+/**
+ * 0014 I1: session state lives in the parent, not in `StudentSessions`, because
+ * that component now mounts twice (Agenda's Next card + the Sessions tab) and a
+ * tab switch unmounts one of them. Anything a mutation writes — rows, substitute
+ * overrides, the linger pin, the schedule draft — has to outlive that unmount or
+ * the other mount rebuilds from the stale server props.
+ * ponytail: local component state, not router.refresh() — refresh would discard
+ * the optimistic update and fight the 3s linger.
+ */
+type SessionsState = ReturnType<typeof useSessionsState>;
+
+function useSessionsState(
+  initial: Session[],
+  initialSchedule: { weekdays: number[]; time: string; timezone?: string } | null,
+) {
+  const [sessions, setSessions] = useState(initial);
+  const [subOverride, setSubOverride] = useState<Record<string, string | null>>({});
+  // Just-marked session id: keeps the slot in Next (showing the selection) for a
+  // beat before it reflows into History (T5 linger).
+  const [lingerId, setLingerId] = useState<string | null>(null);
+  const [weekdays, setWeekdays] = useState<number[]>(initialSchedule?.weekdays ?? []);
+  const [time, setTime] = useState(initialSchedule?.time ?? '17:00');
+  const [tz, setTz] = useState(initialSchedule?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
+  return {
+    sessions, setSessions, subOverride, setSubOverride, lingerId, setLingerId,
+    weekdays, setWeekdays, time, setTime, tz, setTz,
+  };
+}
+
+/**
+ * 0014 D6/E2/E3: one component, two mount points. `part="next"` renders only the
+ * Next-session card (it lives in the Agenda tab now); `part="rest"` renders the
+ * schedule editor plus the Upcoming/History sub-tabs. All the behavior —
+ * `ensureRow`/`materializeSession`, `lingerId` pinning, reschedule, cancel,
+ * substitute assignment — is shared, so there is exactly one code path for it.
+ */
 function StudentSessions({
-  membershipId, initial, initialSchedule, subByInstant,
+  membershipId, state, subByInstant, part = 'rest',
 }: {
   membershipId: string;
-  initial: Session[];
-  initialSchedule: { weekdays: number[]; time: string; timezone?: string } | null;
+  /** 0014 I1: owned by TeacherStudent so a tab switch (unmount) never resets it. */
+  state: SessionsState;
   subByInstant?: Record<string, string>;
+  part?: 'next' | 'rest';
 }) {
   const { t, locale, fmtNum } = useI18n();
-  const [sessions, setSessions] = useState(initial);
+  const {
+    sessions, setSessions, subOverride, setSubOverride, lingerId, setLingerId,
+    weekdays, setWeekdays, time, setTime, tz, setTz,
+  } = state;
   // 0013 per-session sub controls (F3/F4/F5): inline assign form key + local
   // name overrides (undefined = server value, null = just reclaimed).
   const [assignKey, setAssignKey] = useState<string | null>(null);
-  const [subOverride, setSubOverride] = useState<Record<string, string | null>>({});
   const subForSlot = (iso: string): string | null => {
     const k = String(new Date(iso).getTime());
     return k in subOverride ? subOverride[k] : subByInstant?.[k] ?? null;
@@ -351,15 +420,9 @@ function StudentSessions({
   const [sessTab, setSessTab] = useState<'upcoming' | 'history'>('upcoming');
   // Schedule editor is collapsed behind a button (set once, tweaked rarely).
   const [showSchedule, setShowSchedule] = useState(false);
-  const [weekdays, setWeekdays] = useState<number[]>(initialSchedule?.weekdays ?? []);
-  const [time, setTime] = useState(initialSchedule?.time ?? '17:00');
-  const [tz, setTz] = useState(initialSchedule?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [adhocDate, setAdhocDate] = useState('');
   const [adhocTime, setAdhocTime] = useState('17:00');
   const [err, setErr] = useState<string | null>(null);
-  // Just-marked session id: keeps the slot in Next (showing the selection) for a
-  // beat before it reflows into History (T5 linger).
-  const [lingerId, setLingerId] = useState<string | null>(null);
   // Slot currently being rescheduled (keyed by its scheduled_at) + draft fields.
   const [reschedKey, setReschedKey] = useState<string | null>(null);
   const [reschedDate, setReschedDate] = useState('');
@@ -367,6 +430,17 @@ function StudentSessions({
   // overflow:hidden clips the slide-down while it grows; the clock popup needs
   // overflow:visible, so lift the clip once the open animation finishes.
   const [reschedOpen, setReschedOpen] = useState(false);
+  // 0014 D7/E4: live styling is client-side and purely presentational — it never
+  // decides which tab is selected or what loads. Null until mounted so the first
+  // render matches the server's.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => {
+    if (part !== 'next') return;
+    const tick = () => setNow(new Date());
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, [part]);
 
   // Localized weekday short labels (2023-01-01 is a Sunday → index 0 = Sun).
   const dayLabels = useMemo(
@@ -479,15 +553,20 @@ function StudentSessions({
   }
 
   // One card renderer for all three sections; flags gate attendance/cancel.
-  function SlotCard({ slot, attendance, cancelable, reschedulable }: {
+  function SlotCard({ slot, attendance, cancelable, reschedulable, live }: {
     slot: SessionSlot; attendance: boolean; cancelable: boolean; reschedulable?: boolean;
+    /** 0014 E4: inside the ±60min window — accent border + ring, nothing else. */
+    live?: boolean;
   }) {
     const s = slot.session;
     const canceled = s?.canceled ?? false;
     const moved = !!s?.moved_from;
     const editing = reschedKey === slot.scheduled_at;
     return (
-      <div className="card flex flex-col gap-2" style={{ padding: '12px 14px', opacity: canceled ? 0.5 : 1 }}>
+      <div className="card flex flex-col gap-2" style={{
+        padding: '12px 14px', opacity: canceled ? 0.5 : 1,
+        ...(live ? { borderColor: 'var(--accent)', boxShadow: '0 0 0 2px var(--accent-muted)' } : null),
+      }}>
         <div className="flex items-center gap-3">
           <DateChip iso={slot.scheduled_at} locale={locale} />
           <div className="flex flex-col gap-0.5 min-w-0 flex-1">
@@ -565,6 +644,13 @@ function StudentSessions({
   }
 
   const empty = !sections.next && sections.upcoming.length === 0 && sections.history.length === 0;
+  const live = !!(
+    sections.next && now && isLive(sections.next.scheduled_at, now, sections.next.session?.canceled ?? false)
+  );
+  // Whole minutes to (or since) the instant — only read while `live`.
+  const liveMinutes = sections.next && now
+    ? Math.round((new Date(sections.next.scheduled_at).getTime() - now.getTime()) / 60_000)
+    : 0;
 
   return (
     <div className="flex flex-col gap-3">
@@ -573,6 +659,7 @@ function StudentSessions({
           {err}
         </div>
       )}
+      {part === 'rest' && (<>
       {/* Schedule + ad-hoc collapsed behind a button (set once, tweaked rarely). */}
       <button onClick={() => setShowSchedule((v) => !v)} className={`${weekdays.length ? 'btn btn-outline' : 'btn btn-primary'} self-start`}
               style={{ minHeight: 40, fontSize: 13, padding: '0 16px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -628,22 +715,33 @@ function StudentSessions({
           <EmptyState>{t('sessions.none')}</EmptyState>
         </div>
       )}
+      </>)}
 
-      {/* Next session — the only attendance-editable slot (T2/T3/T4). */}
-      {sections.next && (
+      {/* Next session — the only attendance-editable slot (T2/T3/T4). Lives in
+          the Agenda tab now (0014 D6/E3). */}
+      {part === 'next' && sections.next && (
         <div className="flex flex-col gap-2">
-          <SectionTitle>
+          <SectionTitle
+            trailing={live ? (
+              <span className="badge flex items-center gap-1.5" style={{ fontSize: 10, background: 'var(--accent-muted)', color: 'var(--text-accent)' }}>
+                <StatusDot color="var(--accent)" />
+                {liveMinutes > 0 ? t('agenda.startsIn', { n: liveMinutes })
+                  : liveMinutes < 0 ? t('agenda.startedAgo', { n: -liveMinutes })
+                  : t('agenda.startingNow')}
+              </span>
+            ) : undefined}
+          >
             {new Date(sections.next.scheduled_at).getTime() <= Date.now()
               ? t('sessions.awaitingAttendance')
               : t('sessions.next')}
           </SectionTitle>
-          <SlotCard slot={sections.next} attendance={sections.nextEditable} cancelable reschedulable />
+          <SlotCard slot={sections.next} attendance={sections.nextEditable} cancelable reschedulable live={live} />
         </div>
       )}
 
       {/* Upcoming + History share a sub-tab so only one list is on the page at a
           time — keeps the Sessions tab from growing very tall (T2/T3). */}
-      {(sections.upcoming.length > 0 || sections.history.length > 0) && (
+      {part === 'rest' && (sections.upcoming.length > 0 || sections.history.length > 0) && (
         <div className="flex flex-col gap-2">
           <TabBar
             tabs={[
@@ -666,8 +764,12 @@ function StudentSessions({
               <PagedHistory
                 slots={sections.history}
                 render={(slot) => (
-                  // Canceled rows stay reinstatable; graded rows read-only.
-                  <SlotCard key={slot.scheduled_at} slot={slot} attendance={false} cancelable={slot.session?.canceled ?? false} />
+                  // Back-fillable: a session the teacher never marked is otherwise
+                  // stuck unmarked forever, and the agenda's waiting-on-you row
+                  // would nag about something with no way to fix it. The owning
+                  // teacher's session policy has no time bound (the 12h limit in
+                  // 20260723000001_substitution.sql is substitutes-only).
+                  <SlotCard key={slot.scheduled_at} slot={slot} attendance cancelable />
                 )}
               />
             ) : (
@@ -1341,6 +1443,13 @@ function ExamsPanel({
     setItems((p) => p.filter((e) => e.id !== id));
   }
 
+  async function handleReschedule(id: string, newDate: string) {
+    const row = await rescheduleExam(id, newDate);
+    // The list is ordered by date, so a moved exam has to re-sort (newest first).
+    setItems((p) => p.map((e) => (e.id === id ? row : e))
+      .sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date)));
+  }
+
   return (
     <div className="flex flex-col gap-2">
       {!scheduling && (
@@ -1369,7 +1478,7 @@ function ExamsPanel({
       <SectionTitle>{t('exam.title')}</SectionTitle>
       {items.length === 0 && <EmptyState>{t('exam.noExams')}</EmptyState>}
       {items.map((exam) => (
-        <ExamCard key={exam.id} exam={exam} locale={locale} onGrade={handleGrade} onDelete={handleDelete} />
+        <ExamCard key={exam.id} exam={exam} locale={locale} onGrade={handleGrade} onDelete={handleDelete} onReschedule={handleReschedule} />
       ))}
     </div>
   );
@@ -1551,12 +1660,13 @@ function examTarget(exam: Exam, locale: 'en' | 'ar', juzWord: string, fmtNum: (v
  * controls); omit them for the student's read-only view (notes shown if present).
  */
 export function ExamCard({
-  exam, locale, onGrade, onDelete,
+  exam, locale, onGrade, onDelete, onReschedule,
 }: {
   exam: Exam;
   locale: 'en' | 'ar';
   onGrade?: (id: string, status: ExamStatus, notes: string | null) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
+  onReschedule?: (id: string, date: string) => Promise<void>;
 }) {
   const { t, fmtNum } = useI18n();
   const [notes, setNotes] = useState(exam.teacher_notes ?? '');
@@ -1579,6 +1689,18 @@ export function ExamCard({
         // Teacher: editable notes + grade controls.
         <div className="flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
           <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('exam.notes')} className="input input-sm" style={{ minHeight: 34 }} />
+          {onReschedule && (
+            // ponytail: the native date input IS the reschedule control — no
+            // reveal button, no modal. Changing it moves the exam.
+            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+              {t('exam.date')}
+              <input
+                type="date" value={exam.scheduled_date} className="input input-sm"
+                style={{ minHeight: 34, maxWidth: 190 }}
+                onChange={(e) => { if (e.target.value) onReschedule(exam.id, e.target.value); }}
+              />
+            </label>
+          )}
           <div className="flex flex-wrap gap-2">
             <button onClick={() => onGrade(exam.id, 'passed', notes || null)} className={exam.status === 'passed' ? 'btn btn-primary' : 'btn btn-outline'} style={{ minHeight: 36, fontSize: 13 }}>
               {t('exam.statusPassed')}

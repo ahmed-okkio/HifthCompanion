@@ -145,7 +145,8 @@ max_catalogs = 2
 
 # Store vector embeddings in S3 for large and durable datasets
 [storage.vector]
-enabled = true
+# Paid-tier feature; pushing `true` on the free tier fails the whole config push with a 402.
+enabled = false
 max_buckets = 10
 max_indexes = 5
 
@@ -250,7 +251,7 @@ sender_name = "Hifth Companion"
 
 [auth.email.template.confirmation]
 subject = "Confirm your Hifth Companion email"
-content_path = "./templates/confirmation.html"
+content_path = "./supabase/templates/confirmation.html"
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]
@@ -264,7 +265,7 @@ enable_signup = false
 # If enabled, users need to confirm their phone number before signing in.
 enable_confirmations = false
 # Template for sending OTP to users
-template = "Your code is {{ `{{ .Code }}` }}"
+template = "Your code is {{ .Code }}"
 # Controls the minimum amount of time that must pass before sending another sms otp.
 max_frequency = "5s"
 
@@ -312,7 +313,7 @@ verify_enabled = false
 enroll_enabled = false
 verify_enabled = false
 otp_length = 6
-template = "Your code is {{ `{{ .Code }}` }}"
+template = "Your code is {{ .Code }}"
 max_frequency = "5s"
 
 # Configure MFA via WebAuthn

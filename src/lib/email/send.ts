@@ -50,6 +50,13 @@ export async function sendEmail(
       html,
       // Plaintext alternative — HTML-only mail is a spam signal (esp. Outlook).
       text: htmlToText(html),
+      // Gmail/Outlook both weigh a machine-readable opt-out heavily for
+      // notification mail. Points at the existing email-prefs UI.
+      // ponytail: link-only (no one-click POST endpoint) — add List-Unsubscribe-Post
+      // only if a provider starts asking for it.
+      headers: {
+        'List-Unsubscribe': `<${(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hifth-companion.vercel.app').replace(/\/$/, '')}/settings>`,
+      },
     });
     return { sent: true, skipped: false };
   } catch (err) {
@@ -63,6 +70,9 @@ export async function sendEmail(
 function htmlToText(html: string): string {
   return html
     .replace(/<style[\s\S]*?<\/style>/gi, '')
+    // Keep the URL — a plaintext part with no link at all is both useless and a
+    // spam signal when the HTML part is link-driven.
+    .replace(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi, '$2 ($1)')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')

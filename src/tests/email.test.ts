@@ -48,6 +48,8 @@ describe('sendEmail (L1, L2)', () => {
       html: '<p>hi</p>',
       // Plaintext alternative is sent alongside the HTML to reduce spam flagging.
       text: 'hi',
+      // Opt-out header — Gmail/Outlook treat its absence as a bulk-mail signal.
+      headers: { 'List-Unsubscribe': '<https://hifth-companion.vercel.app/settings>' },
     });
     expect(res).toEqual({ sent: true, skipped: false });
   });

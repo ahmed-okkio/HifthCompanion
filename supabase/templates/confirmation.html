@@ -1,0 +1,17 @@
+<!-- Supabase auth: signup confirmation. Keep it plain — no images, no
+     tracking, one link. Anything fancier reads as bulk mail to Gmail/Outlook. -->
+<div style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.6;color:#1a1a1a">
+  <p>Assalamu alaikum,</p>
+  <p>Confirm your email address to finish setting up your Hifth Companion account.</p>
+  <p>
+    <a href="{{ .ConfirmationURL }}"
+       style="display:inline-block;padding:10px 18px;background:#0f766e;color:#ffffff;text-decoration:none;border-radius:6px">
+      Confirm my email
+    </a>
+  </p>
+  <p style="font-size:13px;color:#555">
+    If the button does not work, copy this link into your browser:<br />
+    <a href="{{ .ConfirmationURL }}">{{ .ConfirmationURL }}</a>
+  </p>
+  <p style="font-size:13px;color:#555">This link expires in 1 hour. If you did not create an account, ignore this email.</p>
+</div>

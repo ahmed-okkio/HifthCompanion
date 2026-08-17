@@ -567,10 +567,12 @@ function StudentSessions({
         padding: '12px 14px', opacity: canceled ? 0.5 : 1,
         ...(live ? { borderColor: 'var(--accent)', boxShadow: '0 0 0 2px var(--accent-muted)' } : null),
       }}>
-        <div className="flex items-center gap-3">
+        {/* Wraps on narrow screens: the action group drops to its own line
+            instead of overflowing the card. */}
+        <div className="flex flex-wrap items-center gap-2">
           <DateChip iso={slot.scheduled_at} locale={locale} />
-          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-            <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <div className="flex flex-col gap-0.5 min-w-0 flex-1" style={{ minWidth: 140 }}>
+            <span className="flex flex-wrap items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
               {fmtNum(new Date(slot.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' }))}
               {s?.is_adhoc && <span className="badge" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
               {moved && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.rescheduled')}</span>}
@@ -587,6 +589,7 @@ function StudentSessions({
               {s?.attendance_status && <Attribution actorId={s.marked_by} />}
             </span>
           </div>
+          <div className="flex flex-wrap items-center gap-2 ms-auto">
           {/* One sub per instant: chip + ✕ to clear, assign when empty. */}
           {!canceled && (subForSlot(slot.scheduled_at) ? (
             <CoveredBy name={subForSlot(slot.scheduled_at)!} onRemove={() => reclaimSub(slot.scheduled_at)} />
@@ -607,6 +610,7 @@ function StudentSessions({
               {canceled ? t('sessions.reinstate') : t('sessions.cancel')}
             </button>
           )}
+          </div>
         </div>
         {assignKey === slot.scheduled_at && !canceled && !subForSlot(slot.scheduled_at) && (
           <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>

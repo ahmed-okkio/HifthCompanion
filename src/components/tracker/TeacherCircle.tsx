@@ -431,7 +431,7 @@ export default function TeacherCircle({
             <div className="flex flex-col gap-2">
               {/* The button lives on the title row and morphs in place: its slot
                   animates wide and the email picker cross-fades in where it was. */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <SectionTitle>{t('subs.manageTitle')}</SectionTitle>
                 <div className="flex justify-end min-w-0"
                      style={{ marginInlineStart: 'auto', flex: pickerOpen ? '1 1 auto' : '0 0 auto', maxWidth: pickerOpen ? 420 : 200, transition: 'max-width 480ms cubic-bezier(.22,1,.36,1), flex-basis 480ms cubic-bezier(.22,1,.36,1)' }}>
@@ -467,20 +467,23 @@ export default function TeacherCircle({
                   const editing = reschedKey === item.key;
                   return (
                   <div key={item.key} className="card flex flex-col gap-2" style={{ padding: '10px 14px', opacity: item.canceled ? 0.5 : 1 }}>
-                    <div className="flex items-center gap-3">
+                    {/* Wraps on narrow screens: the action group drops to its own
+                        line instead of overflowing the card. */}
+                    <div className="flex flex-wrap items-center gap-2">
                       {selectMode && !item.canceled && (
                         <input type="checkbox" checked={selected.has(item.key)} onChange={() => toggleSelected(item.key)}
                                aria-label={t('subs.assign')} style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
                       )}
                       <DateChip iso={item.scheduled_at} locale={locale} />
-                      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                        <span className="flex items-center gap-2 text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                      <div className="flex flex-col gap-0.5 min-w-0 flex-1" style={{ minWidth: 140 }}>
+                        <span className="flex flex-wrap items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
                           {item.student}
                           {item.movedFrom && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.rescheduled')}</span>}
                           {item.canceled && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.canceled')}</span>}
                         </span>
                         <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtTime(item.scheduled_at, locale)}</span>
                       </div>
+                      <div className="flex flex-wrap items-center gap-2 ms-auto">
                       {item.isAdhoc && <span className="badge shrink-0" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
                       {/* One sub per instant: the chip IS the control — ✕ clears
                           it (the reclaim), and an empty row offers assign. */}
@@ -501,6 +504,7 @@ export default function TeacherCircle({
                       <button onClick={() => handleCancelAgenda(item)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11 }}>
                         {item.canceled ? t('sessions.reinstate') : t('sessions.cancel')}
                       </button>
+                      </div>
                     </div>
                     {manageKey === item.key && !item.canceled && !subName(item) && (
                       <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>

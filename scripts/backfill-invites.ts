@@ -35,7 +35,7 @@ async function main() {
   const db = createClient(url, key, { auth: { persistSession: false } });
   const { data, error } = await db
     .from('membership')
-    .select('id, schedule, status, circle(name)')
+    .select('id, user_id, schedule, status, circle(name)')
     .eq('status', 'active')
     .not('schedule', 'is', null);
   if (error) throw error;
@@ -47,11 +47,32 @@ async function main() {
     })
     .filter((m) => !only || m.id === only);
 
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  // Names, never addresses — the listing has to be readable without putting
+  // anyone's email in a terminal or a scrollback buffer. Separate query because
+  // membership.user_id carries no FK to profiles (same reason notify.ts's
+  // nameOf does its own lookup rather than embedding).
+  const { data: profiles } = await db
+    .from('profiles')
+    .select('id, first_name, last_name')
+    .in('id', rows.map((m) => m.user_id));
+  const nameById = new Map(
+    (profiles ?? []).map((p) => [p.id, [p.first_name, p.last_name].filter(Boolean).join(' ')]),
+  );
+  const who = (m: (typeof rows)[number]) => {
+    const c = Array.isArray(m.circle) ? m.circle[0] : m.circle;
+    const name = nameById.get(m.user_id) || '(unnamed)';
+    return c?.name ? `${name} · ${c.name}` : name;
+  };
+
   console.log(`${rows.length} active membership(s) with a schedule.`);
   if (!send) {
     for (const m of rows) {
       const s = m.schedule as Recurrence;
-      console.log(`  would invite ${m.id}  days=[${s.weekdays}] ${s.time} ${s.timezone ?? 'UTC'}`);
+      const days = [...s.weekdays].sort((a, b) => a - b).map((d) => DAYS[d]).join('/');
+      console.log(
+        `  ${who(m).padEnd(28)} ${days} ${s.time} ${s.timezone ?? 'UTC'}   ${m.id}`,
+      );
     }
     console.log('\nDry run — nothing sent. Re-run with --send to mail these.');
     return;

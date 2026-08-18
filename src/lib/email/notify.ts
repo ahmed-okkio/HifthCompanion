@@ -47,6 +47,16 @@ const studentSummary = (circleName: string, locale: RecipientLocale) =>
   `${pickText(locale, 'Hifth session', 'جلسة حفظ')}${circleName ? ` — ${circleName}` : ''}`;
 
 /**
+ * Who the other party is, in the event body. ORGANIZER;CN is not enough to
+ * carry this: Google resolves a Gmail organizer address to that account's own
+ * profile name and drops our CN, so the name has to live in the event itself.
+ */
+const withTeacher = (teacherName: string, locale: RecipientLocale) =>
+  teacherName ? `${pickText(locale, 'Teacher', 'المعلم')}: ${teacherName}` : '';
+const withStudent = (studentName: string, locale: RecipientLocale) =>
+  studentName ? `${pickText(locale, 'Student', 'الطالب')}: ${studentName}` : '';
+
+/**
  * Service-role client — recipient email addresses are resolved server-side only
  * (auth.admin.getUserById) and never handed back to the triggering teacher.
  * Same pattern as push/send.ts. Returns null when unconfigured so every notify
@@ -408,7 +418,7 @@ export async function notifySessionChange(
     const isAdhoc = Boolean(session?.is_adhoc);
     // A cancel withdraws only this occurrence, never the whole series (RFC 5546).
     const method = newTime || reinstated || added ? ('REQUEST' as const) : ('CANCEL' as const);
-    const event = (summary: string): IcsEvent => ({
+    const event = (summary: string, description: string): IcsEvent => ({
       uid: isAdhoc ? adhocUid(sessionId) : seriesUid(session!.membership_id),
       // An ad-hoc row overrides nothing; a recurring one overrides its own
       // original slot so the client moves that occurrence in place.
@@ -417,6 +427,7 @@ export async function notifySessionChange(
         : (session?.moved_from ?? session?.scheduled_at ?? undefined),
       start: when,
       summary,
+      description,
       status: method === 'CANCEL' ? 'CANCELLED' : 'CONFIRMED',
     });
 
@@ -448,7 +459,7 @@ export async function notifySessionChange(
       invite: {
         method,
         organizerName: teacherName || undefined,
-        events: [event(studentSummary(circle?.name ?? '', locale))],
+        events: [event(studentSummary(circle?.name ?? '', locale), withTeacher(teacherName, locale))],
       },
     }));
 
@@ -461,7 +472,7 @@ export async function notifySessionChange(
       invite: {
         method,
         organizerName: teacherName || undefined,
-        events: [event(teacherSummary(studentName, locale))],
+        events: [event(teacherSummary(studentName, locale), withStudent(studentName, locale))],
       },
     }));
   });
@@ -491,13 +502,14 @@ export async function notifySchedule(
 
     const cleared = !schedule;
     const method = cleared ? ('CANCEL' as const) : ('REQUEST' as const);
-    const event = (summary: string): IcsEvent => ({
+    const event = (summary: string, description: string): IcsEvent => ({
       uid: seriesUid(membershipId),
       // Re-sending the same uid replaces the series rather than stacking a
       // second copy beside it, which is why editing a rule is safe to repeat.
       start: slots[0] ?? new Date().toISOString(),
       rdates: slots.slice(1),
       summary,
+      description,
       status: cleared ? 'CANCELLED' : 'CONFIRMED',
     });
     const facts = {
@@ -519,7 +531,7 @@ export async function notifySchedule(
       invite: {
         method,
         organizerName: info.teacherName || undefined,
-        events: [event(studentSummary(info.circleName, locale))],
+        events: [event(studentSummary(info.circleName, locale), withTeacher(info.teacherName, locale))],
       },
     }));
 
@@ -530,7 +542,7 @@ export async function notifySchedule(
       invite: {
         method,
         organizerName: info.teacherName || undefined,
-        events: [event(teacherSummary(info.studentName, locale))],
+        events: [event(teacherSummary(info.studentName, locale), withStudent(info.studentName, locale))],
       },
     }));
   });

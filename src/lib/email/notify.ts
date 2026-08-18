@@ -3,11 +3,13 @@
 import { createClient as createSupabaseAdmin, type SupabaseClient } from '@supabase/supabase-js';
 
 import { displayName } from '@/lib/displayName';
-import { sendEmail } from '@/lib/email/send';
+import type { IcsEvent } from '@/lib/email/ics';
+import { sendEmail, type EmailInvite } from '@/lib/email/send';
 import {
   prefEnabled,
   inviteBody,
   homeworkBody,
+  scheduleBody,
   sessionChangeBody,
   substitutionBody,
   pickText,
@@ -15,6 +17,34 @@ import {
   type RecipientLocale,
 } from '@/lib/email/templates';
 import { isLocale } from '@/lib/i18n/config';
+import { recurringSlots } from '@/lib/recurrence';
+import type { Recurrence } from '@/types';
+
+/**
+ * Calendar UIDs. A student's recurring lessons are ONE calendar series keyed by
+ * membership, so moving or cancelling a single lesson is an override of that
+ * series (same uid + RECURRENCE-ID) rather than an unrelated second event —
+ * otherwise a reschedule would leave the original occurrence sitting on the
+ * calendar beside the new one. Ad-hoc sessions belong to no series and get
+ * their own standalone uid.
+ */
+const seriesUid = (membershipId: string) => `series-${membershipId}@hifth-companion`;
+const adhocUid = (sessionId: string) => `adhoc-${sessionId}@hifth-companion`;
+const subUid = (membershipId: string, instant: string) =>
+  `sub-${membershipId}-${instant}@hifth-companion`;
+
+/** How far ahead a schedule invite lists occurrences. */
+// ponytail: two years of RDATEs is a few KB and is refreshed by any schedule
+// edit. If a 1:1 ever runs untouched past the horizon, add a periodic re-send.
+const INVITE_HORIZON_DAYS = 730;
+
+/** Teacher's own copy reads as a day of named students, not ten identical blocks. */
+const teacherSummary = (studentName: string, locale: RecipientLocale, coveredBy?: string | null) =>
+  `${pickText(locale, 'Hifth', 'حفظ')} — ${studentName}` +
+  (coveredBy ? ` (${pickText(locale, 'covered by', 'يغطيها')} ${coveredBy})` : '');
+
+const studentSummary = (circleName: string, locale: RecipientLocale) =>
+  `${pickText(locale, 'Hifth session', 'جلسة حفظ')}${circleName ? ` — ${circleName}` : ''}`;
 
 /**
  * Service-role client — recipient email addresses are resolved server-side only
@@ -42,7 +72,10 @@ async function deliver(
   db: SupabaseClient,
   userId: string,
   key: EmailPrefKey,
-  build: (locale: RecipientLocale, timezone: string | null) => { subject: string; html: string },
+  build: (
+    locale: RecipientLocale,
+    timezone: string | null,
+  ) => { subject: string; html: string; invite?: EmailInvite },
 ): Promise<void> {
   const { data, error } = await db.auth.admin.getUserById(userId);
   if (error) throw error;
@@ -58,8 +91,8 @@ async function deliver(
 
   const locale = isLocale(profile?.locale) ? profile.locale : null;
   // Same select, no extra round trip. Null ⇒ the caller's own fallback.
-  const { subject, html } = build(locale, profile?.timezone ?? null);
-  await sendEmail(to, subject, html);
+  const { subject, html, invite } = build(locale, profile?.timezone ?? null);
+  await sendEmail(to, subject, html, invite);
 }
 
 /** ponytail: one swallow-and-log wrapper instead of try/catch in each notify. */
@@ -166,7 +199,9 @@ async function membershipSessionInfo(
   studentId: string;
   studentName: string;
   circleName: string;
+  teacherId: string | null;
   teacherName: string;
+  schedule: Recurrence | null;
   tz: string | null;
 } | null> {
   const { data } = await db
@@ -176,12 +211,15 @@ async function membershipSessionInfo(
     .maybeSingle();
   if (!data?.user_id) return null;
   const circle = relOne(data.circle as { name?: string; teacher_id?: string } | { name?: string; teacher_id?: string }[] | null);
+  const schedule = (data.schedule as Recurrence | null) ?? null;
   return {
     studentId: data.user_id,
     studentName: await nameOf(db, data.user_id),
     circleName: circle?.name ?? '',
+    teacherId: circle?.teacher_id ?? null,
     teacherName: circle?.teacher_id ? await nameOf(db, circle.teacher_id) : '',
-    tz: (data.schedule as { timezone?: string } | null)?.timezone ?? null,
+    schedule,
+    tz: schedule?.timezone ?? null,
   };
 }
 
@@ -223,6 +261,19 @@ export async function notifySubstitution(
             ? pickText(locale, 'Substitute coverage canceled', 'إلغاء التغطية')
             : pickText(locale, 'Sessions you are covering', 'جلسات ستغطيها'),
           html: substitutionBody({ audience: 'substitute', removed: removedFlag, substituteName: subName, recipientName: subName, items }, locale),
+          // The substitute has no prior event for these instants, so the ICS is
+          // theirs alone; UID is (membership, instant) and reused on reclaim so
+          // the CANCEL removes exactly what the REQUEST added. Students get no
+          // ICS here — their own event has not moved.
+          invite: {
+            method: removedFlag ? ('CANCEL' as const) : ('REQUEST' as const),
+            events: rs.map((r) => ({
+              uid: subUid(r.membershipId, r.scheduledAt),
+              start: r.scheduledAt,
+              summary: pickText(locale, 'Hifth session (covering)', 'جلسة حفظ (تغطية)'),
+              description: info.get(r.membershipId)?.studentName ?? '',
+            })),
+          },
         }));
       });
     };
@@ -246,25 +297,87 @@ export async function notifySubstitution(
       });
     };
 
+    /**
+     * One digest for the teacher covering every touched instant, rather than a
+     * mail per session. The teacher's occurrence is retitled, never cancelled:
+     * the slot is still theirs to see, just run by someone else, and a reclaim
+     * simply flips the title back.
+     */
+    const byTeacher = (rows: SubAssignment[], removedFlag: boolean) => {
+      const groups = new Map<string, SubAssignment[]>();
+      for (const r of rows) {
+        const t = info.get(r.membershipId)?.teacherId;
+        if (!t) continue;
+        (groups.get(t) ?? groups.set(t, []).get(t)!).push(r);
+      }
+      return [...groups.entries()].map(async ([teacherId, rs]) => {
+        const items = rs.map(itemOf).filter((x): x is NonNullable<typeof x> => x !== null);
+        if (items.length === 0) return;
+        const subName = await nameOf(db, rs[0].substituteUserId);
+        const teacherName = info.get(rs[0].membershipId)?.teacherName ?? '';
+        await deliver(db, teacherId, 'session_change', (locale) => ({
+          subject: removedFlag
+            ? pickText(locale, 'Substitute coverage canceled', 'إلغاء التغطية')
+            : pickText(locale, 'Substitute assigned', 'تعيين معلم بديل'),
+          html: substitutionBody(
+            { audience: 'substitute', removed: removedFlag, substituteName: subName, recipientName: teacherName, items },
+            locale,
+          ),
+          invite: {
+            // REQUEST both ways — the reclaim is a retitle, not a withdrawal.
+            method: 'REQUEST' as const,
+            organizerName: teacherName || undefined,
+            events: rs.flatMap((r) => {
+              const m = info.get(r.membershipId);
+              if (!m) return [];
+              // ponytail: substitution rows are keyed by the series instant, so
+              // the override targets the series uid. A sub on an ad-hoc session
+              // would need its own uid — not reachable from the current UI.
+              return [
+                {
+                  uid: seriesUid(r.membershipId),
+                  recurrenceId: r.scheduledAt,
+                  start: r.scheduledAt,
+                  summary: teacherSummary(m.studentName, locale, removedFlag ? null : subName),
+                },
+              ];
+            }),
+          },
+        }));
+      });
+    };
+
     await Promise.all([
       ...bySub(assignments, false),
       ...bySub(removed, true),
       ...byStudent(assignments, false),
       ...byStudent(removed, true),
+      ...byTeacher(assignments, false),
+      ...byTeacher(removed, true),
     ]);
   });
 }
 
+
 /**
- * Session moved (newTime) or canceled (newTime null) — recipient is its student.
- * `oldTime` is passed by reschedule (the row already holds the new time by then);
- * cancel omits it and the stored scheduled_at is correct.
+ * One session moved (`newTime`), canceled (`newTime` null), reinstated or newly
+ * added — recipient is its student, mirrored to the circle's teacher.
+ *
+ * `oldTime` is passed by reschedule (the row already holds the new time by
+ * then); the other paths omit it and the stored scheduled_at is correct.
+ *
+ * The calendar side is an override of the student's weekly series, keyed by
+ * RECURRENCE-ID = the ORIGINAL series instant. That is `moved_from` once a row
+ * has been moved (it keeps pointing at the very first slot across repeated
+ * reschedules, which is exactly what RECURRENCE-ID requires) and `scheduled_at`
+ * otherwise. Ad-hoc rows belong to no series and carry a standalone uid.
  */
 export async function notifySessionChange(
   sessionId: string,
   newTime: string | null,
   oldTime?: string,
   reinstated = false,
+  added = false,
 ): Promise<void> {
   await bestEffort('session_change', async (db) => {
     const { data: session } = await db
@@ -272,7 +385,9 @@ export async function notifySessionChange(
       // ponytail: one query — the schedule tz rides along with the membership
       // hop already needed to find the student. It lives on membership, not
       // circle: the 1:1 restructure (20260701000001) dropped circle.schedule.
-      .select('scheduled_at, membership(user_id, schedule, circle(name, teacher_id))')
+      .select(
+        'scheduled_at, is_adhoc, moved_from, membership_id, membership(user_id, schedule, circle(name, teacher_id))',
+      )
       .eq('id', sessionId)
       .maybeSingle();
     type Rel = {
@@ -286,31 +401,137 @@ export async function notifySessionChange(
     const scheduleTz = membership?.schedule?.timezone ?? null;
     const circle = relOne(membership?.circle);
     const studentName = await nameOf(db, userId);
-    const teacherName = circle?.teacher_id ? await nameOf(db, circle.teacher_id) : '';
-    await deliver(
-      db,
-      userId,
-      'session_change',
-      (locale, recipientTz) => ({
-        subject: reinstated
+    const teacherId = circle?.teacher_id ?? null;
+    const teacherName = teacherId ? await nameOf(db, teacherId) : '';
+
+    const when = newTime ?? session?.scheduled_at ?? '';
+    const isAdhoc = Boolean(session?.is_adhoc);
+    // A cancel withdraws only this occurrence, never the whole series (RFC 5546).
+    const method = newTime || reinstated || added ? ('REQUEST' as const) : ('CANCEL' as const);
+    const event = (summary: string): IcsEvent => ({
+      uid: isAdhoc ? adhocUid(sessionId) : seriesUid(session!.membership_id),
+      // An ad-hoc row overrides nothing; a recurring one overrides its own
+      // original slot so the client moves that occurrence in place.
+      recurrenceId: isAdhoc
+        ? undefined
+        : (session?.moved_from ?? session?.scheduled_at ?? undefined),
+      start: when,
+      summary,
+      status: method === 'CANCEL' ? 'CANCELLED' : 'CONFIRMED',
+    });
+
+    const facts = {
+      studentName,
+      oldTime: oldTime ?? session?.scheduled_at ?? '',
+      newTime,
+      reinstated,
+      added,
+      circleName: circle?.name ?? '',
+      teacherName,
+    };
+    const subject = (locale: RecipientLocale) =>
+      added
+        ? pickText(locale, 'Extra session added', 'جلسة إضافية')
+        : reinstated
           ? pickText(locale, 'Session back on', 'إعادة الجلسة')
           : newTime
             ? pickText(locale, 'Session rescheduled', 'تغيير موعد الجلسة')
-            : pickText(locale, 'Session canceled', 'إلغاء الجلسة'),
-        html: sessionChangeBody(
-          {
-            studentName,
-            oldTime: oldTime ?? session?.scheduled_at ?? '',
-            newTime,
-            reinstated,
-            circleName: circle?.name ?? '',
-            teacherName,
-            // Recipient's own zone first — teacher and student may differ.
-            timezone: recipientTz ?? scheduleTz ?? 'UTC',
-          },
-          locale,
-        ),
-      }),
-    );
+            : pickText(locale, 'Session canceled', 'إلغاء الجلسة');
+
+    await deliver(db, userId, 'session_change', (locale, recipientTz) => ({
+      subject: subject(locale),
+      html: sessionChangeBody(
+        // Recipient's own zone first — teacher and student may differ.
+        { ...facts, timezone: recipientTz ?? scheduleTz ?? 'UTC' },
+        locale,
+      ),
+      invite: {
+        method,
+        organizerName: teacherName || undefined,
+        events: [event(studentSummary(circle?.name ?? '', locale))],
+      },
+    }));
+
+    // Teacher's mirror — same uid namespace (a separate mailbox, so no clash),
+    // titled by student because every event on their calendar is their own.
+    if (!teacherId) return;
+    await deliver(db, teacherId, 'session_change', (locale, recipientTz) => ({
+      subject: subject(locale),
+      html: sessionChangeBody({ ...facts, timezone: recipientTz ?? scheduleTz ?? 'UTC' }, locale),
+      invite: {
+        method,
+        organizerName: teacherName || undefined,
+        events: [event(teacherSummary(studentName, locale))],
+      },
+    }));
+  });
+}
+
+/**
+ * A teacher set, changed or cleared a membership's weekly recurrence. Sends the
+ * student — and the teacher — one calendar series covering the whole slot, and
+ * an email that states the days and time in words (a recipient whose client
+ * ignores the .ics must still learn the schedule).
+ *
+ * Occurrences are an explicit RDATE list straight out of `recurringSlots`, the
+ * same DST-aware generator that materializes the session rows, so the calendar
+ * cannot drift from the app the way a UTC-anchored weekly rule would.
+ */
+export async function notifySchedule(
+  membershipId: string,
+  schedule: Recurrence | null,
+): Promise<void> {
+  await bestEffort('schedule', async (db) => {
+    const info = await membershipSessionInfo(db, membershipId);
+    if (!info) return;
+
+    const slots = schedule ? recurringSlots(schedule, new Date(), INVITE_HORIZON_DAYS) : [];
+    // A schedule with no reachable occurrence has nothing to anchor DTSTART to.
+    if (schedule && slots.length === 0) return;
+
+    const cleared = !schedule;
+    const method = cleared ? ('CANCEL' as const) : ('REQUEST' as const);
+    const event = (summary: string): IcsEvent => ({
+      uid: seriesUid(membershipId),
+      // Re-sending the same uid replaces the series rather than stacking a
+      // second copy beside it, which is why editing a rule is safe to repeat.
+      start: slots[0] ?? new Date().toISOString(),
+      rdates: slots.slice(1),
+      summary,
+      status: cleared ? 'CANCELLED' : 'CONFIRMED',
+    });
+    const facts = {
+      weekdays: schedule?.weekdays ?? [],
+      time: schedule?.time ?? '',
+      timezone: schedule?.timezone ?? null,
+      circleName: info.circleName,
+      teacherName: info.teacherName,
+      cleared,
+    };
+    const subject = (locale: RecipientLocale) =>
+      cleared
+        ? pickText(locale, 'Session schedule canceled', 'إلغاء مواعيد الجلسات')
+        : pickText(locale, 'Your session schedule', 'مواعيد جلساتك');
+
+    await deliver(db, info.studentId, 'session_change', (locale) => ({
+      subject: subject(locale),
+      html: scheduleBody({ ...facts, studentName: info.studentName }, locale),
+      invite: {
+        method,
+        organizerName: info.teacherName || undefined,
+        events: [event(studentSummary(info.circleName, locale))],
+      },
+    }));
+
+    if (!info.teacherId) return;
+    await deliver(db, info.teacherId, 'session_change', (locale) => ({
+      subject: subject(locale),
+      html: scheduleBody({ ...facts, studentName: info.studentName }, locale),
+      invite: {
+        method,
+        organizerName: info.teacherName || undefined,
+        events: [event(teacherSummary(info.studentName, locale))],
+      },
+    }));
   });
 }

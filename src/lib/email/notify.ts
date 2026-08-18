@@ -18,7 +18,7 @@ import {
 } from '@/lib/email/templates';
 import { isLocale } from '@/lib/i18n/config';
 import { recurringSlots } from '@/lib/recurrence';
-import type { Recurrence } from '@/types';
+import { DEFAULT_SESSION_MINUTES, type Recurrence } from '@/types';
 
 /**
  * Calendar UIDs. A student's recurring lessons are ONE calendar series keyed by
@@ -278,6 +278,7 @@ export async function notifySubstitution(
             events: rs.map((r) => ({
               uid: subUid(r.membershipId, r.scheduledAt),
               start: r.scheduledAt,
+              minutes: info.get(r.membershipId)?.schedule?.minutes ?? DEFAULT_SESSION_MINUTES,
               summary: sessionSummary(info.get(r.membershipId)?.studentName ?? '', locale),
             })),
           },
@@ -345,6 +346,7 @@ export async function notifySubstitution(
                   uid: seriesUid(r.membershipId),
                   recurrenceId: r.scheduledAt,
                   start: r.scheduledAt,
+                  minutes: m.schedule?.minutes ?? DEFAULT_SESSION_MINUTES,
                   summary: sessionSummary(m.studentName, locale, removedFlag ? null : subName),
                 },
               ];
@@ -399,13 +401,14 @@ export async function notifySessionChange(
       .maybeSingle();
     type Rel = {
       user_id?: string;
-      schedule?: { timezone?: string } | null;
+      schedule?: { timezone?: string; minutes?: number } | null;
       circle?: { name?: string; teacher_id?: string } | { name?: string; teacher_id?: string }[] | null;
     };
     const membership = relOne(session?.membership as Rel | Rel[] | null);
     const userId = membership?.user_id;
     if (!userId) return;
     const scheduleTz = membership?.schedule?.timezone ?? null;
+    const minutes = membership?.schedule?.minutes ?? DEFAULT_SESSION_MINUTES;
     const circle = relOne(membership?.circle);
     const studentName = await nameOf(db, userId);
     const teacherId = circle?.teacher_id ?? null;
@@ -423,6 +426,7 @@ export async function notifySessionChange(
         ? undefined
         : (session?.moved_from ?? session?.scheduled_at ?? undefined),
       start: when,
+      minutes,
       summary,
       status: method === 'CANCEL' ? 'CANCELLED' : 'CONFIRMED',
     });
@@ -504,6 +508,7 @@ export async function notifySchedule(
       // second copy beside it, which is why editing a rule is safe to repeat.
       start: slots[0] ?? new Date().toISOString(),
       rdates: slots.slice(1),
+      minutes: schedule?.minutes ?? DEFAULT_SESSION_MINUTES,
       summary,
       status: cleared ? 'CANCELLED' : 'CONFIRMED',
     });

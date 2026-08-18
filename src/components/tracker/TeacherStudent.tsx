@@ -6,8 +6,9 @@ import { useI18n } from '@/components/I18nProvider';
 import { setMembershipStatus } from '@/lib/services/membership';
 import type {
   AgendaTask, AttendanceStatus, Circle, Exam, ExamStatus, Homework, LogType, MemberWithProfile,
-  ProgressLog, Session, StatusConfig,
+  ProgressLog, Recurrence, Session, StatusConfig,
 } from '@/types';
+import { DEFAULT_SESSION_MINUTES, SESSION_LENGTHS } from '@/types';
 import { displayName } from '@/lib/displayName';
 import {
   createAdhocSession, materializeSession, rescheduleSession, setSchedule, setSessionAttendance, setSessionCanceled,
@@ -364,7 +365,7 @@ type SessionsState = ReturnType<typeof useSessionsState>;
 
 function useSessionsState(
   initial: Session[],
-  initialSchedule: { weekdays: number[]; time: string; timezone?: string } | null,
+  initialSchedule: Recurrence | null,
 ) {
   const [sessions, setSessions] = useState(initial);
   const [subOverride, setSubOverride] = useState<Record<string, string | null>>({});
@@ -374,9 +375,10 @@ function useSessionsState(
   const [weekdays, setWeekdays] = useState<number[]>(initialSchedule?.weekdays ?? []);
   const [time, setTime] = useState(initialSchedule?.time ?? '17:00');
   const [tz, setTz] = useState(initialSchedule?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const [minutes, setMinutes] = useState(initialSchedule?.minutes ?? DEFAULT_SESSION_MINUTES);
   return {
     sessions, setSessions, subOverride, setSubOverride, lingerId, setLingerId,
-    weekdays, setWeekdays, time, setTime, tz, setTz,
+    weekdays, setWeekdays, time, setTime, tz, setTz, minutes, setMinutes,
   };
 }
 
@@ -399,7 +401,7 @@ function StudentSessions({
   const { t, locale, fmtNum } = useI18n();
   const {
     sessions, setSessions, subOverride, setSubOverride, lingerId, setLingerId,
-    weekdays, setWeekdays, time, setTime, tz, setTz,
+    weekdays, setWeekdays, time, setTime, tz, setTz, minutes, setMinutes,
   } = state;
   // 0013 per-session sub controls (F3/F4/F5): inline assign form key + local
   // name overrides (undefined = server value, null = just reclaimed).
@@ -449,7 +451,7 @@ function StudentSessions({
     [locale],
   );
 
-  const rule = weekdays.length ? { weekdays, time, timezone: tz } : null;
+  const rule = weekdays.length ? { weekdays, time, timezone: tz, minutes } : null;
 
   function toggleDay(d: number) {
     setWeekdays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
@@ -690,6 +692,14 @@ function StudentSessions({
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('sessions.time')}</span>
             <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="input" style={{ minHeight: 40, width: 140 }} />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('sessions.length')}</span>
+            <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} className="input" style={{ minHeight: 40, width: 110 }}>
+              {SESSION_LENGTHS.map((m) => (
+                <option key={m} value={m}>{t('sessions.minutes').replace('{n}', fmtNum(m))}</option>
+              ))}
+            </select>
           </label>
           <button onClick={handleSave} className="btn btn-primary" style={{ minHeight: 40, fontSize: 13, padding: '0 18px' }}>
             {t('sessions.saveSchedule')}

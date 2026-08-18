@@ -28,6 +28,19 @@ describe('ics', () => {
     expect(ics).toContain('STATUS:CONFIRMED');
   });
 
+  it('honours an explicit lesson length', () => {
+    const ics = unfold(
+      buildIcs(
+        [{ uid: 'u1', start: '2026-08-17T17:00:00Z', minutes: 30, summary: 'x' }],
+        'REQUEST',
+        'a@b.c',
+        ORG,
+      ),
+    );
+    expect(ics).toContain('DTSTART:20260817T170000Z');
+    expect(ics).toContain('DTEND:20260817T173000Z');
+  });
+
   it('lists extra occurrences as RDATE rather than a UTC-anchored RRULE', () => {
     const ics = unfold(
       buildIcs(

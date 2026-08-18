@@ -60,7 +60,14 @@ export interface Recurrence {
   weekdays: number[];
   time: string;
   timezone?: string;
+  /** Lesson length in minutes. Absent on rules saved before it existed ⇒ 60. */
+  minutes?: number;
 }
+
+/** Lesson lengths offered in the schedule editor. */
+export const SESSION_LENGTHS = [30, 45, 60, 90] as const;
+/** What a rule with no explicit length means — every pre-existing schedule. */
+export const DEFAULT_SESSION_MINUTES = 60;
 
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 

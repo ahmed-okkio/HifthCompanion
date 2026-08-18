@@ -25,6 +25,14 @@ import type { Recurrence } from '../src/types';
 const send = process.argv.includes('--send');
 /** Mail a single membership first, to check a real client before the rest. */
 const only = process.argv.find((a) => a.startsWith('--only='))?.slice('--only='.length);
+/**
+ * Also rewrite each rule's lesson length before mailing. Schedules saved before
+ * the length field existed have none and are read as 60 minutes, so this is how
+ * they get moved in bulk rather than re-edited one student at a time.
+ */
+const setMinutes = Number(
+  process.argv.find((a) => a.startsWith('--set-minutes='))?.slice('--set-minutes='.length),
+);
 
 async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -70,8 +78,9 @@ async function main() {
     for (const m of rows) {
       const s = m.schedule as Recurrence;
       const days = [...s.weekdays].sort((a, b) => a - b).map((d) => DAYS[d]).join('/');
+      const len = setMinutes ? `${s.minutes ?? 60}->${setMinutes}min` : `${s.minutes ?? 60}min`;
       console.log(
-        `  ${who(m).padEnd(28)} ${days} ${s.time} ${s.timezone ?? 'UTC'}   ${m.id}`,
+        `  ${who(m).padEnd(28)} ${days} ${s.time} ${s.timezone ?? 'UTC'} ${len.padStart(11)}   ${m.id}`,
       );
     }
     console.log('\nDry run — nothing sent. Re-run with --send to mail these.');
@@ -80,13 +89,22 @@ async function main() {
 
   let ok = 0;
   for (const m of rows) {
+    let rule = m.schedule as Recurrence;
+    if (setMinutes) {
+      rule = { ...rule, minutes: setMinutes };
+      const { error: upErr } = await db.from('membership').update({ schedule: rule }).eq('id', m.id);
+      if (upErr) throw upErr;
+    }
     // notifySchedule is best-effort and swallows its own failures, so one bad
     // row can never abort the rest of the backfill.
-    await notifySchedule(m.id, m.schedule as Recurrence);
+    await notifySchedule(m.id, rule);
     ok += 1;
     console.log(`  sent ${ok}/${rows.length}  ${m.id}`);
   }
-  console.log(`\nDone — ${ok} invite(s) dispatched (student + teacher each).`);
+  console.log(
+    `\nDone — ${ok} invite(s) dispatched (student + teacher each)` +
+      (setMinutes ? `, length set to ${setMinutes} min.` : '.'),
+  );
 }
 
 main().catch((err) => {

@@ -17,7 +17,7 @@ export interface IcsEvent {
   start: string;
   summary: string;
   description?: string;
-  /** ponytail: no duration column on `session`; 60 min is the lesson length. */
+  /** Lesson length, from the membership's rule. 60 when the rule predates it. */
   minutes?: number;
   /** Further occurrence instants of the same series (RDATE). */
   rdates?: string[];

@@ -65,7 +65,7 @@ export interface Recurrence {
 }
 
 /** Lesson lengths offered in the schedule editor. */
-export const SESSION_LENGTHS = [30, 45, 60, 90] as const;
+export const SESSION_LENGTHS = [15, 30, 45, 60, 90] as const;
 /** What a rule with no explicit length means — every pre-existing schedule. */
 export const DEFAULT_SESSION_MINUTES = 60;
 

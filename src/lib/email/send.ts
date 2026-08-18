@@ -1,5 +1,15 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 
+import { buildIcs, type IcsEvent, type IcsMethod } from '@/lib/email/ics';
+
+/** Calendar invite to ride along with the mail; the attendee is filled in here. */
+export interface EmailInvite {
+  method: IcsMethod;
+  events: IcsEvent[];
+  /** Shown as the organizer's display name; the address stays the app mailbox. */
+  organizerName?: string;
+}
+
 export interface EmailResult {
   sent: boolean;
   skipped: boolean;
@@ -35,6 +45,7 @@ export async function sendEmail(
   to: string,
   subject: string,
   html: string,
+  invite?: EmailInvite,
 ): Promise<EmailResult> {
   const transport = getTransport();
   if (!transport) {
@@ -42,10 +53,30 @@ export async function sendEmail(
     return { sent: false, skipped: true };
   }
 
+  const from = process.env.EMAIL_FROM ?? process.env.RESEND_FROM ?? process.env.SMTP_USER;
+
   try {
     await transport.sendMail({
-      from: process.env.EMAIL_FROM ?? process.env.RESEND_FROM ?? process.env.SMTP_USER,
+      from,
       to,
+      // nodemailer builds the text/calendar alternative part itself — the shape
+      // Gmail/Outlook need to show Yes/No buttons instead of an attachment.
+      ...(invite && invite.events.length > 0
+        ? {
+            icalEvent: {
+              method: invite.method,
+              filename: 'invite.ics',
+              content: buildIcs(invite.events, invite.method, to, {
+                // Organizer must be a real mailbox or clients drop the invite,
+                // and must stay identical across a series and its later
+                // overrides — so it is always the app's own sending address,
+                // never a teacher's. The teacher rides along as CN only.
+                email: (from ?? to).replace(/^.*<|>$/g, ''),
+                name: invite.organizerName,
+              }),
+            },
+          }
+        : {}),
       subject,
       html,
       // Plaintext alternative — HTML-only mail is a spam signal (esp. Outlook).

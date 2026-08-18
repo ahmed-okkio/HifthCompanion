@@ -359,6 +359,8 @@ export function sessionChangeBody(
     timezone?: string | null;
     /** The session was un-canceled. `oldTime` is when it is back on. */
     reinstated?: boolean;
+    /** A one-off session was added. `oldTime` is when it will be held. */
+    added?: boolean;
   },
   locale?: RecipientLocale,
 ): string {
@@ -367,6 +369,21 @@ export function sessionChangeBody(
   const rtl = locale === 'ar';
   const ar = rtl;
   const subline = circleTeacherLine(facts.circleName, facts.teacherName, ar);
+
+  // An extra one-off session is neither a move nor a reinstatement: there is no
+  // previous time to contrast it against, so it gets its own copy.
+  if (facts.added) {
+    return shell(locale, {
+      preheader: ar ? 'أضاف معلمك جلسة إضافية' : 'Your teacher added an extra session',
+      heading: ar ? 'جلسة إضافية' : 'Extra session added',
+      subline,
+      message: ar
+        ? `${student}، أضاف معلمك جلسة إضافية إلى جدولك.`
+        : `${student}, your teacher has added an extra session to your schedule.`,
+      content: sessionCard(ar ? 'الموعد' : 'When', oldChip, rtl),
+      footer: ar ? FOOTER_AR : FOOTER_EN,
+    });
+  }
 
   // A reinstated session must never reuse the cancel copy — a student told
   // "canceled" when the lesson is back on is exactly the missed lesson this
@@ -408,6 +425,78 @@ export function sessionChangeBody(
     content:
       sessionCard(ar ? 'الموعد السابق' : 'Previously', oldChip, rtl) +
       sessionCard(ar ? 'الموعد الجديد' : 'Now', newChip, rtl),
+    footer: ar ? FOOTER_AR : FOOTER_EN,
+  });
+}
+
+/** Localized weekday names for `Recurrence.weekdays` (0=Sunday..6=Saturday). */
+function weekdayNames(weekdays: number[], locale: RecipientLocale): string {
+  const fmt = new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en-GB', {
+    weekday: 'long',
+    timeZone: 'UTC',
+  });
+  // 2026-08-16 is a Sunday, so +d lands on weekday index d.
+  return [...weekdays]
+    .sort((a, b) => a - b)
+    .map((d) => fmt.format(new Date(Date.UTC(2026, 7, 16 + d))))
+    .join(locale === 'ar' ? '، ' : ', ');
+}
+
+/**
+ * A teacher set, changed or cleared a student's weekly slot. The prose states
+ * the days and time outright: the .ics rides along as a convenience, and a
+ * recipient whose client silently ignores it must still learn the schedule
+ * from the words.
+ */
+export function scheduleBody(
+  facts: {
+    studentName: string;
+    weekdays: number[];
+    time: string;
+    timezone?: string | null;
+    circleName?: string;
+    teacherName?: string;
+    /** No schedule any more — the weekly slot was cleared. */
+    cleared?: boolean;
+  },
+  locale?: RecipientLocale,
+): string {
+  const student = escapeHtml(facts.studentName);
+  const ar = locale === 'ar';
+  const rtl = ar;
+  const subline = circleTeacherLine(facts.circleName, facts.teacherName, ar);
+
+  if (facts.cleared) {
+    return shell(locale, {
+      preheader: ar ? 'تم إلغاء مواعيد جلساتك' : 'Your weekly sessions have been cleared',
+      heading: ar ? 'إلغاء مواعيد الجلسات' : 'Session schedule canceled',
+      subline,
+      message: ar
+        ? `${student}، لم يعد لديك موعد أسبوعي ثابت. سيتواصل معك معلمك بشأن الجلسات القادمة.`
+        : `${student}, you no longer have a recurring weekly slot. Your teacher will be in touch about future sessions.`,
+      content: '',
+      footer: ar ? FOOTER_AR : FOOTER_EN,
+    });
+  }
+
+  const days = escapeHtml(weekdayNames(facts.weekdays, locale));
+  const time = escapeHtml(facts.time);
+  const zone = facts.timezone ? escapeHtml(facts.timezone) : null;
+
+  return shell(locale, {
+    preheader: ar ? 'تم تحديث مواعيد جلساتك الأسبوعية' : 'Your weekly session times have been set',
+    heading: ar ? 'مواعيد جلساتك' : 'Your session schedule',
+    subline,
+    message: ar
+      ? `${student}، هذه هي مواعيد جلساتك الأسبوعية. الدعوة المرفقة تضيفها إلى تقويمك.`
+      : `${student}, here are your weekly session times. The invitation attached to this email adds them to your calendar.`,
+    content: callout(
+      [
+        `<strong>${ar ? 'الأيام' : 'Days'}:</strong> ${days}`,
+        `<strong>${ar ? 'الوقت' : 'Time'}:</strong> ${time}${zone ? ` (${zone})` : ''}`,
+      ],
+      rtl,
+    ),
     footer: ar ? FOOTER_AR : FOOTER_EN,
   });
 }

@@ -2,7 +2,7 @@
 
 import { createClient, createClientAction } from '@/lib/supabase/server';
 import { recurringSlots } from '@/lib/recurrence';
-import { notifySessionChange } from '@/lib/email/notify';
+import { notifySessionChange, notifySchedule } from '@/lib/email/notify';
 import type { AttendanceStatus, Recurrence, Session } from '@/types';
 
 /** Sessions for one membership (a student's own 1:1 slot), soonest first. */
@@ -40,11 +40,23 @@ export async function setSchedule(
   schedule: Recurrence | null,
 ): Promise<void> {
   const supabase = await createClientAction();
+  // Read first so an unchanged rule doesn't re-mail everyone: Save is a button,
+  // and pressing it twice must not send a second calendar invite.
+  const { data: prev } = await supabase
+    .from('membership')
+    .select('schedule')
+    .eq('id', membershipId)
+    .maybeSingle();
+
   const { error } = await supabase
     .from('membership')
     .update({ schedule })
     .eq('id', membershipId);
   if (error) throw error;
+
+  if (JSON.stringify(prev?.schedule ?? null) !== JSON.stringify(schedule ?? null)) {
+    await notifySchedule(membershipId, schedule);
+  }
 }
 
 /**
@@ -106,6 +118,14 @@ export async function createAdhocSession(
     .select()
     .single();
   if (error) throw error;
+
+  // A one-off at an unusual time is the easiest session to miss, so it is the
+  // one most worth mailing — and until now it told the student nothing at all.
+  try {
+    await notifySessionChange(data.id, null, undefined, false, true);
+  } catch (err) {
+    console.warn('[email] adhoc session notify failed', (err as Error).message);
+  }
   return data;
 }
 

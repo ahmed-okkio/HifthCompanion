@@ -5,7 +5,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { searchAccountsByEmail, type AccountMatch } from '@/lib/services/collaborators';
 import { useI18n } from '@/components/I18nProvider';
-import { Avatar } from './ui';
+import { ActionButton, Avatar } from './ui';
 
 /**
  * Search accounts by email prefix and pick one (F2/F3) — same shape as the
@@ -121,13 +121,13 @@ export function CoveredBy({ name, onRemove }: { name: string; onRemove?: () => v
         <span className="truncate" style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{name}</span>
         <span className="truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('subs.substitute')}</span>
       </span>
-      <button onClick={onRemove} aria-label={t('subs.removeSub', { name })}
+      <ActionButton onClick={onRemove} aria-label={t('subs.removeSub', { name })}
               className="btn btn-ghost shrink-0"
               onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')}
               onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
               style={{ minHeight: 22, height: 22, width: 22, padding: 0, fontSize: 12, lineHeight: 1, color: 'var(--text-muted)', transition: 'color var(--duration-fast) var(--ease-out)' }}>
         ✕
-      </button>
+      </ActionButton>
     </span>
   );
 }

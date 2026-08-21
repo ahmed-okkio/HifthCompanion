@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import { acceptMembership } from '@/lib/services/membership';
-import { PageHeader } from './ui';
+import { ActionButton, PageHeader } from './ui';
 
 /**
  * Consent gate (D12/D13, C3/C4): shown in front of a student's *pending*
@@ -65,14 +65,14 @@ export default function AcceptInvite({
           {t('accept.body', { teacher: teacherName })}
         </p>
         <div className="flex gap-2 flex-wrap">
-          <button
+          <ActionButton
             onClick={handleAccept}
             disabled={busy}
             className="btn btn-primary"
             style={{ minHeight: 44 }}
           >
             {t('accept.accept')}
-          </button>
+          </ActionButton>
           <button
             onClick={() => router.push('/tracker')}
             disabled={busy}

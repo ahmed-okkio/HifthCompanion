@@ -856,3 +856,37 @@ export function TabBar({
 export function shortId(id: string) {
   return id.slice(0, 6);
 }
+
+/**
+ * Button whose onClick may be async: while the promise is in flight the button
+ * is disabled and shows a spinner, so a slow server action can't be spam-clicked
+ * and doesn't look like a dead click. Drop-in replacement for `<button>`.
+ */
+export function ActionButton({
+  onClick, children, disabled, ...rest
+}: Omit<React.ComponentProps<'button'>, 'onClick'> & {
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void | Promise<unknown>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
+
+  async function handle(e: React.MouseEvent<HTMLButtonElement>) {
+    if (busy || !onClick) return;
+    const r = onClick(e);
+    if (!(r instanceof Promise)) return;
+    setBusy(true);
+    try {
+      await r;
+    } finally {
+      if (alive.current) setBusy(false);
+    }
+  }
+
+  return (
+    <button {...rest} onClick={handle} disabled={disabled || busy} data-busy={busy || undefined}>
+      {busy && <span className="spinner" aria-hidden />}
+      {children}
+    </button>
+  );
+}

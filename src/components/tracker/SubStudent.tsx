@@ -10,18 +10,16 @@ import { useMemo, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type { AttendanceStatus, Homework, ProgressLog, Session, StatusConfig } from '@/types';
 import { materializeSession, setSessionAttendance } from '@/lib/services/sessions';
-import { GradeableLog, HomeworkPanel, StudentProfileCard } from './TeacherStudent';
-import { homeworkStatus } from '@/lib/homework';
+import { GradeableLog, HomeworkPanel, StudentProfileCard, useHomeworkState } from './TeacherStudent';
 import { Attribution, AttributionProvider } from './subs';
 import { SectionTitle, EmptyState, DateChip, TabBar } from './ui';
 
 const ATT_STATUSES: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'];
-const today = () => new Date().toISOString().slice(0, 10);
 const key = (iso: string) => String(new Date(iso).getTime());
 
 export default function SubStudent({
   membershipId, studentName, circleName, teacherName, coveredInstants, initialSessions, logs,
-  teacherStatuses, studentStatuses, defaultSetId, teacherId, homework,
+  teacherStatuses, defaultSetId, teacherId, homework,
 }: {
   membershipId: string;
   studentName: string;
@@ -31,8 +29,6 @@ export default function SubStudent({
   teacherId: string;
   /** C4: grade labels straight off covering_sessions() — no circle read (D5). */
   teacherStatuses: StatusConfig[];
-  /** Student-status chips for the homework result form (same RPC, same reason). */
-  studentStatuses: StatusConfig[];
   /** Prescriptions the sub may mark against — read-only; they can't set homework. */
   homework: Homework[];
   /** C5: the covered student's default set, opened READ-ONLY via /share. */
@@ -45,12 +41,11 @@ export default function SubStudent({
   const { t, locale, fmtNum } = useI18n();
   const [tab, setTab] = useState('sessions');
   const [sessions, setSessions] = useState(initialSessions);
-  const [logRows, setLogRows] = useState(logs);
   const [err, setErr] = useState<string | null>(null);
-
-  // C4: grade fields only. The DB stamps graded_by — never sent from here.
-  const onGraded = (id: string, grade: { teacher_status: string | null; teacher_comment: string | null }) =>
-    setLogRows((p) => p.map((l) => (l.id === id ? { ...l, ...grade, reviewed_at: new Date().toISOString() } : l)));
+  // C4: grade fields only (the DB stamps graded_by). Shared with HomeworkPanel so
+  // marking a prescription updates this tab and the KPI without a refresh.
+  const homeworkState = useHomeworkState(homework, logs);
+  const { logRows, onGraded } = homeworkState;
 
   const covered = new Set(coveredInstants.map(key));
   const rowFor = (iso: string) => sessions.find((s) => key(s.scheduled_at) === key(iso));
@@ -64,11 +59,7 @@ export default function SubStudent({
     () => sessions.filter((s) => s.attendance_status).map((s) => ({ status: s.attendance_status! })),
     [sessions],
   );
-  const openHomework = useMemo(() => {
-    const linked = new Map<string, number>();
-    for (const l of logRows) if (l.homework_id) linked.set(l.homework_id, (linked.get(l.homework_id) ?? 0) + 1);
-    return homework.filter((h) => homeworkStatus(h, linked.get(h.id) ?? 0, today()) === 'open').length;
-  }, [homework, logRows]);
+  const openHomework = homeworkState.openCount;
 
   async function mark(iso: string, status: AttendanceStatus) {
     try {
@@ -176,10 +167,8 @@ export default function SubStudent({
         {tab === 'homework' && (
           <HomeworkPanel
             membershipId={membershipId}
-            initial={homework}
-            logs={logRows}
+            state={homeworkState}
             teacherStatuses={teacherStatuses}
-            studentStatuses={studentStatuses}
             canPrescribe={false}
           />
         )}

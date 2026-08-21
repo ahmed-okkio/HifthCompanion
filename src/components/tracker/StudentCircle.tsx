@@ -14,7 +14,7 @@ import { isStreakAtRisk } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
 import MarkedPagesList from '@/components/MarkedPagesList';
 import { wholeSurahPages } from '@/lib/homework';
-import { SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, Icon, Avatar, Chevron } from './ui';
+import { ActionButton, SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, Icon, Avatar, Chevron } from './ui';
 import { SurahPicker, ExamCard, StudentProfileCard, type Entry } from './TeacherStudent';
 import type { RosterMember } from '@/lib/services/membership';
 import type { MarkedPage } from '@/lib/markedPages';
@@ -565,9 +565,9 @@ function LogEntryForm({
         <button onClick={() => setLogging(false)} className="btn btn-outline" style={{ minHeight: 44, padding: '0 20px' }}>
           {t('common.cancel')}
         </button>
-        <button onClick={submit} disabled={busy || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44, padding: '0 24px' }}>
+        <ActionButton onClick={submit} disabled={busy || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44, padding: '0 24px' }}>
           {t('log.submit')}
-        </button>
+        </ActionButton>
       </div>
     </div>
   );
@@ -698,10 +698,10 @@ function LogForm({
 
       {error && <span className="text-xs" style={{ color: 'var(--danger)' }}>{error}</span>}
 
-      <button onClick={handleSubmit} disabled={busy || pageEnd < pageStart}
+      <ActionButton onClick={handleSubmit} disabled={busy || pageEnd < pageStart}
               className="btn btn-primary" style={{ minHeight: 44 }}>
         {t('log.submit')}
-      </button>
+      </ActionButton>
     </div>
   );
 }
@@ -728,9 +728,9 @@ function LogRow({ log: l, onDelete }: { log: ProgressLog; onDelete: (id: string)
         </div>
       ) : (
         <div className="flex gap-2 mt-2">
-          <button onClick={() => onDelete(l.id)} className="btn btn-danger-ghost" style={{ minHeight: 36, fontSize: 13 }}>
+          <ActionButton onClick={() => onDelete(l.id)} className="btn btn-danger-ghost" style={{ minHeight: 36, fontSize: 13 }}>
             {t('common.delete')}
-          </button>
+          </ActionButton>
         </div>
       )}
     </div>

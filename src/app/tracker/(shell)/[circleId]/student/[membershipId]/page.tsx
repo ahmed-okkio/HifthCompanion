@@ -64,7 +64,6 @@ export default async function StudentDetailPage({
           initialSessions={sessions}
           logs={subLogs}
           teacherStatuses={rows[0].teacher_statuses ?? []}
-          studentStatuses={rows[0].student_statuses ?? []}
           defaultSetId={rows[0].default_set_id}
           teacherId={rows[0].teacher_id}
           homework={subHomework}

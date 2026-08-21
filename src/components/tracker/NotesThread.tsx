@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import { postNote, type NoteWithAuthor } from '@/lib/services/membershipNotes';
-import { SectionTitle, EmptyState, Avatar, PagedList } from './ui';
+import { ActionButton, SectionTitle, EmptyState, Avatar, PagedList } from './ui';
 
 /** Shared membership notes thread (G1/G2/G3): composer on top, newest first. */
 export default function NotesThread({
@@ -39,9 +39,9 @@ export default function NotesThread({
         <input value={body} onChange={(e) => setBody(e.target.value)}
                onKeyDown={(e) => e.key === 'Enter' && handlePost()}
                placeholder={t('notes.placeholder')} className="input" style={{ flex: 1 }} />
-        <button onClick={handlePost} disabled={!body.trim() || busy} className="btn btn-primary" style={{ minHeight: 44 }}>
+        <ActionButton onClick={handlePost} disabled={!body.trim() || busy} className="btn btn-primary" style={{ minHeight: 44 }}>
           {t('notes.post')}
-        </button>
+        </ActionButton>
       </div>
       {notes.length === 0 && <EmptyState>{t('notes.empty')}</EmptyState>}
       <PagedList items={notes} loadMoreLabel={t('grade.loadMore')} render={(n) => {

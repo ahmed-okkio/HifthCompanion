@@ -6,10 +6,10 @@ import { AYAH_COUNTS, SURAH_FIRST_PAGES, TOTAL_PAGES, TOTAL_SURAHS, getJuzForPag
 export type HomeworkStatus = 'open' | 'completed' | 'missed';
 
 /**
- * Derived homework status (D10). Status is never stored — computed from the
- * deadline and how many progress_log rows link to the prescription:
- *   - no deadline, or deadline today/future → 'open' (still submittable)
- *   - deadline past & ≥1 linked log            → 'completed'
+ * Derived homework status (D10). Status is never stored — computed from how many
+ * progress_log rows link to the prescription, then the deadline:
+ *   - ≥1 linked log                            → 'completed' (submitted is done)
+ *   - no deadline, or deadline today/future    → 'open' (still submittable)
  *   - deadline past & 0 linked logs            → 'missed'
  * `today` is a date-only "YYYY-MM-DD"; homework.deadline is the same shape.
  */
@@ -18,8 +18,9 @@ export function homeworkStatus(
   linkedLogCount: number,
   today: string,
 ): HomeworkStatus {
+  if (linkedLogCount >= 1) return 'completed';
   if (!homework.deadline || homework.deadline >= today) return 'open';
-  return linkedLogCount >= 1 ? 'completed' : 'missed';
+  return 'missed';
 }
 
 /**

@@ -14,7 +14,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import { createCircle } from '@/lib/services/circle';
 import type { RailCircle } from '@/lib/tracker/railCircles';
-import { Avatar, Icon } from './ui';
+import { ActionButton, Avatar, Icon } from './ui';
 import { LAST_CIRCLE_KEY } from '@/lib/tracker/lastCircle';
 import { useCircleReady } from './CircleReady';
 
@@ -279,7 +279,7 @@ function CreateCircleModal({ onClose, onCreated }: { onClose: () => void; onCrea
         {error && <div role="alert" style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</div>}
         <div className="flex gap-2 justify-end">
           <button onClick={onClose} className="btn btn-outline" style={{ minHeight: 44 }}>{t('common.cancel')}</button>
-          <button onClick={submit} disabled={!name.trim() || busy} className="btn btn-primary" style={{ minHeight: 44 }}>{t('common.create')}</button>
+          <ActionButton onClick={submit} disabled={!name.trim() || busy} className="btn btn-primary" style={{ minHeight: 44 }}>{t('common.create')}</ActionButton>
         </div>
       </div>
     </div>

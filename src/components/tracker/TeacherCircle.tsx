@@ -10,7 +10,7 @@ import { rotateInviteCode, deleteCircle } from '@/lib/services/circle';
 import { inviteByEmail, setMembershipStatus } from '@/lib/services/membership';
 import { materializeSession, setSessionCanceled, rescheduleSession } from '@/lib/services/sessions';
 import { assignSubstitutes, removeSubstitution, getManageSlots } from '@/lib/services/substitution';
-import { SectionTitle, EmptyState, Avatar, Chevron, DateChip, StatusDot, TabBar, TimeSelect } from './ui';
+import { ActionButton, SectionTitle, EmptyState, Avatar, Chevron, DateChip, StatusDot, TabBar, TimeSelect } from './ui';
 import { SubAssignForm, CoveredBy } from './subs';
 import { isLive } from '@/lib/agenda';
 
@@ -282,12 +282,12 @@ export default function TeacherCircle({
               {inviteLink}
             </code>
             <div className="flex gap-2">
-              <button onClick={handleCopy} className="btn btn-outline flex-1" style={{ minHeight: 38, fontSize: 13 }}>
+              <ActionButton onClick={handleCopy} className="btn btn-outline flex-1" style={{ minHeight: 38, fontSize: 13 }}>
                 {t(copied ? 'common.copied' : 'common.copy')}
-              </button>
-              <button onClick={handleRotate} className="btn btn-ghost flex-1" style={{ minHeight: 38, fontSize: 13 }}>
+              </ActionButton>
+              <ActionButton onClick={handleRotate} className="btn btn-ghost flex-1" style={{ minHeight: 38, fontSize: 13 }}>
                 {t('tracker.rotateCode')}
-              </button>
+              </ActionButton>
             </div>
           </div>
           <div style={{ height: 1, background: 'var(--border-subtle)' }} />
@@ -298,9 +298,9 @@ export default function TeacherCircle({
             <input value={email} onChange={(e) => setEmail(e.target.value)} type="email"
                    onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
                    placeholder={t('tracker.inviteByEmail')} className="input" />
-            <button onClick={handleInvite} disabled={!email.trim()} className="btn btn-outline" style={{ minHeight: 40 }}>
+            <ActionButton onClick={handleInvite} disabled={!email.trim()} className="btn btn-outline" style={{ minHeight: 40 }}>
               {t('common.create')}
-            </button>
+            </ActionButton>
           </div>
         </div>
       </div>
@@ -409,9 +409,9 @@ export default function TeacherCircle({
                       <>
                         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                         <div className="flex gap-1">
-                          <button onClick={() => handleStatus(m.id, 'active')} className="btn btn-outline" style={{ minHeight: 32, fontSize: 12, padding: '4px 10px' }}>
+                          <ActionButton onClick={() => handleStatus(m.id, 'active')} className="btn btn-outline" style={{ minHeight: 32, fontSize: 12, padding: '4px 10px' }}>
                             {t('tracker.reactivate')}
-                          </button>
+                          </ActionButton>
                         </div>
                       </>
                     )}
@@ -449,10 +449,10 @@ export default function TeacherCircle({
                       <span className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
                         {t('subs.coveredBy', { name: pendingSub.name })} · {t('subs.selected', { count: selected.size })}
                       </span>
-                      <button onClick={handleBulkAssign} disabled={selected.size === 0}
+                      <ActionButton onClick={handleBulkAssign} disabled={selected.size === 0}
                               className="btn btn-primary shrink-0" style={{ minHeight: 32, fontSize: 12, padding: '0 14px' }}>
                         {t('subs.confirmAssign')}
-                      </button>
+                      </ActionButton>
                       <button onClick={exitSelectMode} className="btn btn-ghost shrink-0" style={{ minHeight: 32, fontSize: 12 }}>
                         {t('common.cancel')}
                       </button>
@@ -501,9 +501,9 @@ export default function TeacherCircle({
                           <Chevron open={editing} />
                         </button>
                       )}
-                      <button onClick={() => handleCancelAgenda(item)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11 }}>
+                      <ActionButton onClick={() => handleCancelAgenda(item)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11 }}>
                         {item.canceled ? t('sessions.reinstate') : t('sessions.cancel')}
-                      </button>
+                      </ActionButton>
                       </div>
                     </div>
                     {manageKey === item.key && !item.canceled && !subName(item) && (
@@ -516,9 +516,9 @@ export default function TeacherCircle({
                            style={{ borderTop: '1px solid var(--border-subtle)', overflow: reschedOpen ? 'visible' : 'hidden', animation: 'slide-down 0.22s var(--ease-out) both' }}>
                         <input type="date" value={reschedDate} onChange={(e) => setReschedDate(e.target.value)} className="input" style={{ minHeight: 36 }} />
                         <TimeSelect value={reschedTime} onChange={setReschedTime} style={{ minHeight: 36, width: 130 }} />
-                        <button onClick={() => handleRescheduleAgenda(item)} className="btn btn-primary" style={{ minHeight: 36, fontSize: 12, padding: '0 14px' }}>
+                        <ActionButton onClick={() => handleRescheduleAgenda(item)} className="btn btn-primary" style={{ minHeight: 36, fontSize: 12, padding: '0 14px' }}>
                           {t('common.save')}
-                        </button>
+                        </ActionButton>
                         <button onClick={() => setReschedKey(null)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 12 }}>
                           {t('common.cancel')}
                         </button>
@@ -565,9 +565,9 @@ export default function TeacherCircle({
                     {t('tracker.deleteCircleConfirm')}
                   </span>
                 </div>
-                <button onClick={handleDelete} className="btn btn-danger-ghost shrink-0" style={{ minHeight: 34, fontSize: 13 }}>
+                <ActionButton onClick={handleDelete} className="btn btn-danger-ghost shrink-0" style={{ minHeight: 34, fontSize: 13 }}>
                   {t('tracker.deleteCircle')}
-                </button>
+                </ActionButton>
               </div>
             </div>
           </>)}

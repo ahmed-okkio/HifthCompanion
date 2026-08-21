@@ -28,6 +28,7 @@ import { AYAH_COUNTS, TOTAL_JUZ, TOTAL_SURAHS, getSurahName, getSurahForPage, sp
 import {
   SectionTitle, EmptyState, Avatar, StatCard, Ring, StatusDot, DateChip, TabBar,
   SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, Chevron, Icon, TimeSelect,
+  ActionButton,
 } from './ui';
 import { attendanceStats } from '@/lib/analytics';
 import { isLive } from '@/lib/agenda';
@@ -87,6 +88,8 @@ export default function TeacherStudent({
   const [tab, setTab] = useState('agenda');
   // 0014 I1: shared by both StudentSessions mounts — see useSessionsState.
   const sessionsState = useSessionsState(initialSessions, member.schedule);
+  // Homework/logs live here too, so the KPI + Agenda counts move with them.
+  const homeworkState = useHomeworkState(initialHomework, logs);
   // Annotations live in the desktop profile column; below lg they become a tab.
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -110,12 +113,7 @@ export default function TeacherStudent({
     [sessionsState.sessions],
   );
 
-  // KPI inputs — static snapshots from the server payload.
-  const linkedCount = new Map<string, number>();
-  for (const l of logs) if (l.homework_id) linkedCount.set(l.homework_id, (linkedCount.get(l.homework_id) ?? 0) + 1);
-  const openHomework = initialHomework.filter(
-    (h) => homeworkStatus(h, linkedCount.get(h.id) ?? 0, today()) === 'open',
-  ).length;
+  const openHomework = homeworkState.openCount;
 
   return (
     <AttributionProvider teacherId={circle.teacher_id} names={actorNames ?? {}}>
@@ -150,7 +148,7 @@ export default function TeacherStudent({
             /* H2: live rule, so clearing the schedule swaps the card for the link. */
             hasSchedule={sessionsState.weekdays.length > 0}
             /* F7: already-loaded props, no extra fetch. */
-            context={{ homework: initialHomework, logs, sessions: sessionsState.sessions, exams: initialExams }}
+            context={{ homework: homeworkState.items, logs: homeworkState.logRows, sessions: sessionsState.sessions, exams: initialExams }}
             onNavigate={setTab}
             /* E2/E3: the same StudentSessions component, rendering only its Next
                card — not a second copy of it. */
@@ -172,7 +170,7 @@ export default function TeacherStudent({
             subByInstant={subByInstant}
           />
         )}
-        {tab === 'homework' && <HomeworkPanel membershipId={member.id} initial={initialHomework} logs={logs} teacherStatuses={circle.teacher_statuses} studentStatuses={circle.student_statuses} />}
+        {tab === 'homework' && <HomeworkPanel membershipId={member.id} state={homeworkState} teacherStatuses={circle.teacher_statuses} />}
         {tab === 'exams' && <ExamsPanel membershipId={member.id} initial={initialExams} locale={locale} />}
         {tab === 'notes' && <NotesThread membershipId={member.id} initial={initialNotes} />}
         {isMobile && tab === 'annotations' && (
@@ -200,10 +198,10 @@ export default function TeacherStudent({
                 </span>
               </div>
               {member.status === 'active' ? (
-                <button onClick={handleDeactivate} className="btn btn-ghost shrink-0"
+                <ActionButton onClick={handleDeactivate} className="btn btn-ghost shrink-0"
                         style={{ minHeight: 34, fontSize: 13, color: 'var(--text-muted)' }}>
                   {t('tracker.deactivate')}
-                </button>
+                </ActionButton>
               ) : (
                 <span className="badge badge-muted shrink-0">{t(`tracker.${member.status}`)}</span>
               )}
@@ -608,9 +606,9 @@ function StudentSessions({
             </button>
           )}
           {cancelable && (
-            <button onClick={() => handleCancel(slot)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11 }}>
+            <ActionButton onClick={() => handleCancel(slot)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11 }}>
               {canceled ? t('sessions.reinstate') : t('sessions.cancel')}
-            </button>
+            </ActionButton>
           )}
           </div>
         </div>
@@ -624,9 +622,9 @@ function StudentSessions({
                style={{ borderTop: '1px solid var(--border-subtle)', overflow: reschedOpen ? 'visible' : 'hidden', animation: 'slide-down 0.22s var(--ease-out) both' }}>
             <input type="date" value={reschedDate} onChange={(e) => setReschedDate(e.target.value)} className="input" style={{ minHeight: 36 }} />
             <TimeSelect value={reschedTime} onChange={setReschedTime} style={{ minHeight: 36, width: 130 }} />
-            <button onClick={() => handleReschedule(slot)} className="btn btn-primary" style={{ minHeight: 36, fontSize: 12, padding: '0 14px' }}>
+            <ActionButton onClick={() => handleReschedule(slot)} className="btn btn-primary" style={{ minHeight: 36, fontSize: 12, padding: '0 14px' }}>
               {t('common.save')}
-            </button>
+            </ActionButton>
             <button onClick={() => setReschedKey(null)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 12 }}>
               {t('common.cancel')}
             </button>
@@ -637,10 +635,10 @@ function StudentSessions({
             {ATT_STATUSES.map((st) => {
               const on = s?.attendance_status === st;
               return (
-                <button key={st} onClick={() => handleAttendance(slot, st)} className={on ? 'btn btn-primary' : 'btn btn-ghost'}
+                <ActionButton key={st} onClick={() => handleAttendance(slot, st)} className={on ? 'btn btn-primary' : 'btn btn-ghost'}
                         style={{ minHeight: 30, fontSize: 11, padding: '0 12px' }}>
                   {t(`att.${st}`)}
-                </button>
+                </ActionButton>
               );
             })}
           </div>
@@ -701,9 +699,9 @@ function StudentSessions({
               ))}
             </select>
           </label>
-          <button onClick={handleSave} className="btn btn-primary" style={{ minHeight: 40, fontSize: 13, padding: '0 18px' }}>
+          <ActionButton onClick={handleSave} className="btn btn-primary" style={{ minHeight: 40, fontSize: 13, padding: '0 18px' }}>
             {t('sessions.saveSchedule')}
-          </button>
+          </ActionButton>
         </div>
 
         {/* Ad-hoc */}
@@ -716,9 +714,9 @@ function StudentSessions({
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('sessions.time')}</span>
             <input type="time" value={adhocTime} onChange={(e) => setAdhocTime(e.target.value)} className="input" style={{ minHeight: 40 }} />
           </label>
-          <button onClick={handleAdhoc} disabled={!adhocDate} className="btn btn-outline" style={{ minHeight: 40, fontSize: 13, padding: '0 16px' }}>
+          <ActionButton onClick={handleAdhoc} disabled={!adhocDate} className="btn btn-outline" style={{ minHeight: 40, fontSize: 13, padding: '0 16px' }}>
             {t('sessions.addAdhoc')}
-          </button>
+          </ActionButton>
         </div>
       </div>
       )}
@@ -865,24 +863,43 @@ export type Entry =
   | { kind: 'surah'; surah: number; ayah_start: number | null; ayah_end: number | null }
   | { kind: 'juz'; juz: number };
 
+/**
+ * Homework + log rows for one membership, owned by the *page* rather than by the
+ * panel, so prescribing/grading/submitting also updates the KPIs and the Agenda
+ * tab live — no page refresh, and no reset when a tab switch unmounts the panel.
+ */
+export function useHomeworkState(initialHomework: Homework[], initialLogs: ProgressLog[]) {
+  const [items, setItems] = useState(initialHomework);
+  const [logRows, setLogRows] = useState(initialLogs);
+  const onGraded = (id: string, grade: { teacher_status: string | null; teacher_comment: string | null }) =>
+    setLogRows((p) => p.map((l) => (l.id === id ? { ...l, ...grade, reviewed_at: new Date().toISOString() } : l)));
+  // Linked-log count per prescription drives derived status (D10/B4).
+  const linkedCount = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of logRows) if (l.homework_id) m.set(l.homework_id, (m.get(l.homework_id) ?? 0) + 1);
+    return m;
+  }, [logRows]);
+  const openCount = useMemo(
+    () => items.filter((h) => homeworkStatus(h, linkedCount.get(h.id) ?? 0, today()) === 'open').length,
+    [items, linkedCount],
+  );
+  return { items, setItems, logRows, setLogRows, onGraded, linkedCount, openCount };
+}
+
+export type HomeworkState = ReturnType<typeof useHomeworkState>;
+
 export function HomeworkPanel({
-  membershipId, initial, logs, teacherStatuses, studentStatuses, canPrescribe = true,
+  membershipId, state, teacherStatuses, canPrescribe = true,
 }: {
   membershipId: string;
-  initial: Homework[];
-  logs: ProgressLog[];
+  state: HomeworkState;
   teacherStatuses: StatusConfig[];
-  studentStatuses: StatusConfig[];
   /** False for a covering substitute: they mark the work, they don't set it —
    *  prescribe, deadline edit and delete are all teacher-only (RLS agrees). */
   canPrescribe?: boolean;
 }) {
   const { t, locale } = useI18n();
-  const [items, setItems] = useState(initial);
-  // Local copy so a freshly graded log flips to its locked state without a reload.
-  const [logRows, setLogRows] = useState(logs);
-  const onGraded = (id: string, grade: { teacher_status: string | null; teacher_comment: string | null }) =>
-    setLogRows((p) => p.map((l) => (l.id === id ? { ...l, ...grade, reviewed_at: new Date().toISOString() } : l)));
+  const { items, setItems, logRows, setLogRows, onGraded, linkedCount } = state;
 
   // Logs linked to a prescription (nested under its card) vs open self-submissions.
   const logsByHomework = useMemo(() => {
@@ -901,13 +918,6 @@ export function HomeworkPanel({
   // Review feed is paginated client-side (recency order); reveal more on demand.
   const PER_PAGE = 8;
   const [shown, setShown] = useState(PER_PAGE);
-
-  // Linked-log count per prescription drives derived status (D10/B4).
-  const linkedCount = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const l of logRows) if (l.homework_id) m.set(l.homework_id, (m.get(l.homework_id) ?? 0) + 1);
-    return m;
-  }, [logRows]);
 
   async function handlePrescribe() {
     if (busy || entries.length === 0) return;
@@ -986,9 +996,9 @@ export function HomeworkPanel({
         <input value={instructions} onChange={(e) => setInstructions(e.target.value)}
                placeholder={t('homework.instructions')} className="input" />
         <div className="flex gap-2">
-          <button onClick={handlePrescribe} disabled={busy || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44 }}>
+          <ActionButton onClick={handlePrescribe} disabled={busy || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44 }}>
             {t('homework.prescribe')}
-          </button>
+          </ActionButton>
           <button onClick={() => setPrescribing(false)} className="btn btn-ghost" style={{ minHeight: 44 }}>
             {t('common.cancel')}
           </button>
@@ -1007,7 +1017,7 @@ export function HomeworkPanel({
             linkedCount={linkedCount} logsByHomework={logsByHomework}
             teacherStatuses={teacherStatuses} onGraded={onGraded} onEditDeadline={handleEditDeadline}
             onDelete={handleDeleteHomework} onResult={onResult} membershipId={membershipId}
-            studentStatuses={studentStatuses} canPrescribe={canPrescribe}
+            canPrescribe={canPrescribe}
           />
         ) : (
           <div key={entry.key} className="card" style={{ padding: '12px 16px' }}>
@@ -1028,7 +1038,7 @@ export function HomeworkPanel({
 // Header (type + status) is always shown; instructions, deadline editor, entries
 // and their gradeable logs appear only once the card is selected.
 function PrescriptionCard({
-  group, locale, linkedCount, logsByHomework, teacherStatuses, onGraded, onEditDeadline, onDelete, onResult, membershipId, studentStatuses, canPrescribe,
+  group, locale, linkedCount, logsByHomework, teacherStatuses, onGraded, onEditDeadline, onDelete, onResult, membershipId, canPrescribe,
 }: {
   canPrescribe: boolean;
   group: { key: string; items: Homework[] };
@@ -1041,7 +1051,6 @@ function PrescriptionCard({
   onDelete: (ids: string[]) => void;
   onResult: (log: ProgressLog) => void;
   membershipId: string;
-  studentStatuses: StatusConfig[];
 }) {
   const { t, fmtNum } = useI18n();
   const [open, setOpen] = useState(false);
@@ -1096,18 +1105,18 @@ function PrescriptionCard({
                 {subs.length === 0
                   ? <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('homework.noSubmissionsYet')}</span>
                   : subs.map((l, i) => <GradeableLog key={l.id} log={l} statuses={teacherStatuses} onGraded={onGraded} divided={i > 0} />)}
-                <TeacherResultForm hw={h} membershipId={membershipId} studentStatuses={studentStatuses} teacherStatuses={teacherStatuses} onResult={onResult} />
+                <TeacherResultForm hw={h} membershipId={membershipId} teacherStatuses={teacherStatuses} onResult={onResult} />
               </div>
             </div>
           );
         })}
         {canPrescribe && (
-          <button
+          <ActionButton
             onClick={() => { if (confirm(t('homework.deleteConfirm'))) onDelete(ids); }}
             className="btn btn-danger-ghost self-start" style={{ minHeight: 36, fontSize: 13 }}
           >
             {t('homework.delete')}
-          </button>
+          </ActionButton>
         )}
       </>)}
     </div>
@@ -1119,17 +1128,15 @@ function PrescriptionCard({
 // normal unreviewed submission (student_status) linked to the homework, using
 // the homework's own scope. The teacher can then grade it like any other log.
 function TeacherResultForm({
-  hw, membershipId, studentStatuses, teacherStatuses, onResult,
+  hw, membershipId, teacherStatuses, onResult,
 }: {
   hw: Homework;
   membershipId: string;
-  studentStatuses: StatusConfig[];
   teacherStatuses: StatusConfig[];
   onResult: (log: ProgressLog) => void;
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
-  const [studentStatus, setStudentStatus] = useState(studentStatuses[0]?.label ?? '');
   const [note, setNote] = useState('');
   const [logDate, setLogDate] = useState(today());
   // Review, submitted in the same shot (D6-teacher): grade + comment + reviewed_at.
@@ -1153,7 +1160,7 @@ function TeacherResultForm({
         surah: hw.surah,
         ayah_start: hw.ayah_start,
         ayah_end: hw.ayah_end,
-        student_status: studentStatus || null,
+        student_status: null,
         student_notes: note || null,
         teacher_status: teacherStatus,
         teacher_comment: comment || null,
@@ -1198,17 +1205,15 @@ function TeacherResultForm({
         <input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)}
                className="input input-sm" style={{ minHeight: 34 }} />
       </label>
-      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('log.selfStatus')}</span>
-      {chipRow(studentStatuses, studentStatus, setStudentStatus)}
       <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('log.note')} className="input input-sm" style={{ minHeight: 34 }} />
       <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('grade.teacherStatus')}</span>
       {chipRow(teacherStatuses, teacherStatus, setTeacherStatus)}
       <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('grade.comment')} className="input input-sm" style={{ minHeight: 34 }} />
       {error && <span className="text-xs" style={{ color: 'var(--danger)' }}>{error}</span>}
       <div className="flex gap-2">
-        <button onClick={submit} disabled={busy} className="btn btn-primary self-start" style={{ minHeight: 36, fontSize: 13 }}>
+        <ActionButton onClick={submit} disabled={busy} className="btn btn-primary self-start" style={{ minHeight: 36, fontSize: 13 }}>
           {t('log.submit')}
-        </button>
+        </ActionButton>
         <button onClick={() => setOpen(false)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 13 }}>
           {t('common.cancel')}
         </button>
@@ -1479,9 +1484,9 @@ function ExamsPanel({
           </label>
           <ExamCoveragePicker onChange={setEntries} locale={locale} />
           <div className="flex gap-2">
-            <button onClick={handleSchedule} disabled={busy || !date || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44 }}>
+            <ActionButton onClick={handleSchedule} disabled={busy || !date || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44 }}>
               {t('exam.schedule')}
-            </button>
+            </ActionButton>
             <button onClick={() => setScheduling(false)} className="btn btn-ghost" style={{ minHeight: 44 }}>
               {t('common.cancel')}
             </button>
@@ -1716,21 +1721,21 @@ export function ExamCard({
             </label>
           )}
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => onGrade(exam.id, 'passed', notes || null)} className={exam.status === 'passed' ? 'btn btn-primary' : 'btn btn-outline'} style={{ minHeight: 36, fontSize: 13 }}>
+            <ActionButton onClick={() => onGrade(exam.id, 'passed', notes || null)} className={exam.status === 'passed' ? 'btn btn-primary' : 'btn btn-outline'} style={{ minHeight: 36, fontSize: 13 }}>
               {t('exam.statusPassed')}
-            </button>
-            <button onClick={() => onGrade(exam.id, 'failed', notes || null)} className={exam.status === 'failed' ? 'btn btn-primary' : 'btn btn-outline'} style={{ minHeight: 36, fontSize: 13 }}>
+            </ActionButton>
+            <ActionButton onClick={() => onGrade(exam.id, 'failed', notes || null)} className={exam.status === 'failed' ? 'btn btn-primary' : 'btn btn-outline'} style={{ minHeight: 36, fontSize: 13 }}>
               {t('exam.statusFailed')}
-            </button>
+            </ActionButton>
             {exam.status !== 'scheduled' && (
-              <button onClick={() => onGrade(exam.id, 'scheduled', notes || null)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 13 }}>
+              <ActionButton onClick={() => onGrade(exam.id, 'scheduled', notes || null)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 13 }}>
                 {t('exam.statusScheduled')}
-              </button>
+              </ActionButton>
             )}
             {onDelete && (
-              <button onClick={() => onDelete(exam.id)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 13, color: 'var(--danger)', marginInlineStart: 'auto' }}>
+              <ActionButton onClick={() => onDelete(exam.id)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 13, color: 'var(--danger)', marginInlineStart: 'auto' }}>
                 {t('common.delete')}
-              </button>
+              </ActionButton>
             )}
           </div>
         </div>
@@ -1822,9 +1827,9 @@ export function GradeableLog({
             ))}
           </div>
           <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('grade.comment')} className="input input-sm" style={{ minHeight: 34 }} />
-          <button onClick={handleGrade} disabled={busy || !status} className="btn btn-primary self-start" style={{ minHeight: 36, fontSize: 13 }}>
+          <ActionButton onClick={handleGrade} disabled={busy || !status} className="btn btn-primary self-start" style={{ minHeight: 36, fontSize: 13 }}>
             {t('grade.markReviewed')}
-          </button>
+          </ActionButton>
         </div>
       )}
       </>)}

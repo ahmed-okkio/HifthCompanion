@@ -13,7 +13,7 @@ import { useI18n } from '@/components/I18nProvider';
 import type { AgendaTask, Exam, Homework, ProgressLog, Session } from '@/types';
 import { isStale, waitingOnYou } from '@/lib/agenda';
 import { addItem, setDone, updateBody } from '@/lib/services/agenda';
-import { SectionTitle, EmptyState, Chevron, Icon } from './ui';
+import { ActionButton, SectionTitle, EmptyState, Chevron, Icon } from './ui';
 
 const DAY = 24 * 60 * 60_000;
 
@@ -243,7 +243,7 @@ function Row({
 
   return (
     <div className="card flex items-center gap-3" style={{ padding: '10px 14px', opacity: isDone ? 0.6 : 1 }}>
-      <button onClick={() => onToggle(item, !isDone)} aria-pressed={isDone} aria-label={t('agenda.toggle')}
+      <ActionButton onClick={() => onToggle(item, !isDone)} aria-pressed={isDone} aria-label={t('agenda.toggle')}
               className="flex items-center justify-center shrink-0"
               style={{
                 width: 20, height: 20, borderRadius: 'var(--radius-sm)', cursor: 'pointer',
@@ -252,7 +252,7 @@ function Row({
                 color: 'var(--accent-contrast)',
               }}>
         {isDone && <Icon name="check" size={13} />}
-      </button>
+      </ActionButton>
 
       {editing ? (
         <input
@@ -279,10 +279,10 @@ function Row({
         </span>
       )}
 
-      <button onClick={() => onToggle(item, true)} aria-label={t('agenda.dismiss')} className="btn btn-ghost shrink-0"
+      <ActionButton onClick={() => onToggle(item, true)} aria-label={t('agenda.dismiss')} className="btn btn-ghost shrink-0"
               style={{ minHeight: 26, minWidth: 26, padding: 0, fontSize: 14, color: 'var(--text-muted)' }}>
         ×
-      </button>
+      </ActionButton>
     </div>
   );
 }

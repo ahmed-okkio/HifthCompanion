@@ -9,9 +9,12 @@ describe('homeworkStatus (D10)', () => {
   it('open when no deadline', () => {
     expect(homeworkStatus({ deadline: null }, 0, today)).toBe('open');
   });
-  it('open when deadline today or future, regardless of linked logs', () => {
+  it('open when deadline today or future and nothing submitted', () => {
     expect(homeworkStatus({ deadline: today }, 0, today)).toBe('open');
-    expect(homeworkStatus({ deadline: '2026-07-05' }, 3, today)).toBe('open');
+  });
+  it('completed as soon as a log is linked, deadline notwithstanding', () => {
+    expect(homeworkStatus({ deadline: '2026-07-05' }, 3, today)).toBe('completed');
+    expect(homeworkStatus({ deadline: null }, 1, today)).toBe('completed');
   });
   it('missed when past deadline with no linked logs', () => {
     expect(homeworkStatus({ deadline: '2026-06-30' }, 0, today)).toBe('missed');

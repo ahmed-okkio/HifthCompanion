@@ -357,6 +357,28 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   cursor: not-allowed;
 }
 
+/* Busy button: keep the label, prepend a spinner so a slow server round-trip
+   is visible instead of looking like a dead click. */
+.btn[data-busy='true'] {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.spinner {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 .btn-primary {
   background: linear-gradient(135deg, var(--green-600), var(--teal-600));
   color: white;

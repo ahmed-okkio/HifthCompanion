@@ -13,7 +13,7 @@ import { useI18n } from '@/components/I18nProvider';
 import type { AgendaTask, Exam, Homework, ProgressLog, Session } from '@/types';
 import { isStale, waitingOnYou } from '@/lib/agenda';
 import { addItem, setDone, updateBody } from '@/lib/services/agenda';
-import { ActionButton, SectionTitle, EmptyState, Chevron, Icon, vt, vtName } from './ui';
+import { ActionButton, SectionTitle, EmptyState, Chevron, Icon, isPending, tempId, vt, vtName } from './ui';
 
 const DAY = 24 * 60 * 60_000;
 
@@ -53,6 +53,7 @@ export default function AgendaPanel({
    *  forget: the optimistic move *is* the feedback, and the toggle is a 20px box
    *  with no room for a spinner. */
   function toggle(item: AgendaTask, next: boolean) {
+    if (isPending(item.id)) return; // still being stored — nothing to toggle yet
     // Optimistic: strike it through now, reconcile with the stored row after (E5).
     vt(() => setItems((p) => p.map((i) => (i.id === item.id ? { ...i, done_at: next ? new Date().toISOString() : null } : i))));
     void setDone(item.id, next).then(
@@ -66,18 +67,25 @@ export default function AgendaPanel({
     if (!body) return;
     setDraft('');
     setAdding(false);
+    // The row is fully known here bar its id — show it, then store it (E10).
+    const pending: AgendaTask = {
+      id: tempId(), membership_id: membershipId, author_id: '', body,
+      done_at: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+    };
+    vt(() => setItems((p) => [...p, pending]));
     try {
       const row = await addItem(membershipId, body);
-      vt(() => setItems((p) => [...p, row]));
+      setItems((p) => p.map((i) => (i.id === pending.id ? row : i)));
     } catch {
       // Give the teacher their text back rather than swallowing it (E10).
+      vt(() => setItems((p) => p.filter((i) => i.id !== pending.id)));
       setDraft(body);
       setAdding(true);
     }
   }
 
   function save(item: AgendaTask, body: string) {
-    if (body.trim() === item.body || !body.trim()) return;
+    if (body.trim() === item.body || !body.trim() || isPending(item.id)) return;
     setItems((p) => p.map((i) => (i.id === item.id ? { ...i, body: body.trim() } : i)));
     // Same shape as toggle(): optimistic, roll back to the stored row on failure.
     void updateBody(item.id, body).catch(
@@ -245,7 +253,11 @@ function Row({
 
   return (
     <div className="card flex items-center gap-3"
-         style={{ padding: '10px 14px', opacity: isDone ? 0.6 : 1, viewTransitionName: vtName('agenda', item.id) }}>
+         style={{
+           padding: '10px 14px',
+           opacity: isDone || isPending(item.id) ? 0.6 : 1,
+           viewTransitionName: vtName('agenda', item.id),
+         }}>
       <ActionButton onClick={() => onToggle(item, !isDone)} aria-pressed={isDone} aria-label={t('agenda.toggle')}
               className="flex items-center justify-center shrink-0"
               style={{

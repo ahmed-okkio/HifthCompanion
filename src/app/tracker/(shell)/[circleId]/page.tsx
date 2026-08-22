@@ -29,16 +29,21 @@ export default async function CirclePage({
   const { circleId } = await params;
   const dict = getDictionary(await getLocale());
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // One wave, not three: a server action re-renders this page before its
+  // response reaches the client, so every sequential await is button latency.
+  // RLS returns nothing to a signed-out request, so these are safe together.
+  const [{ data: { user } }, circle, teacherMembers] = await Promise.all([
+    supabase.auth.getUser(),
+    getCircle(circleId),
+    getCircleMembersWithProfiles(circleId),
+  ]);
   if (!user) redirect('/login');
-
-  const circle = await getCircle(circleId);
   if (!circle) notFound();
 
   const isTeacher = circle.teacher_id === user.id;
 
   if (isTeacher) {
-    const members = await getCircleMembersWithProfiles(circleId);
+    const members = teacherMembers;
     const students = members.filter((m) => m.role === 'student');
     // Sessions are no longer rendered here — the Manage-sessions tab fetches its
     // own week via getManageSlots, so the dashboard load stays roster-only.
@@ -110,11 +115,12 @@ export default async function CirclePage({
   ]);
   const memorized = rangesTotals(memorizedRanges);
   // C2: student sees their own default-set marked pages (own-set RLS).
-  const marked = defaultSetId ? await fetchMarkedPages(supabase, defaultSetId) : [];
-
   // Covered-by on the student's own sessions (F5/D13): their own substitution
   // rows, keyed by instant. Sub-name is best-effort (profile may be RLS-hidden).
-  const mySubs = await listSubstitutions([membership.id]);
+  const [marked, mySubs] = await Promise.all([
+    defaultSetId ? fetchMarkedPages(supabase, defaultSetId) : [],
+    listSubstitutions([membership.id]),
+  ]);
   const mySubProfiles = await getProfilesByIds(mySubs.map((s) => s.substitute_user_id));
   const coveredBy: Record<string, string> = {};
   for (const s of mySubs) {

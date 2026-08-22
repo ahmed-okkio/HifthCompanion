@@ -27,7 +27,16 @@ export default async function StudentDetailPage({
   const { circleId, membershipId } = await params;
   const dict = getDictionary(await getLocale());
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Every server action re-renders this page before its response reaches the
+  // client, so each sequential await here is latency on every button in the
+  // tracker. Anything that doesn't depend on the previous result goes in the
+  // same wave — RLS returns nothing to a signed-out request, so reading the
+  // circle alongside the user is safe.
+  const [{ data: { user } }, circle, members] = await Promise.all([
+    supabase.auth.getUser(),
+    getCircle(circleId),
+    getCircleMembersWithProfiles(circleId),
+  ]);
   if (!user) redirect('/login');
 
   // 0013 G2: the circle teacher gets the full surface; an ACTIVE covering
@@ -35,7 +44,6 @@ export default async function StudentDetailPage({
   // re-derived here — so the 12h expiry (B1/B4) stays the DB's single source of
   // truth. Anyone else is notFound(), exactly as before. getCircle() is not a
   // guard for the sub: they may not be able to read the circle at all (D5).
-  const circle = await getCircle(circleId);
   if (!circle || circle.teacher_id !== user.id) {
     const { data: covers } = await supabase.rpc('covers_membership', { _membership: membershipId });
     if (!covers) notFound();
@@ -73,11 +81,11 @@ export default async function StudentDetailPage({
     );
   }
 
-  const member = (await getCircleMembersWithProfiles(circleId)).find((m) => m.id === membershipId);
+  const member = members.find((m) => m.id === membershipId);
   // Only active students have a control surface (pending = RLS-empty, C1/S1).
   if (!member || member.role !== 'student' || member.status !== 'active') notFound();
 
-  const [logs, sessions, defaultSetId, homework, notes, memorizedRanges, exams, agenda] = await Promise.all([
+  const [logs, sessions, defaultSetId, homework, notes, memorizedRanges, exams, agenda, subs] = await Promise.all([
     getLogsForMembership(membershipId),
     getSessions(membershipId),
     getStudentDefaultSetId(membershipId),
@@ -88,23 +96,25 @@ export default async function StudentDetailPage({
     // 0014: teacher-private agenda. RLS (B1) is the gate — this branch is the
     // circle teacher only, the sub branch above never calls it.
     listAgenda(membershipId),
+    // 0013: covered-by per instant (F5) — independent of everything above.
+    listSubstitutions([membershipId]),
   ]);
 
   const memorized = rangesTotals(memorizedRanges);
-  // C1: default-set marked pages. RLS: teacher reads via the set_collaborators grant
-  // created at membership-accept. No default set → empty list (C3 empty state).
-  const marked = defaultSetId ? await fetchMarkedPages(supabase, defaultSetId) : [];
-
-  // 0013: covered-by per instant (F5) + attribution names (E4/E5). Actor names
-  // are best-effort — a substitute's profile may be RLS-hidden from the teacher.
-  const subs = await listSubstitutions([membershipId]);
+  // Attribution names (E4/E5) are best-effort — a substitute's profile may be
+  // RLS-hidden from the teacher.
   const actorIds = [
     circle.teacher_id,
     ...sessions.map((s) => s.marked_by).filter((x): x is string => !!x),
     ...logs.map((l) => l.graded_by).filter((x): x is string => !!x),
     ...subs.map((s) => s.substitute_user_id),
   ];
-  const profiles = await getProfilesByIds(actorIds);
+  // C1: default-set marked pages. RLS: teacher reads via the set_collaborators grant
+  // created at membership-accept. No default set → empty list (C3 empty state).
+  const [marked, profiles] = await Promise.all([
+    defaultSetId ? fetchMarkedPages(supabase, defaultSetId) : [],
+    getProfilesByIds(actorIds),
+  ]);
   const nameOf = (id: string) => {
     const p = profiles.get(id);
     return displayName({ user_id: id, first_name: p?.first_name, last_name: p?.last_name });

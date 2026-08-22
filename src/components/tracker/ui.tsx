@@ -910,6 +910,16 @@ export function ActionButton({
 const DONE_MS = 1200;
 
 /**
+ * Client-side id for a row that has been shown but not yet stored, so a create
+ * can render immediately and be reconciled with the real row when it lands.
+ * Anything that acts on a row by id must refuse a pending one — the server has
+ * never heard of it — hence `isPending`.
+ */
+const PENDING = 'pending-';
+export const tempId = () => `${PENDING}${Math.random().toString(36).slice(2)}`;
+export const isPending = (id: string) => id.startsWith(PENDING);
+
+/**
  * Stable per-row `view-transition-name`, so the browser can animate *this* row
  * leaving and its neighbours sliding up, instead of cross-fading the whole page.
  * Must be a CSS custom-ident: strip everything that isn't alphanumeric.

@@ -28,7 +28,7 @@ import { AYAH_COUNTS, TOTAL_JUZ, TOTAL_SURAHS, getSurahName, getSurahForPage, sp
 import {
   SectionTitle, EmptyState, Avatar, StatCard, Ring, StatusDot, DateChip, TabBar,
   SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, Chevron, Icon, TimeSelect,
-  ActionButton, vt, vtName,
+  ActionButton, isPending, vt, vtName,
 } from './ui';
 import { attendanceStats } from '@/lib/analytics';
 import { isLive } from '@/lib/agenda';
@@ -521,14 +521,24 @@ function StudentSessions({
   async function handleAdhoc() {
     if (!adhocDate) return;
     const iso = new Date(`${adhocDate}T${adhocTime}:00Z`).toISOString();
-    const s = await createAdhocSession(membershipId, iso);
-    vt(() => setSessions((p) => [...p, s].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))));
+    const snapshot = sessions;
+    const pending = { ...placeholderRow(membershipId, iso), is_adhoc: true };
+    vt(() => setSessions((p) => upsertByInstant(p, pending)));
     setAdhocDate('');
+    try {
+      const s = await createAdhocSession(membershipId, iso);
+      setSessions((p) => upsertByInstant(p, s));
+    } catch (e) {
+      vt(() => setSessions(snapshot));
+      setErr((e as Error).message);
+    }
   }
 
-  /** Real row now, materializing the virtual slot on first touch (T5). */
+  /** Real row now, materializing the virtual slot on first touch (T5). A row we
+   *  put there ourselves (optimistic ad-hoc, placeholder) doesn't count — the
+   *  server has never heard of its id. */
   async function ensureRow(slot: SessionSlot): Promise<Session> {
-    if (slot.session) return slot.session;
+    if (slot.session && !isPending(slot.session.id)) return slot.session;
     return materializeSession(membershipId, slot.scheduled_at);
   }
 
@@ -975,16 +985,21 @@ export function HomeworkPanel({
   async function handlePrescribe() {
     if (busy || entries.length === 0) return;
     setBusy(true);
+    const draft = { membershipId, type, entries, deadline: deadline || null, instructions: instructions || null };
+    // Collapse now (P7) — the prescription rows can't be faked (their ids drive
+    // grading), but nothing about closing the form needs the server's answer.
+    setEntries([]);
+    setInstructions('');
+    setDeadline('');
+    setPrescribing(false);
     try {
-      const rows = await prescribeHomework({
-        membershipId, type, entries,
-        deadline: deadline || null, instructions: instructions || null,
-      });
+      const rows = await prescribeHomework(draft);
       vt(() => setItems((p) => [...rows, ...p]));
-      setEntries([]);
-      setInstructions('');
-      setDeadline('');
-      setPrescribing(false); // collapse the form after a successful prescribe (P7).
+    } catch {
+      setEntries(draft.entries);
+      setInstructions(draft.instructions ?? '');
+      setDeadline(draft.deadline ?? '');
+      setPrescribing(true);
     } finally {
       setBusy(false);
     }
@@ -1213,6 +1228,11 @@ function TeacherResultForm({
     if (busy) return;
     setBusy(true);
     setError('');
+    // Close first: the form has nothing more to say once the values are read.
+    const draft = { note, comment };
+    setOpen(false);
+    setNote('');
+    setComment('');
     try {
       const log = await logAndReview({
         membership_id: membershipId,
@@ -1225,15 +1245,16 @@ function TeacherResultForm({
         ayah_start: hw.ayah_start,
         ayah_end: hw.ayah_end,
         student_status: null,
-        student_notes: note || null,
+        student_notes: draft.note || null,
         teacher_status: teacherStatus,
-        teacher_comment: comment || null,
+        teacher_comment: draft.comment || null,
       });
       onResult(log);
-      setOpen(false);
-      setNote('');
-      setComment('');
     } catch (e) {
+      // Re-open with the text intact rather than losing the teacher's typing.
+      setOpen(true);
+      setNote(draft.note);
+      setComment(draft.comment);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
@@ -1505,12 +1526,17 @@ function ExamsPanel({
   async function handleSchedule() {
     if (busy || !date || entries.length === 0) return;
     setBusy(true);
+    const draft = { date, entries };
+    setEntries([]);
+    setDate('');
+    setScheduling(false);
     try {
-      const row = await scheduleExam(membershipId, date, entries);
+      const row = await scheduleExam(membershipId, draft.date, draft.entries);
       vt(() => setItems((p) => [row, ...p]));
-      setEntries([]);
-      setDate('');
-      setScheduling(false);
+    } catch {
+      setEntries(draft.entries);
+      setDate(draft.date);
+      setScheduling(true);
     } finally {
       setBusy(false);
     }

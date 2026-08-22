@@ -487,22 +487,26 @@ function LogEntryForm({
     setError('');
     try {
       // One log per picked entry (mirrors prescribe writing one row per surah).
-      for (const e of entries) {
-        const log = await createLog({
-          membership_id: membershipId,
-          homework_id: null,
-          log_date: logDate,
-          log_type: logType,
-          ...entryToLog(e),
-          student_status: status,
-          student_notes: note || null,
-        });
-        onCreated(log);
-      }
+      // Written together, not one-round-trip-after-another.
+      const payloads: NewProgressLog[] = entries.map((e) => ({
+        membership_id: membershipId,
+        homework_id: null,
+        log_date: logDate,
+        log_type: logType,
+        ...entryToLog(e),
+        student_status: status,
+        student_notes: note || null,
+      }));
       setEntries([]);
       setNote('');
       setLogging(false);
+      const logs = await Promise.all(payloads.map(createLog));
+      for (const log of logs) onCreated(log);
     } catch (e) {
+      // The form closed optimistically — give it back, filled in, on a failure.
+      setEntries(entries);
+      setNote(note);
+      setLogging(true);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);

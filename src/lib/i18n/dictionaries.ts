@@ -16,6 +16,7 @@ const en = {
   'common.join': 'Join',
   'common.copy': 'Copy',
   'common.copied': 'Copied!',
+  'common.saved': 'Saved',
 
   'lang.label': 'Language',
   'lang.en': 'English',
@@ -508,6 +509,7 @@ const ar: Record<MessageKey, string> = {
   'common.join': 'انضمام',
   'common.copy': 'نسخ',
   'common.copied': 'تم النسخ!',
+  'common.saved': 'تم الحفظ',
 
   'lang.label': 'اللغة',
   'lang.en': 'English',

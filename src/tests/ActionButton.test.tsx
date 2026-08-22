@@ -1,7 +1,8 @@
 import '@testing-library/jest-dom/vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { ActionButton } from '@/components/tracker/ui';
+import { useState } from 'react';
+import { ActionButton, ActionFeedbackProvider } from '@/components/tracker/ui';
 
 describe('ActionButton', () => {
   it('disables itself while an async click is in flight, so it cannot be spam-clicked', async () => {
@@ -48,5 +49,25 @@ describe('ActionButton', () => {
     fireEvent.click(btn);
     expect(calls).toBe(2);
     expect(btn).toBeEnabled();
+  });
+});
+
+describe('ActionFeedbackProvider', () => {
+  // The row an optimistic write touches is usually gone before the write lands,
+  // taking its button (and the button's checkmark) with it.
+  function VanishingRow() {
+    const [gone, setGone] = useState(false);
+    if (gone) return <span>row gone</span>;
+    return <ActionButton onClick={() => Promise.resolve(setGone(true))}>Cancel</ActionButton>;
+  }
+
+  it('confirms the write even though the button that started it unmounted', async () => {
+    render(<ActionFeedbackProvider><VanishingRow /></ActionFeedbackProvider>);
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }));
+
+    await screen.findByText('row gone');
+    const toast = await screen.findByRole('status');
+    expect(toast).toHaveTextContent('Saved');
+    expect(toast).toHaveAttribute('data-shown', 'true');
   });
 });

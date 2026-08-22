@@ -714,3 +714,34 @@ textarea,
     animation: none !important;
   }
 }
+
+/* Confirmation pill for a write that has already been applied on screen. Fixed
+   to the viewport so it survives the row (and button) that started it going
+   away. Always in the DOM for aria-live; only visible when it has something to
+   say, and never in the way of a click. */
+.action-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--surface-main);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  transition: opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+}
+
+.action-toast[data-shown='true'] {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}

@@ -6,7 +6,7 @@
  * as the reader (design tokens only, no bare hex/px palette values).
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import type { CSSProperties, ReactNode } from 'react';
 import type { HomeworkStatus } from '@/lib/homework';
@@ -859,20 +859,61 @@ export function shortId(id: string) {
 }
 
 /**
+ * Confirmation for a write that has already been applied optimistically. The
+ * button that started it is usually gone by the time the write lands — cancel a
+ * session and its controls unmount with the row — so the confirmation cannot
+ * live on the button. It surfaces here instead, above the whole tracker, and
+ * outlives whatever triggered it.
+ */
+const ActionFeedbackCtx = createContext<(message: string) => void>(() => {});
+
+export function ActionFeedbackProvider({ children }: { children: ReactNode }) {
+  const [message, setMessage] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const announce = useCallback((next: string) => {
+    setMessage(next);
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setMessage(null), TOAST_MS);
+  }, []);
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  return (
+    <ActionFeedbackCtx.Provider value={announce}>
+      {children}
+      {/* Always mounted so screen readers announce into a live region that
+          already exists, rather than one that appears with the text. */}
+      <div className="action-toast" role="status" aria-live="polite" data-shown={message ? 'true' : undefined}>
+        {message && (<><Icon name="check" size={14} />{message}</>)}
+      </div>
+    </ActionFeedbackCtx.Provider>
+  );
+}
+
+/** How long the confirmation pill stays up. */
+const TOAST_MS = 1800;
+
+/**
  * Button whose onClick may be async: while the promise is in flight the button
  * is disabled and shows a spinner, so a slow server action can't be spam-clicked
- * and doesn't look like a dead click. On success it flashes a checkmark for a
- * beat — otherwise a mutation that reflows the list underneath reads as "nothing
- * happened" (or worse, as the button resetting). Drop-in for `<button>`.
+ * and doesn't look like a dead click. When the write lands it flashes a
+ * checkmark — and announces it through ActionFeedbackProvider too, because most
+ * of these buttons have unmounted by then (their row moved or went away).
+ * Drop-in for `<button>`.
  */
 export function ActionButton({
-  onClick, children, disabled, compact, ...rest
+  onClick, children, disabled, compact, success, ...rest
 }: Omit<React.ComponentProps<'button'>, 'onClick'> & {
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void | Promise<unknown>;
   /** Icon-sized button: the indicator *replaces* the label instead of sitting
    *  next to it, so a 22px ✕ doesn't overflow while it's working. */
   compact?: boolean;
+  /** What the confirmation says. Defaults to a plain "Saved". */
+  success?: string;
 }) {
+  const { t } = useI18n();
+  const announce = useContext(ActionFeedbackCtx);
   const [state, setState] = useState<'idle' | 'busy' | 'done'>('idle');
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
@@ -884,6 +925,7 @@ export function ActionButton({
     setState('busy');
     try {
       await r;
+      announce(success ?? t('common.saved'));
       if (!alive.current) return;
       setState('done');
       setTimeout(() => { if (alive.current) setState('idle'); }, DONE_MS);

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import { postNote, type NoteWithAuthor } from '@/lib/services/membershipNotes';
-import { ActionButton, SectionTitle, EmptyState, Avatar, PagedList } from './ui';
+import { ActionButton, SectionTitle, EmptyState, Avatar, PagedList, vt, vtName } from './ui';
 
 /** Shared membership notes thread (G1/G2/G3): composer on top, newest first. */
 export default function NotesThread({
@@ -23,7 +23,7 @@ export default function NotesThread({
     setBusy(true);
     try {
       const note = await postNote(membershipId, body);
-      setNotes((p) => [note, ...p]);
+      vt(() => setNotes((p) => [note, ...p]));
       setBody('');
     } finally {
       setBusy(false);
@@ -47,7 +47,7 @@ export default function NotesThread({
       <PagedList items={notes} loadMoreLabel={t('grade.loadMore')} render={(n) => {
         const name = `${n.first_name ?? ''} ${n.last_name ?? ''}`.trim() || `#${n.author_id.slice(0, 6)}`;
         return (
-          <div key={n.id} className="card flex gap-3" style={{ padding: '12px 14px' }}>
+          <div key={n.id} className="card flex gap-3" style={{ padding: '12px 14px', viewTransitionName: vtName('note', n.id) }}>
             <Avatar seed={name} size={32} />
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">

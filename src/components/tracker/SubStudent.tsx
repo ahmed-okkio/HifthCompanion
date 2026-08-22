@@ -12,7 +12,7 @@ import type { AttendanceStatus, Homework, ProgressLog, Session, StatusConfig } f
 import { materializeSession, setSessionAttendance } from '@/lib/services/sessions';
 import { GradeableLog, HomeworkPanel, StudentProfileCard, useHomeworkState } from './TeacherStudent';
 import { Attribution, AttributionProvider } from './subs';
-import { SectionTitle, EmptyState, DateChip, TabBar } from './ui';
+import { SectionTitle, EmptyState, DateChip, TabBar, vt } from './ui';
 
 const ATT_STATUSES: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'];
 const key = (iso: string) => String(new Date(iso).getTime());
@@ -68,7 +68,7 @@ export default function SubStudent({
       setSessions((p) => (p.some((x) => x.id === s.id) ? p : [...p, s]));
       const next = s.attendance_status === status ? null : status;
       await setSessionAttendance(s.id, next);
-      setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, attendance_status: next } : x)));
+      vt(() => setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, attendance_status: next } : x))));
     } catch (e) {
       setErr((e as Error).message);
     }

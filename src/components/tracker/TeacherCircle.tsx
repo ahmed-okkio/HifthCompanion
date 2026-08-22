@@ -10,7 +10,7 @@ import { rotateInviteCode, deleteCircle } from '@/lib/services/circle';
 import { inviteByEmail, setMembershipStatus } from '@/lib/services/membership';
 import { materializeSession, setSessionCanceled, rescheduleSession } from '@/lib/services/sessions';
 import { assignSubstitutes, removeSubstitution, getManageSlots } from '@/lib/services/substitution';
-import { ActionButton, SectionTitle, EmptyState, Avatar, Chevron, DateChip, StatusDot, TabBar, TimeSelect } from './ui';
+import { ActionButton, SectionTitle, EmptyState, Avatar, Chevron, DateChip, StatusDot, TabBar, TimeSelect, vt, vtName } from './ui';
 import { SubAssignForm, CoveredBy } from './subs';
 import { isLive } from '@/lib/agenda';
 
@@ -181,7 +181,7 @@ export default function TeacherCircle({
     try {
       const id = await ensureSessionId(item);
       await setSessionCanceled(id, !item.canceled);
-      setManageRows((p) => p.map((a) => (a.key === item.key ? { ...a, canceled: !item.canceled } : a)));
+      vt(() => setManageRows((p) => p.map((a) => (a.key === item.key ? { ...a, canceled: !item.canceled } : a))));
     } catch (e) {
       setError((e as Error).message);
     }
@@ -203,10 +203,12 @@ export default function TeacherCircle({
       const newIso = new Date(`${reschedDate}T${reschedTime}`).toISOString();
       const movedFrom = item.movedFrom ?? item.scheduled_at;
       await rescheduleSession(id, newIso, movedFrom);
-      setManageRows((p) =>
-        p.map((a) => (a.key === item.key ? { ...a, scheduled_at: newIso, movedFrom } : a))
-          .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)));
-      setReschedKey(null);
+      vt(() => {
+        setManageRows((p) =>
+          p.map((a) => (a.key === item.key ? { ...a, scheduled_at: newIso, movedFrom } : a))
+            .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)));
+        setReschedKey(null);
+      });
     } catch (e) {
       setError((e as Error).message);
     }
@@ -237,7 +239,7 @@ export default function TeacherCircle({
     setError(null);
     try {
       const m = await inviteByEmail(circle.id, email);
-      setStudents((prev) => [...prev, m]);
+      vt(() => setStudents((prev) => [...prev, m]));
       setEmail('');
     } catch (e) {
       setError((e as Error).message);
@@ -257,7 +259,7 @@ export default function TeacherCircle({
 
   async function handleStatus(id: string, status: Membership['status']) {
     await setMembershipStatus(id, status);
-    setStudents((prev) => prev.map((m) => (m.id === id ? { ...m, status } : m)));
+    vt(() => setStudents((prev) => prev.map((m) => (m.id === id ? { ...m, status } : m))));
   }
 
   // Invite panel — rendered in the left column on desktop, inside Settings on mobile.
@@ -393,7 +395,7 @@ export default function TeacherCircle({
                 );
                 return (
                   <div key={m.id} className="card flex flex-col gap-3"
-                       style={{ padding: '14px 16px', opacity: active ? 1 : 0.75 }}>
+                       style={{ padding: '14px 16px', opacity: active ? 1 : 0.75, viewTransitionName: vtName('member', m.id) }}>
                     {active ? (
                       <Link href={`/tracker/${circle.id}/student/${m.id}`} className="flex items-center gap-2 min-w-0">
                         {header}

@@ -364,6 +364,18 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   cursor: progress;
 }
 
+/* Success flash: the checkmark + a brief accent tint confirm the round-trip
+   landed, so a list reflowing underneath doesn't read as "nothing happened". */
+.btn[data-done='true'] {
+  border-color: var(--green-600);
+  color: var(--green-600);
+}
+
+.btn-primary[data-done='true'] {
+  color: white;
+  border-color: transparent;
+}
+
 .spinner {
   display: inline-block;
   width: 1em;
@@ -686,4 +698,19 @@ textarea,
 @media (prefers-reduced-motion: reduce) {
   /* Keep the emphasis, drop the motion: a static ring instead of a pulse. */
   .animate-note-flash { animation: none; box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.35); }
+}
+
+/* View Transitions drive the enter/leave/slide of tracker list rows (see vt()).
+   Keep it quick — this is feedback, not choreography — and off entirely for
+   anyone who asked for less motion. */
+::view-transition-group(*) {
+  animation-duration: 220ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }

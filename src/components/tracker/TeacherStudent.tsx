@@ -28,7 +28,7 @@ import { AYAH_COUNTS, TOTAL_JUZ, TOTAL_SURAHS, getSurahName, getSurahForPage, sp
 import {
   SectionTitle, EmptyState, Avatar, StatCard, Ring, StatusDot, DateChip, TabBar,
   SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, Chevron, Icon, TimeSelect,
-  ActionButton,
+  ActionButton, vt, vtName,
 } from './ui';
 import { attendanceStats } from '@/lib/analytics';
 import { isLive } from '@/lib/agenda';
@@ -484,7 +484,7 @@ function StudentSessions({
     if (!adhocDate) return;
     const iso = new Date(`${adhocDate}T${adhocTime}:00Z`).toISOString();
     const s = await createAdhocSession(membershipId, iso);
-    setSessions((p) => [...p, s].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)));
+    vt(() => setSessions((p) => [...p, s].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))));
     setAdhocDate('');
   }
 
@@ -501,7 +501,7 @@ function StudentSessions({
     try {
       const s = await ensureRow(slot);
       await setSessionCanceled(s.id, !s.canceled);
-      setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, canceled: !s.canceled } : x)));
+      vt(() => setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, canceled: !s.canceled } : x))));
     } catch (e) {
       setErr((e as Error).message);
     }
@@ -525,10 +525,12 @@ function StudentSessions({
       // Keep pointing at the FIRST recurrence slot if this row was already moved.
       const movedFrom = s.moved_from ?? slot.scheduled_at;
       await rescheduleSession(s.id, newIso, movedFrom);
-      setSessions((p) =>
-        p.map((x) => (x.id === s.id ? { ...x, scheduled_at: newIso, moved_from: movedFrom } : x))
-          .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)));
-      setReschedKey(null);
+      vt(() => {
+        setSessions((p) =>
+          p.map((x) => (x.id === s.id ? { ...x, scheduled_at: newIso, moved_from: movedFrom } : x))
+            .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)));
+        setReschedKey(null);
+      });
     } catch (e) {
       setErr((e as Error).message);
     }
@@ -540,12 +542,13 @@ function StudentSessions({
       const next = s.attendance_status === status ? null : status;
       await setSessionAttendance(s.id, next);
       setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, attendance_status: next } : x)));
-      // Linger in Next for 3s showing the selection, then let it reflow to History.
+      // Linger in Next for 3s showing the selection, then let it *animate* out to
+      // History — the reflow is the part that needs to be legible (vt).
       if (next) {
         setLingerId(s.id);
-        setTimeout(() => setLingerId((cur) => (cur === s.id ? null : cur)), 3000);
+        setTimeout(() => vt(() => setLingerId((cur) => (cur === s.id ? null : cur))), 3000);
       } else {
-        setLingerId((cur) => (cur === s.id ? null : cur));
+        vt(() => setLingerId((cur) => (cur === s.id ? null : cur)));
       }
     } catch (e) {
       setErr((e as Error).message);
@@ -565,6 +568,8 @@ function StudentSessions({
     return (
       <div className="card flex flex-col gap-2" style={{
         padding: '12px 14px', opacity: canceled ? 0.5 : 1,
+        // Named so cancel/reschedule/attendance animate this row, not the page.
+        viewTransitionName: vtName(`slot${part}`, slot.scheduled_at),
         ...(live ? { borderColor: 'var(--accent)', boxShadow: '0 0 0 2px var(--accent-muted)' } : null),
       }}>
         {/* Wraps on narrow screens: the action group drops to its own line
@@ -927,7 +932,7 @@ export function HomeworkPanel({
         membershipId, type, entries,
         deadline: deadline || null, instructions: instructions || null,
       });
-      setItems((p) => [...rows, ...p]);
+      vt(() => setItems((p) => [...rows, ...p]));
       setEntries([]);
       setInstructions('');
       setDeadline('');
@@ -947,11 +952,11 @@ export function HomeworkPanel({
   // Delete a whole prescription group; linked logs survive (FK set null).
   async function handleDeleteHomework(ids: string[]) {
     await deleteHomework(ids);
-    setItems((p) => p.filter((h) => !ids.includes(h.id)));
+    vt(() => setItems((p) => p.filter((h) => !ids.includes(h.id))));
   }
 
   // Teacher-submitted homework result → prepend it to the log feed.
-  const onResult = (log: ProgressLog) => setLogRows((p) => [log, ...p]);
+  const onResult = (log: ProgressLog) => vt(() => setLogRows((p) => [log, ...p]));
 
   // Unified review feed: prescription groups + self-submissions in one list,
   // newest first. Each entry carries a sort timestamp (a group uses its newest
@@ -1059,7 +1064,8 @@ function PrescriptionCard({
   const instr = group.items.find((h) => h.instructions)?.instructions;
 
   return (
-    <div className="card flex flex-col gap-2" style={{ padding: '12px 16px' }}>
+    <div className="card flex flex-col gap-2"
+         style={{ padding: '12px 16px', viewTransitionName: vtName('hw', group.key) }}>
       <button onClick={() => setOpen((o) => !o)} className="flex items-center justify-between gap-2 text-start"
               style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
         <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
@@ -1443,7 +1449,7 @@ function ExamsPanel({
     setBusy(true);
     try {
       const row = await scheduleExam(membershipId, date, entries);
-      setItems((p) => [row, ...p]);
+      vt(() => setItems((p) => [row, ...p]));
       setEntries([]);
       setDate('');
       setScheduling(false);
@@ -1459,7 +1465,7 @@ function ExamsPanel({
 
   async function handleDelete(id: string) {
     await deleteExam(id);
-    setItems((p) => p.filter((e) => e.id !== id));
+    vt(() => setItems((p) => p.filter((e) => e.id !== id)));
   }
 
   async function handleReschedule(id: string, newDate: string) {
@@ -1692,7 +1698,8 @@ export function ExamCard({
   const target = examTarget(exam, locale, t('homework.juz'), fmtNum);
 
   return (
-    <div className="card flex flex-col gap-2" style={{ padding: '12px 16px' }}>
+    <div className="card flex flex-col gap-2"
+         style={{ padding: '12px 16px', viewTransitionName: vtName('exam', exam.id) }}>
       <div className="flex items-center gap-3">
         <DateChip iso={exam.scheduled_date} locale={locale} />
         <span className="flex flex-col gap-0.5 min-w-0 flex-1">

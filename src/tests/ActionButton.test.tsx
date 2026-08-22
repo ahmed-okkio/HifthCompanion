@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { ActionButton } from '@/components/tracker/ui';
 
 describe('ActionButton', () => {
@@ -23,6 +23,21 @@ describe('ActionButton', () => {
 
     resolve();
     await waitFor(() => expect(btn).toBeEnabled());
+  });
+
+  it('flashes a success mark once the write lands, then returns to idle', async () => {
+    vi.useFakeTimers();
+    try {
+      render(<ActionButton onClick={() => Promise.resolve()}>Cancel</ActionButton>);
+      const btn = screen.getByRole('button', { name: /cancel/i });
+      fireEvent.click(btn);
+      await act(async () => { await Promise.resolve(); });
+      expect(btn).toHaveAttribute('data-done', 'true');
+      act(() => { vi.advanceTimersByTime(1500); });
+      expect(btn).not.toHaveAttribute('data-done');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('leaves a synchronous click untouched', () => {

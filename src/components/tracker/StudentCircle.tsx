@@ -14,7 +14,7 @@ import { isStreakAtRisk } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
 import MarkedPagesList from '@/components/MarkedPagesList';
 import { wholeSurahPages } from '@/lib/homework';
-import { ActionButton, SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, Icon, Avatar, Chevron } from './ui';
+import { ActionButton, SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, Icon, Avatar, Chevron, vt, vtName } from './ui';
 import { SurahPicker, ExamCard, StudentProfileCard, type Entry } from './TeacherStudent';
 import type { RosterMember } from '@/lib/services/membership';
 import type { MarkedPage } from '@/lib/markedPages';
@@ -100,12 +100,12 @@ export default function StudentCircle({
   }, [initialHomework, logs]);
 
   function addLog(log: ProgressLog) {
-    setLogs((prev) => [log, ...prev]);
+    vt(() => setLogs((prev) => [log, ...prev]));
   }
 
   async function handleDelete(id: string) {
     await deleteLog(id);
-    setLogs((prev) => prev.filter((l) => l.id !== id));
+    vt(() => setLogs((prev) => prev.filter((l) => l.id !== id)));
   }
 
   return (
@@ -711,7 +711,7 @@ function LogForm({
 function LogRow({ log: l, onDelete }: { log: ProgressLog; onDelete: (id: string) => void }) {
   const { t, fmtNum } = useI18n();
   return (
-    <div className="card" style={{ padding: '12px 16px' }}>
+    <div className="card" style={{ padding: '12px 16px', viewTransitionName: vtName('log', l.id) }}>
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
           {t(`logType.${l.log_type}`)} · p{fmtNum(l.page_start)}–{fmtNum(l.page_end)}

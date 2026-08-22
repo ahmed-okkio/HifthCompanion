@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { CSSProperties, ReactNode } from 'react';
 import type { HomeworkStatus } from '@/lib/homework';
 import { TOTAL_SURAHS, getSurahName } from '@/lib/quran';
@@ -860,33 +861,73 @@ export function shortId(id: string) {
 /**
  * Button whose onClick may be async: while the promise is in flight the button
  * is disabled and shows a spinner, so a slow server action can't be spam-clicked
- * and doesn't look like a dead click. Drop-in replacement for `<button>`.
+ * and doesn't look like a dead click. On success it flashes a checkmark for a
+ * beat — otherwise a mutation that reflows the list underneath reads as "nothing
+ * happened" (or worse, as the button resetting). Drop-in for `<button>`.
  */
 export function ActionButton({
-  onClick, children, disabled, ...rest
+  onClick, children, disabled, compact, ...rest
 }: Omit<React.ComponentProps<'button'>, 'onClick'> & {
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void | Promise<unknown>;
+  /** Icon-sized button: the indicator *replaces* the label instead of sitting
+   *  next to it, so a 22px ✕ doesn't overflow while it's working. */
+  compact?: boolean;
 }) {
-  const [busy, setBusy] = useState(false);
+  const [state, setState] = useState<'idle' | 'busy' | 'done'>('idle');
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
 
   async function handle(e: React.MouseEvent<HTMLButtonElement>) {
-    if (busy || !onClick) return;
+    if (state === 'busy' || !onClick) return;
     const r = onClick(e);
     if (!(r instanceof Promise)) return;
-    setBusy(true);
+    setState('busy');
     try {
       await r;
-    } finally {
-      if (alive.current) setBusy(false);
+      if (!alive.current) return;
+      setState('done');
+      setTimeout(() => { if (alive.current) setState('idle'); }, DONE_MS);
+    } catch (err) {
+      if (alive.current) setState('idle');
+      throw err;
     }
   }
 
+  const busy = state === 'busy';
+  const indicator = busy ? <span className="spinner" aria-hidden />
+    : state === 'done' ? <Icon name="check" size={compact ? 12 : 14} />
+    : null;
   return (
-    <button {...rest} onClick={handle} disabled={disabled || busy} data-busy={busy || undefined}>
-      {busy && <span className="spinner" aria-hidden />}
-      {children}
+    <button {...rest} onClick={handle} disabled={disabled || busy}
+            data-busy={busy || undefined} data-done={state === 'done' || undefined}>
+      {indicator}
+      {compact && indicator ? null : children}
     </button>
   );
+}
+
+/** How long the success checkmark lingers. */
+const DONE_MS = 1200;
+
+/**
+ * Stable per-row `view-transition-name`, so the browser can animate *this* row
+ * leaving and its neighbours sliding up, instead of cross-fading the whole page.
+ * Must be a CSS custom-ident: strip everything that isn't alphanumeric.
+ */
+export function vtName(prefix: string, id: string) {
+  return `${prefix}-${id.replace(/[^a-zA-Z0-9]/g, '')}`;
+}
+
+/**
+ * Run a state update inside a View Transition, so rows that leave, arrive or
+ * slide up are animated by the browser instead of popping — the reflow after a
+ * cancel/delete is otherwise indistinguishable from the button resetting.
+ * Unsupported browsers (and reduced-motion, via CSS) just get the plain update.
+ */
+export function vt(update: () => void) {
+  const doc = typeof document === 'undefined' ? null : (document as Document & {
+    startViewTransition?: (cb: () => void) => unknown;
+  });
+  if (!doc?.startViewTransition) return update();
+  doc.startViewTransition(() => flushSync(update));
 }

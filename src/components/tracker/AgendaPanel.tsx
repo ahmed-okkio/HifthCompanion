@@ -13,7 +13,7 @@ import { useI18n } from '@/components/I18nProvider';
 import type { AgendaTask, Exam, Homework, ProgressLog, Session } from '@/types';
 import { isStale, waitingOnYou } from '@/lib/agenda';
 import { addItem, setDone, updateBody } from '@/lib/services/agenda';
-import { ActionButton, SectionTitle, EmptyState, Chevron, Icon } from './ui';
+import { ActionButton, SectionTitle, EmptyState, Chevron, Icon, vt, vtName } from './ui';
 
 const DAY = 24 * 60 * 60_000;
 
@@ -49,13 +49,15 @@ export default function AgendaPanel({
   const open = items.filter((i) => i.done_at === null);
   const done = items.filter((i) => i.done_at !== null);
 
-  /** Tick, untick and dismiss are all this one call (C5/E10). */
+  /** Tick, untick and dismiss are all this one call (C5/E10). Stays fire-and-
+   *  forget: the optimistic move *is* the feedback, and the toggle is a 20px box
+   *  with no room for a spinner. */
   function toggle(item: AgendaTask, next: boolean) {
     // Optimistic: strike it through now, reconcile with the stored row after (E5).
-    setItems((p) => p.map((i) => (i.id === item.id ? { ...i, done_at: next ? new Date().toISOString() : null } : i)));
+    vt(() => setItems((p) => p.map((i) => (i.id === item.id ? { ...i, done_at: next ? new Date().toISOString() : null } : i))));
     void setDone(item.id, next).then(
       (row) => setItems((p) => p.map((i) => (i.id === row.id ? row : i))),
-      () => setItems((p) => p.map((i) => (i.id === item.id ? item : i))),
+      () => vt(() => setItems((p) => p.map((i) => (i.id === item.id ? item : i)))),
     );
   }
 
@@ -66,7 +68,7 @@ export default function AgendaPanel({
     setAdding(false);
     try {
       const row = await addItem(membershipId, body);
-      setItems((p) => [...p, row]);
+      vt(() => setItems((p) => [...p, row]));
     } catch {
       // Give the teacher their text back rather than swallowing it (E10).
       setDraft(body);
@@ -242,7 +244,8 @@ function Row({
   const days = now ? Math.floor((now.getTime() - new Date(item.created_at).getTime()) / DAY) : 0;
 
   return (
-    <div className="card flex items-center gap-3" style={{ padding: '10px 14px', opacity: isDone ? 0.6 : 1 }}>
+    <div className="card flex items-center gap-3"
+         style={{ padding: '10px 14px', opacity: isDone ? 0.6 : 1, viewTransitionName: vtName('agenda', item.id) }}>
       <ActionButton onClick={() => onToggle(item, !isDone)} aria-pressed={isDone} aria-label={t('agenda.toggle')}
               className="flex items-center justify-center shrink-0"
               style={{

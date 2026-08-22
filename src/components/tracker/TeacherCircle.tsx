@@ -136,37 +136,54 @@ export default function TeacherCircle({
     });
   }
 
+  // Every write below shows its result first and sends after: the outcome is
+  // decided here, so the round trip only delays feedback the click already
+  // earned. On failure the pre-click state goes back and the error surfaces.
+  async function optimistic(apply: () => void, revert: () => void, write: () => Promise<unknown>) {
+    vt(apply);
+    try {
+      await write();
+    } catch (e) {
+      vt(revert);
+      setError((e as Error).message);
+    }
+  }
+
   // Bulk assign (F1): one substitution row per selected instant, same sub.
   async function handleBulkAssign() {
     if (!pendingSub) return;
     const { userId, name } = pendingSub;
     // Selection only ever happens in the Manage-sessions list.
     const items = manageRows.filter((a) => selected.has(a.key));
-    try {
-      await assignSubstitutes(items.map((i) => ({ membershipId: i.membershipId, scheduledAt: i.scheduled_at, substituteUserId: userId })));
-      setSubOverride((p) => ({ ...p, ...Object.fromEntries(items.map((i) => [i.key, name])) }));
-      setSelected(new Set());
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    const snapshot = subOverride;
+    setSelected(new Set());
+    await optimistic(
+      () => setSubOverride((p) => ({ ...p, ...Object.fromEntries(items.map((i) => [i.key, name])) })),
+      () => setSubOverride(snapshot),
+      () => assignSubstitutes(items.map((i) => ({ membershipId: i.membershipId, scheduledAt: i.scheduled_at, substituteUserId: userId }))),
+    );
   }
 
   // Manage-sub panel (F3) — set/replace the sub on exactly one instant.
   async function handleAssignOne(item: AgendaItem, userId: string, name: string) {
-    await assignSubstitutes([{ membershipId: item.membershipId, scheduledAt: item.scheduled_at, substituteUserId: userId }]);
-    setSubOverride((p) => ({ ...p, [item.key]: name }));
+    const snapshot = subOverride;
     setManageKey(null);
+    await optimistic(
+      () => setSubOverride((p) => ({ ...p, [item.key]: name })),
+      () => setSubOverride(snapshot),
+      () => assignSubstitutes([{ membershipId: item.membershipId, scheduledAt: item.scheduled_at, substituteUserId: userId }]),
+    );
   }
 
   // Reclaim (F4): delete exactly this instant's row. Clearing the sub and
   // leaving it empty is how the teacher takes the session back.
   async function handleReclaim(item: AgendaItem) {
-    try {
-      await removeSubstitution(item.membershipId, item.scheduled_at);
-      setSubOverride((p) => ({ ...p, [item.key]: null }));
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    const snapshot = subOverride;
+    await optimistic(
+      () => setSubOverride((p) => ({ ...p, [item.key]: null })),
+      () => setSubOverride(snapshot),
+      () => removeSubstitution(item.membershipId, item.scheduled_at),
+    );
   }
 
   // Real row for an agenda item, materializing the virtual slot on first touch.
@@ -178,13 +195,13 @@ export default function TeacherCircle({
   }
 
   async function handleCancelAgenda(item: AgendaItem) {
-    try {
-      const id = await ensureSessionId(item);
-      await setSessionCanceled(id, !item.canceled);
-      vt(() => setManageRows((p) => p.map((a) => (a.key === item.key ? { ...a, canceled: !item.canceled } : a))));
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    const snapshot = manageRows;
+    const canceled = !item.canceled;
+    await optimistic(
+      () => setManageRows((p) => p.map((a) => (a.key === item.key ? { ...a, canceled } : a))),
+      () => setManageRows(snapshot),
+      async () => setSessionCanceled(await ensureSessionId(item), canceled),
+    );
   }
 
   function openReschedule(item: AgendaItem) {
@@ -198,20 +215,17 @@ export default function TeacherCircle({
 
   async function handleRescheduleAgenda(item: AgendaItem) {
     if (!reschedDate || !reschedTime) return;
-    try {
-      const id = await ensureSessionId(item);
-      const newIso = new Date(`${reschedDate}T${reschedTime}`).toISOString();
-      const movedFrom = item.movedFrom ?? item.scheduled_at;
-      await rescheduleSession(id, newIso, movedFrom);
-      vt(() => {
-        setManageRows((p) =>
-          p.map((a) => (a.key === item.key ? { ...a, scheduled_at: newIso, movedFrom } : a))
-            .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)));
-        setReschedKey(null);
-      });
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    const snapshot = manageRows;
+    const newIso = new Date(`${reschedDate}T${reschedTime}`).toISOString();
+    const movedFrom = item.movedFrom ?? item.scheduled_at;
+    setReschedKey(null);
+    await optimistic(
+      () => setManageRows((p) =>
+        p.map((a) => (a.key === item.key ? { ...a, scheduled_at: newIso, movedFrom } : a))
+          .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))),
+      () => setManageRows(snapshot),
+      async () => rescheduleSession(await ensureSessionId(item), newIso, movedFrom),
+    );
   }
   // Invite panel lives in the desktop left column; on mobile it moves into Settings.
   const [isMobile, setIsMobile] = useState(false);
@@ -257,9 +271,14 @@ export default function TeacherCircle({
     }
   }
 
+  // Deactivate / reinstate — the new status is right there in the argument.
   async function handleStatus(id: string, status: Membership['status']) {
-    await setMembershipStatus(id, status);
-    vt(() => setStudents((prev) => prev.map((m) => (m.id === id ? { ...m, status } : m))));
+    const snapshot = students;
+    await optimistic(
+      () => setStudents((prev) => prev.map((m) => (m.id === id ? { ...m, status } : m))),
+      () => setStudents(snapshot),
+      () => setMembershipStatus(id, status),
+    );
   }
 
   // Invite panel — rendered in the left column on desktop, inside Settings on mobile.

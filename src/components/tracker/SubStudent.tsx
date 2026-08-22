@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type { AttendanceStatus, Homework, ProgressLog, Session, StatusConfig } from '@/types';
 import { materializeSession, setSessionAttendance } from '@/lib/services/sessions';
-import { GradeableLog, HomeworkPanel, StudentProfileCard, useHomeworkState } from './TeacherStudent';
+import { GradeableLog, HomeworkPanel, StudentProfileCard, placeholderRow, upsertByInstant, useHomeworkState } from './TeacherStudent';
 import { Attribution, AttributionProvider } from './subs';
 import { SectionTitle, EmptyState, DateChip, TabBar, vt } from './ui';
 
@@ -61,15 +61,22 @@ export default function SubStudent({
   );
   const openHomework = homeworkState.openCount;
 
+  // Same deal as the teacher's marking (see TeacherStudent.optimistic): the new
+  // status is decided here, so show it now and write in the background.
   async function mark(iso: string, status: AttendanceStatus) {
+    const snapshot = sessions;
+    const existing = rowFor(iso);
+    const next = existing?.attendance_status === status ? null : status;
+    vt(() => setSessions((p) => upsertByInstant(p, {
+      ...(existing ?? placeholderRow(membershipId, iso)), attendance_status: next,
+    })));
     try {
       // A3: the covered instant may be virtual — materialize on first touch.
-      const s = rowFor(iso) ?? await materializeSession(membershipId, iso);
-      setSessions((p) => (p.some((x) => x.id === s.id) ? p : [...p, s]));
-      const next = s.attendance_status === status ? null : status;
+      const s = existing ?? await materializeSession(membershipId, iso);
       await setSessionAttendance(s.id, next);
-      vt(() => setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, attendance_status: next } : x))));
+      setSessions((p) => upsertByInstant(p, { ...s, attendance_status: next }));
     } catch (e) {
+      vt(() => setSessions(snapshot));
       setErr((e as Error).message);
     }
   }

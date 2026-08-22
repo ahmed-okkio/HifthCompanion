@@ -40,6 +40,41 @@ const LOG_TYPES: LogType[] = ['memorization', 'general_revision', 'targeted_revi
 const ATT_STATUSES: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'];
 const today = () => new Date().toISOString().slice(0, 10);
 
+/** Postgres and recurringSlots format the same instant differently — compare by
+ *  epoch ms, the way sectionSessions dedups (T6). */
+const instantKey = (iso: string) => String(new Date(iso).getTime());
+
+/** Stand-in row for a slot that is still virtual, so an optimistic cancel/mark
+ *  has something to render before the real row exists. Replaced by the stored
+ *  row as soon as the write returns. */
+export function placeholderRow(membershipId: string, scheduledAt: string): Session {
+  return {
+    id: `pending-${instantKey(scheduledAt)}`,
+    membership_id: membershipId,
+    scheduled_at: scheduledAt,
+    is_adhoc: false,
+    canceled: false,
+    attendance_status: null,
+    moved_from: null,
+    created_at: new Date().toISOString(),
+  };
+}
+
+/** Replace the row at `row`'s instant (or the one it was moved from), else add
+ *  it. Keyed by instant, not id, so a placeholder swaps cleanly for the real row. */
+export function upsertByInstant(rows: Session[], row: Session): Session[] {
+  const targets = new Set([instantKey(row.scheduled_at), ...(row.moved_from ? [instantKey(row.moved_from)] : [])]);
+  // Exactly one row is replaced: the same id if we have it, else the first at a
+  // matching instant. Never both, so rescheduling onto an occupied instant can't
+  // swallow the session already sitting there.
+  const i = rows.findIndex((r) => r.id === row.id);
+  const at = i >= 0 ? i : rows.findIndex((r) => targets.has(instantKey(r.scheduled_at)));
+  const next = at >= 0
+    ? rows.map((r, j) => (j === at ? { ...r, ...row } : r))
+    : [...rows, row];
+  return next.sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
+}
+
 function fmtTime(iso: string, locale: string) {
   return new Date(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 }
@@ -367,8 +402,10 @@ function useSessionsState(
 ) {
   const [sessions, setSessions] = useState(initial);
   const [subOverride, setSubOverride] = useState<Record<string, string | null>>({});
-  // Just-marked session id: keeps the slot in Next (showing the selection) for a
-  // beat before it reflows into History (T5 linger).
+  // Just-marked session instant (epoch ms): keeps the slot in Next (showing the
+  // selection) for a beat before it reflows into History (T5 linger). Keyed by
+  // instant rather than row id so it survives an optimistic row being swapped
+  // for the stored one mid-linger.
   const [lingerId, setLingerId] = useState<string | null>(null);
   const [weekdays, setWeekdays] = useState<number[]>(initialSchedule?.weekdays ?? []);
   const [time, setTime] = useState(initialSchedule?.time ?? '17:00');
@@ -464,14 +501,15 @@ function StudentSessions({
   // stays highlighted) and pull it out of History until the 3s elapses.
   const sections = useMemo(() => {
     if (!lingerId) return rawSections;
-    const row = sessions.find((s) => s.id === lingerId);
+    const row = sessions.find((s) => instantKey(s.scheduled_at) === lingerId);
     if (!row) return rawSections;
+    const isLingering = (slot: SessionSlot) => instantKey(slot.scheduled_at) === lingerId;
     return {
       ...rawSections,
       next: { scheduled_at: row.scheduled_at, session: row },
       nextEditable: true,
-      upcoming: rawSections.upcoming.filter((u) => u.session?.id !== lingerId),
-      history: rawSections.history.filter((h) => h.session?.id !== lingerId),
+      upcoming: rawSections.upcoming.filter((u) => !isLingering(u)),
+      history: rawSections.history.filter((h) => !isLingering(h)),
     };
   }, [rawSections, lingerId, sessions]);
 
@@ -491,20 +529,41 @@ function StudentSessions({
   /** Real row now, materializing the virtual slot on first touch (T5). */
   async function ensureRow(slot: SessionSlot): Promise<Session> {
     if (slot.session) return slot.session;
-    const s = await materializeSession(membershipId, slot.scheduled_at);
-    setSessions((p) =>
-      p.some((x) => x.id === s.id) ? p : [...p, s].sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)));
-    return s;
+    return materializeSession(membershipId, slot.scheduled_at);
   }
 
-  async function handleCancel(slot: SessionSlot) {
+  /**
+   * Show the change, *then* write it. Nothing here needs a value back from the
+   * server — cancel, attendance and reschedule are all decided on the client —
+   * so waiting on the round trip only delays feedback the user already earned.
+   * The row (real or a stand-in for a still-virtual slot) is patched into local
+   * state immediately, reconciled with the stored row when the write lands, and
+   * rolled back to the pre-click list if it fails.
+   * ponytail: rollback restores the whole snapshot, so a *concurrent* edit to
+   * another row would be lost with it. Writes are per-click and failures are
+   * rare; per-row rollback if that stops being true.
+   */
+  async function optimistic(
+    slot: SessionSlot,
+    patch: Partial<Session>,
+    write: (row: Session) => Promise<void>,
+  ) {
+    const snapshot = sessions;
+    const local: Session = { ...(slot.session ?? placeholderRow(membershipId, slot.scheduled_at)), ...patch };
+    vt(() => setSessions((p) => upsertByInstant(p, local)));
     try {
-      const s = await ensureRow(slot);
-      await setSessionCanceled(s.id, !s.canceled);
-      vt(() => setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, canceled: !s.canceled } : x))));
+      const row = await ensureRow(slot);
+      await write(row);
+      setSessions((p) => upsertByInstant(p, { ...row, ...patch }));
     } catch (e) {
+      vt(() => setSessions(snapshot));
       setErr((e as Error).message);
     }
+  }
+
+  function handleCancel(slot: SessionSlot) {
+    const canceled = !(slot.session?.canceled ?? false);
+    return optimistic(slot, { canceled }, (row) => setSessionCanceled(row.id, canceled));
   }
 
   // Open the inline editor pre-filled with the slot's current local date/time.
@@ -517,42 +576,31 @@ function StudentSessions({
     setReschedKey(slot.scheduled_at);
   }
 
-  async function handleReschedule(slot: SessionSlot) {
+  function handleReschedule(slot: SessionSlot) {
     if (!reschedDate || !reschedTime) return;
-    try {
-      const s = await ensureRow(slot); // real row at the original time
-      const newIso = new Date(`${reschedDate}T${reschedTime}`).toISOString();
-      // Keep pointing at the FIRST recurrence slot if this row was already moved.
-      const movedFrom = s.moved_from ?? slot.scheduled_at;
-      await rescheduleSession(s.id, newIso, movedFrom);
-      vt(() => {
-        setSessions((p) =>
-          p.map((x) => (x.id === s.id ? { ...x, scheduled_at: newIso, moved_from: movedFrom } : x))
-            .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at)));
-        setReschedKey(null);
-      });
-    } catch (e) {
-      setErr((e as Error).message);
-    }
+    const newIso = new Date(`${reschedDate}T${reschedTime}`).toISOString();
+    // Keep pointing at the FIRST recurrence slot if this row was already moved.
+    const movedFrom = slot.session?.moved_from ?? slot.scheduled_at;
+    setReschedKey(null);
+    return optimistic(
+      slot,
+      { scheduled_at: newIso, moved_from: movedFrom },
+      (row) => rescheduleSession(row.id, newIso, movedFrom),
+    );
   }
 
-  async function handleAttendance(slot: SessionSlot, status: AttendanceStatus) {
-    try {
-      const s = await ensureRow(slot);
-      const next = s.attendance_status === status ? null : status;
-      await setSessionAttendance(s.id, next);
-      setSessions((p) => p.map((x) => (x.id === s.id ? { ...x, attendance_status: next } : x)));
-      // Linger in Next for 3s showing the selection, then let it *animate* out to
-      // History — the reflow is the part that needs to be legible (vt).
-      if (next) {
-        setLingerId(s.id);
-        setTimeout(() => vt(() => setLingerId((cur) => (cur === s.id ? null : cur))), 3000);
-      } else {
-        vt(() => setLingerId((cur) => (cur === s.id ? null : cur)));
-      }
-    } catch (e) {
-      setErr((e as Error).message);
+  function handleAttendance(slot: SessionSlot, status: AttendanceStatus) {
+    const next = slot.session?.attendance_status === status ? null : status;
+    // Linger in Next for 3s showing the selection, then let it *animate* out to
+    // History — the reflow is the part that needs to be legible (vt).
+    const key = instantKey(slot.scheduled_at);
+    if (next) {
+      setLingerId(key);
+      setTimeout(() => vt(() => setLingerId((cur) => (cur === key ? null : cur))), 3000);
+    } else {
+      vt(() => setLingerId((cur) => (cur === key ? null : cur)));
     }
+    return optimistic(slot, { attendance_status: next }, (row) => setSessionAttendance(row.id, next));
   }
 
   // One card renderer for all three sections; flags gate attendance/cancel.
@@ -945,14 +993,24 @@ export function HomeworkPanel({
   // Deadline applies to the whole group → update every row in it (H2).
   async function handleEditDeadline(ids: string[], value: string) {
     const next = value || null;
-    await Promise.all(ids.map((id) => editDeadline(id, next)));
+    const snapshot = items;
     setItems((p) => p.map((h) => (ids.includes(h.id) ? { ...h, deadline: next } : h)));
+    try {
+      await Promise.all(ids.map((id) => editDeadline(id, next)));
+    } catch {
+      setItems(snapshot);
+    }
   }
 
   // Delete a whole prescription group; linked logs survive (FK set null).
   async function handleDeleteHomework(ids: string[]) {
-    await deleteHomework(ids);
+    const snapshot = items;
     vt(() => setItems((p) => p.filter((h) => !ids.includes(h.id))));
+    try {
+      await deleteHomework(ids);
+    } catch {
+      vt(() => setItems(snapshot));
+    }
   }
 
   // Teacher-submitted homework result → prepend it to the log feed.
@@ -1458,21 +1516,38 @@ function ExamsPanel({
     }
   }
 
-  async function handleGrade(id: string, status: ExamStatus, notes: string | null) {
-    const row = await gradeExam(id, status, notes);
-    setItems((p) => p.map((e) => (e.id === id ? row : e)));
+  // Grade, delete and move all show first and write after: the new value is
+  // known here, and the returned row only reconciles server-stamped fields.
+  const byDate = (a: Exam, b: Exam) => b.scheduled_date.localeCompare(a.scheduled_date);
+
+  async function patch(id: string, local: Partial<Exam>, write: () => Promise<Exam>) {
+    const snapshot = items;
+    vt(() => setItems((p) => p.map((e) => (e.id === id ? { ...e, ...local } : e)).sort(byDate)));
+    try {
+      const row = await write();
+      setItems((p) => p.map((e) => (e.id === id ? row : e)).sort(byDate));
+    } catch {
+      vt(() => setItems(snapshot));
+    }
+  }
+
+  function handleGrade(id: string, status: ExamStatus, notes: string | null) {
+    return patch(id, { status, teacher_notes: notes }, () => gradeExam(id, status, notes));
   }
 
   async function handleDelete(id: string) {
-    await deleteExam(id);
+    const snapshot = items;
     vt(() => setItems((p) => p.filter((e) => e.id !== id)));
+    try {
+      await deleteExam(id);
+    } catch {
+      vt(() => setItems(snapshot));
+    }
   }
 
-  async function handleReschedule(id: string, newDate: string) {
-    const row = await rescheduleExam(id, newDate);
-    // The list is ordered by date, so a moved exam has to re-sort (newest first).
-    setItems((p) => p.map((e) => (e.id === id ? row : e))
-      .sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date)));
+  // The list is ordered by date, so a moved exam has to re-sort (newest first).
+  function handleReschedule(id: string, newDate: string) {
+    return patch(id, { scheduled_date: newDate }, () => rescheduleExam(id, newDate));
   }
 
   return (

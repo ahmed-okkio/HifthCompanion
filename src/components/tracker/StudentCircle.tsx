@@ -104,8 +104,14 @@ export default function StudentCircle({
   }
 
   async function handleDelete(id: string) {
-    await deleteLog(id);
+    // Deleting is decided here — drop the row now, put it back if the write fails.
+    const snapshot = logs;
     vt(() => setLogs((prev) => prev.filter((l) => l.id !== id)));
+    try {
+      await deleteLog(id);
+    } catch {
+      vt(() => setLogs(snapshot));
+    }
   }
 
   return (

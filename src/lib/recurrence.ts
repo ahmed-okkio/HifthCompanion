@@ -114,6 +114,9 @@ function isResolved(s: Session): boolean {
   return s.attendance_status !== null || s.canceled;
 }
 
+/** Epoch-ms key for an instant — see the dedup note in sectionSessions. */
+const instantKey = (iso: string) => String(new Date(iso).getTime());
+
 /**
  * Split `rows` + rule-derived virtual slots into Next / Upcoming / History.
  * - Virtual slots span [now - lookbackDays, now + horizonDays] so a just-passed
@@ -128,6 +131,13 @@ export function sectionSessions(
   rows: Session[],
   now: Date,
   horizonDays = 28,
+  /**
+   * Instants (epoch-ms keys) to keep out of History for now, even though they
+   * just became resolved. Marking a session or cancelling one otherwise yanks
+   * the row out from under the click that did it — the hold leaves it in place,
+   * wearing its new state, long enough to be seen (T5).
+   */
+  hold: ReadonlySet<string> = new Set(),
 ): SectionedSessions {
   const nowMs = now.getTime();
   // Key by instant (epoch ms), not the raw string: a materialized row comes back
@@ -155,8 +165,9 @@ export function sectionSessions(
   // Real unresolved rows older than the grace window are "stale" — a session that
   // came and went unmarked. They drop to History (read-only), never lingering as
   // an editable "awaiting" slot forever (same cutoff as virtual slots).
+  const held = (r: Session) => hold.has(instantKey(r.scheduled_at));
   const realUnresolved = rows
-    .filter((r) => !isResolved(r))
+    .filter((r) => held(r) || !isResolved(r))
     .map((r) => ({ scheduled_at: r.scheduled_at, session: r }));
   const staleUnresolved = realUnresolved.filter(
     (s) => new Date(s.scheduled_at).getTime() < graceStartMs,
@@ -181,7 +192,7 @@ export function sectionSessions(
   }
 
   const history = [
-    ...rows.filter(isResolved).map((r) => ({ scheduled_at: r.scheduled_at, session: r })),
+    ...rows.filter((r) => isResolved(r) && !held(r)).map((r) => ({ scheduled_at: r.scheduled_at, session: r })),
     ...staleUnresolved, // unmarked-but-past sessions belong in the record too
   ].sort((a, b) => b.scheduled_at.localeCompare(a.scheduled_at)); // newest first (T2)
 

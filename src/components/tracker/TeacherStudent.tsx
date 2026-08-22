@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import { setMembershipStatus } from '@/lib/services/membership';
@@ -389,10 +389,10 @@ export function MushafButton({ setId }: { setId: string | null }) {
  * 0014 I1: session state lives in the parent, not in `StudentSessions`, because
  * that component now mounts twice (Agenda's Next card + the Sessions tab) and a
  * tab switch unmounts one of them. Anything a mutation writes — rows, substitute
- * overrides, the linger pin, the schedule draft — has to outlive that unmount or
+ * overrides, the post-resolve hold, the schedule draft — has to outlive that unmount or
  * the other mount rebuilds from the stale server props.
  * ponytail: local component state, not router.refresh() — refresh would discard
- * the optimistic update and fight the 3s linger.
+ * the optimistic update and fight the 3s hold.
  */
 type SessionsState = ReturnType<typeof useSessionsState>;
 
@@ -402,26 +402,37 @@ function useSessionsState(
 ) {
   const [sessions, setSessions] = useState(initial);
   const [subOverride, setSubOverride] = useState<Record<string, string | null>>({});
-  // Just-marked session instant (epoch ms): keeps the slot in Next (showing the
-  // selection) for a beat before it reflows into History (T5 linger). Keyed by
-  // instant rather than row id so it survives an optimistic row being swapped
-  // for the stored one mid-linger.
-  const [lingerId, setLingerId] = useState<string | null>(null);
+  // Instants (epoch ms) that just became resolved — marked or cancelled — and
+  // are being kept in place for a beat so the change is visible before the row
+  // reflows into History (T5 linger). Keyed by instant, not row id, so it
+  // survives an optimistic row being swapped for the stored one mid-hold.
+  const [held, setHeld] = useState<ReadonlySet<string>>(new Set());
+  const hold = useCallback((key: string) => {
+    setHeld((p) => new Set(p).add(key));
+    setTimeout(() => vt(() => setHeld((p) => {
+      const next = new Set(p);
+      next.delete(key);
+      return next;
+    })), HOLD_MS);
+  }, []);
   const [weekdays, setWeekdays] = useState<number[]>(initialSchedule?.weekdays ?? []);
   const [time, setTime] = useState(initialSchedule?.time ?? '17:00');
   const [tz, setTz] = useState(initialSchedule?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [minutes, setMinutes] = useState(initialSchedule?.minutes ?? DEFAULT_SESSION_MINUTES);
   return {
-    sessions, setSessions, subOverride, setSubOverride, lingerId, setLingerId,
+    sessions, setSessions, subOverride, setSubOverride, held, hold,
     weekdays, setWeekdays, time, setTime, tz, setTz, minutes, setMinutes,
   };
 }
+
+/** How long a just-resolved row stays put before it reflows into History. */
+const HOLD_MS = 3000;
 
 /**
  * 0014 D6/E2/E3: one component, two mount points. `part="next"` renders only the
  * Next-session card (it lives in the Agenda tab now); `part="rest"` renders the
  * schedule editor plus the Upcoming/History sub-tabs. All the behavior —
- * `ensureRow`/`materializeSession`, `lingerId` pinning, reschedule, cancel,
+ * `ensureRow`/`materializeSession`, the post-resolve hold, reschedule, cancel,
  * substitute assignment — is shared, so there is exactly one code path for it.
  */
 function StudentSessions({
@@ -435,7 +446,7 @@ function StudentSessions({
 }) {
   const { t, locale, fmtNum } = useI18n();
   const {
-    sessions, setSessions, subOverride, setSubOverride, lingerId, setLingerId,
+    sessions, setSessions, subOverride, setSubOverride, held, hold,
     weekdays, setWeekdays, time, setTime, tz, setTz, minutes, setMinutes,
   } = state;
   // 0013 per-session sub controls (F3/F4/F5): inline assign form key + local
@@ -492,27 +503,13 @@ function StudentSessions({
     setWeekdays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
   }
 
-  // Sections re-derive from the rule + real rows on every schedule/state change (T1).
-  const rawSections = useMemo(
-    () => sectionSessions(rule, sessions, floatingNow()),
-    [rule, sessions],
+  // Sections re-derive from the rule + real rows on every schedule/state change
+  // (T1). `held` keeps a just-marked or just-cancelled row where it is for a
+  // beat instead of dropping it straight into History.
+  const sections = useMemo(
+    () => sectionSessions(rule, sessions, floatingNow(), 28, held),
+    [rule, sessions, held],
   );
-  // While a mark is lingering, pin that row as Next (editable, so its selection
-  // stays highlighted) and pull it out of History until the 3s elapses.
-  const sections = useMemo(() => {
-    if (!lingerId) return rawSections;
-    const row = sessions.find((s) => instantKey(s.scheduled_at) === lingerId);
-    if (!row) return rawSections;
-    const isLingering = (slot: SessionSlot) => instantKey(slot.scheduled_at) === lingerId;
-    return {
-      ...rawSections,
-      next: { scheduled_at: row.scheduled_at, session: row },
-      nextEditable: true,
-      upcoming: rawSections.upcoming.filter((u) => !isLingering(u)),
-      history: rawSections.history.filter((h) => !isLingering(h)),
-    };
-  }, [rawSections, lingerId, sessions]);
-
   // Save the schedule; the list re-derives from `rule` (no Generate button, T1).
   async function handleSave() {
     await setSchedule(membershipId, rule);
@@ -573,6 +570,10 @@ function StudentSessions({
 
   function handleCancel(slot: SessionSlot) {
     const canceled = !(slot.session?.canceled ?? false);
+    // Cancelling resolves the row, which would otherwise whip it into History
+    // the instant it was clicked. Hold it so the cancelled state is legible
+    // where the click happened, then let it reflow.
+    if (canceled) hold(instantKey(slot.scheduled_at));
     return optimistic(slot, { canceled }, (row) => setSessionCanceled(row.id, canceled));
   }
 
@@ -601,15 +602,10 @@ function StudentSessions({
 
   function handleAttendance(slot: SessionSlot, status: AttendanceStatus) {
     const next = slot.session?.attendance_status === status ? null : status;
-    // Linger in Next for 3s showing the selection, then let it *animate* out to
-    // History — the reflow is the part that needs to be legible (vt).
-    const key = instantKey(slot.scheduled_at);
-    if (next) {
-      setLingerId(key);
-      setTimeout(() => vt(() => setLingerId((cur) => (cur === key ? null : cur))), 3000);
-    } else {
-      vt(() => setLingerId((cur) => (cur === key ? null : cur)));
-    }
+    // Hold it in place showing the selection, then let it *animate* out to
+    // History — the reflow is the part that needs to be legible (vt). Clearing a
+    // mark needs no hold: an unresolved row belongs where it already is.
+    if (next) hold(instantKey(slot.scheduled_at));
     return optimistic(slot, { attendance_status: next }, (row) => setSessionAttendance(row.id, next));
   }
 

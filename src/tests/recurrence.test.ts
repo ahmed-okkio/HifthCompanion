@@ -102,6 +102,24 @@ describe('sectionSessions', () => {
     expect(nextEditable).toBe(true);
   });
 
+  it('holds a just-cancelled row where it was instead of dropping it into History (T5)', () => {
+    const at = '2026-07-13T17:00:00.000Z';
+    const now = new Date('2026-07-08T00:00:00Z'); // before that Monday → Upcoming
+    const rows = [row({ scheduled_at: at, canceled: true })];
+    const key = String(new Date(at).getTime());
+
+    const held = sectionSessions(rule, rows, now, 28, new Set([key]));
+    expect([held.next, ...held.upcoming].some((s) => s?.scheduled_at === at)).toBe(true);
+    expect(held.history.map((h) => h.scheduled_at)).not.toContain(at);
+    // The row still reads as cancelled while it is held — it is parked, not undone.
+    expect([held.next, ...held.upcoming].find((s) => s?.scheduled_at === at)?.session?.canceled).toBe(true);
+
+    // Hold released → it reflows into History, exactly as before.
+    const released = sectionSessions(rule, rows, now);
+    expect(released.history.map((h) => h.scheduled_at)).toContain(at);
+    expect([released.next, ...released.upcoming].some((s) => s?.scheduled_at === at)).toBe(false);
+  });
+
   it('a real unresolved row older than grace goes to History, not Next (T3d)', () => {
     const now = new Date('2026-07-07T09:00:00Z'); // 16h after the 07-06 slot (stale)
     const rows = [row({ scheduled_at: '2026-07-06T17:00:00.000Z' })]; // real, unmarked

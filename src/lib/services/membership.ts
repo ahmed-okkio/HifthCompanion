@@ -3,6 +3,8 @@
 import { createClient, createClientAction } from '@/lib/supabase/server';
 import type { Circle, Membership, MemberWithProfile } from '@/types';
 import { getProfilesByIds } from '@/lib/services/profile';
+import { after } from 'next/server';
+
 import { notifyInvite } from '@/lib/email/notify';
 
 export type MembershipWithCircle = Membership & { circle: Circle };
@@ -209,11 +211,7 @@ export async function inviteByEmail(
 
   // Enrich with the invited user's name so the optimistic roster row reads the
   // same as a reload (else displayName falls back to a #<id> tag).
-  try {
-    await notifyInvite(userId, circleId);
-  } catch (err) {
-    console.warn('[email] invite notify failed', (err as Error).message);
-  }
+  after(() => notifyInvite(userId, circleId));
 
   const profiles = await getProfilesByIds([userId]);
   const p = profiles.get(userId);

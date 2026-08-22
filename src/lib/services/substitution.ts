@@ -1,6 +1,8 @@
 'use server';
 
 import { createClientAction } from '@/lib/supabase/server';
+import { after } from 'next/server';
+
 import { notifySubstitution, type SubAssignment } from '@/lib/email/notify';
 import { getCircleMembersWithProfiles } from '@/lib/services/membership';
 import { getSessionsForMemberships } from '@/lib/services/sessions';
@@ -130,7 +132,7 @@ export async function assignSubstitutes(
     scheduledAt: d.scheduled_at,
     substituteUserId: d.substitute_user_id,
   }));
-  await notifySubstitution(affected);
+  after(() => notifySubstitution(affected));
   return affected;
 }
 
@@ -156,7 +158,7 @@ export async function removeSubstitution(
     scheduledAt: d.scheduled_at,
     substituteUserId: d.substitute_user_id,
   }));
-  if (removed.length > 0) await notifySubstitution([], removed);
+  if (removed.length > 0) after(() => notifySubstitution([], removed));
 }
 
 /**

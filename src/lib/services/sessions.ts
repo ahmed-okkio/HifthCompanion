@@ -1,5 +1,7 @@
 'use server';
 
+import { after } from 'next/server';
+
 import { createClient, createClientAction } from '@/lib/supabase/server';
 import { recurringSlots } from '@/lib/recurrence';
 import { notifySessionChange, notifySchedule } from '@/lib/email/notify';
@@ -55,7 +57,9 @@ export async function setSchedule(
   if (error) throw error;
 
   if (JSON.stringify(prev?.schedule ?? null) !== JSON.stringify(schedule ?? null)) {
-    await notifySchedule(membershipId, schedule);
+    // Mail is a side effect of the save, not part of it — see the note on
+    // setSessionCanceled. `after` runs it once the response is already out.
+    after(() => notifySchedule(membershipId, schedule));
   }
 }
 
@@ -121,11 +125,7 @@ export async function createAdhocSession(
 
   // A one-off at an unusual time is the easiest session to miss, so it is the
   // one most worth mailing — and until now it told the student nothing at all.
-  try {
-    await notifySessionChange(data.id, null, undefined, false, true);
-  } catch (err) {
-    console.warn('[email] adhoc session notify failed', (err as Error).message);
-  }
+  after(() => notifySessionChange(data.id, null, undefined, false, true));
   return data;
 }
 
@@ -142,12 +142,11 @@ export async function setSessionCanceled(
   if (error) throw error;
 
   // Both directions notify: a student told a lesson is off, then never told
-  // it is back on, will not turn up.
-  try {
-    await notifySessionChange(id, null, undefined, !canceled);
-  } catch (err) {
-    console.warn('[email] session cancel notify failed', (err as Error).message);
-  }
+  // it is back on, will not turn up. It runs *after* the response though — an
+  // SMTP round trip (plus the ~6 lookups behind it) is far slower than the
+  // single UPDATE above, and the teacher was sitting through all of it.
+  // notify* is already best-effort/self-logging, so nothing here can throw.
+  after(() => notifySessionChange(id, null, undefined, !canceled));
 }
 
 /**
@@ -167,11 +166,7 @@ export async function rescheduleSession(
     .eq('id', id);
   if (error) throw error;
 
-  try {
-    await notifySessionChange(id, newScheduledAt, movedFrom);
-  } catch (err) {
-    console.warn('[email] session reschedule notify failed', (err as Error).message);
-  }
+  after(() => notifySessionChange(id, newScheduledAt, movedFrom));
 }
 
 /** Mark (or clear) a session's attendance on the session row (D3). */

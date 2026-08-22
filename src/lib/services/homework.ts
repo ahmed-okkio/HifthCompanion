@@ -1,5 +1,7 @@
 'use server';
 
+import { after } from 'next/server';
+
 import { createClientAction, createClient } from '@/lib/supabase/server';
 import type { Homework, LogType } from '@/types';
 import { wholeSurahPages } from '@/lib/homework';
@@ -56,13 +58,9 @@ export async function prescribeHomework(hw: NewHomework): Promise<Homework[]> {
   const { data, error } = await supabase.from('homework').insert(rows).select();
   if (error) throw error;
 
-  try {
-    const pages = (data ?? []).flatMap((r: Homework) => [r.page_start, r.page_end]).filter(Boolean) as number[];
-    const range = pages.length ? `pages ${Math.min(...pages)}-${Math.max(...pages)}` : hw.type;
-    await notifyHomework(hw.membershipId, range, hw.deadline ?? null);
-  } catch (err) {
-    console.warn('[email] homework notify failed', (err as Error).message);
-  }
+  const pages = (data ?? []).flatMap((r: Homework) => [r.page_start, r.page_end]).filter(Boolean) as number[];
+  const range = pages.length ? `pages ${Math.min(...pages)}-${Math.max(...pages)}` : hw.type;
+  after(() => notifyHomework(hw.membershipId, range, hw.deadline ?? null));
 
   return data ?? [];
 }

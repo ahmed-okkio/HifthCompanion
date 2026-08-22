@@ -15,8 +15,10 @@ export interface EmailResult {
   skipped: boolean;
 }
 
-// ponytail: one lazily-built module-level transporter; nodemailer pools/reuses
-// the connection itself, so no custom pooling here.
+// ponytail: one lazily-built module-level transporter, pooled — without
+// `pool: true` nodemailer opens a fresh connection per message, so every mail
+// paid for a TCP + TLS + AUTH round trip to Gmail. Most events send two (student
+// and teacher), and a pooled socket is reused for the life of the process.
 let transporter: Transporter | null = null;
 
 function getTransport(): Transporter | null {
@@ -31,6 +33,8 @@ function getTransport(): Transporter | null {
       port,
       secure: port === 465,
       auth: { user, pass },
+      pool: true,
+      maxConnections: 2,
     });
   }
   return transporter;

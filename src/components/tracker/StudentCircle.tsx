@@ -6,6 +6,8 @@ import type {
   Circle, Homework, LogType, Membership, ProgressLog, Recurrence, Session, StatusConfig, Exam
 } from '@/types';
 import { createLog, deleteLog, type NewProgressLog } from '@/lib/services/progressLog';
+import { leaveCircle } from '@/lib/services/membership';
+import { useRouter } from 'next/navigation';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
 import { homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus } from '@/lib/homework';
@@ -201,14 +203,14 @@ export default function StudentCircle({
             </div>
           )}
 
-          {isMobile && tab === 'members' && <CircleMembers roster={roster} selfUserId={selfUserId} />}
+          {isMobile && tab === 'members' && <CircleMembers roster={roster} selfUserId={selfUserId} membershipId={membership.id} />}
         </div>
 
         {/* Desktop sidebar (hidden on mobile — those widgets are tabs there). */}
         <aside className="hidden lg:flex lg:sticky lg:top-6 self-start min-w-0 flex-col gap-6">
           <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} coveredBy={coveredBy} />
           <UpcomingExams exams={initialExams} />
-          <CircleMembers roster={roster} selfUserId={selfUserId} />
+          <CircleMembers roster={roster} selfUserId={selfUserId} membershipId={membership.id} />
         </aside>
       </div>
     </div>
@@ -304,9 +306,20 @@ function UpcomingSessions({ sessions, schedule, coveredBy, hideHeading = false }
 
 // --- Circle members (roster, read-only identity) -----------------------------
 
-function CircleMembers({ roster, selfUserId }: { roster: RosterMember[]; selfUserId: string }) {
+function CircleMembers({ roster, selfUserId, membershipId }: {
+  roster: RosterMember[]; selfUserId: string; membershipId: string;
+}) {
   const { t, fmtNum } = useI18n();
+  const router = useRouter();
   if (roster.length === 0) return null;
+
+  // Leave lives under the roster, grey + confirm-gated, same treatment as the
+  // teacher's Deactivate — one destructive control, never a primary button.
+  async function handleLeave() {
+    if (!window.confirm(t('tracker.leaveConfirm'))) return;
+    await leaveCircle(membershipId);
+    router.push('/tracker');
+  }
   return (
     <div className="flex flex-col gap-2">
       <SectionTitle trailing={<span className="badge badge-muted">{fmtNum(roster.length)}</span>}>
@@ -332,6 +345,10 @@ function CircleMembers({ roster, selfUserId }: { roster: RosterMember[]; selfUse
           );
         })}
       </div>
+      <ActionButton onClick={handleLeave} className="btn btn-outline"
+                    style={{ minHeight: 32, fontSize: 12, color: 'var(--text-muted)' }}>
+        {t('tracker.leave')}
+      </ActionButton>
     </div>
   );
 }

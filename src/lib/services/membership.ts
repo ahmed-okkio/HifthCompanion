@@ -230,3 +230,14 @@ export async function setMembershipStatus(
     .eq('id', membershipId);
   if (error) throw error;
 }
+
+/** The student leaves (or declines) their own membership. Trigger enforces the
+ *  self-only pending|active -> inactive transition; the teacher can reactivate. */
+export async function leaveCircle(membershipId: string): Promise<void> {
+  const supabase = await createClientAction();
+  const { error } = await supabase
+    .from('membership')
+    .update({ status: 'inactive' })
+    .eq('id', membershipId);
+  if (error) throw error;
+}

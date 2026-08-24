@@ -82,6 +82,10 @@ export default async function CirclePage({
   const membership = members.find((m) => m.user_id === user.id);
   if (!membership) notFound();
 
+  // Left or was deactivated: the row still exists (teacher can reactivate) but
+  // the circle is no longer theirs to open — same as never having joined.
+  if (membership.status === 'inactive' || membership.status === 'blocked') notFound();
+
   // Consent gate (C3/C4): a pending student must accept before any data view.
   if (membership.status === 'pending') {
     const profiles = await getProfilesByIds([circle.teacher_id]);

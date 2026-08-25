@@ -143,7 +143,8 @@ function AnnotationCanvasInner(
         transition: eff.dragging ? 'none' : 'transform 120ms var(--ease-out, ease)',
       };
 
-  // Mobile page swipe. RTL mushaf: swipe left -> next (higher) page, matching the arrows.
+  // Mobile page swipe. RTL mushaf: drag right -> next (higher) page, like pulling the
+  // next leaf in from the left edge of a right-to-left book.
   // ponytail: plain touch events, no gesture lib. Off in draw mode so strokes aren't eaten.
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const swipeProps = controlled || interactionMode === 'draw' ? {} : {
@@ -159,7 +160,7 @@ function AnnotationCanvasInner(
       const dx = p.clientX - start.x;
       const dy = p.clientY - start.y;
       if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return; // too short / vertical scroll
-      go(dx < 0 ? pageNum + 1 : pageNum - 1);
+      go(dx > 0 ? pageNum + 1 : pageNum - 1);
     },
   };
 

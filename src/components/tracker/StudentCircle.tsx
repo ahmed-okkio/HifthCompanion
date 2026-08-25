@@ -16,7 +16,7 @@ import { isStreakAtRisk } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
 import MarkedPagesList from '@/components/MarkedPagesList';
 import { wholeSurahPages } from '@/lib/homework';
-import { ActionButton, SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, Icon, Avatar, Chevron, vt, vtName } from './ui';
+import { ActionButton, SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, MushafLink, Icon, Avatar, Chevron, vt, vtName } from './ui';
 import { SurahPicker, ExamCard, StudentProfileCard, type Entry } from './TeacherStudent';
 import type { RosterMember } from '@/lib/services/membership';
 import type { MarkedPage } from '@/lib/markedPages';
@@ -432,6 +432,7 @@ function HomeworkCard({
                 {h.surah && h.ayah_start == null ? ` ${t('homework.whole')}` : ''}
               </span>
             )}
+            <MushafLink page={h.page_start} />
             {linkedLogs.map((l) => (
               <div key={l.id} className="text-xs flex items-center gap-1" style={{ color: 'var(--text-secondary)', paddingInlineStart: 8 }}>
                 <Icon name="check" size={13} /> p{fmtNum(l.page_start)}–{fmtNum(l.page_end)} · {l.log_date}

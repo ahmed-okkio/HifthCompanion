@@ -13,10 +13,27 @@ import type { HomeworkStatus } from '@/lib/homework';
 import { TOTAL_SURAHS, getSurahName } from '@/lib/quran';
 import { useI18n } from '@/components/I18nProvider';
 import { localizeDigits, isLocale } from '@/lib/i18n/config';
+import Link from 'next/link';
+
+/** Jump straight to a homework row's first page in the reader. */
+export function MushafLink({ page }: { page: number }) {
+  const { t } = useI18n();
+  return (
+    <Link
+      href={`/reader/${page}`}
+      className="inline-flex items-center gap-1 self-start text-xs"
+      style={{ color: 'var(--text-accent)', textDecoration: 'none' }}
+    >
+      <Icon name="book" size={13} />
+      {t('homework.openInMushaf')}
+    </Link>
+  );
+}
 
 /** Badge palette per homework status — open/completed/missed at a glance. */
 export const HOMEWORK_STATUS_STYLE: Record<HomeworkStatus, CSSProperties> = {
-  open: { background: 'var(--accent-muted)', color: 'var(--text-accent)' },
+  // Flat, no pill: the "Due" status was being read as a clickable "Open" button.
+  open: { background: 'transparent', color: 'var(--text-muted)', padding: 0, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' },
   completed: { background: 'rgba(16,185,129,0.12)', color: 'var(--success)' },
   missed: { background: 'var(--danger-muted)', color: 'var(--danger)' },
 };

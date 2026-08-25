@@ -143,6 +143,26 @@ function AnnotationCanvasInner(
         transition: eff.dragging ? 'none' : 'transform 120ms var(--ease-out, ease)',
       };
 
+  // Mobile page swipe. RTL mushaf: swipe left -> next (higher) page, matching the arrows.
+  // ponytail: plain touch events, no gesture lib. Off in draw mode so strokes aren't eaten.
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const swipeProps = controlled || interactionMode === 'draw' ? {} : {
+    onTouchStart: (e: React.TouchEvent) => {
+      const p = e.touches[0];
+      touchStart.current = { x: p.clientX, y: p.clientY };
+    },
+    onTouchEnd: (e: React.TouchEvent) => {
+      const start = touchStart.current;
+      touchStart.current = null;
+      if (!start) return;
+      const p = e.changedTouches[0];
+      const dx = p.clientX - start.x;
+      const dy = p.clientY - start.y;
+      if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return; // too short / vertical scroll
+      go(dx < 0 ? pageNum + 1 : pageNum - 1);
+    },
+  };
+
   // Re-rasterize the canvas backing at the new zoom once it settles (debounced so the smooth
   // CSS-transform zoom isn't fighting a re-render mid-animation). The transform handles the visual
   // scale instantly; this sharpens the pixels a beat later, up to the source's native res.
@@ -309,9 +329,10 @@ function AnnotationCanvasInner(
                 onClick={() => go(pageNum + (controlled ? 2 : 1))}
                 disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
                 aria-label={t('reader.nextPage')}
+                className="hidden lg:flex"
                 style={{ position: 'absolute', right: 'calc(100% + 20px)', top: 0, bottom: 0, width: '16vw', zIndex: 4 }}
               />
-            <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-page)' }}>
+            <div {...swipeProps} style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-page)' }}>
               <div style={innerZoomStyle('center center')}>
                 <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush}>
                   <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -339,9 +360,31 @@ function AnnotationCanvasInner(
                 onClick={() => go(pageNum - (controlled ? 2 : 1))}
                 disabled={pageNum <= 1}
                 aria-label={t('reader.prevPage')}
+                className="hidden lg:flex"
                 style={{ position: 'absolute', left: 'calc(100% + 20px)', top: 0, bottom: 0, width: '16vw', zIndex: 4 }}
               />
             </div>
+            )}
+
+            {/* Mobile page nav: the big side arrows are off-canvas on a phone, so small
+                buttons sit under the page (dir:ltr keeps next/left physically on the left). */}
+            {!controlled && (
+              <div className="flex lg:hidden items-center justify-center gap-8 pt-2" style={{ direction: 'ltr' }}>
+                <PageNavArrow
+                  direction="left"
+                  onClick={() => go(pageNum + 1)}
+                  disabled={pageNum >= TOTAL_PAGES}
+                  aria-label={t('reader.nextPage')}
+                  style={{ width: 44, height: 44, background: 'var(--surface-main)', boxShadow: 'var(--shadow-e1)' }}
+                />
+                <PageNavArrow
+                  direction="right"
+                  onClick={() => go(pageNum - 1)}
+                  disabled={pageNum <= 1}
+                  aria-label={t('reader.prevPage')}
+                  style={{ width: 44, height: 44, background: 'var(--surface-main)', boxShadow: 'var(--shadow-e1)' }}
+                />
+              </div>
             )}
 
             {/* Zoom control — floats just below the page (desktop). In spread mode the shell

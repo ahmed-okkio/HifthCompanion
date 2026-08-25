@@ -27,7 +27,7 @@ import {
 import { AYAH_COUNTS, TOTAL_JUZ, TOTAL_SURAHS, getSurahName, getSurahForPage, spreadUrl } from '@/lib/quran';
 import {
   SectionTitle, EmptyState, Avatar, StatCard, Ring, StatusDot, DateChip, TabBar,
-  SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, Chevron, Icon, TimeSelect,
+  SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, MushafLink, Chevron, Icon, TimeSelect,
   ActionButton, isPending, vt, vtName,
 } from './ui';
 import { attendanceStats } from '@/lib/analytics';
@@ -1171,6 +1171,7 @@ function PrescriptionCard({
                   {homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${fmtNum(h.page_start)}–${fmtNum(h.page_end)}`}
                   {h.surah && h.ayah_start == null ? ` ${t('homework.whole')}` : ''}
                 </span>
+                <MushafLink page={h.page_start} />
               </div>
               {/* Student submissions logged against it — indented under a subhead */}
               <div className="flex flex-col gap-1" style={{ marginInlineStart: 10, paddingInlineStart: 10, borderInlineStart: '2px solid var(--border-subtle)' }}>
@@ -1897,7 +1898,7 @@ export function GradeableLog({
           {l.surah && l.ayah_start ? ` · ${fmtNum(l.surah)}:${fmtNum(l.ayah_start)}${l.ayah_end && l.ayah_end !== l.ayah_start ? `–${fmtNum(l.ayah_end)}` : ''}` : ''}
         </span>
         <span className="flex items-center gap-2 shrink-0">
-          {!l.reviewed_at && <span className="badge" style={{ fontSize: 10, ...HOMEWORK_STATUS_STYLE.open }}>{t('grade.needsReview')}</span>}
+          {!l.reviewed_at && <span className="badge" style={{ fontSize: 10, background: 'var(--accent-muted)', color: 'var(--text-accent)' }}>{t('grade.needsReview')}</span>}
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtNum(l.log_date)}</span>
           <Chevron open={open} />
         </span>

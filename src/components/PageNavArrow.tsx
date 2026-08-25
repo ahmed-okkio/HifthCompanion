@@ -6,14 +6,16 @@ interface Props {
   onClick: () => void;
   'aria-label': string;
   style?: CSSProperties;
+  className?: string;
 }
 
-export default function PageNavArrow({ direction, disabled, onClick, 'aria-label': ariaLabel, style }: Props) {
+export default function PageNavArrow({ direction, disabled, onClick, 'aria-label': ariaLabel, style, className }: Props) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
+      className={className}
       style={{
         border: 'none',
         background: 'transparent',

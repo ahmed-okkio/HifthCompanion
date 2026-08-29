@@ -1,7 +1,13 @@
 import type { Locale } from '@/lib/i18n/config';
 
 /** Per-event email opt-outs stored on profiles.email_prefs. Default-on. */
-export type EmailPrefKey = 'invite' | 'homework' | 'session_change' | 'reminder';
+export type EmailPrefKey =
+  | 'invite'
+  | 'homework'
+  | 'session_change'
+  | 'reminder'
+  | 'progress'
+  | 'exam';
 
 /**
  * Default-on gate: a missing key means enabled; only an explicit `false`
@@ -430,7 +436,7 @@ export function sessionChangeBody(
 }
 
 /** Localized weekday names for `Recurrence.weekdays` (0=Sunday..6=Saturday). */
-function weekdayNames(weekdays: number[], locale: RecipientLocale): string {
+export function weekdayNames(weekdays: number[], locale: RecipientLocale): string {
   const fmt = new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en-GB', {
     weekday: 'long',
     timeZone: 'UTC',
@@ -497,6 +503,33 @@ export function scheduleBody(
       ],
       rtl,
     ),
+    footer: ar ? FOOTER_AR : FOOTER_EN,
+  });
+}
+
+/**
+ * Generic event body — heading, one sentence, and an optional callout of facts.
+ * ponytail: the progress/exam events say one thing each; a bespoke template per
+ * event would be five copies of inviteBody with the nouns swapped.
+ */
+export function simpleBody(
+  facts: {
+    heading: string;
+    message: string;
+    /** Optional "Label: value" rows rendered in the callout box. */
+    rows?: string[];
+    circleName?: string;
+    teacherName?: string;
+  },
+  locale?: RecipientLocale,
+): string {
+  const ar = locale === 'ar';
+  return shell(locale, {
+    preheader: facts.heading,
+    heading: facts.heading,
+    subline: circleTeacherLine(facts.circleName, facts.teacherName, ar),
+    message: facts.message,
+    content: facts.rows?.length ? callout(facts.rows, ar) : '',
     footer: ar ? FOOTER_AR : FOOTER_EN,
   });
 }

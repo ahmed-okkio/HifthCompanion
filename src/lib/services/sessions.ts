@@ -59,7 +59,8 @@ export async function setSchedule(
   if (JSON.stringify(prev?.schedule ?? null) !== JSON.stringify(schedule ?? null)) {
     // Mail is a side effect of the save, not part of it — see the note on
     // setSessionCanceled. `after` runs it once the response is already out.
-    after(() => notifySchedule(membershipId, schedule));
+    const actor = (await supabase.auth.getUser()).data.user?.id ?? null;
+    after(() => notifySchedule(membershipId, schedule, actor));
   }
 }
 
@@ -125,7 +126,8 @@ export async function createAdhocSession(
 
   // A one-off at an unusual time is the easiest session to miss, so it is the
   // one most worth mailing — and until now it told the student nothing at all.
-  after(() => notifySessionChange(data.id, null, undefined, false, true));
+  const actor = (await supabase.auth.getUser()).data.user?.id ?? null;
+  after(() => notifySessionChange(data.id, null, undefined, false, true, actor));
   return data;
 }
 
@@ -146,7 +148,8 @@ export async function setSessionCanceled(
   // SMTP round trip (plus the ~6 lookups behind it) is far slower than the
   // single UPDATE above, and the teacher was sitting through all of it.
   // notify* is already best-effort/self-logging, so nothing here can throw.
-  after(() => notifySessionChange(id, null, undefined, !canceled));
+  const actor = (await supabase.auth.getUser()).data.user?.id ?? null;
+  after(() => notifySessionChange(id, null, undefined, !canceled, false, actor));
 }
 
 /**
@@ -166,7 +169,8 @@ export async function rescheduleSession(
     .eq('id', id);
   if (error) throw error;
 
-  after(() => notifySessionChange(id, newScheduledAt, movedFrom));
+  const actor = (await supabase.auth.getUser()).data.user?.id ?? null;
+  after(() => notifySessionChange(id, newScheduledAt, movedFrom, false, false, actor));
 }
 
 /** Mark (or clear) a session's attendance on the session row (D3). */

@@ -127,6 +127,9 @@ export interface EmailPrefs {
   homework?: boolean;
   session_change?: boolean;
   reminder?: boolean;
+  /** Work submitted for review, and teacher reviews of it. */
+  progress?: boolean;
+  exam?: boolean;
 }
 
 export interface Profile {

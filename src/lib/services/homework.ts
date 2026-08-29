@@ -60,7 +60,8 @@ export async function prescribeHomework(hw: NewHomework): Promise<Homework[]> {
 
   const pages = (data ?? []).flatMap((r: Homework) => [r.page_start, r.page_end]).filter(Boolean) as number[];
   const range = pages.length ? `pages ${Math.min(...pages)}-${Math.max(...pages)}` : hw.type;
-  after(() => notifyHomework(hw.membershipId, range, hw.deadline ?? null));
+  const actor = (await supabase.auth.getUser()).data.user?.id ?? null;
+  after(() => notifyHomework(hw.membershipId, range, hw.deadline ?? null, actor));
 
   return data ?? [];
 }

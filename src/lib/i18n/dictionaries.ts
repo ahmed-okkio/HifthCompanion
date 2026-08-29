@@ -299,6 +299,10 @@ const en = {
   'profile.emailPrefs.homework.desc': 'When a teacher prescribes homework, with the range and deadline.',
   'profile.emailPrefs.session_change': 'Session moved or cancelled',
   'profile.emailPrefs.session_change.desc': 'When one of your sessions is rescheduled or called off.',
+  'profile.emailPrefs.progress': 'Submitted work',
+  'profile.emailPrefs.progress.desc': 'When work is submitted for review, or your teacher reviews yours.',
+  'profile.emailPrefs.exam': 'Exams',
+  'profile.emailPrefs.exam.desc': 'When an exam is scheduled, moved, or graded.',
   'menu.account': 'Account',
   'menu.logout': 'Log out',
 
@@ -805,6 +809,10 @@ const ar: Record<MessageKey, string> = {
   'profile.emailPrefs.homework.desc': 'عندما يحدد المعلم واجبًا، مع النطاق والموعد النهائي.',
   'profile.emailPrefs.session_change': 'تغيير أو إلغاء الجلسة',
   'profile.emailPrefs.session_change.desc': 'عند تغيير موعد إحدى جلساتك أو إلغائها.',
+  'profile.emailPrefs.progress': 'الأعمال المسلّمة',
+  'profile.emailPrefs.progress.desc': 'عند تسليم عمل للمراجعة أو مراجعة معلمك لعملك.',
+  'profile.emailPrefs.exam': 'الاختبارات',
+  'profile.emailPrefs.exam.desc': 'عند جدولة اختبار أو تغييره أو تصحيحه.',
   'menu.account': 'الحساب',
   'menu.logout': 'تسجيل الخروج',
 

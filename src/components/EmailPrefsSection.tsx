@@ -8,7 +8,7 @@ import { useI18n } from '@/components/I18nProvider';
 import { saveEmailPrefs } from '@/lib/services/profile';
 import type { EmailPrefs } from '@/types';
 
-const KEYS = ['invite', 'homework', 'session_change'] as const;
+const KEYS = ['invite', 'homework', 'session_change', 'progress', 'exam'] as const;
 
 /** Native checkbox styled as a switch — keeps keyboard focus and screen-reader
  *  semantics for free rather than rebuilding them on a div. */

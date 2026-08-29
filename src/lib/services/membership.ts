@@ -211,7 +211,8 @@ export async function inviteByEmail(
 
   // Enrich with the invited user's name so the optimistic roster row reads the
   // same as a reload (else displayName falls back to a #<id> tag).
-  after(() => notifyInvite(userId, circleId));
+  const actor = (await supabase.auth.getUser()).data.user?.id ?? null;
+  after(() => notifyInvite(userId, circleId, actor));
 
   const profiles = await getProfilesByIds([userId]);
   const p = profiles.get(userId);

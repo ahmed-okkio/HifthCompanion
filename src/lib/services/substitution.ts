@@ -132,7 +132,8 @@ export async function assignSubstitutes(
     scheduledAt: d.scheduled_at,
     substituteUserId: d.substitute_user_id,
   }));
-  after(() => notifySubstitution(affected));
+  const actor = (await supabase.auth.getUser()).data.user?.id ?? null;
+  after(() => notifySubstitution(affected, [], actor));
   return affected;
 }
 
@@ -158,7 +159,8 @@ export async function removeSubstitution(
     scheduledAt: d.scheduled_at,
     substituteUserId: d.substitute_user_id,
   }));
-  if (removed.length > 0) after(() => notifySubstitution([], removed));
+  const actor = (await supabase.auth.getUser()).data.user?.id ?? null;
+  if (removed.length > 0) after(() => notifySubstitution([], removed, actor));
 }
 
 /**

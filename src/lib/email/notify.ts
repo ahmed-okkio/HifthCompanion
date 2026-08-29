@@ -12,6 +12,9 @@ import {
   scheduleBody,
   sessionChangeBody,
   substitutionBody,
+  simpleBody,
+  formatWhen,
+  weekdayNames,
   pickText,
   type EmailPrefKey,
   type RecipientLocale,
@@ -19,6 +22,13 @@ import {
 import { isLocale } from '@/lib/i18n/config';
 import { recurringSlots } from '@/lib/recurrence';
 import { DEFAULT_SESSION_MINUTES, type Recurrence } from '@/types';
+
+/** Push copy for an event. Kept short: a notification is a headline, not a letter. */
+interface PushText {
+  title: string;
+  body: string;
+  url?: string;
+}
 
 /**
  * Calendar UIDs. A student's recurring lessons are ONE calendar series keyed by
@@ -83,7 +93,14 @@ async function deliver(
   build: (
     locale: RecipientLocale,
     timezone: string | null,
-  ) => { subject: string; html: string; invite?: EmailInvite },
+  ) => { subject: string; html: string; invite?: EmailInvite; push?: PushText },
+  /**
+   * Whoever performed the action. They get the EMAIL (it carries the calendar
+   * update — suppressing it would leave a phantom event on their own calendar)
+   * but never the push: a notification telling you what you just tapped is
+   * noise, and push has no calendar payload to justify it.
+   */
+  actorId?: string | null,
 ): Promise<void> {
   const { data, error } = await db.auth.admin.getUserById(userId);
   if (error) throw error;
@@ -99,8 +116,20 @@ async function deliver(
 
   const locale = isLocale(profile?.locale) ? profile.locale : null;
   // Same select, no extra round trip. Null ⇒ the caller's own fallback.
-  const { subject, html, invite } = build(locale, profile?.timezone ?? null);
+  const { subject, html, invite, push } = build(locale, profile?.timezone ?? null);
   await sendEmail(to, subject, html, invite);
+
+  if (push && userId !== actorId) {
+    try {
+      // Imported lazily: push/send.ts is `server-only`, which does not resolve
+      // under vitest, and this module is exercised by the email tests.
+      const { sendPushToUser } = await import('@/lib/push/send');
+      await sendPushToUser(userId, push);
+    } catch (err) {
+      // Best effort — a failed push must never fail the email that preceded it.
+      console.warn('[push] notify send failed', (err as Error).message);
+    }
+  }
 }
 
 /** ponytail: one swallow-and-log wrapper instead of try/catch in each notify. */
@@ -129,7 +158,11 @@ async function nameOf(db: SupabaseClient, userId: string): Promise<string> {
 }
 
 /** A teacher added `userId` to `circleId` as a pending member. */
-export async function notifyInvite(userId: string, circleId: string): Promise<void> {
+export async function notifyInvite(
+  userId: string,
+  circleId: string,
+  actorId?: string | null,
+): Promise<void> {
   await bestEffort('invite', async (db) => {
     const { data: circle } = await db
       .from('circle')
@@ -145,7 +178,14 @@ export async function notifyInvite(userId: string, circleId: string): Promise<vo
       (locale) => ({
         subject: pickText(locale, 'You have been invited to a circle', 'دعوة إلى حلقة'),
         html: inviteBody({ teacherName, circleName: circle.name ?? '' }, locale),
+        push: {
+          title: pickText(locale, 'Circle invitation', 'دعوة إلى حلقة'),
+          body: pickText(locale, `${teacherName} invited you to their circle.`,
+            `دعاك ${teacherName} إلى حلقته.`),
+          url: '/tracker',
+        },
       }),
+      actorId,
     );
   });
 }
@@ -155,6 +195,7 @@ export async function notifyHomework(
   membershipId: string,
   range: string,
   deadline: string | null,
+  actorId?: string | null,
 ): Promise<void> {
   await bestEffort('homework', async (db) => {
     const { data: membership } = await db
@@ -188,7 +229,15 @@ export async function notifyHomework(
           },
           locale,
         ),
+        push: {
+          title: pickText(locale, 'New homework', 'واجب جديد'),
+          body: deadline
+            ? pickText(locale, `${range} — due ${deadline}`, `${range} — إلى ${deadline}`)
+            : range,
+          url: '/tracker',
+        },
       }),
+      actorId,
     );
   });
 }
@@ -241,6 +290,7 @@ async function membershipSessionInfo(
 export async function notifySubstitution(
   assignments: SubAssignment[] = [],
   removed: SubAssignment[] = [],
+  actorId?: string | null,
 ): Promise<void> {
   await bestEffort('substitution', async (db) => {
     // Resolve each touched membership once; reused across both audiences.
@@ -282,7 +332,14 @@ export async function notifySubstitution(
               summary: sessionSummary(info.get(r.membershipId)?.studentName ?? '', locale),
             })),
           },
-        }));
+          push: {
+            title: removedFlag
+              ? pickText(locale, 'Cover ended', 'انتهت التغطية')
+              : pickText(locale, 'You are covering a session', 'ستغطي جلسة'),
+            body: pickText(locale, `${items.length} session(s)`, `${items.length} جلسة`),
+            url: '/tracker',
+          },
+        }), actorId);
       });
     };
 
@@ -301,7 +358,18 @@ export async function notifySubstitution(
             ? pickText(locale, 'Your teacher is back', 'عاد معلمك')
             : pickText(locale, 'A substitute for your session', 'معلم بديل لجلستك'),
           html: substitutionBody({ audience: 'student', removed: removedFlag, substituteName: subName, recipientName: m.studentName, items }, locale),
-        }));
+          push: {
+            title: removedFlag
+              ? pickText(locale, 'Your teacher is back', 'عاد معلمك')
+              : pickText(locale, 'Substitute teacher assigned', 'معلم بديل'),
+            body: removedFlag
+              ? pickText(locale, 'Your own teacher will run your session(s).',
+                  'سيتولى معلمك جلساتك.')
+              : pickText(locale, `${subName} will run your session(s).`,
+                  `${subName} سيتولى جلساتك.`),
+            url: '/tracker',
+          },
+        }), actorId);
       });
     };
 
@@ -352,7 +420,7 @@ export async function notifySubstitution(
               ];
             }),
           },
-        }));
+        }), actorId);
       });
     };
 
@@ -387,6 +455,7 @@ export async function notifySessionChange(
   oldTime?: string,
   reinstated = false,
   added = false,
+  actorId?: string | null,
 ): Promise<void> {
   await bestEffort('session_change', async (db) => {
     const { data: session } = await db
@@ -449,6 +518,15 @@ export async function notifySessionChange(
             ? pickText(locale, 'Session rescheduled', 'تغيير موعد الجلسة')
             : pickText(locale, 'Session canceled', 'إلغاء الجلسة');
 
+    /** Same headline as the email; the body names the time that changed. */
+    const pushFor = (locale: RecipientLocale, otherName: string): PushText => ({
+      title: subject(locale),
+      body: added || reinstated || newTime
+        ? `${otherName} · ${formatWhen(when, locale, scheduleTz ?? 'UTC')}`
+        : `${otherName} · ${formatWhen(facts.oldTime, locale, scheduleTz ?? 'UTC')}`,
+      url: '/tracker',
+    });
+
     await deliver(db, userId, 'session_change', (locale, recipientTz) => ({
       subject: subject(locale),
       html: sessionChangeBody(
@@ -461,7 +539,8 @@ export async function notifySessionChange(
         organizerName: teacherName || undefined,
         events: [event(sessionSummary(teacherName, locale))],
       },
-    }));
+      push: pushFor(locale, teacherName),
+    }), actorId);
 
     // Teacher's mirror — same uid namespace (a separate mailbox, so no clash),
     // titled by student because every event on their calendar is their own.
@@ -474,7 +553,8 @@ export async function notifySessionChange(
         organizerName: teacherName || undefined,
         events: [event(sessionSummary(studentName, locale))],
       },
-    }));
+      push: pushFor(locale, studentName),
+    }), actorId);
   });
 }
 
@@ -491,6 +571,7 @@ export async function notifySessionChange(
 export async function notifySchedule(
   membershipId: string,
   schedule: Recurrence | null,
+  actorId?: string | null,
 ): Promise<void> {
   await bestEffort('schedule', async (db) => {
     const info = await membershipSessionInfo(db, membershipId);
@@ -533,7 +614,15 @@ export async function notifySchedule(
         organizerName: info.teacherName || undefined,
         events: [event(sessionSummary(info.teacherName, locale))],
       },
-    }));
+      push: {
+        title: subject(locale),
+        body: cleared
+          ? pickText(locale, 'Your weekly sessions have been cleared.',
+              'تم إلغاء مواعيدك الأسبوعية.')
+          : weekdayNames(facts.weekdays, locale) + ' · ' + facts.time,
+        url: '/tracker',
+      },
+    }), actorId);
 
     if (!info.teacherId) return;
     await deliver(db, info.teacherId, 'session_change', (locale) => ({
@@ -544,6 +633,196 @@ export async function notifySchedule(
         organizerName: info.teacherName || undefined,
         events: [event(sessionSummary(info.studentName, locale))],
       },
-    }));
+      push: {
+        title: subject(locale),
+        body: info.studentName + (cleared ? '' : ' · ' + weekdayNames(facts.weekdays, locale)),
+        url: '/tracker',
+      },
+    }), actorId);
+  });
+}
+
+/** membership → student + circle, the hop every progress/exam notify needs. */
+async function membershipParties(db: SupabaseClient, membershipId: string) {
+  const { data } = await db
+    .from('membership')
+    .select('user_id, circle(name, teacher_id)')
+    .eq('id', membershipId)
+    .maybeSingle();
+  if (!data?.user_id) return null;
+  const circle = relOne(data.circle as { name?: string; teacher_id?: string } | null);
+  return {
+    studentId: data.user_id as string,
+    studentName: await nameOf(db, data.user_id as string),
+    teacherId: circle?.teacher_id ?? null,
+    circleName: circle?.name ?? '',
+  };
+}
+
+/** Pages covered, as a short human range. */
+const pageRange = (start?: number | null, end?: number | null) =>
+  start && end ? (start === end ? `p. ${start}` : `pp. ${start}-${end}`) : '';
+
+/**
+ * A student logged work. Goes to the TEACHER — until now nothing told them
+ * something was waiting for review, and this is the only student→teacher
+ * signal in the app.
+ */
+export async function notifyProgressLogged(
+  logId: string,
+  actorId?: string | null,
+): Promise<void> {
+  await bestEffort('progress_logged', async (db) => {
+    const { data: log } = await db
+      .from('progress_log')
+      .select('membership_id, page_start, page_end, log_type')
+      .eq('id', logId)
+      .maybeSingle();
+    if (!log) return;
+    const parties = await membershipParties(db, log.membership_id);
+    if (!parties?.teacherId) return;
+    const range = pageRange(log.page_start, log.page_end);
+
+    await deliver(
+      db,
+      parties.teacherId,
+      'progress',
+      (locale) => {
+        const heading = pickText(locale, 'Work submitted', 'تسليم جديد');
+        return {
+          subject: heading,
+          html: simpleBody(
+            {
+              heading,
+              message: pickText(
+                locale,
+                `${parties.studentName} logged work for review.`,
+                `سجّل ${parties.studentName} عملاً للمراجعة.`,
+              ),
+              rows: [range, log.log_type].filter(Boolean) as string[],
+              circleName: parties.circleName,
+            },
+            locale,
+          ),
+          push: {
+            title: heading,
+            body: `${parties.studentName}${range ? ` · ${range}` : ''}`,
+            url: '/tracker',
+          },
+        };
+      },
+      actorId,
+    );
+  });
+}
+
+/** A teacher reviewed a log. Goes to the student. */
+export async function notifyLogGraded(
+  logId: string,
+  actorId?: string | null,
+): Promise<void> {
+  await bestEffort('log_graded', async (db) => {
+    const { data: log } = await db
+      .from('progress_log')
+      .select('membership_id, page_start, page_end, teacher_status, teacher_comment')
+      .eq('id', logId)
+      .maybeSingle();
+    if (!log) return;
+    const parties = await membershipParties(db, log.membership_id);
+    if (!parties) return;
+    const range = pageRange(log.page_start, log.page_end);
+
+    await deliver(
+      db,
+      parties.studentId,
+      'progress',
+      (locale) => {
+        const heading = pickText(locale, 'Your work was reviewed', 'تمت مراجعة عملك');
+        return {
+          subject: heading,
+          html: simpleBody(
+            {
+              heading,
+              message: pickText(
+                locale,
+                'Your teacher reviewed your submission.',
+                'راجع معلمك ما سلّمته.',
+              ),
+              rows: [range, log.teacher_status ?? '', log.teacher_comment ?? ''].filter(
+                Boolean,
+              ) as string[],
+              circleName: parties.circleName,
+            },
+            locale,
+          ),
+          push: {
+            title: heading,
+            body: [range, log.teacher_status].filter(Boolean).join(' · '),
+            url: '/tracker',
+          },
+        };
+      },
+      actorId,
+    );
+  });
+}
+
+/** An exam was scheduled, moved, or graded. Goes to the student. */
+export async function notifyExam(
+  examId: string,
+  kind: 'scheduled' | 'moved' | 'graded',
+  actorId?: string | null,
+): Promise<void> {
+  await bestEffort('exam', async (db) => {
+    const { data: exam } = await db
+      .from('exam')
+      .select('membership_id, scheduled_date, page_start, page_end, status, teacher_notes')
+      .eq('id', examId)
+      .maybeSingle();
+    if (!exam) return;
+    const parties = await membershipParties(db, exam.membership_id);
+    if (!parties) return;
+    const range = pageRange(exam.page_start, exam.page_end);
+
+    await deliver(
+      db,
+      parties.studentId,
+      'exam',
+      (locale) => {
+        const heading =
+          kind === 'graded'
+            ? pickText(locale, 'Exam result', 'نتيجة الاختبار')
+            : kind === 'moved'
+              ? pickText(locale, 'Exam moved', 'تغيير موعد الاختبار')
+              : pickText(locale, 'Exam scheduled', 'اختبار جديد');
+        return {
+          subject: heading,
+          html: simpleBody(
+            {
+              heading,
+              message:
+                kind === 'graded'
+                  ? pickText(locale, 'Your teacher graded your exam.', 'صحّح معلمك اختبارك.')
+                  : pickText(
+                      locale,
+                      `Your exam is set for ${exam.scheduled_date}.`,
+                      `موعد اختبارك ${exam.scheduled_date}.`,
+                    ),
+              rows: [range, exam.status ?? '', exam.teacher_notes ?? ''].filter(
+                Boolean,
+              ) as string[],
+              circleName: parties.circleName,
+            },
+            locale,
+          ),
+          push: {
+            title: heading,
+            body: [exam.scheduled_date, range].filter(Boolean).join(' · '),
+            url: '/tracker',
+          },
+        };
+      },
+      actorId,
+    );
   });
 }

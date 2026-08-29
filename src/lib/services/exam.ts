@@ -1,6 +1,9 @@
 'use server';
 
+import { after } from 'next/server';
+
 import { createClient, createClientAction } from '@/lib/supabase/server';
+import { notifyExam } from '@/lib/email/notify';
 import type { Exam, ExamStatus } from '@/types';
 
 import { getPageForAyah, juzPageBounds } from '@/lib/quran';
@@ -64,6 +67,10 @@ export async function scheduleExam(
     .single();
 
   if (error) throw error;
+
+  const actor = (await supabase.auth.getUser()).data.user?.id ?? null;
+  after(() => notifyExam(data.id, 'scheduled', actor));
+
   return data;
 }
 
@@ -84,6 +91,10 @@ export async function gradeExam(
     .single();
 
   if (error) throw error;
+
+  const actor = (await supabase.auth.getUser()).data.user?.id ?? null;
+  after(() => notifyExam(examId, 'graded', actor));
+
   return data;
 }
 
@@ -99,6 +110,10 @@ export async function rescheduleExam(examId: string, scheduledDate: string): Pro
     .single();
 
   if (error) throw error;
+
+  const actor = (await supabase.auth.getUser()).data.user?.id ?? null;
+  after(() => notifyExam(examId, 'moved', actor));
+
   return data;
 }
 

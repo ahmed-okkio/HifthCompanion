@@ -1,6 +1,9 @@
 'use server';
 
+import { after } from 'next/server';
+
 import { createClient, createClientAction } from '@/lib/supabase/server';
+import { notifyProgressLogged, notifyLogGraded } from '@/lib/email/notify';
 import type { LogType, Polarity, ProgressLog, StatusConfig } from '@/types';
 import { logToMemorizedRanges } from '@/lib/analytics';
 
@@ -68,6 +71,12 @@ export async function createLog(log: NewProgressLog): Promise<ProgressLog> {
     }
     throw error;
   }
+
+  // Tell the teacher something is waiting for review — the only student→teacher
+  // signal in the app. `after` keeps it off the response path.
+  const actor = (await supabase.auth.getUser()).data.user?.id ?? null;
+  after(() => notifyProgressLogged(data.id, actor));
+
   return data;
 }
 
@@ -115,6 +124,9 @@ export async function updateLog(
     .update({ ...patch, updated_at: new Date().toISOString() })
     .eq('id', id);
   if (error) throw error;
+
+  const actor = (await supabase.auth.getUser()).data.user?.id ?? null;
+  after(() => notifyLogGraded(id, actor));
 }
 
 export async function deleteLog(id: string): Promise<void> {

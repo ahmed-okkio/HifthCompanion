@@ -236,6 +236,16 @@ const en = {
   'push.enable': 'Enable notifications',
   'push.disable': 'Disable notifications',
   'push.denied': 'Notifications blocked in browser settings',
+  'push.iosHint': 'Open this app from your Home Screen to enable notifications',
+  'install.title': 'Install HifthCompanion',
+  'install.body': 'Add it to your home screen for a full-screen app and reminders.',
+  'install.action': 'Install',
+  'install.iosSafari': 'Tap Share, then Add to Home Screen.',
+  'install.iosOther': 'Open this page in Safari to add it to your home screen.',
+  'install.dismiss': 'Dismiss',
+  'notify.title': 'Turn on notifications',
+  'notify.body': 'Get reminders for lessons, homework, and schedule changes.',
+  'notify.action': 'Turn on',
 
   // Auth screens (PRD 0008 M5).
   'auth.signInSubtitle': 'Sign in to your account',
@@ -732,6 +742,16 @@ const ar: Record<MessageKey, string> = {
   'push.enable': 'تفعيل الإشعارات',
   'push.disable': 'إيقاف الإشعارات',
   'push.denied': 'الإشعارات محظورة في إعدادات المتصفح',
+  'push.iosHint': 'افتح التطبيق من الشاشة الرئيسية لتفعيل الإشعارات',
+  'install.title': 'ثبّت تطبيق حفظ',
+  'install.body': 'أضفه إلى الشاشة الرئيسية للحصول على تطبيق كامل وتنبيهات.',
+  'install.action': 'تثبيت',
+  'install.iosSafari': 'اضغط زر المشاركة ثم أضف إلى الشاشة الرئيسية.',
+  'install.iosOther': 'افتح هذه الصفحة في Safari لإضافتها إلى الشاشة الرئيسية.',
+  'install.dismiss': 'إغلاق',
+  'notify.title': 'تفعيل الإشعارات',
+  'notify.body': 'تنبيهات للدروس والواجبات وتغييرات المواعيد.',
+  'notify.action': 'تفعيل',
 
   // شاشات الدخول (PRD 0008 M5).
   'auth.signInSubtitle': 'سجّل الدخول إلى حسابك',

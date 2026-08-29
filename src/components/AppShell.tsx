@@ -17,6 +17,8 @@ import { useState, type ReactNode } from 'react';
 import AppHeader, { type Crumb } from './AppHeader';
 import NavRail from './NavRail';
 import MobileNavDrawer from './MobileNavDrawer';
+import InstallBanner from './InstallBanner';
+import NotifyBanner from './NotifyBanner';
 
 export default function AppShell({
   breadcrumb,
@@ -50,6 +52,9 @@ export default function AppShell({
           </>
         }
       />
+
+      <InstallBanner />
+      <NotifyBanner />
 
       <div className="flex flex-col lg:flex-row flex-1 min-h-0">
         {/* Rail BELOW the header, stretched to the full content height so it

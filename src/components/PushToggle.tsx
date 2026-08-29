@@ -2,30 +2,29 @@
 
 import { useEffect, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
-import { saveSubscription, deleteSubscription } from '@/lib/push/subscriptions';
+import { deleteSubscription } from '@/lib/push/subscriptions';
+import { pushSupported, subscribeToPush } from '@/lib/push/client';
 
-/** base64url VAPID public key → Uint8Array for applicationServerKey. */
-function urlBase64ToUint8Array(base64: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64.length % 4)) % 4);
-  const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const raw = atob(b64);
-  const out = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i += 1) out[i] = raw.charCodeAt(i);
-  return out;
-}
-
-function pushSupported(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    'serviceWorker' in navigator &&
-    'PushManager' in window &&
-    'Notification' in window
-  );
+/**
+ * iOS exposes PushManager ONLY to a home-screen install, so on Safari-in-a-tab
+ * the toggle can never work and would otherwise render nothing — a dead end for
+ * every iPhone user. Detect that one case so we can explain it instead.
+ * ponytail: UA sniff. It is the only signal iOS gives us here.
+ */
+function iosNotInstalled(): boolean {
+  if (typeof window === 'undefined' || pushSupported()) return false;
+  const ua = navigator.userAgent;
+  const isIOS =
+    /iPad|iPhone|iPod/.test(ua) ||
+    // iPadOS 13+ reports a desktop UA; touch points disambiguate.
+    (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  return isIOS && !(window.navigator as { standalone?: boolean }).standalone;
 }
 
 export default function PushToggle() {
   const { t } = useI18n();
   const [supported, setSupported] = useState(false);
+  const [showIosHint, setShowIosHint] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,13 +32,42 @@ export default function PushToggle() {
   const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
   useEffect(() => {
-    if (!pushSupported()) return;
-    setSupported(true);
-    navigator.serviceWorker.ready
-      .then((reg) => reg.pushManager.getSubscription())
-      .then((sub) => setEnabled(!!sub))
-      .catch(() => {});
+    // Wrapped in an async IIFE: the lint rule (and React) want state updates to
+    // land after the effect body, not synchronously inside it.
+    void (async () => {
+      if (!pushSupported()) {
+        setShowIosHint(iosNotInstalled());
+        return;
+      }
+      setSupported(true);
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          setEnabled(true);
+          return;
+        }
+        // Permission still granted but the subscription is gone: iOS drops it
+        // when PWA storage is evicted, and the push service can expire one at
+        // any time. Silently re-subscribe so notifications don't die quietly.
+        if (Notification.permission === 'granted' && vapidKey) {
+          await subscribeToPush(vapidKey!);
+          setEnabled(true);
+        }
+      } catch {
+        // Best effort — a failed probe just leaves the toggle showing "enable".
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  if (showIosHint) {
+    return (
+      <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+        {t('push.iosHint')}
+      </span>
+    );
+  }
 
   // Render nothing where push can't work or no key is configured.
   if (!supported || !vapidKey) return null;
@@ -53,20 +81,7 @@ export default function PushToggle() {
         setError(t('push.denied'));
         return;
       }
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey!) as BufferSource,
-      });
-      const json = sub.toJSON() as {
-        endpoint: string;
-        keys: { p256dh: string; auth: string };
-      };
-      await saveSubscription({
-        endpoint: json.endpoint,
-        keys: json.keys,
-        userAgent: navigator.userAgent,
-      });
+      await subscribeToPush(vapidKey!);
       setEnabled(true);
     } catch (e) {
       setError((e as Error).message);

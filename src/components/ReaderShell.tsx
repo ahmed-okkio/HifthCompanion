@@ -10,6 +10,7 @@ import Brand from './Brand';
 import SurahNavPanel from './SurahNavPanel';
 import MobileSurahDrawer from './MobileSurahDrawer';
 import MobileNavDrawer from './MobileNavDrawer';
+import NotifyBanner from './NotifyBanner';
 import AnnotationCanvas from './AnnotationCanvas';
 import SpreadAnnotation from './SpreadAnnotation';
 import NavRail from './NavRail';
@@ -293,6 +294,12 @@ export default function ReaderShell({ children, user, sets, account = null, lock
           isSpread={!!spread}
         />
       </div>
+      {/* Notification opt-in also belongs here: the reader is where a user can
+          land first, and AppShell (which carries this on the other pages) does
+          not wrap it. Signed-in only — an anonymous share viewer has no row to
+          save a subscription to. */}
+      {user && <NotifyBanner />}
+
       {/* On mobile the nav is position:fixed so content starts at top-0;
           --nav-h drives the mobile padding-top via CSS; lg: resets it to 0. */}
       {/* V3 Story 3 — desktop three-region workspace shell:

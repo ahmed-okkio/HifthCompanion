@@ -294,11 +294,19 @@ export default function ReaderShell({ children, user, sets, account = null, lock
           isSpread={!!spread}
         />
       </div>
-      {/* Notification opt-in also belongs here: the reader is where a user can
-          land first, and AppShell (which carries this on the other pages) does
-          not wrap it. Signed-in only — an anonymous share viewer has no row to
-          save a subscription to. */}
-      {user && <NotifyBanner />}
+      {/* Notification opt-in also belongs here: the reader is where a signed-in
+          user LANDS (start_url "/" redirects here), and AppShell — which carries
+          this on every other page — does not wrap the reader. Signed-in only: an
+          anonymous share viewer has no row to store a subscription against.
+
+          Desktop only at this point in the tree. On mobile ReaderNav is
+          position:fixed, so anything here renders underneath it; the mobile copy
+          lives inside the .mobile-nav-offset column below. */}
+      {user && (
+        <div className="hidden lg:block">
+          <NotifyBanner />
+        </div>
+      )}
 
       {/* On mobile the nav is position:fixed so content starts at top-0;
           --nav-h drives the mobile padding-top via CSS; lg: resets it to 0. */}
@@ -313,6 +321,13 @@ export default function ReaderShell({ children, user, sets, account = null, lock
         style={{ ['--nav-h' as string]: `${navHeight}px`, background: 'var(--surface-app)' } as React.CSSProperties}
         suppressHydrationWarning
       >
+        {/* Mobile copy — inside the nav offset so it clears the fixed ReaderNav. */}
+        {user && (
+          <div className="lg:hidden">
+            <NotifyBanner />
+          </div>
+        )}
+
         {pendingRedirect ? (
           <>
             <ShellSkeleton />

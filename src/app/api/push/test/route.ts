@@ -18,5 +18,22 @@ export async function POST() {
     body: 'Push notifications are working.',
     url: '/tracker',
   });
-  return NextResponse.json(result);
+
+  // Which devices are even registered — a missing host explains a silent phone
+  // better than a send count does.
+  const { data: subs } = await supabase
+    .from('push_subscription')
+    .select('endpoint, user_agent, created_at')
+    .eq('user_id', user.id);
+  const devices = (subs ?? []).map((s: { endpoint: string; user_agent: string | null; created_at: string }) => {
+    let host = 'unknown';
+    try {
+      host = new URL(s.endpoint).host;
+    } catch {
+      /* keep 'unknown' */
+    }
+    return { host, created_at: s.created_at, user_agent: (s.user_agent ?? '').slice(0, 80) };
+  });
+
+  return NextResponse.json({ ...result, devices });
 }

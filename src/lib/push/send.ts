@@ -85,15 +85,24 @@ async function pruneEndpoints(endpoints: string[]): Promise<void> {
  * Send a push notification to every subscription a user owns. No-op (with warn)
  * when VAPID keys are absent. Prunes endpoints that come back 404/410 Gone.
  */
+export interface PushFailure {
+  /** Push service host, e.g. "web.push.apple.com" — never the full endpoint
+      (the path is a bearer-style secret for that subscription). */
+  host: string;
+  status?: number;
+  message: string;
+}
+
 export async function sendPushToUser(
   userId: string,
   payload: PushPayload,
-): Promise<{ sent: number; pruned: number; skipped: boolean }> {
-  if (!ensureVapid()) return { sent: 0, pruned: 0, skipped: true };
+): Promise<{ sent: number; pruned: number; skipped: boolean; failures: PushFailure[] }> {
+  if (!ensureVapid()) return { sent: 0, pruned: 0, skipped: true, failures: [] };
 
   const subs = await loadSubscriptions(userId);
   const body = JSON.stringify(payload);
   const gone: string[] = [];
+  const failures: PushFailure[] = [];
   let sent = 0;
 
   await Promise.all(
@@ -109,12 +118,24 @@ export async function sendPushToUser(
         if (status === 404 || status === 410) {
           gone.push(s.endpoint);
         } else {
-          console.warn('[push] send failed', status, (err as Error).message);
+          // Reported, not just logged: a rejection from ONE push service (Apple
+          // refusing a JWT that FCM accepts, say) is otherwise invisible — the
+          // other endpoints still succeed and the count looks healthy.
+          const host = (() => {
+            try {
+              return new URL(s.endpoint).host;
+            } catch {
+              return 'unknown';
+            }
+          })();
+          const message = (err as { body?: string }).body || (err as Error).message;
+          failures.push({ host, status, message });
+          console.warn('[push] send failed', host, status, message);
         }
       }
     }),
   );
 
   await pruneEndpoints(gone);
-  return { sent, pruned: gone.length, skipped: false };
+  return { sent, pruned: gone.length, skipped: false, failures };
 }

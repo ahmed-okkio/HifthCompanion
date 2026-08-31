@@ -46,7 +46,9 @@ vi.mock('@supabase/supabase-js', () => ({
 describe('deliver() push gate', () => {
   beforeEach(() => {
     sendEmail.mockReset();
+    sendEmail.mockResolvedValue({ sent: true, skipped: false });
     sendPushToUser.mockReset();
+    sendPushToUser.mockResolvedValue({ sent: 1, pruned: 0, skipped: false, failures: [] });
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
     vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -58,11 +60,12 @@ describe('deliver() push gate', () => {
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
   });
 
-  it('pushes to a recipient who did not perform the action', async () => {
+  it('pushes a non-calendar event and does NOT also email it', async () => {
     const { notifyInvite } = await import('@/lib/email/notify');
     await notifyInvite('student-1', 'circle-1', 'teacher-1');
 
-    expect(sendEmail).toHaveBeenCalledTimes(1);
+    // One channel per event: the push landed, so no email follows it.
+    expect(sendEmail).not.toHaveBeenCalled();
     expect(sendPushToUser).toHaveBeenCalledTimes(1);
     expect(sendPushToUser.mock.calls[0][0]).toBe('student-1');
     expect(sendPushToUser.mock.calls[0][1]).toMatchObject({ url: '/tracker' });
@@ -74,5 +77,14 @@ describe('deliver() push gate', () => {
 
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(sendPushToUser).not.toHaveBeenCalled();
+  });
+
+  it('falls back to email when no device could be reached', async () => {
+    sendPushToUser.mockResolvedValue({ sent: 0, pruned: 0, skipped: false, failures: [] });
+    const { notifyInvite } = await import('@/lib/email/notify');
+    await notifyInvite('student-1', 'circle-1', 'teacher-1');
+
+    expect(sendPushToUser).toHaveBeenCalledTimes(1);
+    expect(sendEmail).toHaveBeenCalledTimes(1);
   });
 });

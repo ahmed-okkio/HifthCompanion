@@ -117,19 +117,36 @@ async function deliver(
   const locale = isLocale(profile?.locale) ? profile.locale : null;
   // Same select, no extra round trip. Null ⇒ the caller's own fallback.
   const { subject, html, invite, push } = build(locale, profile?.timezone ?? null);
-  await sendEmail(to, subject, html, invite);
+
+  // ONE channel per event, because an email is not silent either — it buzzes
+  // the phone through the mail app, so sending both is two notifications.
+  //
+  //   carries an .ics  → email only. The attachment IS the point (it writes
+  //                      the calendar), and the mail app's own alert covers
+  //                      the notifying.
+  //   everything else  → push when we can reach a device; email is the
+  //                      fallback for anyone not subscribed, or when every
+  //                      endpoint fails.
+  if (invite) {
+    await sendEmail(to, subject, html, invite);
+    return;
+  }
 
   if (push && userId !== actorId) {
     try {
       // Imported lazily: push/send.ts is `server-only`, which does not resolve
       // under vitest, and this module is exercised by the email tests.
       const { sendPushToUser } = await import('@/lib/push/send');
-      await sendPushToUser(userId, push);
+      const { sent } = await sendPushToUser(userId, push);
+      // Delivered to at least one device — do not also mail them.
+      if (sent > 0) return;
     } catch (err) {
-      // Best effort — a failed push must never fail the email that preceded it.
+      // Fall through to email: a push that throws must not silence the event.
       console.warn('[push] notify send failed', (err as Error).message);
     }
   }
+
+  await sendEmail(to, subject, html);
 }
 
 /** ponytail: one swallow-and-log wrapper instead of try/catch in each notify. */

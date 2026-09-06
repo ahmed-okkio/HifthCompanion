@@ -99,10 +99,6 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     if (!canvasRef.current || !containerRef.current) return;
     let isMounted = true;
     const img = new Image();
-    // Same CORS mode as the fabric background loader (crossOrigin: 'anonymous'). Without it
-    // the browser keys this probe and the real background load into two separate HTTP cache
-    // entries, so every page was fetched over the wire twice.
-    img.crossOrigin = 'anonymous';
     img.src = imageUrlRef.current;
     let canvas: fabric.Canvas | null = null;
 

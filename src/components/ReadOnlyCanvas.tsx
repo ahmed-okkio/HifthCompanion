@@ -29,8 +29,6 @@ export default function ReadOnlyCanvas({ pageNum, imageUrl, canvasJson, setId, n
     setCanvasSize(null);
     setReady(false);
     const img = new Image();
-    // Match the fabric background loader's CORS mode so both share one cache entry.
-    img.crossOrigin = 'anonymous';
     img.src = imageUrl;
 
     img.onload = async () => {

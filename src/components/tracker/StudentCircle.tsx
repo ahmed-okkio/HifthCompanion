@@ -434,7 +434,8 @@ function HomeworkCard({
             )}
             <MushafLink
               page={h.page_start}
-              task={{ kind: 'homework', id: h.group_id ?? h.id,
+              /* Row id, not the group's — the student marks THIS entry done. */
+              task={{ kind: 'homework', id: h.id,
                       label: homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${fmtNum(h.page_start)}–${fmtNum(h.page_end)}` }}
             />
             {linkedLogs.map((l) => (

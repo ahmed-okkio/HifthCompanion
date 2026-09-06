@@ -1191,7 +1191,9 @@ function PrescriptionCard({
                 <MushafLink
                   page={h.page_start}
                   setId={setId}
-                  task={{ kind: 'homework', id: h.group_id ?? h.id,
+                  /* The ROW id, not the group's: marking copies this entry's own scope.
+                     gradeable — a teacher or covering sub marks the work from the mushaf. */
+                  task={{ kind: 'homework', id: h.id, gradeable: true,
                           label: homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${fmtNum(h.page_start)}–${fmtNum(h.page_end)}` }}
                 />
               </div>

@@ -3,7 +3,7 @@
 import { after } from 'next/server';
 
 import { createClientAction, createClient } from '@/lib/supabase/server';
-import type { Homework, LogType } from '@/types';
+import type { Homework, LogType, StatusConfig } from '@/types';
 import { homeworkTarget, wholeSurahPages } from '@/lib/homework';
 import { getPageForAyah, getSurahName, juzPageBounds } from '@/lib/quran';
 import { notifyHomework } from '@/lib/email/notify';
@@ -89,6 +89,42 @@ export async function listHomework(membershipId: string): Promise<Homework[]> {
     .order('created_at', { ascending: false });
   if (error) throw error;
   return data ?? [];
+}
+
+/**
+ * One homework row plus what the reader's task banner needs to mark it: the circle's
+ * grade vocabulary and whether a submission already exists. The banner otherwise reads
+ * everything from the URL, but marking writes a progress_log against the prescription's
+ * own scope — that scope lives on the row, so this one fetch is unavoidable.
+ *
+ * RLS decides visibility: the owning student, their teacher, and a covering substitute
+ * see the row; anyone else gets null and the banner shows no control. `statuses` comes
+ * back empty when the circle isn't readable, which downgrades the teacher's grade chips
+ * to a plain mark rather than failing.
+ */
+export async function getHomeworkForBanner(id: string): Promise<
+  { homework: Homework; statuses: StatusConfig[]; submitted: boolean } | null
+> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('homework')
+    .select('*, membership:membership_id(circle:circle_id(teacher_statuses))')
+    .eq('id', id)
+    .maybeSingle();
+  if (!data) return null;
+
+  // supabase types the embedded relations as arrays; narrow to the single row.
+  const { membership, ...homework } = data as Homework & {
+    membership: { circle: { teacher_statuses: StatusConfig[] } | { teacher_statuses: StatusConfig[] }[] } | null;
+  };
+  const circle = Array.isArray(membership?.circle) ? membership?.circle[0] : membership?.circle;
+
+  const { count } = await supabase
+    .from('progress_log')
+    .select('id', { count: 'exact', head: true })
+    .eq('homework_id', id);
+
+  return { homework, statuses: circle?.teacher_statuses ?? [], submitted: (count ?? 0) > 0 };
 }
 
 /** Teacher deletes a whole prescription group (all rows sharing group_id). RLS

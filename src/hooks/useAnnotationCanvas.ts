@@ -203,16 +203,28 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     const changed = !prev || prev.setId !== selectedSetId || prev.page !== pageNum;
     loadedKeyRef.current = { setId: selectedSetId, page: pageNum };
 
+    // The debounced save is bound to the page it was scheduled for but reads the canvas at
+    // fire time — after a page turn that's the WRONG page's content. The explicit flush below
+    // covers the outgoing page, so drop the timer.
+    persistence.cancelPendingSave();
+
     const run = async () => {
       if (changed && prev) {
         // Flush the OUTGOING page under its own key. saveNow() is bound to the new
         // pageNum while the canvas still holds the old page's objects — using it here
         // writes the previous page's marks onto the incoming page.
-        if (user && prev.setId) await persistence.saveCanvas(canvas, prev.setId, prev.page);
+        // Only safe while the canvas actually holds prev's objects: on a fast double-turn
+        // the load for prev never finished, so the canvas still shows the page BEFORE it —
+        // saving that under prev.page duplicates those marks onto the next page.
+        const held = persistence.lastLoadedRef.current;
+        if (user && prev.setId && held?.setId === prev.setId && held.pageNum === prev.page) {
+          await persistence.saveCanvas(canvas, prev.setId, prev.page);
+        }
       }
       await persistence.loadAnnotation(canvas, selectedSetId, pageNum);
     };
     void run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSetId, pageNum, persistence.loadAnnotation, persistence.saveCanvas, user]);
 
   return {

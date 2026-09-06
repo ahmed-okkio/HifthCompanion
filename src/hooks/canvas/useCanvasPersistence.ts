@@ -50,7 +50,9 @@ export function useCanvasPersistence({
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skeletonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const activeLoadSetIdRef = useRef<string | null>(null);
+  // Identifies the load in flight by set AND page. Set-only would let a superseded load
+  // (page N) keep rendering after the user moved to N+1, dropping N's marks onto N+1.
+  const activeLoadKeyRef = useRef<string | null>(null);
   const lastLoadedRef = useRef<{ setId: string; pageNum: number } | null>(null);
   // The canvas instance the last load rendered into. A hot reload disposes + recreates the canvas
   // while lastLoadedRef (a preserved ref) still matches set/page — without this the dedup skips
@@ -177,6 +179,10 @@ export function useCanvasPersistence({
     await saveCanvas(fabricRef.current, selectedSetId, pageNum);
   }, [pageNum, saveCanvas, selectedSetId, user, fabricRef]);
 
+  const cancelPendingSave = useCallback(() => {
+    if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
+  }, []);
+
   const scheduleSaveRef = useRef(scheduleSave);
   const saveNowRef = useRef(saveNow);
   scheduleSaveRef.current = scheduleSave;
@@ -223,11 +229,15 @@ export function useCanvasPersistence({
   const loadAnnotation = useCallback(async (canvas: fabric.Canvas, setId: string, page: number) => {
     if (lastLoadedRef.current?.setId === setId && lastLoadedRef.current?.pageNum === page
         && lastLoadedCanvasRef.current === canvas) return;
-    activeLoadSetIdRef.current = setId;
+    const key = annotKey(setId, page);
+    // Canvas contents are indeterminate from here until settle(): callers must not flush it
+    // under any page key while a load is mid-flight.
+    lastLoadedRef.current = null;
+    activeLoadKeyRef.current = key;
     isLoadingRef.current = true;
     scheduleSkeleton();
 
-    const alive = () => activeLoadSetIdRef.current === setId && (canvas as any).lowerCanvasEl != null;
+    const alive = () => activeLoadKeyRef.current === key && (canvas as any).lowerCanvasEl != null;
 
     const render = (json: CanvasJson | null) => new Promise<void>((resolve) => {
       if (!alive()) return resolve();
@@ -256,7 +266,6 @@ export function useCanvasPersistence({
       prefetchAdjacent(setId, page);
     };
 
-    const key = annotKey(setId, page);
     const cached = annotCache.get(key);
 
     if (cached) {
@@ -336,6 +345,7 @@ export function useCanvasPersistence({
   return {
     saving, accessRevoked, canUndo, canRedo,
     commit, commitRef, saveCanvas, saveNow, saveNowRef, scheduleSave, scheduleSaveRef,
+    cancelPendingSave, lastLoadedRef,
     loadAnnotation, handleUndo, handleRedo, handleClear,
     refreshHistory, applyBackground, scheduleSkeleton
   };

@@ -9,6 +9,7 @@ const defaultProps = {
   activeColor: '#ef4444',
   canUndo: false,
   canRedo: false,
+  canClear: true,
   saving: false,
   onToolClick: vi.fn(),
   onColorChange: vi.fn(),
@@ -89,6 +90,16 @@ describe('AnnotationToolbar', () => {
     render(<AnnotationToolbar {...defaultProps} onClear={onClear} />);
     fireEvent.click(screen.getByTitle('Clear all drawings'));
     expect(onClear).toHaveBeenCalledOnce();
+  });
+
+  it('disables clear when the page has nothing to clear', () => {
+    render(<AnnotationToolbar {...defaultProps} canClear={false} />);
+    expect(screen.getByTitle('Clear all drawings')).toBeDisabled();
+  });
+
+  it('enables clear when the page has marks', () => {
+    render(<AnnotationToolbar {...defaultProps} canClear />);
+    expect(screen.getByTitle('Clear all drawings')).toBeEnabled();
   });
 
   it('calls onHoverEnter on tool button mouseenter', () => {

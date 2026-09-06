@@ -47,6 +47,8 @@ export function useCanvasPersistence({
   const accessRevokedRef = useRef(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  /** Canvas holds at least one mark — Clear is pointless (and disabled) when it doesn't. */
+  const [hasMarks, setHasMarks] = useState(false);
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skeletonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,7 +82,10 @@ export function useCanvasPersistence({
       setCanUndo(h.canUndo());
       setCanRedo(h.canRedo());
     }
-  }, [historyRef]);
+    // Piggybacks on refreshHistory rather than its own listener: every point that can change
+    // the object count (commit, load settle, undo/redo) already calls this.
+    setHasMarks((fabricRef.current?.getObjects().length ?? 0) > 0);
+  }, [historyRef, fabricRef]);
 
   const commit = useCallback((force = false) => {
     if (isLoadingRef.current) return;
@@ -377,7 +382,7 @@ export function useCanvasPersistence({
   }, []);
 
   return {
-    saving, accessRevoked, canUndo, canRedo,
+    saving, accessRevoked, canUndo, canRedo, hasMarks,
     commit, commitRef, saveCanvas, saveNow, saveNowRef, scheduleSave, scheduleSaveRef,
     cancelPendingSave, lastLoadedRef,
     loadAnnotation, handleUndo, handleRedo, handleClear,

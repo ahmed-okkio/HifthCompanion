@@ -41,6 +41,9 @@ interface Props {
   tools?: ToolState;
   /** M4 spread mode: notify the shell controller of a committed action (F4). */
   onCommit?: () => void;
+  /** M4 spread mode: report whether THIS page holds marks, so the shared Clear can light up
+   *  when either page of the spread has something to clear. */
+  onMarksChange?: (hasMarks: boolean) => void;
   /** Spread mode horizontal alignment: 'start' = flush-left (right page toward center),
    *  'end' = flush-right (left page toward center). Default 'center' (single mode). */
   flush?: 'start' | 'end';
@@ -53,13 +56,13 @@ interface Props {
 }
 
 function AnnotationCanvasInner(
-  { pageNum, imageUrl, sets, user, lockedSet = false, showSetsCard = true, tools, onCommit, view, flush, sharePageBasePath, onSaved }: Props,
+  { pageNum, imageUrl, sets, user, lockedSet = false, showSetsCard = true, tools, onCommit, onMarksChange, view, flush, sharePageBasePath, onSaved }: Props,
   ref: React.Ref<CanvasHandle>,
 ) {
   const {
     containerRef, wrapperRef, canvasRef, fabricRef,
     selectedSetId, saving, accessRevoked, activeTool, activeColor, opacity, penWidth, eraserSize,
-    canUndo, canRedo, canvasReady, canvasSize, pageMaxHeightOffset, hoveredTool, hoverPos,
+    canUndo, canRedo, hasMarks, canvasReady, canvasSize, pageMaxHeightOffset, hoveredTool, hoverPos,
     interactionMode, setInteractionMode,
     setActiveColor, setOpacity, setPenWidth, setEraserSize,
     handleUndo, handleRedo, handleClear, handleToolClick,
@@ -67,6 +70,10 @@ function AnnotationCanvasInner(
     applyBackingForZoom,
   } = useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet, tools, onCommit, onSaved });
   const { t } = useI18n();
+
+  const onMarksChangeRef = useRef(onMarksChange);
+  onMarksChangeRef.current = onMarksChange;
+  useEffect(() => { onMarksChangeRef.current?.(hasMarks); }, [hasMarks]);
 
   // Spread shell drives undo/redo/clear through this handle (F4). clear skips the per-canvas
   // confirm — the shell shows ONE combined confirm before fanning out.
@@ -188,6 +195,7 @@ function AnnotationCanvasInner(
             activeColor={activeColor}
             canUndo={canUndo}
             canRedo={canRedo}
+            canClear={hasMarks}
             saving={saving}
             onToolClick={t => { eff.setMoveTool(false); handleToolClick(t); }}
             onColorChange={setActiveColor}
@@ -208,6 +216,7 @@ function AnnotationCanvasInner(
           activeColor={activeColor}
           canUndo={canUndo}
           canRedo={canRedo}
+          canClear={hasMarks}
           saving={saving}
           mode={interactionMode}
           onModeChange={setInteractionMode}

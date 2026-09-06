@@ -9,6 +9,8 @@ interface Props {
   activeColor: string;
   canUndo: boolean;
   canRedo: boolean;
+  /** Canvas has something to clear. */
+  canClear: boolean;
   saving: boolean;
   mode: 'move' | 'draw';
   onModeChange: (m: 'move' | 'draw') => void;
@@ -46,7 +48,7 @@ const triggerStyle: React.CSSProperties = {
 };
 
 export default function MobileAnnotationBar({
-  activeTool, activeColor, canUndo, canRedo, saving,
+  activeTool, activeColor, canUndo, canRedo, canClear, saving,
   mode, onModeChange, onToolClick, onColorChange, onUndo, onRedo, onClear,
 }: Props) {
   const { t } = useI18n();
@@ -156,10 +158,12 @@ export default function MobileAnnotationBar({
         <div role="menu" aria-label={t('annot.moreActions')} style={{ ...cardStyle, right: 8, minWidth: 160 }}>
           <button
             onClick={() => { onClear(); close(); }}
+            disabled={!canClear}
             title={t('annot.clearAll')}
             aria-label={t('annot.clearAll')}
+            aria-disabled={!canClear}
             className="btn btn-danger-ghost"
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 'var(--radius-md)', justifyContent: 'flex-start' }}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 'var(--radius-md)', justifyContent: 'flex-start', ...(!canClear ? { opacity: 0.4, pointerEvents: 'none' } : {}) }}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

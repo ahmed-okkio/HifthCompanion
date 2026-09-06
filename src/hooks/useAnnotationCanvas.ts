@@ -235,7 +235,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     containerRef, wrapperRef, canvasRef, fabricRef,
     selectedSetId, saving: persistence.saving, accessRevoked: persistence.accessRevoked,
     activeTool, activeColor, opacity, penWidth, eraserSize,
-    canUndo: persistence.canUndo, canRedo: persistence.canRedo,
+    canUndo: persistence.canUndo, canRedo: persistence.canRedo, hasMarks: persistence.hasMarks,
     canvasReady, canvasSize: viewport.canvasSize, pageMaxHeightOffset: viewport.pageMaxHeightOffset,
     hoveredTool: canvasTools.hoveredTool, hoverPos: canvasTools.hoverPos,
     interactionMode: canvasTools.interactionMode, setInteractionMode: canvasTools.setInteractionMode,

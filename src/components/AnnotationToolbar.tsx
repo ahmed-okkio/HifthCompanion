@@ -9,6 +9,8 @@ interface Props {
   activeColor: string;
   canUndo: boolean;
   canRedo: boolean;
+  /** Canvas has something to clear. Spread mode passes "either page has marks". */
+  canClear: boolean;
   saving: boolean;
   onToolClick: (t: Tool) => void;
   onColorChange: (c: string) => void;
@@ -33,7 +35,7 @@ function Divider() {
 }
 
 export default function AnnotationToolbar({
-  activeTool, activeColor, canUndo, canRedo,
+  activeTool, activeColor, canUndo, canRedo, canClear,
   onToolClick, onColorChange, onUndo, onRedo, onClear,
   onHoverEnter, onHoverLeave, moveActive, onMoveToggle,
 }: Props) {
@@ -201,15 +203,20 @@ export default function AnnotationToolbar({
 
         <button
           onClick={onClear}
+          disabled={!canClear}
           title={t('annot.clearAll')}
           aria-label={t('annot.clearAll')}
+          aria-disabled={!canClear}
           className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6"
           style={{
             ...cellBase,
             background: 'transparent',
-            color: 'var(--danger-500)',
+            // Same disabled treatment as undo/redo above, but keeps the danger hue when live.
+            ...(!canClear
+              ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none' }
+              : { color: 'var(--danger-500)' }),
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
+          onMouseEnter={e => { if (canClear) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
           onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
         >
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

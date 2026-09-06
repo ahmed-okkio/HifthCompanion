@@ -51,6 +51,13 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
   const redoOrder = useRef<number[]>([]);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  // Per-canvas mark presence, indexed like `handles`. Clear fans out to BOTH pages, so it is
+  // live when either one has something to clear.
+  const [marks, setMarks] = useState<[boolean, boolean]>([false, false]);
+  const canClear = marks[0] || marks[1];
+  const setMarksAt = useCallback((id: number, has: boolean) => {
+    setMarks(prev => (prev[id] === has ? prev : id === 0 ? [has, prev[1]] : [prev[0], has]));
+  }, []);
   const sync = useCallback(() => {
     setCanUndo(undoOrder.current.length > 0);
     setCanRedo(redoOrder.current.length > 0);
@@ -79,10 +86,11 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
   }, [sync]);
 
   const clear = useCallback(() => {
+    if (!canClear) return; // F5-style no-op: matches undo/redo on an empty timeline
     if (!confirm(t('annot.confirmClearBoth'))) return;
     rightRef.current?.clear();
     leftRef.current?.clear();
-  }, []);
+  }, [canClear]);
 
   const view = useViewportState([pages[0], pages[1]]);
   const { zoom, dragging, moveTool, setMoveTool, onPanDown, onPanMove, endPan, clampZoom, setZoom, resetView } = view;
@@ -110,6 +118,7 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
           activeColor={activeColor}
           canUndo={canUndo}
           canRedo={canRedo}
+          canClear={canClear}
           saving={false}
           onToolClick={onToolClick}
           onColorChange={setActiveColor}
@@ -163,6 +172,7 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
             lockedSet={lockedSet}
             tools={tools}
             onCommit={() => onCommit(0)}
+            onMarksChange={has => setMarksAt(0, has)}
             onSaved={onSaved}
             view={view}
             flush="start"
@@ -180,6 +190,7 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
             showSetsCard={false}
             tools={tools}
             onCommit={() => onCommit(1)}
+            onMarksChange={has => setMarksAt(1, has)}
             onSaved={onSaved}
             view={view}
             flush="end"

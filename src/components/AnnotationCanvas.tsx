@@ -1,9 +1,9 @@
 'use client';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import type { AnnotationSet } from '@/types';
-import { TOTAL_PAGES, clampPage, spreadUrl } from '@/lib/quran';
+import { TOTAL_PAGES } from '@/lib/quran';
 import PageDisplayFrame from '@/components/PageDisplayFrame';
 import PageNavArrow from '@/components/PageNavArrow';
 import AnnotationToolbar from '@/components/AnnotationToolbar';
@@ -15,6 +15,7 @@ import { LegendButton } from '@/components/LegendModal';
 import SpreadToggle from '@/components/SpreadToggle';
 import NoteBadgeLayer from '@/components/NoteBadgeLayer';
 import { useAnnotationCanvas, type ToolState } from '@/hooks/useAnnotationCanvas';
+import { useGoToPage } from '@/hooks/useGoToPage';
 import { useI18n } from '@/components/I18nProvider';
 
 import { useViewportState, useHoverState, type CanvasView } from '@/hooks/canvas/useViewportState';
@@ -63,7 +64,7 @@ function AnnotationCanvasInner(
     setActiveColor, setOpacity, setPenWidth, setEraserSize,
     handleUndo, handleRedo, handleClear, handleToolClick,
     updateSelectedSetInUrl, onHoverEnter, onHoverLeave, onHoverCancelLeave,
-    applyBackingForZoom, beginPageNav,
+    applyBackingForZoom,
   } = useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet, tools, onCommit, onSaved });
   const { t } = useI18n();
 
@@ -77,36 +78,14 @@ function AnnotationCanvasInner(
 
   const controlled = !!view;
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const { goToPage } = useGoToPage({ basePath: sharePageBasePath });
 
-  const go = (page: number) => {
-    const clamped = clampPage(page);
-    beginPageNav(); // paint the skeleton now, before the (possibly throttled) route commits
-    if (sharePageBasePath) {
-      router.push(`${sharePageBasePath}/${clamped}`, { scroll: false });
-      return;
-    }
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('page');
-    const qs = params.toString();
-    router.push(`/reader/${clamped}${qs ? `?${qs}` : ''}`, { scroll: false });
-  };
+  const go = (page: number) => { void goToPage(page); };
 
   // Spread-mode arrows navigate straight to the target SPREAD segment ("N-M") so
   // we never bounce through a single page that only re-expands if the localStorage
   // spread preference happens to be set (that made spread nav collapse to single).
-  const goSpread = (page: number) => {
-    const seg = spreadUrl(clampPage(page));
-    beginPageNav(); // paint the skeleton now, before the (possibly throttled) route commits
-    if (sharePageBasePath) {
-      router.push(`${sharePageBasePath}/${seg}`, { scroll: false });
-      return;
-    }
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('page');
-    const qs = params.toString();
-    router.push(`/reader/${seg}${qs ? `?${qs}` : ''}`, { scroll: false });
-  };
+  const goSpread = (page: number) => { void goToPage(page, true); };
 
   // D2: a collaborator's access was revoked mid-session — their next save was rejected by RLS.
   // Show a toast, then bounce them to their own reader.

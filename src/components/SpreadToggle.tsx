@@ -1,6 +1,7 @@
 'use client';
-import { usePathname, useRouter } from 'next/navigation';
-import { spreadOf, spreadUrl } from '@/lib/quran';
+import { usePathname } from 'next/navigation';
+import { spreadOf } from '@/lib/quran';
+import { useGoToPage } from '@/hooks/useGoToPage';
 import { useI18n } from '@/components/I18nProvider';
 
 /** localStorage key holding the persisted spread/single preference ('1' = spread). */
@@ -13,19 +14,15 @@ export const SPREAD_MODE_KEY = 'reader-spread-mode';
  */
 export default function SpreadToggle({ page, active, basePath }: { page: number; active: boolean; basePath?: string }) {
   const { t } = useI18n();
-  const router = useRouter();
   const pathname = usePathname();
   const base = basePath ?? '/reader';
+  const { goToPage } = useGoToPage({ basePath: base });
   if (!pathname.startsWith(`${base}/`)) return null; // not on this route
 
   const toggle = () => {
-    if (active) {
-      localStorage.setItem(SPREAD_MODE_KEY, '0');
-      router.push(`${base}/${spreadOf(page)[0]}`); // back to the lower page (C2)
-    } else {
-      localStorage.setItem(SPREAD_MODE_KEY, '1');
-      router.push(`${base}/${spreadUrl(page)}`);
-    }
+    localStorage.setItem(SPREAD_MODE_KEY, active ? '0' : '1');
+    // C2: leaving spread lands on the lower page of the pair.
+    void goToPage(active ? spreadOf(page)[0] : page, !active);
   };
 
   return (

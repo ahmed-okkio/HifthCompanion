@@ -1,7 +1,7 @@
 'use client';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import { TOTAL_PAGES, clampPage, spreadUrl, spreadOf } from '@/lib/quran';
+import { TOTAL_PAGES, spreadOf } from '@/lib/quran';
+import { useGoToPage } from '@/hooks/useGoToPage';
 import ProfileMenu from './ProfileMenu';
 import Brand from './Brand';
 import Link from 'next/link';
@@ -27,8 +27,7 @@ export default function ReaderNav({
   /** M6: when true, prev/next step by 2 and jumps snap to spread URL (D1-D4). */
   isSpread?: boolean;
 }) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const { goToPage } = useGoToPage({ basePath: sharePageBasePath, isSpread });
   const { t, fmtNum, locale } = useI18n();
 
   // Spread label follows reading direction: RTL (ar) shows high-low so the page
@@ -42,17 +41,7 @@ export default function ReaderNav({
   const [jumpFocused, setJumpFocused] = useState(false);
 
   const go = (page: number) => {
-    const clamped = clampPage(page);
-    const target = isSpread ? spreadUrl(clamped) : String(clamped);
-    if (sharePageBasePath) {
-      router.push(`${sharePageBasePath}/${target}`, { scroll: false });
-      setJumpInput('');
-      return;
-    }
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('page');
-    const qs = params.toString();
-    router.push(`/reader/${target}${qs ? `?${qs}` : ''}`, { scroll: false });
+    void goToPage(page);
     setJumpInput('');
   };
 

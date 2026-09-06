@@ -241,10 +241,5 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     updateSelectedSetInUrl,
     onHoverEnter: canvasTools.onHoverEnter, onHoverLeave: canvasTools.onHoverLeave, onHoverCancelLeave: canvasTools.onHoverCancelLeave,
     applyBackingForZoom: viewport.applyBackingForZoom,
-    beginPageNav: () => {
-      const set = (window as any).__hifthCanvasSkeletons as Set<() => void> | undefined;
-      if (set && set.size) set.forEach(fn => fn());
-      else persistence.scheduleSkeleton();
-    },
   };
 }

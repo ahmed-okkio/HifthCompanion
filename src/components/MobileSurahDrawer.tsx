@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { activeGroupPage, filterSurahGroups, getSurahName, pageFromLocation, spreadUrl, type SurahPageGroup } from '@/lib/quran';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { activeGroupPage, filterSurahGroups, getSurahName, pageFromLocation, type SurahPageGroup } from '@/lib/quran';
 import { pinStorageKey } from '@/lib/bookmark';
 import { useI18n } from '@/components/I18nProvider';
+import { useGoToPage } from '@/hooks/useGoToPage';
 
 interface Props {
   open: boolean;
@@ -52,9 +53,9 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
     if (longPressTimer.current) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
   };
 
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { goToPage } = useGoToPage({ basePath, isSpread });
 
   const currentPage = useMemo(() => pageFromLocation(pathname, searchParams), [pathname, searchParams]);
   const activePage = useMemo(() => activeGroupPage(currentPage), [currentPage]);
@@ -87,19 +88,9 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
     };
   }, [open]);
 
-  const handleSelect = async (group: SurahPageGroup) => {
-    const flush = (window as Window & { __hifthFlushReaderCanvas?: () => Promise<void> }).__hifthFlushReaderCanvas;
-    await flush?.();
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('page');
-    const query = params.toString();
-    const pageSeg = isSpread ? spreadUrl(group.page) : String(group.page);
-    const targetPath = `${basePath}/${pageSeg}`;
-    const targetHref = query ? `${targetPath}?${query}` : targetPath;
+  const handleSelect = (group: SurahPageGroup) => {
     onOpenChange(false);
-    if (currentPage !== group.page) {
-      router.push(targetHref, { scroll: false });
-    }
+    void goToPage(group.page);
   };
 
   return (

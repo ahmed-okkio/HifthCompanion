@@ -1,11 +1,12 @@
 'use client';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { SURAH_PAGE_GROUPS, activeGroupPage, filterSurahGroups, getJuzForPage, getSurahName, pageFromLocation, spreadOf, spreadUrl, type SurahPageGroup } from '@/lib/quran';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { SURAH_PAGE_GROUPS, activeGroupPage, filterSurahGroups, getJuzForPage, getSurahName, pageFromLocation, spreadOf, type SurahPageGroup } from '@/lib/quran';
 import { pinStorageKey } from '@/lib/bookmark';
 import { useI18n } from '@/components/I18nProvider';
 import { sortMarked, type MarkedPage } from '@/lib/markedPages';
 import MarkedPagesList from '@/components/MarkedPagesList';
+import { useGoToPage } from '@/hooks/useGoToPage';
 
 interface Props {
   onSelect?: (surahNumber: number) => void;
@@ -45,9 +46,9 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
     });
   };
 
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { goToPage } = useGoToPage({ basePath, isSpread });
 
   const currentPage = useMemo(
     () => (typeof currentPageProp === 'number' ? currentPageProp : pageFromLocation(pathname, searchParams)),
@@ -192,42 +193,19 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
       pinningRef.current = true;
     }
 
-    const flush = (window as any).__hifthFlushReaderCanvas as undefined | (() => Promise<void>);
-    await flush?.();
     onSelect?.(group.surahs[0] ?? 1);
 
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('page');
-    const query = params.toString();
-    const pageSeg = isSpread ? spreadUrl(group.page) : String(group.page);
-    const targetPath = `${basePath ?? '/reader'}/${pageSeg}`;
-    const targetHref = query ? `${targetPath}?${query}` : targetPath;
-    const currentHref = query ? `${pathname}?${query}` : pathname;
-
-    if (targetHref === currentHref) {
+    if (!(await goToPage(group.page))) {
       // No navigation will occur; release the guard so normal tracking resumes.
       pendingTargetRef.current = null;
       pinningRef.current = false;
       cameFromPanelRef.current = false;
-      return;
     }
-
-    router.push(targetHref, { scroll: false });
   };
 
-  // R2: jump straight to a page (Marked-tab row). Reuses the SAME routing as handleSelect —
-  // flush pending canvas edits, then spread-aware push — minus the Surahs-list scroll bookkeeping,
-  // which is irrelevant to the Marked list. // ponytail: small dup of the routing tail, not a shared abstraction for two call sites.
-  const jumpToPage = async (page: number) => {
-    const flush = (window as any).__hifthFlushReaderCanvas as undefined | (() => Promise<void>);
-    await flush?.();
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('page');
-    const query = params.toString();
-    const pageSeg = isSpread ? spreadUrl(page) : String(page);
-    const targetPath = `${basePath ?? '/reader'}/${pageSeg}`;
-    router.push(query ? `${targetPath}?${query}` : targetPath, { scroll: false });
-  };
+  // R2: jump straight to a page (Marked-tab row) through the same shared routing as the
+  // Surahs list, minus that list's scroll bookkeeping, which is irrelevant here.
+  const jumpToPage = (page: number) => { void goToPage(page); };
 
   const markedRows = useMemo(() => sortMarked(markedPages ?? []), [markedPages]);
 

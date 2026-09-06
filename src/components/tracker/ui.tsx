@@ -16,21 +16,31 @@ import { localizeDigits, isLocale } from '@/lib/i18n/config';
 import Link from 'next/link';
 
 /**
- * Jump straight to a homework/exam row's first page in the reader. `task` carries
- * the reason into the reader's banner (label included, so the reader needs no
- * fetch); `gradeable` adds the teacher's pass/fail control there.
+ * Jump straight to a homework/exam row's first page. `task` carries the reason into
+ * the reader's banner (label included, so the reader needs no fetch); `gradeable`
+ * adds the teacher's pass/fail control there.
+ *
+ * `setId` is the mushaf to open. A teacher or substitute looking at a student's work
+ * must land on THAT student's mushaf (`/share/{set}/{page}`) — without it the link
+ * opened the viewer's own reader, showing the right page of the wrong person's book.
+ * So the three states are distinct: omitted = the viewer's own reader (the student's
+ * own views), a set = that student's mushaf, and null = a student with no default set,
+ * where there is no mushaf to open and the link hides rather than falling back to the
+ * viewer's own book.
  */
-export function MushafLink({ page, task }: {
+export function MushafLink({ page, setId, task }: {
   page: number;
+  setId?: string | null;
   task?: { kind: 'homework' | 'exam'; id: string; label: string; gradeable?: boolean };
 }) {
   const { t } = useI18n();
+  if (setId === null) return null;
   const query = task
     ? `?task=${task.kind}&id=${task.id}&t=${encodeURIComponent(task.label)}${task.gradeable ? '&g=1' : ''}`
     : '';
   return (
     <Link
-      href={`/reader/${page}${query}`}
+      href={`${setId ? `/share/${setId}` : '/reader'}/${page}${query}`}
       className="inline-flex items-center gap-1 self-start text-xs"
       style={{ color: 'var(--text-accent)', textDecoration: 'none' }}
     >

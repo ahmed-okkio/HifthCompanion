@@ -4,6 +4,7 @@ import { getPageImageUrl, TOTAL_PAGES, parseSpread } from '@/lib/quran';
 import { notFound, redirect } from 'next/navigation';
 import ReadOnlyCanvas from '@/components/ReadOnlyCanvas';
 import ShareShell from '@/components/ShareShell';
+import ReaderTaskBanner from '@/components/ReaderTaskBanner';
 import NotesPanel from '@/components/NotesPanel';
 import SpreadNotesPanel from '@/components/SpreadNotesPanel';
 import type { Note } from '@/types';
@@ -100,6 +101,11 @@ export default async function SharePage({ params, searchParams }: Props) {
         <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-6 items-start lg:h-full lg:min-h-0 lg:items-start lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] lg:justify-center">
 
           <div className="flex min-w-0 flex-col gap-4">
+            {/* Opened from a homework/exam card — say what the page is for. The
+                collaborator branch gets this from ReaderShell; this read-only one
+                (a covering substitute, notably) renders its own. */}
+            <ReaderTaskBanner />
+
             {/* Read-only badge */}
             <div className="mx-auto flex w-fit items-center gap-2 rounded-lg px-3 py-2"
                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)', fontSize: '12px' }}>

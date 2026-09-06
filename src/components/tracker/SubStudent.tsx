@@ -176,6 +176,7 @@ export default function SubStudent({
             membershipId={membershipId}
             state={homeworkState}
             teacherStatuses={teacherStatuses}
+            setId={defaultSetId}
             canPrescribe={false}
           />
         )}

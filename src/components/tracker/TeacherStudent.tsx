@@ -208,6 +208,7 @@ export default function TeacherStudent({
         {tab === 'homework' && (
           <HomeworkPanel
             membershipId={member.id} state={homeworkState} teacherStatuses={circle.teacher_statuses}
+            setId={defaultSetId}
             /* Work set today is due at the next lesson (the form still overrides). */
             defaultDeadline={nextSessionDate(
               sessionsState.weekdays.length
@@ -217,7 +218,7 @@ export default function TeacherStudent({
             ) ?? ''}
           />
         )}
-        {tab === 'exams' && <ExamsPanel membershipId={member.id} initial={initialExams} locale={locale} />}
+        {tab === 'exams' && <ExamsPanel membershipId={member.id} initial={initialExams} locale={locale} setId={defaultSetId} />}
         {tab === 'notes' && <NotesThread membershipId={member.id} initial={initialNotes} />}
         {isMobile && tab === 'annotations' && (
           <div className="card flex flex-col gap-2" style={{ padding: '16px 0 8px' }}>
@@ -959,11 +960,13 @@ export function useHomeworkState(initialHomework: Homework[], initialLogs: Progr
 export type HomeworkState = ReturnType<typeof useHomeworkState>;
 
 export function HomeworkPanel({
-  membershipId, state, teacherStatuses, canPrescribe = true, defaultDeadline = '',
+  membershipId, state, teacherStatuses, setId = null, canPrescribe = true, defaultDeadline = '',
 }: {
   membershipId: string;
   state: HomeworkState;
   teacherStatuses: StatusConfig[];
+  /** Student's default set — the Mushaf links open their mushaf, not the viewer's. */
+  setId?: string | null;
   /** Pre-filled deadline for a new prescription — the next session's day. */
   defaultDeadline?: string;
   /** False for a covering substitute: they mark the work, they don't set it —
@@ -1104,7 +1107,7 @@ export function HomeworkPanel({
             linkedCount={linkedCount} logsByHomework={logsByHomework}
             teacherStatuses={teacherStatuses} onGraded={onGraded} onEditDeadline={handleEditDeadline}
             onDelete={handleDeleteHomework} onResult={onResult} membershipId={membershipId}
-            canPrescribe={canPrescribe}
+            canPrescribe={canPrescribe} setId={setId}
           />
         ) : (
           <div key={entry.key} className="card" style={{ padding: '12px 16px' }}>
@@ -1125,9 +1128,10 @@ export function HomeworkPanel({
 // Header (type + status) is always shown; instructions, deadline editor, entries
 // and their gradeable logs appear only once the card is selected.
 function PrescriptionCard({
-  group, locale, linkedCount, logsByHomework, teacherStatuses, onGraded, onEditDeadline, onDelete, onResult, membershipId, canPrescribe,
+  group, locale, linkedCount, logsByHomework, teacherStatuses, onGraded, onEditDeadline, onDelete, onResult, membershipId, canPrescribe, setId,
 }: {
   canPrescribe: boolean;
+  setId: string | null;
   group: { key: string; items: Homework[] };
   locale: 'en' | 'ar';
   linkedCount: Map<string, number>;
@@ -1186,6 +1190,7 @@ function PrescriptionCard({
                 </span>
                 <MushafLink
                   page={h.page_start}
+                  setId={setId}
                   task={{ kind: 'homework', id: h.group_id ?? h.id,
                           label: homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${fmtNum(h.page_start)}–${fmtNum(h.page_end)}` }}
                 />
@@ -1524,11 +1529,12 @@ const EXAM_STATUS_STYLE: Record<ExamStatus, React.CSSProperties> = {
 };
 
 function ExamsPanel({
-  membershipId, initial, locale,
+  membershipId, initial, locale, setId,
 }: {
   membershipId: string;
   initial: Exam[];
   locale: 'en' | 'ar';
+  setId: string | null;
 }) {
   const { t } = useI18n();
   const [items, setItems] = useState(initial);
@@ -1621,7 +1627,7 @@ function ExamsPanel({
       <SectionTitle>{t('exam.title')}</SectionTitle>
       {items.length === 0 && <EmptyState>{t('exam.noExams')}</EmptyState>}
       {items.map((exam) => (
-        <ExamCard key={exam.id} exam={exam} locale={locale} onGrade={handleGrade} onDelete={handleDelete}
+        <ExamCard key={exam.id} exam={exam} locale={locale} setId={setId} onGrade={handleGrade} onDelete={handleDelete}
                   onReschedule={handleReschedule} defaultOpen={exam.id === latestOpenId} />
       ))}
     </div>
@@ -1804,10 +1810,13 @@ function examTarget(exam: Exam, locale: 'en' | 'ar', juzWord: string, fmtNum: (v
  * controls); omit them for the student's read-only view (notes shown if present).
  */
 export function ExamCard({
-  exam, locale, onGrade, onDelete, onReschedule, defaultOpen = false,
+  exam, locale, setId, onGrade, onDelete, onReschedule, defaultOpen = false,
 }: {
   exam: Exam;
   locale: 'en' | 'ar';
+  /** Student's default set — set on the teacher's surface so the Mushaf link opens
+   *  THEIR mushaf. Omitted on the student's own view (their own reader). */
+  setId?: string | null;
   onGrade?: (id: string, status: ExamStatus, notes: string | null) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   onReschedule?: (id: string, date: string) => Promise<void>;
@@ -1837,7 +1846,7 @@ export function ExamCard({
 
       {open && (<>
       {/* Straight to the first page of the exam's coverage, with the reason in tow. */}
-      <MushafLink page={exam.page_start} task={{ kind: 'exam', id: exam.id, label: target, gradeable: !!onGrade }} />
+      <MushafLink page={exam.page_start} setId={setId} task={{ kind: 'exam', id: exam.id, label: target, gradeable: !!onGrade }} />
 
       {onGrade ? (
         // Teacher: editable notes + grade controls.

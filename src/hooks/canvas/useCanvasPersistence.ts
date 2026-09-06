@@ -61,6 +61,10 @@ export function useCanvasPersistence({
   const lastSnapshotAtRef = useRef<number>(0);
   const isLoadingRef = useRef(false);
   const userEditedSinceLoadRef = useRef(false);
+  // Unsaved changes exist. Distinct from userEditedSinceLoad, which stays true for the whole
+  // visit to a page (it guards the empty-payload delete); this clears on every successful
+  // write, so it answers "is a save actually owed?".
+  const dirtyRef = useRef(false);
 
   const supabase = useMemo(() => createClient(), []);
   const store = useMemo(() => createAnnotationStore(supabase), [supabase]);
@@ -81,6 +85,10 @@ export function useCanvasPersistence({
   const commit = useCallback((force = false) => {
     if (isLoadingRef.current) return;
     userEditedSinceLoadRef.current = true;
+    // Above BOTH early-outs below: the canvas has really changed by here. The `restoring`
+    // check skips undo/redo and the 120ms throttle skips a rapid second stroke — neither is
+    // "nothing happened", and marking dirty after them would let saveNow drop the change.
+    dirtyRef.current = true;
     if (historyRef.current?.restoring) return;
     const now = Date.now();
     if (!force && now - lastSnapshotAtRef.current < 120) return;
@@ -128,12 +136,17 @@ export function useCanvasPersistence({
       // A real Clear routes through handleClear → commit(true), which sets userEditedSinceLoad.
       if (payload.objects.length === 0 && (!userEditedSinceLoadRef.current || canvas.getObjects().length > 0)) {
         console.warn('[AnnotationCanvas] Skipped empty save: no user edit since load (load/HMR race?)');
+        dirtyRef.current = false;
         return;
       }
       const count = payload.objects.length === 0
         ? 0
         : clusterCount(payload.objects as any, Math.max(16, Math.round(canvas.getWidth() * 0.03)));
+      // Cleared BEFORE the write, not after: an edit landing mid-flight re-dirties and is
+      // picked up by the next save, instead of being swallowed by a late reset.
+      dirtyRef.current = false;
       const r = await store.save(setId, page, payload, count);
+      if (r.status !== 'saved') dirtyRef.current = true;
       if (r.status === 'saved') {
         annotCache.set(annotKey(setId, page), { json: count === 0 ? null : payload });
         onSavedRef.current?.(setId, page, count);
@@ -172,6 +185,11 @@ export function useCanvasPersistence({
 
   const saveNow = useCallback(async () => {
     if (!user || !selectedSetId || !fabricRef.current || accessRevokedRef.current) return;
+    // Nothing to write. useGoToPage AWAITS this flush before router.push, so an unconditional
+    // save put a store.save + reconcileNoteBindings round-trip in front of every page change —
+    // paid on any page that had annotations on it, even when the user only looked at it. A
+    // blank page never showed the stall because the empty-payload guard below bailed first.
+    if (!dirtyRef.current && !saveTimerRef.current) return;
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;
@@ -271,6 +289,7 @@ export function useCanvasPersistence({
       lastLoadedCanvasRef.current = canvas;
       isLoadingRef.current = false;
       userEditedSinceLoadRef.current = false;
+      dirtyRef.current = false;
       setCanvasReady(true);
       prefetchAdjacent(setId, page);
     };

@@ -33,8 +33,16 @@ function makeCanvas() {
     },
     /** scheduleSave(): the 1.5s debounce. */
     scheduleSave() { timer = 1; },
-    /** saveNow(): what the page-flip flush calls on every mounted canvas. */
-    flush(label: string) {
+    /** cancelPendingSave(): the page-change effect drops the debounce before flushing. */
+    cancelPendingSave() { timer = null; },
+    /** The spent debounce fires and must clear its own ref, or the guard sees it forever. */
+    fireDebounce(label: string) { timer = null; this.saveCanvas(label); },
+    /**
+     * saveCanvas(): the guard lives here because BOTH flush paths land on it -- useGoToPage's
+     * pre-navigation flush and useAnnotationCanvas's page-change effect, which awaits it
+     * before loadAnnotation and so blocks the incoming page's image on it.
+     */
+    saveCanvas(label: string) {
       if (!dirty && timer === null) return;
       timer = null;
       dirty = false;
@@ -48,40 +56,57 @@ describe('page-flip flush', () => {
   beforeEach(() => { c = makeCanvas(); });
 
   it('skips the write when the page was only looked at', () => {
-    c.flush('idle');
+    c.saveCanvas('idle');
     expect(c.writes).toEqual([]);
   });
 
   it('still writes a single stroke (path:created commits, then flushes)', () => {
     c.commit();
-    c.flush('stroke');
+    c.saveCanvas('stroke');
     expect(c.writes).toEqual(['stroke']);
   });
 
   it('does not drop a second stroke inside the 120ms snapshot throttle', () => {
     c.commit();
-    c.flush('first');
+    c.saveCanvas('first');
     c.advance(30);
     c.commit();          // throttled: returns before snapshotting, but the canvas DID change
-    c.flush('second');
+    c.saveCanvas('second');
     expect(c.writes).toEqual(['first', 'second']);
   });
 
   it('does not drop an undo (commit bails on `restoring`; scheduleSave is the signal)', () => {
     c.commit();
-    c.flush('stroke');
+    c.saveCanvas('stroke');
     c.setRestoring(true);
     c.commit();          // restoring: returns early
     c.scheduleSave();    // handleUndo schedules directly
-    c.flush('undo');
+    c.saveCanvas('undo');
     expect(c.writes).toEqual(['stroke', 'undo']);
+  });
+
+  it('skips BOTH page-turn flushes when the page was only looked at', () => {
+    // useGoToPage flushes before router.push; the page-change effect flushes again before
+    // loadAnnotation. Neither may write, or the incoming page waits on a pointless round-trip.
+    c.saveCanvas('goToPage-flush');
+    c.cancelPendingSave();
+    c.saveCanvas('page-change-flush');
+    expect(c.writes).toEqual([]);
+  });
+
+  it('a spent debounce does not leave the guard permanently open', () => {
+    c.commit();
+    c.scheduleSave();
+    c.fireDebounce('debounced');
+    c.saveCanvas('later-flip');   // clean now: the fired timer must not read as pending
+    expect(c.writes).toEqual(['debounced']);
   });
 
   it('does not re-write an already-saved page on the next flip', () => {
     c.commit();
-    c.flush('stroke');
-    c.flush('flip-away');
-    c.flush('flip-back');
+    c.saveCanvas('stroke');
+    c.saveCanvas('flip-away');
+    c.saveCanvas('flip-back');
     expect(c.writes).toEqual(['stroke']);
   });
 });

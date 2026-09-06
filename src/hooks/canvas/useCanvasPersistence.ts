@@ -124,6 +124,14 @@ export function useCanvasPersistence({
 
   const saveCanvas = useCallback(async (canvas: fabric.Canvas, setId: string, page: number) => {
     if (!user || !setId || accessRevokedRef.current) return;
+    // Nothing changed since the last successful write, so there is nothing to save. This guard
+    // lives HERE rather than in any one caller because two separate paths flush on a page turn
+    // and both block the incoming page: useGoToPage awaits the flush before router.push, and
+    // useAnnotationCanvas's page-change effect awaits it before loadAnnotation. An
+    // unconditional write meant leaving a page that merely HAD annotations cost a store.save
+    // plus a reconcileNoteBindings round-trip before the next page could start loading. A
+    // blank page never showed it, because the empty-payload guard below bailed first.
+    if (!dirtyRef.current && !saveTimerRef.current) return;
     setSaving(true);
     try {
       const json = canvas.toJSON(['id'] as any);
@@ -179,17 +187,15 @@ export function useCanvasPersistence({
     if (!user || !selectedSetId || !fabricRef.current || accessRevokedRef.current) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
+      // Clear before firing: a spent timer left in the ref reads as "a save is pending" to the
+      // guard in saveCanvas, which would defeat it for the rest of the session.
+      saveTimerRef.current = null;
       saveCanvas(fabricRef.current!, selectedSetId, pageNum);
     }, SAVE_DELAY_MS);
   }, [selectedSetId, pageNum, saveCanvas, user, fabricRef]);
 
   const saveNow = useCallback(async () => {
     if (!user || !selectedSetId || !fabricRef.current || accessRevokedRef.current) return;
-    // Nothing to write. useGoToPage AWAITS this flush before router.push, so an unconditional
-    // save put a store.save + reconcileNoteBindings round-trip in front of every page change —
-    // paid on any page that had annotations on it, even when the user only looked at it. A
-    // blank page never showed the stall because the empty-payload guard below bailed first.
-    if (!dirtyRef.current && !saveTimerRef.current) return;
     if (saveTimerRef.current) {
       clearTimeout(saveTimerRef.current);
       saveTimerRef.current = null;

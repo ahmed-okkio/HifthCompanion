@@ -16,6 +16,18 @@
  *   npx tsx --env-file=.env.local scripts/set-page-cache-headers.ts --write
  *
  * Re-running is safe: upsert overwrites with identical bytes.
+ *
+ * RESULT (2026-09-06): this ran over all 604 files and the object metadata now reads
+ * `cacheControl: max-age=31536000` — but the public endpoint STILL serves `cache-control:
+ * no-cache`. Verified it is not this script's doing: a brand-new object uploaded with a valid
+ * `cacheControl` serves `no-cache` too, and the response carries `sb-gateway-mode: direct`.
+ * Supabase only honours stored cacheControl through its Smart CDN, which this project's plan
+ * does not have; on the direct gateway every public object is `no-cache` so edits propagate at
+ * once. Nothing here can change that — the fix is the service worker's cache-first page store
+ * (public/sw.js), which bypasses the HTTP cache entirely.
+ *
+ * Kept, not deleted: the metadata is correct now, so the served header starts obeying it the
+ * moment the project moves to a plan with Smart CDN. Re-run only if the bucket is refilled.
  */
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';

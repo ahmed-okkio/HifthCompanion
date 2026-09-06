@@ -13,7 +13,7 @@ import { displayName } from '@/lib/displayName';
 import {
   createAdhocSession, materializeSession, rescheduleSession, setSchedule, setSessionAttendance, setSessionCanceled,
 } from '@/lib/services/sessions';
-import { sectionSessions, floatingNow, type SessionSlot } from '@/lib/recurrence';
+import { sectionSessions, floatingNow, nextSessionDate, type SessionSlot } from '@/lib/recurrence';
 import { prescribeHomework, editDeadline, deleteHomework } from '@/lib/services/homework';
 import { gradeLog, logAndReview } from '@/lib/services/progressLog';
 import { assignSubstitutes, removeSubstitution } from '@/lib/services/substitution';
@@ -205,7 +205,18 @@ export default function TeacherStudent({
             subByInstant={subByInstant}
           />
         )}
-        {tab === 'homework' && <HomeworkPanel membershipId={member.id} state={homeworkState} teacherStatuses={circle.teacher_statuses} />}
+        {tab === 'homework' && (
+          <HomeworkPanel
+            membershipId={member.id} state={homeworkState} teacherStatuses={circle.teacher_statuses}
+            /* Work set today is due at the next lesson (the form still overrides). */
+            defaultDeadline={nextSessionDate(
+              sessionsState.weekdays.length
+                ? { weekdays: sessionsState.weekdays, time: sessionsState.time, timezone: sessionsState.tz, minutes: sessionsState.minutes }
+                : null,
+              sessionsState.sessions,
+            ) ?? ''}
+          />
+        )}
         {tab === 'exams' && <ExamsPanel membershipId={member.id} initial={initialExams} locale={locale} />}
         {tab === 'notes' && <NotesThread membershipId={member.id} initial={initialNotes} />}
         {isMobile && tab === 'annotations' && (
@@ -948,11 +959,13 @@ export function useHomeworkState(initialHomework: Homework[], initialLogs: Progr
 export type HomeworkState = ReturnType<typeof useHomeworkState>;
 
 export function HomeworkPanel({
-  membershipId, state, teacherStatuses, canPrescribe = true,
+  membershipId, state, teacherStatuses, canPrescribe = true, defaultDeadline = '',
 }: {
   membershipId: string;
   state: HomeworkState;
   teacherStatuses: StatusConfig[];
+  /** Pre-filled deadline for a new prescription — the next session's day. */
+  defaultDeadline?: string;
   /** False for a covering substitute: they mark the work, they don't set it —
    *  prescribe, deadline edit and delete are all teacher-only (RLS agrees). */
   canPrescribe?: boolean;
@@ -969,7 +982,7 @@ export function HomeworkPanel({
   const selfSubmissions = useMemo(() => logRows.filter((l) => !l.homework_id), [logRows]);
   const [type, setType] = useState<LogType>('memorization');
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [deadline, setDeadline] = useState('');
+  const [deadline, setDeadline] = useState(defaultDeadline);
   const [instructions, setInstructions] = useState('');
   const [busy, setBusy] = useState(false);
   // Prescribe form is collapsed by default; the tab opens on the review surface (P6).
@@ -986,7 +999,7 @@ export function HomeworkPanel({
     // grading), but nothing about closing the form needs the server's answer.
     setEntries([]);
     setInstructions('');
-    setDeadline('');
+    setDeadline(defaultDeadline);
     setPrescribing(false);
     try {
       const rows = await prescribeHomework(draft);

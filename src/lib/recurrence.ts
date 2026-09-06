@@ -198,3 +198,22 @@ export function sectionSessions(
 
   return { next, nextEditable, upcoming, history };
 }
+
+/**
+ * Local date ("YYYY-MM-DD") of the soonest session strictly after `now` — the
+ * rule's next slot or a real row, whichever comes first, with cancelled and
+ * rescheduled-away slots already excluded by sectionSessions. Null when nothing
+ * is scheduled ahead. Used as the default homework deadline: work is due at the
+ * next lesson.
+ */
+export function nextSessionDate(
+  rule: Recurrence | null,
+  rows: Session[],
+  now: Date = new Date(),
+): string | null {
+  const { next, nextEditable, upcoming } = sectionSessions(rule, rows, now);
+  // `next` is a past/now slot when editable — the future one is then upcoming[0].
+  const slot = nextEditable ? upcoming[0] : next ?? upcoming[0];
+  if (!slot) return null;
+  return new Date(slot.scheduled_at).toLocaleDateString('en-CA'); // local YYYY-MM-DD
+}

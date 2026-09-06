@@ -4,8 +4,8 @@ import { after } from 'next/server';
 
 import { createClientAction, createClient } from '@/lib/supabase/server';
 import type { Homework, LogType } from '@/types';
-import { wholeSurahPages } from '@/lib/homework';
-import { getPageForAyah, juzPageBounds } from '@/lib/quran';
+import { homeworkTarget, wholeSurahPages } from '@/lib/homework';
+import { getPageForAyah, getSurahName, juzPageBounds } from '@/lib/quran';
 import { notifyHomework } from '@/lib/email/notify';
 
 /**
@@ -58,12 +58,25 @@ export async function prescribeHomework(hw: NewHomework): Promise<Homework[]> {
   const { data, error } = await supabase.from('homework').insert(rows).select();
   if (error) throw error;
 
-  const pages = (data ?? []).flatMap((r: Homework) => [r.page_start, r.page_end]).filter(Boolean) as number[];
-  const range = pages.length ? `pages ${Math.min(...pages)}-${Math.max(...pages)}` : hw.type;
+  // Notification range reads like the card label ("Memorize Al-Baqara 1-20"),
+  // not a page span — a whole surah says so instead of expanding to its ayahs.
+  // ponytail: English only, like the page-range string it replaces; the Arabic
+  // push still carries it verbatim.
+  const range = notificationRange(hw.type, data ?? []);
   const actor = (await supabase.auth.getUser()).data.user?.id ?? null;
   after(() => notifyHomework(hw.membershipId, range, hw.deadline ?? null, actor));
 
   return data ?? [];
+}
+
+/** Readable "verb + target" for the homework notification (email + push). */
+function notificationRange(type: LogType, rows: Homework[]): string {
+  if (rows.length === 0) return type;
+  const verb = type === 'memorization' ? 'Memorize' : 'Review';
+  const whole = rows.length === 1 && rows[0].surah && rows[0].ayah_start == null
+    ? `${getSurahName(rows[0].surah, 'en')} (whole)`
+    : null;
+  return `${verb} ${whole ?? homeworkTarget(rows, 'en', 'Juz')}`;
 }
 
 /** Homework rows for a membership (teacher or owning student per RLS). */

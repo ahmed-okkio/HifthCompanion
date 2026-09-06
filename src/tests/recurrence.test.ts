@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { recurringSlots, missingSlots, sectionSessions } from '../lib/recurrence';
+import { recurringSlots, missingSlots, sectionSessions, nextSessionDate } from '../lib/recurrence';
 import type { Recurrence, Session } from '../types';
 
 // Fixed Monday for determinism: 2026-06-29 is a Monday (UTC).
@@ -181,5 +181,26 @@ describe('sectionSessions', () => {
     // Marked Mondays gone from Next; 07-13 passed >12h ago unmaterialized so it's
     // lost too — the soonest future Monday 07-20 is now Next.
     expect(next?.scheduled_at).toBe('2026-07-20T17:00:00.000Z');
+  });
+});
+
+describe('nextSessionDate (homework deadline default)', () => {
+  const rule: Recurrence = { weekdays: [1], time: '17:00', timezone: 'UTC', minutes: 60 };
+  const local = (iso: string) => new Date(iso).toLocaleDateString('en-CA');
+
+  it('picks the soonest strictly-future slot, not the markable past one', () => {
+    // Monday 17:00 just passed → sectionSessions makes it Next (editable); the
+    // deadline must still land on the NEXT Monday.
+    const now = new Date('2026-07-06T18:00:00Z');
+    expect(nextSessionDate(rule, [], now)).toBe(local('2026-07-13T17:00:00.000Z'));
+  });
+
+  it('uses the soonest upcoming slot when nothing is pending', () => {
+    const now = new Date('2026-07-03T09:00:00Z'); // Fri
+    expect(nextSessionDate(rule, [], now)).toBe(local('2026-07-06T17:00:00.000Z'));
+  });
+
+  it('no schedule and no rows → null', () => {
+    expect(nextSessionDate(null, [], new Date('2026-07-03T09:00:00Z'))).toBeNull();
   });
 });

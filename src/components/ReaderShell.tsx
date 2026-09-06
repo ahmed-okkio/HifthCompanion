@@ -2,7 +2,7 @@
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AnnotationSet } from '@/types';
-import { getPageImageUrl, clampPage, spreadUrl } from '@/lib/quran';
+import { getPageImageUrl, clampPage } from '@/lib/quran';
 import { LAST_READER_PAGE_KEY } from '@/lib/tracker/lastCircle';
 import { SPREAD_MODE_KEY } from './SpreadToggle';
 import ReaderNav from './ReaderNav';
@@ -12,6 +12,7 @@ import MobileSurahDrawer from './MobileSurahDrawer';
 import MobileNavDrawer from './MobileNavDrawer';
 import NotifyBanner from './NotifyBanner';
 import ReaderTaskBanner from './ReaderTaskBanner';
+import { useGoToPage } from '@/hooks/useGoToPage';
 import AnnotationCanvas from './AnnotationCanvas';
 import SpreadAnnotation from './SpreadAnnotation';
 import NavRail from './NavRail';
@@ -166,6 +167,11 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   // Anchored to the LAST path segment so a uuid in the share base (`/share/{uuid}/N-M`)
   // — which itself contains digit-hyphen-digit runs — can't be misread as a spread pair.
   const spreadBase = sharePageBasePath ?? '/reader';
+  // These redirects rewrite the URL, so they must go through the shared builder like every
+  // other page change: rebuilding `${spreadBase}/${seg}` by hand dropped the query, which
+  // silently killed a homework/exam link's ?task=…&g=1 the moment the spread preference
+  // kicked in — the banner (and the teacher's grade control) vanished on arrival.
+  const { hrefFor } = useGoToPage({ basePath: spreadBase });
   const spreadMatch = pathname.match(/\/(\d+)-(\d+)$/);
   const spread: [number, number] | null = spreadMatch
     ? [parseInt(spreadMatch[1], 10), parseInt(spreadMatch[2], 10)]
@@ -176,7 +182,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   useEffect(() => {
     if (!spread) return;
     const mq = window.matchMedia('(max-width: 1023px)');
-    const apply = () => { if (mq.matches) router.replace(`${spreadBase}/${spread[0]}`); };
+    const apply = () => { if (mq.matches) router.replace(hrefFor(spread[0], false)); };
     apply();
     mq.addEventListener('change', apply);
     return () => mq.removeEventListener('change', apply);
@@ -203,8 +209,8 @@ export default function ReaderShell({ children, user, sets, account = null, lock
     // and clobbers the child's pinned-surah redirect with page 1.
     if (pathname === spreadBase || pathname === `${spreadBase}/`) return;
     const raw = localStorage.getItem(SPREAD_MODE_KEY);
-    if (raw === '1' && !spread) router.replace(`${spreadBase}/${spreadUrl(pageNum)}`);
-    else if (raw === '0' && spread) router.replace(`${spreadBase}/${spread[0]}`);
+    if (raw === '1' && !spread) router.replace(hrefFor(pageNum, true));
+    else if (raw === '0' && spread) router.replace(hrefFor(spread[0], false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 

@@ -74,18 +74,17 @@ export async function scheduleExam(
   return data;
 }
 
+/** Grade an exam. `notes` is optional: omitting it leaves the stored notes
+ *  alone (the reader's banner grades without carrying them around). */
 export async function gradeExam(
   examId: string,
   status: ExamStatus,
-  notes: string | null
+  notes?: string | null
 ): Promise<Exam> {
   const supabase = await createClientAction();
   const { data, error } = await supabase
     .from('exam')
-    .update({
-      status,
-      teacher_notes: notes,
-    })
+    .update(notes === undefined ? { status } : { status, teacher_notes: notes })
     .eq('id', examId)
     .select()
     .single();

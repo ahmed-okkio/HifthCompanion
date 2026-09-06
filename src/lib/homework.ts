@@ -1,4 +1,4 @@
-import type { Homework } from '@/types';
+import type { Exam, Homework } from '@/types';
 import { AYAH_COUNTS, SURAH_FIRST_PAGES, TOTAL_PAGES, TOTAL_SURAHS, getJuzForPage, getSurahName } from '@/lib/quran';
 
 // Pure homework logic — no supabase import so B4 unit tests can import it freely.
@@ -113,4 +113,21 @@ export function homeworkTarget(
 
   const surahs = withSurah.map((h) => h.surah!).sort((a, b) => a - b);
   return `${getSurahName(surahs[0], locale)} - ${getSurahName(surahs[surahs.length - 1], locale)}`;
+}
+
+/**
+ * The one exam card that starts expanded: the soonest still-scheduled exam that
+ * hasn't happened yet, else the most recent scheduled one (a past exam still
+ * waiting on a grade). Null when every exam is already graded.
+ * `today` is a date-only "YYYY-MM-DD", like exam.scheduled_date.
+ */
+export function focusExamId(exams: Pick<Exam, 'id' | 'status' | 'scheduled_date'>[], today: string): string | null {
+  const scheduled = exams.filter((e) => e.status === 'scheduled');
+  const soonest = scheduled
+    .filter((e) => e.scheduled_date >= today)
+    .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date))[0];
+  const lastPast = scheduled
+    .filter((e) => e.scheduled_date < today)
+    .sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date))[0];
+  return (soonest ?? lastPast)?.id ?? null;
 }

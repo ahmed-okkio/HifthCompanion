@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { homeworkStatus, wholeSurahPages, aggregateStatus, groupHomework, homeworkTarget } from '../lib/homework';
+import { homeworkStatus, wholeSurahPages, aggregateStatus, focusExamId, groupHomework, homeworkTarget } from '../lib/homework';
 import { SURAH_FIRST_PAGES, TOTAL_PAGES, JUZ_START_PAGES, juzPageBounds } from '../lib/quran';
 import type { Homework } from '../types';
 
@@ -84,5 +84,21 @@ describe('groupHomework (H3/H5)', () => {
     expect(groups).toHaveLength(2);
     expect(groups[0].items.map((h) => h.id)).toEqual(['a', 'b']);
     expect(groups[1].items.map((h) => h.id)).toEqual(['c']);
+  });
+});
+
+describe('focusExamId (which exam card starts expanded)', () => {
+  const today = '2026-09-06';
+  const e = (id: string, scheduled_date: string, status: 'scheduled' | 'passed' | 'failed' = 'scheduled') =>
+    ({ id, scheduled_date, status });
+
+  it('picks the soonest exam still ahead, not the furthest one', () => {
+    expect(focusExamId([e('far', '2026-09-20'), e('soon', '2026-09-10')], today)).toBe('soon');
+  });
+  it('falls back to the most recent ungraded past exam', () => {
+    expect(focusExamId([e('old', '2026-08-01'), e('recent', '2026-09-01')], today)).toBe('recent');
+  });
+  it('graded exams never open, and an all-graded list opens nothing', () => {
+    expect(focusExamId([e('p', '2026-09-10', 'passed'), e('f', '2026-09-11', 'failed')], today)).toBeNull();
   });
 });

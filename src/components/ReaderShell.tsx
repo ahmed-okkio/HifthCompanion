@@ -11,6 +11,7 @@ import SurahNavPanel from './SurahNavPanel';
 import MobileSurahDrawer from './MobileSurahDrawer';
 import MobileNavDrawer from './MobileNavDrawer';
 import NotifyBanner from './NotifyBanner';
+import ReaderTaskBanner from './ReaderTaskBanner';
 import AnnotationCanvas from './AnnotationCanvas';
 import SpreadAnnotation from './SpreadAnnotation';
 import NavRail from './NavRail';
@@ -381,6 +382,8 @@ export default function ReaderShell({ children, user, sets, account = null, lock
                 <div data-canvas-centered className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
 
                   {banner}
+                  {/* Opened from a homework/exam card → say what the page is for. */}
+                  <ReaderTaskBanner />
 
                   <div className="flex min-w-0 flex-col gap-4">
                     <div className="mx-auto w-full">

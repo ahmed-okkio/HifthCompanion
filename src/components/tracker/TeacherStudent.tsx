@@ -22,7 +22,7 @@ import { scheduleExam, gradeExam, deleteExam, rescheduleExam } from '@/lib/servi
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
 import {
-  homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus,
+  homeworkStatus, aggregateStatus, focusExamId, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus,
 } from '@/lib/homework';
 import { AYAH_COUNTS, TOTAL_JUZ, TOTAL_SURAHS, getSurahName, getSurahForPage, spreadUrl } from '@/lib/quran';
 import {
@@ -1184,7 +1184,11 @@ function PrescriptionCard({
                   {homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${fmtNum(h.page_start)}–${fmtNum(h.page_end)}`}
                   {h.surah && h.ayah_start == null ? ` ${t('homework.whole')}` : ''}
                 </span>
-                <MushafLink page={h.page_start} />
+                <MushafLink
+                  page={h.page_start}
+                  task={{ kind: 'homework', id: h.group_id ?? h.id,
+                          label: homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${fmtNum(h.page_start)}–${fmtNum(h.page_end)}` }}
+                />
               </div>
               {/* Student submissions logged against it — indented under a subhead */}
               <div className="flex flex-col gap-1" style={{ marginInlineStart: 10, paddingInlineStart: 10, borderInlineStart: '2px solid var(--border-subtle)' }}>
@@ -1581,6 +1585,9 @@ function ExamsPanel({
     }
   }
 
+  // Cards are collapsed by default; the exam actually being worked on opens.
+  const latestOpenId = focusExamId(items, today());
+
   // The list is ordered by date, so a moved exam has to re-sort (newest first).
   function handleReschedule(id: string, newDate: string) {
     return patch(id, { scheduled_date: newDate }, () => rescheduleExam(id, newDate));
@@ -1614,7 +1621,8 @@ function ExamsPanel({
       <SectionTitle>{t('exam.title')}</SectionTitle>
       {items.length === 0 && <EmptyState>{t('exam.noExams')}</EmptyState>}
       {items.map((exam) => (
-        <ExamCard key={exam.id} exam={exam} locale={locale} onGrade={handleGrade} onDelete={handleDelete} onReschedule={handleReschedule} />
+        <ExamCard key={exam.id} exam={exam} locale={locale} onGrade={handleGrade} onDelete={handleDelete}
+                  onReschedule={handleReschedule} defaultOpen={exam.id === latestOpenId} />
       ))}
     </div>
   );
@@ -1796,22 +1804,26 @@ function examTarget(exam: Exam, locale: 'en' | 'ar', juzWord: string, fmtNum: (v
  * controls); omit them for the student's read-only view (notes shown if present).
  */
 export function ExamCard({
-  exam, locale, onGrade, onDelete, onReschedule,
+  exam, locale, onGrade, onDelete, onReschedule, defaultOpen = false,
 }: {
   exam: Exam;
   locale: 'en' | 'ar';
   onGrade?: (id: string, status: ExamStatus, notes: string | null) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   onReschedule?: (id: string, date: string) => Promise<void>;
+  /** Only the nearest still-scheduled exam starts expanded; the rest are history. */
+  defaultOpen?: boolean;
 }) {
   const { t, fmtNum } = useI18n();
   const [notes, setNotes] = useState(exam.teacher_notes ?? '');
+  const [open, setOpen] = useState(defaultOpen);
   const target = examTarget(exam, locale, t('homework.juz'), fmtNum);
 
   return (
     <div className="card flex flex-col gap-2"
          style={{ padding: '12px 16px', viewTransitionName: vtName('exam', exam.id) }}>
-      <div className="flex items-center gap-3">
+      <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-3 text-start"
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
         <DateChip iso={exam.scheduled_date} locale={locale} />
         <span className="flex flex-col gap-0.5 min-w-0 flex-1">
           <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{target}</span>
@@ -1820,7 +1832,12 @@ export function ExamCard({
           </span>
         </span>
         <span className="badge shrink-0" style={{ fontSize: 10, ...EXAM_STATUS_STYLE[exam.status] }}>{t(EXAM_STATUS_KEY[exam.status])}</span>
-      </div>
+        <Chevron open={open} />
+      </button>
+
+      {open && (<>
+      {/* Straight to the first page of the exam's coverage, with the reason in tow. */}
+      <MushafLink page={exam.page_start} task={{ kind: 'exam', id: exam.id, label: target, gradeable: !!onGrade }} />
 
       {onGrade ? (
         // Teacher: editable notes + grade controls.
@@ -1865,6 +1882,7 @@ export function ExamCard({
           </div>
         )
       )}
+      </>)}
     </div>
   );
 }

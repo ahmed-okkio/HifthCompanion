@@ -10,7 +10,7 @@ import { leaveCircle } from '@/lib/services/membership';
 import { useRouter } from 'next/navigation';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
-import { homeworkStatus, aggregateStatus, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus } from '@/lib/homework';
+import { homeworkStatus, aggregateStatus, focusExamId, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus } from '@/lib/homework';
 import { recurringSlots } from '@/lib/recurrence';
 import { isStreakAtRisk } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
@@ -432,7 +432,11 @@ function HomeworkCard({
                 {h.surah && h.ayah_start == null ? ` ${t('homework.whole')}` : ''}
               </span>
             )}
-            <MushafLink page={h.page_start} />
+            <MushafLink
+              page={h.page_start}
+              task={{ kind: 'homework', id: h.group_id ?? h.id,
+                      label: homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${fmtNum(h.page_start)}–${fmtNum(h.page_end)}` }}
+            />
             {linkedLogs.map((l) => (
               <div key={l.id} className="text-xs flex items-center gap-1" style={{ color: 'var(--text-secondary)', paddingInlineStart: 8 }}>
                 <Icon name="check" size={13} /> p{fmtNum(l.page_start)}–{fmtNum(l.page_end)} · {l.log_date}
@@ -807,11 +811,15 @@ function UpcomingExams({ exams }: { exams: Exam[] }) {
   const sorted = [...exams].sort((a, b) =>
     (a.status === 'scheduled' ? 0 : 1) - (b.status === 'scheduled' ? 0 : 1)
     || b.scheduled_date.localeCompare(a.scheduled_date));
+  const focusId = focusExamId(exams, today());
 
   return (
     <div className="flex flex-col gap-2">
       <SectionTitle>{t('exam.title')}</SectionTitle>
-      {sorted.map((exam) => <ExamCard key={exam.id} exam={exam} locale={locale} />)}
+      {/* Collapsed by default — only the exam being worked on opens. */}
+      {sorted.map((exam) => (
+        <ExamCard key={exam.id} exam={exam} locale={locale} defaultOpen={exam.id === focusId} />
+      ))}
     </div>
   );
 }

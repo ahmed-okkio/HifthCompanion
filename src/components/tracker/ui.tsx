@@ -15,12 +15,22 @@ import { useI18n } from '@/components/I18nProvider';
 import { localizeDigits, isLocale } from '@/lib/i18n/config';
 import Link from 'next/link';
 
-/** Jump straight to a homework row's first page in the reader. */
-export function MushafLink({ page }: { page: number }) {
+/**
+ * Jump straight to a homework/exam row's first page in the reader. `task` carries
+ * the reason into the reader's banner (label included, so the reader needs no
+ * fetch); `gradeable` adds the teacher's pass/fail control there.
+ */
+export function MushafLink({ page, task }: {
+  page: number;
+  task?: { kind: 'homework' | 'exam'; id: string; label: string; gradeable?: boolean };
+}) {
   const { t } = useI18n();
+  const query = task
+    ? `?task=${task.kind}&id=${task.id}&t=${encodeURIComponent(task.label)}${task.gradeable ? '&g=1' : ''}`
+    : '';
   return (
     <Link
-      href={`/reader/${page}`}
+      href={`/reader/${page}${query}`}
       className="inline-flex items-center gap-1 self-start text-xs"
       style={{ color: 'var(--text-accent)', textDecoration: 'none' }}
     >

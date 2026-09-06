@@ -17,6 +17,7 @@ const en = {
   'common.copy': 'Copy',
   'common.copied': 'Copied!',
   'common.saved': 'Saved',
+  'common.failed': 'Failed to save',
 
   'lang.label': 'Language',
   'lang.en': 'English',
@@ -527,6 +528,7 @@ const ar: Record<MessageKey, string> = {
   'common.copy': 'نسخ',
   'common.copied': 'تم النسخ!',
   'common.saved': 'تم الحفظ',
+  'common.failed': 'تعذر الحفظ',
 
   'lang.label': 'اللغة',
   'lang.en': 'English',

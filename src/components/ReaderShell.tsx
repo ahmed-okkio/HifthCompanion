@@ -3,6 +3,7 @@ import { usePathname, useSearchParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AnnotationSet } from '@/types';
 import { getPageImageUrl, clampPage } from '@/lib/quran';
+import { prefetchPageImages } from '@/lib/pagePrefetch';
 import { LAST_READER_PAGE_KEY } from '@/lib/tracker/lastCircle';
 import { SPREAD_MODE_KEY } from './SpreadToggle';
 import ReaderNav from './ReaderNav';
@@ -195,6 +196,11 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   // therefore survives navigation and only its background image + objects are swapped.
   const pageNum = clampPage(readPageFromUrl(pathname, searchParams.toString()));
   const imageUrl = getPageImageUrl(pageNum);
+
+  // Warm the surrounding pages so a flip is a cache hit. Idle-scheduled and one-at-a-time,
+  // and the service worker keeps what it fetches — so reading forward leaves a widening
+  // window of instant pages behind it.
+  useEffect(() => { prefetchPageImages(pageNum); }, [pageNum]);
 
   // C3: apply the persisted spread preference on load (and on each /reader nav). Desktop-only —
   // the >=lg guard makes this disjoint from the mobile redirect (E1, <=1023px), so the two can

@@ -199,10 +199,19 @@ export function useCanvasPersistence({
     };
   }, [saveNow]);
 
+  /** Pages either side to warm. 3, not 1, because of spread mode: a spread [N, N+1] moves to
+   *  [N+2, N+3], and at radius 1 the two canvases only reach N+2 — so N+3 missed on EVERY
+   *  forward flip. A miss is not just a slower annotation load: loadAnnotation renders (and
+   *  therefore starts the page image) only after store.load resolves, so one miss serializes
+   *  the PNG behind a DB round-trip and flashes the skeleton across the whole spread. */
+  const PREFETCH_RADIUS = 3;
+
   const prefetchAdjacent = useCallback((setId: string, page: number) => {
     const idle: (cb: () => void) => void = (window as any).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 300));
+    const around: number[] = [];
+    for (let i = 1; i <= PREFETCH_RADIUS; i++) around.push(page - i, page + i);
     idle(() => {
-      for (const pg of [page - 1, page + 1]) {
+      for (const pg of around) {
         if (pg < 1 || pg > TOTAL_PAGES) continue;
         const k = annotKey(setId, pg);
         if (annotCache.has(k)) continue;

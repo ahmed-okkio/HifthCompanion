@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AnnotationSet } from '@/types';
 import { getPageImageUrl } from '@/lib/quran';
+import type { MarkColors } from '@/lib/markedPages';
 import { type Tool } from '@/lib/canvasTools';
 import { useToolState } from '@/hooks/useAnnotationCanvas';
 import AnnotationCanvas, { type CanvasHandle } from '@/components/AnnotationCanvas';
@@ -22,7 +23,7 @@ interface Props {
   /** When set (e.g. `/share/{setId}`), prev/next links target the share route instead of /reader. */
   sharePageBasePath?: string;
   /** PRD 0009 R3: patch the reader's Marked tab after a save (page, new mark count). */
-  onSaved?: (setId: string, page: number, count: number) => void;
+  onSaved?: (setId: string, page: number, count: number, colors: MarkColors) => void;
 }
 
 /**

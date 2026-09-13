@@ -105,7 +105,7 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
      Landing-page + reader-demo only — deliberately off the app accent scale to
      read as illustrative, not as product chrome. */
   --home-note-green: #22c55e;  /* demo annotation note */
-  --home-note-orange: #f97316; /* demo annotation note */
+  --home-note-orange: #f59e0b; /* demo annotation note */
   --home-note-blue: #3b82f6;   /* demo annotation note */
   --home-gold: #C9A24B;        /* hero-gradient gold (page.tsx) */
   --home-marker: #ef4444;      /* demo marker red */
@@ -601,6 +601,18 @@ input[type="number"] {
   .sets-actions {
     opacity: 1;
   }
+}
+
+/* Annotations panel — collapsible surah card header (MarkedPagesList).
+   The default disclosure triangle is replaced by the card's own caret. */
+.marked-summary {
+  list-style: none;
+}
+.marked-summary::-webkit-details-marker {
+  display: none;
+}
+.marked-summary:hover {
+  background: var(--neutral-50);
 }
 
 /* Fabric.js canvas layers - ensure proper fit */

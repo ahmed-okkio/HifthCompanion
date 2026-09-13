@@ -1,6 +1,10 @@
 // Pure logic for the Marked-pages / Needs-Focus feature (PRD 0009). No I/O, no Fabric.
+import { getSurahForPage } from '@/lib/quran';
 
-export type MarkedPage = { page: number; count: number };
+/** Clustered mark count per mark colour, e.g. `{ '#ef4444': 4, '#f59e0b': 2 }`. */
+export type MarkColors = Record<string, number>;
+
+export type MarkedPage = { page: number; count: number; colors?: MarkColors };
 
 // D8/L2: badge color band by mark count. count=0 never appears (empty pages aren't rows).
 export function badgeLevel(count: number): 'grey' | 'orange' | 'red' {
@@ -43,9 +47,10 @@ function bbox(o: FabObj & { left?: number; top?: number }) {
 // won't group them — proximity does). Count clusters: objects that are the same tool AND
 // colour AND whose bounding boxes are within `gap` px on both axes collapse to a single
 // mark. Different tool or colour never merge even when overlapping (they're distinct marks).
-export function clusterCount(objects: StyledObj[], gap = 20): number {
+// Returns one representative object index per cluster. Both clusterCount and
+// clusterColors read it, so a page's per-colour counts always sum to its total.
+function clusterRoots(objects: StyledObj[], gap: number): number[] {
   const n = objects.length;
-  if (n === 0) return 0;
   const b = objects.map(bbox);
   const parent = Array.from({ length: n }, (_, i) => i);
   const find = (x: number): number => (parent[x] === x ? x : (parent[x] = find(parent[x])));
@@ -58,7 +63,39 @@ export function clusterCount(objects: StyledObj[], gap = 20): number {
     b[i].y1 - gap <= b[j].y2 && b[j].y1 - gap <= b[i].y2;
   // ponytail: O(n²) pairwise — n = strokes on one page, always small.
   for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) if (sameStyle(i, j) && near(i, j)) parent[find(i)] = find(j);
-  return new Set(parent.map((_, i) => find(i))).size;
+  return [...new Set(parent.map((_, i) => find(i)))];
+}
+
+export function clusterCount(objects: StyledObj[], gap = 20): number {
+  return objects.length === 0 ? 0 : clusterRoots(objects, gap).length;
+}
+
+// The highlighter applies its opacity by storing rgba(); every other tool stores the
+// picker's hex. Normalising to hex means one colour counts as one colour whichever tool
+// drew it — the alpha is a tool property, not a different colour.
+function toHex(color: string): string {
+  const m = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i.exec(color);
+  if (!m) return color.toLowerCase();
+  return `#${[m[1], m[2], m[3]].map(n => Number(n).toString(16).padStart(2, '0')).join('')}`;
+}
+
+// A mark's colour. Shape and freehand tools set `stroke` (their fill is 'transparent');
+// the text tool sets only `fill`. Objects with neither are ignored.
+export function markColor(o: StyledObj): string | null {
+  const c = o.stroke && o.stroke !== 'transparent' ? o.stroke : o.fill;
+  return c && c !== 'transparent' ? toHex(c) : null;
+}
+
+// Clustered mark count per colour. Clusters never merge across colours (see sameStyle),
+// so every cluster has exactly one, and these counts sum to clusterCount().
+export function clusterColors(objects: StyledObj[], gap = 20): MarkColors {
+  const out: MarkColors = {};
+  if (objects.length === 0) return out;
+  for (const root of clusterRoots(objects, gap)) {
+    const c = markColor(objects[root]);
+    if (c) out[c] = (out[c] ?? 0) + 1;
+  }
+  return out;
 }
 
 export function maxCount(rows: MarkedPage[]): number {
@@ -73,4 +110,40 @@ export function isNeedsFocus(count: number, max: number): boolean {
 // L4: count desc, then page asc. Returns a new array; input untouched.
 export function sortMarked(rows: MarkedPage[]): MarkedPage[] {
   return [...rows].sort((a, b) => b.count - a.count || a.page - b.page);
+}
+
+export type SurahGroup = {
+  surah: number;
+  /** The surah's marked pages, mushaf order. */
+  pages: MarkedPage[];
+  /** Marks across the whole group — what the collapsed card reports. */
+  count: number;
+  /** Holds a page tied at the set max, so a collapsed card still shows the L3 signal. */
+  hasFocus: boolean;
+};
+
+// Group rows under the surah each page belongs to, mushaf order in and out. This is the
+// alternative to sortMarked's count-desc order: you can group OR rank, not both, so the
+// panel offers the two as a sort choice. `max` is taken over the full input, keeping
+// hasFocus in agreement with the flat list's Needs Focus pill.
+export function groupBySurah(rows: MarkedPage[]): SurahGroup[] {
+  const max = maxCount(rows);
+  const by = new Map<number, MarkedPage[]>();
+  for (const r of rows) {
+    const surah = getSurahForPage(r.page);
+    const pages = by.get(surah);
+    if (pages) pages.push(r);
+    else by.set(surah, [r]);
+  }
+  return [...by.entries()]
+    .map(([surah, pages]) => {
+      pages.sort((a, b) => a.page - b.page);
+      return {
+        surah,
+        pages,
+        count: pages.reduce((n, p) => n + p.count, 0),
+        hasFocus: pages.some(p => isNeedsFocus(p.count, max)),
+      };
+    })
+    .sort((a, b) => a.surah - b.surah);
 }

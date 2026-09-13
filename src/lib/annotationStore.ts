@@ -2,6 +2,7 @@
 // out of useAnnotationCanvas so it can be unit-tested and reused Fabric-free. It never
 // imports fabric; callers hand it a plain CanvasJson (width/height/objects/...). Works
 // with EITHER the browser or server Supabase client — both expose the same query chain.
+import type { MarkColors } from '@/lib/markedPages';
 
 export type CanvasJson = { objects: unknown[]; width: number; height: number; [k: string]: unknown };
 export type SaveResult = { status: 'saved' } | { status: 'denied' } | { status: 'error'; err: unknown };
@@ -10,7 +11,9 @@ export interface AnnotationStore {
   load(setId: string, page: number): Promise<CanvasJson | null>;
   // `count` is the clustered mark count (proximity-grouped); persisted so the marked_pages
   // RPC returns it instead of raw jsonb_array_length. Defaults to raw object count.
-  save(setId: string, page: number, payload: CanvasJson, count?: number): Promise<SaveResult>;
+  // `colors` is the same clustering split by mark colour, so the panel's per-colour chips
+  // always sum to the count beside them. Omitted leaves the stored breakdown untouched.
+  save(setId: string, page: number, payload: CanvasJson, count?: number, colors?: MarkColors): Promise<SaveResult>;
 }
 
 // A Supabase/Postgres error is an access-revoked signal only if it's an RLS/permission
@@ -31,7 +34,7 @@ export function createAnnotationStore(supabase: any): AnnotationStore {
       return data?.canvas_json ?? null;
     },
 
-    async save(setId, page, payload, count) {
+    async save(setId, page, payload, count, colors) {
       try {
         // Empty page carries no annotation — delete any existing row instead of
         // storing a `{objects:[]}` shell. Keeps the table free of junk rows as it grows.
@@ -42,7 +45,7 @@ export function createAnnotationStore(supabase: any): AnnotationStore {
           return { status: 'saved' };
         }
         const { error } = await supabase.from('annotations').upsert(
-          { set_id: setId, page_number: page, canvas_json: payload, mark_count: count ?? payload.objects.length, updated_at: new Date().toISOString() },
+          { set_id: setId, page_number: page, canvas_json: payload, mark_count: count ?? payload.objects.length, mark_colors: colors ?? null, updated_at: new Date().toISOString() },
           { onConflict: 'set_id,page_number' }
         );
         if (error) return isRlsDenial(error) ? { status: 'denied' } : { status: 'error', err: error };

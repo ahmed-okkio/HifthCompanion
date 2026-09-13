@@ -6,7 +6,7 @@ export const ALL_TOOLS: Tool[] = ['pen', 'highlighter', 'circle', 'underline', '
 
 export const PRESET_COLORS = [
   { name: 'Red',    value: '#ef4444' },
-  { name: 'Orange', value: '#f97316' },
+  { name: 'Yellow', value: '#f59e0b' },
   { name: 'Green',  value: '#22c55e' },
   { name: 'Blue',   value: '#3b82f6' },
   { name: 'Purple', value: '#8b5cf6' },

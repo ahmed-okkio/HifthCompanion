@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import type { AnnotationSet } from '@/types';
 import { TOTAL_PAGES } from '@/lib/quran';
+import type { MarkColors } from '@/lib/markedPages';
 import PageDisplayFrame from '@/components/PageDisplayFrame';
 import PageNavArrow from '@/components/PageNavArrow';
 import AnnotationToolbar from '@/components/AnnotationToolbar';
@@ -50,7 +51,7 @@ interface Props {
   /** When set (e.g. `/share/{setId}`), prev/next links target the share route instead of /reader. */
   sharePageBasePath?: string;
   /** PRD 0009 R3: patch the reader's Marked tab after a save (page, new mark count). */
-  onSaved?: (setId: string, page: number, count: number) => void;
+  onSaved?: (setId: string, page: number, count: number, colors: MarkColors) => void;
   /** Pass view from SpreadAnnotation for spread mode. Or use internal state. */
   view?: CanvasView;
 }

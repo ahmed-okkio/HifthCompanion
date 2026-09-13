@@ -23,6 +23,8 @@ interface Props {
 export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, basePath, topOffset = 72, isSpread = false, markedPages }: Props) {
   const { t, locale, fmtNum } = useI18n();
   const [tab, setTab] = useState<'surahs' | 'marked'>('surahs');
+  // 'mushaf' = grouped into surah cards, reading order. 'marks' = flat, heaviest page first (L4).
+  const [markedSort, setMarkedSort] = useState<'mushaf' | 'marks'>('mushaf');
   const [query, setQuery] = useState('');
   const [pinnedPage, setPinnedPage] = useState<number | null>(null);
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -330,9 +332,39 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
           scroll-restoration refs/effects intact when the user toggles tabs. Rows render via the
           shared MarkedPagesList (same list on the tracker), with jump links wired here. */}
       {markedPages !== undefined && tab === 'marked' && (
-        <div data-testid="marked-scroll-list" className="flex-1 min-h-0 overflow-y-auto thin-scroll">
-          <MarkedPagesList rows={markedRows} onJump={page => { void jumpToPage(page); }} />
-        </div>
+        <>
+          {/* Grouping by surah and ranking by mark count are the same axis — a grouped list
+              has to run in mushaf order — so the two are offered as one choice. */}
+          <div className="flex items-center justify-end px-3 pb-2">
+            <button
+              type="button"
+              onClick={() => setMarkedSort(s => (s === 'mushaf' ? 'marks' : 'mushaf'))}
+              aria-label={t('reader.sortAnnotations')}
+              className="inline-flex items-center gap-1 transition-colors duration-150"
+              style={{
+                padding: '3px 10px',
+                borderRadius: 'var(--radius-full)',
+                border: '1px solid var(--border-subtle)',
+                fontSize: 'var(--type-meta-size)',
+                fontWeight: 600,
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <svg aria-hidden className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h13M3 12h9M3 17h5M17 9l3-3 3 3M20 6v12" />
+              </svg>
+              {t(markedSort === 'mushaf' ? 'reader.sortMushaf' : 'reader.sortMarks')}
+            </button>
+          </div>
+          <div data-testid="marked-scroll-list" className="flex-1 min-h-0 overflow-y-auto thin-scroll">
+            <MarkedPagesList
+              rows={markedRows}
+              grouped={markedSort === 'mushaf'}
+              currentPage={currentPage}
+              onJump={page => { void jumpToPage(page); }}
+            />
+          </div>
+        </>
       )}
 
       <div

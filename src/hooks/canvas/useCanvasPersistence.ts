@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { fabric } from 'fabric';
 import { createClient } from '@/lib/supabase/client';
 import { createAnnotationStore, type CanvasJson } from '@/lib/annotationStore';
-import { pruneDegenerate, clusterCount } from '@/lib/markedPages';
+import { pruneDegenerate, clusterCount, clusterColors, type MarkColors } from '@/lib/markedPages';
 import { CanvasHistory } from '@/lib/canvasHistory';
 import { TOTAL_PAGES } from '@/lib/quran';
 import { type PageCanvasSize } from '@/lib/pageCanvas';
@@ -28,7 +28,7 @@ interface UseCanvasPersistenceProps {
   selectedSetId: string;
   lockedSet?: boolean;
   onCommit?: () => void;
-  onSaved?: (setId: string, page: number, count: number) => void;
+  onSaved?: (setId: string, page: number, count: number, colors: MarkColors) => void;
   fabricRef: React.MutableRefObject<fabric.Canvas | null>;
   historyRef: React.MutableRefObject<CanvasHistory | null>;
   setCanvasReady: React.Dispatch<React.SetStateAction<boolean>>;
@@ -152,17 +152,19 @@ export function useCanvasPersistence({
         dirtyRef.current = false;
         return;
       }
-      const count = payload.objects.length === 0
-        ? 0
-        : clusterCount(payload.objects as any, Math.max(16, Math.round(canvas.getWidth() * 0.03)));
+      // One gap for both: the per-colour breakdown has to come from the same clustering as
+      // the total, or the panel's chips won't sum to the badge next to them.
+      const gap = Math.max(16, Math.round(canvas.getWidth() * 0.03));
+      const count = payload.objects.length === 0 ? 0 : clusterCount(payload.objects as any, gap);
+      const colors = count === 0 ? {} : clusterColors(payload.objects as any, gap);
       // Cleared BEFORE the write, not after: an edit landing mid-flight re-dirties and is
       // picked up by the next save, instead of being swallowed by a late reset.
       dirtyRef.current = false;
-      const r = await store.save(setId, page, payload, count);
+      const r = await store.save(setId, page, payload, count, colors);
       if (r.status !== 'saved') dirtyRef.current = true;
       if (r.status === 'saved') {
         annotCache.set(annotKey(setId, page), { json: count === 0 ? null : payload });
-        onSavedRef.current?.(setId, page, count);
+        onSavedRef.current?.(setId, page, count, colors);
         // Notes follow the objects they're bound to. Only after a confirmed save, and only for
         // this page — a denied/failed write must not soft-delete anything. `handleClear` lands
         // here too, with an empty id list.

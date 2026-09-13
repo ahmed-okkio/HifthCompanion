@@ -8,6 +8,9 @@ import {
   isDegenerate,
   pruneDegenerate,
   clusterCount,
+  clusterColors,
+  markColor,
+  groupBySurah,
   type MarkedPage,
 } from '../lib/markedPages';
 
@@ -31,6 +34,59 @@ describe('clusterCount (proximity grouping)', () => {
     expect(clusterCount([box(0, 0, 10, 10, { type: 'path', stroke: '#f00' }), box(2, 2, 10, 10, { type: 'path', stroke: '#00f' })], 20)).toBe(2);
     // Same spot, different tool → 2
     expect(clusterCount([box(0, 0, 10, 10, { type: 'path', stroke: '#f00' }), box(2, 2, 10, 10, { type: 'ellipse', stroke: '#f00' })], 20)).toBe(2);
+  });
+});
+
+describe('clusterColors (per-colour breakdown)', () => {
+  const box = (left: number, top: number, style: object) => ({ left, top, width: 10, height: 10, ...style });
+  it('splits the same clusters clusterCount counts, so the two always agree', () => {
+    const objs = [
+      // One red mark drawn as two nearby strokes…
+      box(0, 0, { type: 'path', stroke: '#ef4444' }),
+      box(8, 2, { type: 'path', stroke: '#ef4444' }),
+      // …a second red mark elsewhere…
+      box(400, 0, { type: 'path', stroke: '#ef4444' }),
+      // …and one blue, overlapping the first (different colour never merges).
+      box(2, 2, { type: 'path', stroke: '#3b82f6' }),
+    ];
+    expect(clusterColors(objs, 20)).toEqual({ '#ef4444': 2, '#3b82f6': 1 });
+    const colors = clusterColors(objs, 20);
+    const summed = Object.values(colors).reduce((a, b) => a + b, 0);
+    expect(summed).toBe(clusterCount(objs, 20));
+  });
+  it('counts a highlighter and a pen stroke of one colour as that one colour', () => {
+    // The highlighter bakes its opacity into the stroke; both are yellow marks.
+    const objs = [
+      box(0, 0, { type: 'path', stroke: '#f59e0b' }),
+      box(300, 0, { type: 'path', stroke: 'rgba(245,158,11,0.4)' }),
+    ];
+    expect(markColor({ stroke: 'rgba(245, 158, 11, 0.4)' })).toBe('#f59e0b');
+    expect(clusterColors(objs, 20)).toEqual({ '#f59e0b': 2 });
+  });
+  it('reads the text tool from fill and ignores transparent shape fills', () => {
+    expect(markColor({ type: 'ellipse', stroke: '#22c55e', fill: 'transparent' })).toBe('#22c55e');
+    expect(markColor({ type: 'i-text', fill: '#8b5cf6' })).toBe('#8b5cf6');
+    expect(markColor({ type: 'path', fill: 'transparent' })).toBeNull();
+    expect(clusterColors([], 20)).toEqual({});
+  });
+});
+
+describe('groupBySurah (mushaf-order grouping)', () => {
+  it('groups pages under their surah, mushaf order in and out, flagging the focus group', () => {
+    // Page 4 and 22 are Al-Baqarah (2); 51 is Aal-i-Imran (3); 298 is Al-Kahf (18).
+    const rows: MarkedPage[] = [
+      { page: 298, count: 3 },
+      { page: 22, count: 7 },
+      { page: 4, count: 3 },
+      { page: 51, count: 5 },
+    ];
+    const groups = groupBySurah(rows);
+    expect(groups.map(g => g.surah)).toEqual([2, 3, 18]);
+    expect(groups[0].pages.map(p => p.page)).toEqual([4, 22]);
+    expect(groups[0].count).toBe(10);
+    // Page 22 ties the set max, so only its card carries the flag.
+    expect(groups.map(g => g.hasFocus)).toEqual([true, false, false]);
+    expect(groupBySurah([])).toEqual([]);
   });
 });
 

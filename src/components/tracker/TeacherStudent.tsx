@@ -226,7 +226,7 @@ export default function TeacherStudent({
             <div className="overflow-y-auto thin-scroll" style={{ maxHeight: 400 }}>
               <MarkedPagesList
                 rows={markedPages}
-                limit={3}
+                grouped
                 hrefFor={defaultSetId ? (page) => `/share/${defaultSetId}/${spreadUrl(page)}` : undefined}
               />
             </div>
@@ -319,7 +319,7 @@ export function StudentProfileCard({
           <div className="overflow-y-auto thin-scroll" style={{ maxHeight: 320 }}>
             <MarkedPagesList
               rows={markedPages}
-              limit={3}
+              grouped
               hrefFor={defaultSetId ? (page) => `/share/${defaultSetId}/${spreadUrl(page)}` : undefined}
             />
           </div>

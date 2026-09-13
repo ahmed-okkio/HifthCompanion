@@ -19,7 +19,7 @@ import SpreadAnnotation from './SpreadAnnotation';
 import NavRail from './NavRail';
 import { createClient } from '@/lib/supabase/client';
 import { markedPages as fetchMarkedPages } from '@/lib/services/markedPages';
-import type { MarkedPage } from '@/lib/markedPages';
+import type { MarkColors, MarkedPage } from '@/lib/markedPages';
 
 const FALLBACK_NAV_HEIGHT = 72;
 
@@ -261,11 +261,13 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   // R3/R4: upsert the saved page's count in memory (count 0 removes the row). No refetch.
   // Ignore saves for a different set — a set-switch flushes the OUTGOING set, whose onSaved
   // would otherwise pollute the incoming set's list (draw in set A showing in set B).
-  const patchMarked = useCallback((setId: string, page: number, count: number) => {
+  const patchMarked = useCallback((setId: string, page: number, count: number, colors: MarkColors) => {
     if (setId !== activeSetId) return;
     setMarkedRows(prev => {
       const rest = prev.filter(r => r.page !== page);
-      return count > 0 ? [...rest, { page, count }] : rest;
+      // Colours ride along with the count — rebuilding the row without them would blank the
+      // page's colour chips until the next set-switch refetch.
+      return count > 0 ? [...rest, { page, count, colors }] : rest;
     });
   }, [activeSetId]);
 

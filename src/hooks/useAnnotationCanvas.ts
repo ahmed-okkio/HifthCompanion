@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { AnnotationSet } from '@/types';
 import { CanvasHistory } from '@/lib/canvasHistory';
 import { getToolCursor } from '@/lib/canvasTools';
+import type { MarkColors } from '@/lib/markedPages';
 
 import { useToolState, useCanvasTools, type ToolState } from './canvas/useCanvasTools';
 import { useCanvasViewport } from './canvas/useCanvasViewport';
@@ -29,7 +30,7 @@ interface UseAnnotationCanvasProps {
   /** PRD 0009 R3: fired after a successful save with the page's new mark count
    *  (objects.length; 0 on the empty-delete path). Lets the reader patch the Marked
    *  tab in place without refetching. */
-  onSaved?: (setId: string, page: number, count: number) => void;
+  onSaved?: (setId: string, page: number, count: number, colors: MarkColors) => void;
 }
 
 export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet = false, tools, onCommit, onSaved }: UseAnnotationCanvasProps) {

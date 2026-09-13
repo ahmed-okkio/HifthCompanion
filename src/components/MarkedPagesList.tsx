@@ -152,33 +152,21 @@ export default function MarkedPagesList({
       paddingInlineStart: '30px',
       background: 'transparent',
     };
-    const cls = `flex w-full items-center gap-2 px-4 text-start transition-colors duration-150`;
+    // marked-row carries hover / pressed / focus — see globals.css.
+    const cls = 'marked-row flex w-full items-center gap-2 px-4 text-start';
     return (
       <li key={row.page}>
         {hrefFor ? (
-          <a
-            href={hrefFor(row.page)}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--neutral-50)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-            className={cls}
-            style={box}
-          >
+          <a href={hrefFor(row.page)} className={cls} style={box}>
             {inner}
           </a>
         ) : onJump ? (
-          <button
-            type="button"
-            onClick={() => onJump(row.page)}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--neutral-50)'; }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-            className={cls}
-            style={box}
-          >
+          <button type="button" onClick={() => onJump(row.page)} className={cls} style={box}>
             {inner}
           </button>
         ) : (
-          // C2: read-only surface — static row, no jump/hover affordance.
-          <div className={`flex w-full items-center gap-2 px-4`} style={box}>
+          // C2: read-only surface — static row, no jump/press affordance.
+          <div className="flex w-full items-center gap-2 px-4" style={box}>
             {inner}
           </div>
         )}
@@ -205,7 +193,7 @@ export default function MarkedPagesList({
             <summary
               // The open state is React's, so the browser's own toggle has to stand down.
               onClick={e => { e.preventDefault(); toggleSurah(group.surah); }}
-              className="marked-summary flex cursor-pointer items-center gap-2 px-3 transition-colors duration-150"
+              className="marked-summary flex items-center gap-2 px-3"
               style={{ minHeight: '48px', paddingBlock: '8px' }}
             >
               <svg

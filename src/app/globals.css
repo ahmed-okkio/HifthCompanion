@@ -603,16 +603,38 @@ input[type="number"] {
   }
 }
 
-/* Annotations panel — collapsible surah card header (MarkedPagesList).
-   The default disclosure triangle is replaced by the card's own caret. */
+/* Annotations panel — surah card header + page rows (MarkedPagesList).
+   Both are press targets, so the affordance lives here rather than in a JS
+   mouseenter swap: hover, pressed and keyboard focus then read as one control,
+   and touch (which has no hover) still gets the pressed state. The tint is the
+   accent rather than a flat grey — grey reads as a disabled band at this size. */
 .marked-summary {
   list-style: none;
 }
 .marked-summary::-webkit-details-marker {
   display: none;
 }
-.marked-summary:hover {
-  background: var(--neutral-50);
+.marked-row,
+.marked-summary {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+@media (hover: hover) {
+  .marked-row:hover,
+  .marked-summary:hover {
+    background: var(--accent-muted);
+  }
+}
+.marked-row:active,
+.marked-summary:active {
+  background: var(--accent-glow);
+}
+.marked-row:focus-visible,
+.marked-summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
 }
 
 /* Fabric.js canvas layers - ensure proper fit */

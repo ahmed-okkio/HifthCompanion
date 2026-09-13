@@ -636,6 +636,12 @@ input[type="number"] {
   outline-offset: -2px;
   border-radius: var(--radius-sm);
 }
+/* A hairline between pages, so one row highlighting reads as one row and not as
+   a tint floating over the card. The rule sits on the li, leaving the row inside
+   it free to fill with the hover colour right up to the line. */
+.marked-rows > li + li {
+  border-top: 1px solid var(--border-subtle);
+}
 
 /* Fabric.js canvas layers - ensure proper fit */
 canvas {

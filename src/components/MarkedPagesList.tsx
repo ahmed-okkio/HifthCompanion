@@ -146,11 +146,12 @@ export default function MarkedPagesList({
       </>
     );
     // Rows sit inside a surah card, so they run short and indent past its caret.
+    // No `background` here: an inline style outranks any stylesheet rule, so setting it
+    // would silently kill the hover / pressed states .marked-row defines in globals.css.
     const box: React.CSSProperties = {
       minHeight: '44px',
       paddingBlock: '8px',
       paddingInlineStart: '30px',
-      background: 'transparent',
     };
     // marked-row carries hover / pressed / focus — see globals.css.
     const cls = 'marked-row flex w-full items-center gap-2 px-4 text-start';
@@ -242,7 +243,7 @@ export default function MarkedPagesList({
                 />
               )}
             </summary>
-            <ul style={{ borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-base)' }}>
+            <ul className="marked-rows" style={{ borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-base)' }}>
               {group.pages.map(row => pageRow(row))}
             </ul>
           </details>

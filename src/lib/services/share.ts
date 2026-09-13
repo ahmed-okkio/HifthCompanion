@@ -1,3 +1,5 @@
+import { cache } from 'react';
+
 import { createClient } from '@/lib/supabase/server';
 import { getMyChrome, getProfilesByIds } from '@/lib/services/profile';
 import { displayName } from '@/lib/displayName';
@@ -29,7 +31,10 @@ export type ShareCapability =
       ownerName?: string;
     };
 
-export async function resolveShareCapability(setId: string): Promise<ShareCapability> {
+// cache(): the layout and the [page] segment both resolve the same capability. Per request
+// that was two auth round-trips plus a duplicate profile/membership fan-out on every page
+// turn; React's per-request cache collapses them into one.
+export const resolveShareCapability = cache(async (setId: string): Promise<ShareCapability> => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -88,4 +93,4 @@ export async function resolveShareCapability(setId: string): Promise<ShareCapabi
     ? displayName({ user_id: annotationSet.user_id, first_name: owner?.first_name, last_name: owner?.last_name })
     : undefined;
   return { kind: 'readonly', setId, annotationSet, account, ownerName };
-}
+});

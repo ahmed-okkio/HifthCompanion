@@ -2,10 +2,10 @@
 
 // 0013 Substitute teacher — shared UI bits reused across the teacher circle
 // agenda, the per-student session list and the student's own session cards.
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { searchAccountsByEmail, type AccountMatch } from '@/lib/services/collaborators';
 import { useI18n } from '@/components/I18nProvider';
-import { ActionButton, Avatar } from './ui';
+import { ActionButton, AnchoredPopup, Avatar } from './ui';
 
 /**
  * Search accounts by email prefix and pick one (F2/F3) — same shape as the
@@ -47,6 +47,8 @@ export function SubAssignForm({
   const label = (a: AccountMatch) =>
     [a.first_name, a.last_name].filter(Boolean).join(' ').trim() || a.email;
 
+  const wrapRef = useRef<HTMLDivElement>(null);
+
   async function pick(a: AccountMatch) {
     if (busy) return;
     setBusy(true); setErr(null);
@@ -59,7 +61,7 @@ export function SubAssignForm({
   }
 
   return (
-    <div className="flex flex-col gap-1 w-full" style={{ position: 'relative' }}>
+    <div ref={wrapRef} className="flex flex-col gap-1 w-full" style={{ position: 'relative' }}>
       <div className="flex gap-2 items-center">
         <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoFocus={autoFocus}
                onKeyDown={(e) => {
@@ -75,8 +77,8 @@ export function SubAssignForm({
       </div>
 
       {/* Results float over the list so the header row doesn't jump. */}
-      {(searching || matches) && (
-        <div className="card" style={{ position: 'absolute', insetInline: 0, top: '100%', marginTop: 4, zIndex: 30, padding: 0, overflow: 'hidden' }}>
+      <AnchoredPopup open={searching || !!matches} anchorRef={wrapRef} className="card">
+        <div style={{ padding: 0 }}>
           {searching && <p className="text-xs" style={{ color: 'var(--text-muted)', padding: '8px 10px' }}>{t('share.searching')}</p>}
           {!searching && matches?.length === 0 && (
             <p className="text-xs" style={{ color: 'var(--text-muted)', padding: '8px 10px' }}>{t('share.noMatchingAccounts')}</p>
@@ -96,7 +98,7 @@ export function SubAssignForm({
             </button>
           ))}
         </div>
-      )}
+      </AnchoredPopup>
       {err && <span className="text-xs" style={{ color: 'var(--danger)' }}>{err}</span>}
     </div>
   );

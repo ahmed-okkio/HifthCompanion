@@ -7,7 +7,7 @@
  */
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
+import { createPortal, flushSync } from 'react-dom';
 import type { CSSProperties, ReactNode } from 'react';
 import type { HomeworkStatus } from '@/lib/homework';
 import { TOTAL_SURAHS, getSurahName } from '@/lib/quran';
@@ -346,6 +346,87 @@ export function NumberStepper({
   );
 }
 
+/**
+ * Anchored dropdown surface, rendered into <body>.
+ *
+ * An in-flow `position: absolute` popup can only stack inside its nearest ancestor stacking
+ * context, and the tracker is full of them — a prescribe card animating with `fade-in-scale`
+ * (transform), a graded ExamCard carrying `viewTransitionName`. A later sibling that makes its
+ * own context paints over the popup no matter how high the popup's z-index goes, which is why
+ * the exam surah list came up behind the cards below it. Portalling to <body> takes the popup
+ * out of every one of those contexts; `position: fixed` + a measured anchor rect keeps it glued
+ * to its field, and it flips above the field when there isn't room below.
+ *
+ * `onMouseDown` is stopped here so a consumer's document-level outside-click listener doesn't
+ * treat its own (now out-of-tree) menu as "outside" and unmount it before the click lands.
+ */
+export function AnchoredPopup({
+  open, anchorRef, maxHeight = 240, className = 'card', width, align = 'start', style, children,
+}: {
+  open: boolean;
+  anchorRef: React.RefObject<HTMLElement | null>;
+  maxHeight?: number;
+  className?: string;
+  /** Fixed popup width. Default: match the anchor. */
+  width?: number;
+  /** Which edge of the anchor a narrower/wider popup lines up with. */
+  align?: 'start' | 'end';
+  style?: CSSProperties;
+  children: ReactNode;
+}) {
+  const [rect, setRect] = useState<DOMRect | null>(null);
+
+  useEffect(() => {
+    if (!open) { setRect(null); return; }
+    const measure = () => {
+      const el = anchorRef.current;
+      if (el) setRect(el.getBoundingClientRect());
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    // Capture: the tracker scrolls in inner panels, not (only) the document.
+    window.addEventListener('scroll', measure, true);
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure, true);
+    };
+  }, [open, anchorRef]);
+
+  if (!open || !rect || typeof document === 'undefined') return null;
+
+  const GAP = 4;
+  const below = window.innerHeight - rect.bottom - GAP;
+  const above = rect.top - GAP;
+  const flip = below < Math.min(maxHeight, 160) && above > below;
+  const height = Math.min(maxHeight, flip ? above : below);
+  // Right-aligned menus (a narrower panel hanging off a small avatar button) line up with the
+  // anchor's end edge; everything else fills the field. Clamped to the viewport either way.
+  const w = width ?? rect.width;
+  const rawLeft = align === 'end' ? rect.right - w : rect.left;
+  const left = Math.max(8, Math.min(rawLeft, window.innerWidth - w - 8));
+
+  return createPortal(
+    <div
+      className={className}
+      onMouseDown={(e) => e.stopPropagation()}
+      style={{
+        position: 'fixed',
+        left,
+        width: w,
+        top: flip ? undefined : rect.bottom + GAP,
+        bottom: flip ? window.innerHeight - rect.top + GAP : undefined,
+        maxHeight: height,
+        overflowY: 'auto',
+        zIndex: 9999,
+        ...style,
+      }}
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+}
+
 /** Searchable surah picker: styled text input filtering the 114 surahs by
  *  number or name (en/ar), with a styled dropdown listbox. Reusable — click or
  *  Enter selects, Escape / click-outside closes. Written for the prescribe
@@ -441,22 +522,10 @@ export function SurahCombobox({
       >
         <Chevron open={open} />
       </span>
-      {open && matches.length > 0 && (
+      <AnchoredPopup open={open && matches.length > 0} anchorRef={wrap}>
         <ul
           role="listbox"
-          className="card"
-          style={{
-            position: 'absolute',
-            zIndex: 20,
-            top: 'calc(100% + 4px)',
-            left: 0,
-            right: 0,
-            maxHeight: 240,
-            overflowY: 'auto',
-            padding: 4,
-            margin: 0,
-            listStyle: 'none',
-          }}
+          style={{ padding: 4, margin: 0, listStyle: 'none' }}
         >
           {matches.map((s) => (
             <li key={s}>
@@ -483,7 +552,7 @@ export function SurahCombobox({
             </li>
           ))}
         </ul>
-      )}
+      </AnchoredPopup>
     </div>
   );
 }
@@ -643,11 +712,8 @@ export function TimeSelect({
         onBlur={commit}
         onKeyDown={(e) => { if (e.key === 'Enter') { commit(); setOpen(false); } if (e.key === 'Escape') setOpen(false); }}
       />
-      {open && (
-        <ul role="listbox" className="card thin-scroll" style={{
-          position: 'absolute', top: 'calc(100% + 4px)', insetInlineStart: 0, zIndex: 30,
-          minWidth: '100%', maxHeight: 200, overflowY: 'auto', padding: 4, margin: 0, listStyle: 'none',
-        }}>
+      <AnchoredPopup open={open} anchorRef={wrapRef} maxHeight={200} className="card thin-scroll">
+        <ul role="listbox" style={{ padding: 4, margin: 0, listStyle: 'none' }}>
           {slots.map((s) => {
             const sel = s === value;
             return (
@@ -666,7 +732,7 @@ export function TimeSelect({
             );
           })}
         </ul>
-      )}
+      </AnchoredPopup>
     </div>
   );
 }

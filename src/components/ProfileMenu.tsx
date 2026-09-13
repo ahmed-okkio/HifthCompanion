@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Avatar } from '@/components/tracker/ui';
+import { AnchoredPopup, Avatar } from '@/components/tracker/ui';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useI18n } from '@/components/I18nProvider';
 
@@ -60,25 +60,23 @@ export default function ProfileMenu({ name, email }: { name: string; email: stri
         <Avatar seed={name} size={36} />
       </button>
 
-      {open && (
-        <div
-          role="menu"
-          aria-label={t('menu.account')}
-          className="thin-scroll"
-          style={{
-            position: 'absolute',
-            top: 'calc(100% + 8px)',
-            insetInlineEnd: 0,
-            width: 248,
-            maxWidth: 'calc(100vw - 24px)',
-            background: 'var(--surface-main)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-e3)',
-            zIndex: 60,
-            overflow: 'hidden',
-          }}
-        >
+      {/* Portalled (AnchoredPopup) so a stacking context anywhere up the header/shell tree
+          can't bury the menu — the same fix the tracker dropdowns needed. */}
+      <AnchoredPopup
+        open={open}
+        anchorRef={rootRef}
+        className="thin-scroll"
+        width={248}
+        align="end"
+        maxHeight={Math.min(520, typeof window === 'undefined' ? 520 : window.innerHeight - 24)}
+        style={{
+          background: 'var(--surface-main)',
+          border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-e3)',
+        }}
+      >
+        <div role="menu" aria-label={t('menu.account')}>
           {/* Header — name + email */}
           <div className="flex items-center gap-3" style={{ padding: 'var(--space-12)', borderBottom: '1px solid var(--border-subtle)' }}>
             <Avatar seed={name} size={40} />
@@ -127,7 +125,7 @@ export default function ProfileMenu({ name, email }: { name: string; email: stri
             <span>{t('menu.logout')}</span>
           </button>
         </div>
-      )}
+      </AnchoredPopup>
     </div>
   );
 }

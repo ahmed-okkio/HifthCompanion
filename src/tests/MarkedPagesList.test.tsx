@@ -13,25 +13,25 @@ const ROWS: MarkedPage[] = [
 describe('MarkedPagesList — colour chips', () => {
   it('names every colour it shows, heaviest first, and omits chips for a pre-migration row', () => {
     render(<MarkedPagesList rows={[{ page: 4, count: 3, colors: { '#3b82f6': 1, '#22c55e': 2 } }, { page: 9, count: 2 }]} />);
-    const chips = screen.getAllByLabelText(/marks$/).filter(el => el.tagName === 'SPAN' && /Green|Blue/.test(el.getAttribute('aria-label') ?? ''));
-    expect(chips.map(c => c.getAttribute('aria-label'))).toEqual(['2 Green marks', '1 Blue marks']);
+    const chips = screen.getAllByLabelText(/annotations$/).filter(el => el.tagName === 'SPAN' && /Green|Blue/.test(el.getAttribute('aria-label') ?? ''));
+    expect(chips.map(c => c.getAttribute('aria-label'))).toEqual(['2 Green annotations', '1 Blue annotations']);
     // Page 9 predates mark_colors: total badge only, no chips.
-    expect(screen.queryByLabelText(/Red marks/)).toBeNull();
+    expect(screen.queryByLabelText(/Red annotations/)).toBeNull();
   });
 });
 
 describe('MarkedPagesList — surah grouping', () => {
   it('folds pages into mushaf-ordered surah cards and flags the one holding Needs Focus', () => {
-    render(<MarkedPagesList rows={ROWS} grouped onJump={vi.fn()} />);
+    render(<MarkedPagesList rows={ROWS} onJump={vi.fn()} />);
     const names = screen.getAllByText(/Al-Baqara|Aal-i-Imraan/).map(el => el.textContent);
     expect(names).toEqual(['Al-Baqara', 'Aal-i-Imraan']);
-    expect(screen.getByText('2 pages · 10 marks')).toBeTruthy();
+    expect(screen.getByText('2 pages · 10 annotations')).toBeTruthy();
     // Exactly one card carries the focus dot — Al-Baqarah's, which holds page 22.
     expect(screen.getAllByLabelText('Contains a page that needs focus')).toHaveLength(1);
   });
 
   it('opens the card holding the page being read, and toggles on click', () => {
-    const { container } = render(<MarkedPagesList rows={ROWS} grouped currentPage={22} onJump={vi.fn()} />);
+    const { container } = render(<MarkedPagesList rows={ROWS} currentPage={22} onJump={vi.fn()} />);
     const cards = container.querySelectorAll('details');
     expect([...cards].map(c => (c as HTMLDetailsElement).open)).toEqual([true, false]);
 
@@ -42,10 +42,10 @@ describe('MarkedPagesList — surah grouping', () => {
     expect([...container.querySelectorAll('details')].map(c => (c as HTMLDetailsElement).open)).toEqual([false, true]);
   });
 
-  it('falls back to the flat count-desc list when not grouped', () => {
-    render(<MarkedPagesList rows={ROWS} onJump={vi.fn()} />);
-    expect(screen.queryByText('Al-Baqara')).toBeNull();
+  it('lists pages in mushaf order, not by mark count', () => {
+    render(<MarkedPagesList rows={ROWS} currentPage={22} onJump={vi.fn()} />);
+    // Page 4 precedes the heavier page 22 — reading order wins inside a card.
     const pages = screen.getAllByText(/^Page \d+$/).map(el => el.textContent);
-    expect(pages).toEqual(['Page 22', 'Page 51', 'Page 4']);
+    expect(pages).toEqual(['Page 4', 'Page 22', 'Page 51']);
   });
 });

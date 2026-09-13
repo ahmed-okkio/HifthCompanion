@@ -2,7 +2,7 @@
 import React from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import {
-  badgeLevel, groupBySurah, isNeedsFocus, maxCount, sortMarked,
+  badgeLevel, groupBySurah, isNeedsFocus, maxCount,
   type MarkColors, type MarkedPage,
 } from '@/lib/markedPages';
 import { getSurahForPage, getSurahName } from '@/lib/quran';
@@ -67,35 +67,28 @@ function ColorChips({ colors }: { colors?: MarkColors }) {
 
 /**
  * Presentational marked-pages list shared by the reader's Annotations tab and the
- * tracker student-detail page (C1). Rows show page + colour chips + count badge (L2)
- * with a Needs Focus pill on max-count rows (L3), ordered per L4. Pass `onJump` to make
- * rows jump links (reader); omit it for a static read-only list (tracker, C2).
- * Empty input renders the "No marked pages yet" state (R6/C3).
+ * tracker student-detail page (C1). Pages fold into collapsible surah cards in mushaf
+ * order; each row shows page + colour chips + count badge (L2), with a Needs Focus pill
+ * on max-count rows (L3) and a dot on the card that holds one, since a collapsed card
+ * hides the pill. Pass `onJump` to make rows jump links (reader); omit it for a static
+ * read-only list (tracker, C2). Empty input renders "No marked pages yet" (R6/C3).
  *
- * `grouped` folds the rows into collapsible surah cards in mushaf order — the panel's
- * other sort. It replaces L4's count-desc ranking (you can group or rank, not both), so
- * the collapsed card carries a Needs Focus dot to keep that signal visible.
+ * Mushaf order replaces L4's count-desc ranking — a grouped list has to run in reading
+ * order, and the two can't both hold.
  */
 export default function MarkedPagesList({
-  rows, onJump, hrefFor, limit, grouped = false, currentPage,
+  rows, onJump, hrefFor, currentPage,
 }: {
   rows: MarkedPage[];
   onJump?: (page: number) => void;
   /** Render each row as a link to this href (tracker: jump into the mushaf at that page). */
   hrefFor?: (page: number) => string;
-  /** Cap the list to the top-N rows after sorting (tracker shows top 3). Flat list only. */
-  limit?: number;
-  /** Group rows into collapsible surah cards, mushaf order. */
-  grouped?: boolean;
   /** Opens that page's surah card on first render, so the panel starts where the reader is. */
   currentPage?: number;
 }) {
   const { t, locale, fmtNum } = useI18n();
-  // max is over the FULL set so the Needs Focus tag stays correct even when the list is capped.
-  const full = React.useMemo(() => sortMarked(rows), [rows]);
-  const max = React.useMemo(() => maxCount(full), [full]);
-  const sorted = React.useMemo(() => (limit ? full.slice(0, limit) : full), [full, limit]);
-  const groups = React.useMemo(() => (grouped ? groupBySurah(rows) : []), [grouped, rows]);
+  const max = React.useMemo(() => maxCount(rows), [rows]);
+  const groups = React.useMemo(() => groupBySurah(rows), [rows]);
 
   // Which surah cards are open. Seeded once from the open page; after that it's the
   // reader's own choice, and navigating the mushaf doesn't reshuffle it underneath them.
@@ -109,6 +102,10 @@ export default function MarkedPagesList({
       return next;
     });
 
+  // "1 page", not "1 pages" — the counts land on single-page surahs constantly.
+  const pagesLabel = (n: number) => t(n === 1 ? 'reader.pagesCountOne' : 'reader.pagesCount', { n });
+  const marksLabel = (n: number) => t(n === 1 ? 'reader.markCountOne' : 'reader.markCount', { n });
+
   if (rows.length === 0) {
     return (
       <p className="px-4 py-6 text-center" style={{ color: 'var(--text-muted)', fontSize: 'var(--type-small-size)' }}>
@@ -117,7 +114,7 @@ export default function MarkedPagesList({
     );
   }
 
-  const pageRow = (row: MarkedPage, indent: boolean) => {
+  const pageRow = (row: MarkedPage) => {
     const badge = BADGE_COLORS[badgeLevel(row.count)];
     const focus = isNeedsFocus(row.count, max);
     const inner = (
@@ -146,7 +143,7 @@ export default function MarkedPagesList({
         )}
         <span
           className="shrink-0 inline-flex items-center justify-center tabular-nums"
-          aria-label={t('reader.markCount', { n: row.count })}
+          aria-label={marksLabel(row.count)}
           style={{
             marginInlineStart: 'auto',
             height: '28px',
@@ -163,13 +160,13 @@ export default function MarkedPagesList({
         </span>
       </>
     );
-    // Grouped rows sit inside a card, so they run shorter and indent past the caret.
-    const box = {
-      minHeight: indent ? '44px' : '56px',
-      paddingBlock: indent ? '8px' : '12px',
-      paddingInlineStart: indent ? '30px' : undefined,
+    // Rows sit inside a surah card, so they run short and indent past its caret.
+    const box: React.CSSProperties = {
+      minHeight: '44px',
+      paddingBlock: '8px',
+      paddingInlineStart: '30px',
       background: 'transparent',
-    } as React.CSSProperties;
+    };
     const cls = `flex w-full items-center gap-2 px-4 text-start transition-colors duration-150`;
     return (
       <li key={row.page}>
@@ -203,8 +200,6 @@ export default function MarkedPagesList({
       </li>
     );
   };
-
-  if (!grouped) return <ul>{sorted.map(row => pageRow(row, false))}</ul>;
 
   return (
     <div className="flex flex-col gap-1.5 p-2">
@@ -242,11 +237,20 @@ export default function MarkedPagesList({
                 <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <span className="flex min-w-0 flex-col">
-                <span className="truncate" style={{ fontSize: 'var(--type-small-size)', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {getSurahName(group.surah, locale)}
+                <span className="flex min-w-0 items-baseline gap-1.5">
+                  <span className="truncate" style={{ fontSize: 'var(--type-small-size)', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {getSurahName(group.surah, locale)}
+                  </span>
+                  {/* The Arabic name is how most readers know the surah — carried alongside the
+                      transliteration, and dropped in the Arabic UI where it IS the name. */}
+                  {locale !== 'ar' && (
+                    <span className="shrink-0" style={{ fontSize: 'var(--type-meta-size)', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      {getSurahName(group.surah, 'ar')}
+                    </span>
+                  )}
                 </span>
                 <span className="tabular-nums" style={{ fontSize: 'var(--type-meta-size)', fontWeight: 600, color: 'var(--text-muted)' }}>
-                  {t('reader.pagesCount', { n: group.pages.length })} · {t('reader.markCount', { n: group.count })}
+                  {pagesLabel(group.pages.length)} · {marksLabel(group.count)}
                 </span>
               </span>
               {/* A collapsed card hides its Needs Focus pill — the dot keeps the L3 signal up here. */}
@@ -266,7 +270,7 @@ export default function MarkedPagesList({
               )}
             </summary>
             <ul style={{ borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-base)' }}>
-              {group.pages.map(row => pageRow(row, true))}
+              {group.pages.map(row => pageRow(row))}
             </ul>
           </details>
         );

@@ -196,7 +196,6 @@ export default function StudentCircle({
                     viewer's own spread preference (C3), so the link isn't hard-coded to a mode. */}
                 <MarkedPagesList
                   rows={markedPages}
-                  grouped
                   hrefFor={defaultSetId ? (page) => `/share/${defaultSetId}/${page}` : undefined}
                 />
               </div>

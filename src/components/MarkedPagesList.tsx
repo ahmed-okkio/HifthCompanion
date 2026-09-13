@@ -2,7 +2,7 @@
 import React from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import {
-  badgeLevel, groupBySurah, isNeedsFocus, maxCount,
+  badgeLevel, groupBySurah,
   type MarkColors, type MarkedPage,
 } from '@/lib/markedPages';
 import { getSurahForPage, getSurahName } from '@/lib/quran';
@@ -34,17 +34,19 @@ function ColorChips({ colors }: { colors?: MarkColors }) {
     [colors],
   );
   if (entries.length === 0) return null;
+  // One line while they fit, wrapping to a second rather than shrinking or clipping.
   return (
-    <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+    <span className="flex min-w-0 flex-1 flex-wrap items-center" style={{ gap: '4px' }}>
       {entries.map(([hex, n]) => {
         const name = PRESET_NAMES[hex.toLowerCase()];
         return (
           <span
             key={hex}
             aria-label={t('reader.markCountColor', { n, color: name ? t(`color.${name}` as MessageKey) : hex })}
-            className="inline-flex shrink-0 items-center gap-1 tabular-nums"
+            className="inline-flex shrink-0 items-center tabular-nums"
             style={{
-              padding: '1px 7px 1px 5px',
+              gap: '3px',
+              padding: '1px 6px 1px 4px',
               borderRadius: 'var(--radius-full)',
               background: 'var(--neutral-100)',
               fontSize: 'var(--type-meta-size)',
@@ -55,7 +57,7 @@ function ColorChips({ colors }: { colors?: MarkColors }) {
             <span
               aria-hidden
               className="shrink-0"
-              style={{ width: '8px', height: '8px', borderRadius: 'var(--radius-full)', background: hex }}
+              style={{ width: '7px', height: '7px', borderRadius: 'var(--radius-full)', background: hex }}
             />
             {fmtNum(n)}
           </span>
@@ -68,10 +70,10 @@ function ColorChips({ colors }: { colors?: MarkColors }) {
 /**
  * Presentational marked-pages list shared by the reader's Annotations tab and the
  * tracker student-detail page (C1). Pages fold into collapsible surah cards in mushaf
- * order; each row shows page + colour chips + count badge (L2), with a Needs Focus pill
- * on max-count rows (L3) and a dot on the card that holds one, since a collapsed card
- * hides the pill. Pass `onJump` to make rows jump links (reader); omit it for a static
- * read-only list (tracker, C2). Empty input renders "No marked pages yet" (R6/C3).
+ * order; each row shows page + colour chips + count badge (L2). L3's Needs Focus reads
+ * from the badge colour and the card's dot now — a pill in the row crowded the chips off
+ * their line at 300px. Pass `onJump` to make rows jump links (reader); omit it for a
+ * static read-only list (tracker, C2). Empty input renders the empty state (R6/C3).
  *
  * Mushaf order replaces L4's count-desc ranking — a grouped list has to run in reading
  * order, and the two can't both hold.
@@ -87,7 +89,6 @@ export default function MarkedPagesList({
   currentPage?: number;
 }) {
   const { t, locale, fmtNum } = useI18n();
-  const max = React.useMemo(() => maxCount(rows), [rows]);
   const groups = React.useMemo(() => groupBySurah(rows), [rows]);
 
   // Which surah cards are open. Seeded once from the open page; after that it's the
@@ -116,31 +117,15 @@ export default function MarkedPagesList({
 
   const pageRow = (row: MarkedPage) => {
     const badge = BADGE_COLORS[badgeLevel(row.count)];
-    const focus = isNeedsFocus(row.count, max);
     const inner = (
       <>
         <span
           className="shrink-0 truncate"
-          style={{ fontSize: 'var(--type-body-size)', fontWeight: 500, color: 'var(--text-primary)' }}
+          style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-primary)' }}
         >
           {t('reader.pageNum', { n: row.page })}
         </span>
         <ColorChips colors={row.colors} />
-        {focus && (
-          <span
-            className="shrink-0"
-            style={{
-              padding: '2px 8px',
-              borderRadius: 'var(--radius-full)',
-              fontSize: 'var(--type-meta-size)',
-              fontWeight: 700,
-              background: 'var(--danger-muted)',
-              color: 'var(--danger)',
-            }}
-          >
-            {t('reader.needsFocus')}
-          </span>
-        )}
         <span
           className="shrink-0 inline-flex items-center justify-center tabular-nums"
           aria-label={marksLabel(row.count)}

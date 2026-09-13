@@ -2,10 +2,10 @@
 import React from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import {
-  badgeLevel, groupBySurah,
+  badgeLevel, groupBySurah, surahGroupKey,
   type MarkColors, type MarkedPage,
 } from '@/lib/markedPages';
-import { getSurahForPage, getSurahName } from '@/lib/quran';
+import { getSurahName } from '@/lib/quran';
 import { PRESET_COLORS } from '@/lib/canvasTools';
 import type { MessageKey } from '@/lib/i18n/dictionaries';
 
@@ -93,15 +93,18 @@ export default function MarkedPagesList({
 
   // Which surah cards are open. Seeded once from the open page; after that it's the
   // reader's own choice, and navigating the mushaf doesn't reshuffle it underneath them.
-  const [openSurahs, setOpenSurahs] = React.useState<Set<number>>(
-    () => new Set(currentPage ? [getSurahForPage(currentPage)] : []),
+  const [openSurahs, setOpenSurahs] = React.useState<Set<string>>(
+    () => new Set(currentPage ? [surahGroupKey(currentPage)] : []),
   );
-  const toggleSurah = (surah: number) =>
+  const toggleSurah = (key: string) =>
     setOpenSurahs(prev => {
       const next = new Set(prev);
-      if (!next.delete(surah)) next.add(surah);
+      if (!next.delete(key)) next.add(key);
       return next;
     });
+
+  // "An-Nisa / Al-Ma'ida" where a page carries the boundary between two surahs.
+  const groupName = (surahs: number[]) => surahs.map(n => getSurahName(n, locale)).join(' / ');
 
   // "1 page", not "1 pages" — the counts land on single-page surahs constantly.
   const pagesLabel = (n: number) => t(n === 1 ? 'reader.pagesCountOne' : 'reader.pagesCount', { n });
@@ -178,10 +181,10 @@ export default function MarkedPagesList({
   return (
     <div className="flex flex-col gap-1.5 p-2">
       {groups.map(group => {
-        const open = openSurahs.has(group.surah);
+        const open = openSurahs.has(group.key);
         return (
           <details
-            key={group.surah}
+            key={group.key}
             open={open}
             className="overflow-hidden"
             style={{
@@ -193,7 +196,7 @@ export default function MarkedPagesList({
           >
             <summary
               // The open state is React's, so the browser's own toggle has to stand down.
-              onClick={e => { e.preventDefault(); toggleSurah(group.surah); }}
+              onClick={e => { e.preventDefault(); toggleSurah(group.key); }}
               className="marked-summary flex items-center gap-2 px-3"
               style={{ minHeight: '48px', paddingBlock: '8px' }}
             >
@@ -211,17 +214,15 @@ export default function MarkedPagesList({
                 <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               <span className="flex min-w-0 flex-col">
-                <span className="flex min-w-0 items-baseline gap-1.5">
-                  <span className="truncate" style={{ fontSize: 'var(--type-small-size)', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {getSurahName(group.surah, locale)}
-                  </span>
-                  {/* The Arabic name is how most readers know the surah — carried alongside the
-                      transliteration, and dropped in the Arabic UI where it IS the name. */}
-                  {locale !== 'ar' && (
-                    <span className="shrink-0" style={{ fontSize: 'var(--type-meta-size)', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                      {getSurahName(group.surah, 'ar')}
-                    </span>
-                  )}
+                {/* One name per surah on these pages, in the reader's own language only —
+                    a boundary page names two, and pairing each with its Arabic would not
+                    fit the 300px header. */}
+                <span
+                  className="truncate"
+                  title={groupName(group.surahs)}
+                  style={{ fontSize: 'var(--type-small-size)', fontWeight: 700, color: 'var(--text-primary)' }}
+                >
+                  {groupName(group.surahs)}
                 </span>
                 <span className="tabular-nums" style={{ fontSize: 'var(--type-meta-size)', fontWeight: 600, color: 'var(--text-muted)' }}>
                   {pagesLabel(group.pages.length)} · {marksLabel(group.count)}

@@ -92,6 +92,31 @@ export const SURAH_PAGE_GROUPS: SurahPageGroup[] = (() => {
     .map(([page, surahs]) => ({ page, surahs }));
 })();
 
+/**
+ * Every surah with text on a page, mushaf order. A page usually holds one, but a surah
+ * can start halfway down it — leaving the tail of the previous one above — and the short
+ * surahs of juz 30 put several on a page. getSurahForPage answers "which surah does this
+ * page belong to" and returns only the last of them; this answers "what is ON the page".
+ */
+const PAGE_SURAHS: Record<number, number[]> = (() => {
+  const out: Record<number, number[]> = {};
+  for (let page = 1; page <= TOTAL_PAGES; page++) {
+    // The page opens mid-surah more often than not, and that surah starts on an earlier
+    // page — so it can only come from the page's first ayah, not from the start map.
+    out[page] = [PAGE_FIRST_AYAH[page]?.surah ?? getSurahForPage(page)];
+  }
+  for (const { page, surahs } of SURAH_PAGE_GROUPS) {
+    const list = out[page] ?? (out[page] = []);
+    for (const n of surahs) if (!list.includes(n)) list.push(n);
+    list.sort((a, b) => a - b);
+  }
+  return out;
+})();
+
+export function getSurahsForPage(page: number): number[] {
+  return PAGE_SURAHS[clampPage(page)] ?? [getSurahForPage(page)];
+}
+
 /** First-page of the surah group active for a given page (highest group ≤ page). */
 export function activeGroupPage(currentPage: number): number {
   let page = SURAH_PAGE_GROUPS[0]?.page ?? 1;

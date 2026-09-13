@@ -11,6 +11,7 @@ import {
   clusterColors,
   markColor,
   groupBySurah,
+  surahGroupKey,
   type MarkedPage,
 } from '../lib/markedPages';
 
@@ -81,12 +82,26 @@ describe('groupBySurah (mushaf-order grouping)', () => {
       { page: 51, count: 5 },
     ];
     const groups = groupBySurah(rows);
-    expect(groups.map(g => g.surah)).toEqual([2, 3, 18]);
+    expect(groups.map(g => g.surahs)).toEqual([[2], [3], [18]]);
     expect(groups[0].pages.map(p => p.page)).toEqual([4, 22]);
     expect(groups[0].count).toBe(10);
     // Page 22 ties the set max, so only its card carries the flag.
     expect(groups.map(g => g.hasFocus)).toEqual([true, false, false]);
     expect(groupBySurah([])).toEqual([]);
+  });
+
+  it('gives a page carrying a surah boundary its own group, naming both surahs', () => {
+    // An-Nisa (4) ends partway down page 106, where Al-Ma'ida (5) begins.
+    expect(surahGroupKey(105)).toBe('4');
+    expect(surahGroupKey(106)).toBe('4,5');
+    expect(surahGroupKey(107)).toBe('5');
+    const groups = groupBySurah([
+      { page: 107, count: 1 },
+      { page: 105, count: 2 },
+      { page: 106, count: 3 },
+    ]);
+    // Ordered by first page — 4,5 sorts between 4 and 5, which surah number alone can't do.
+    expect(groups.map(g => g.surahs)).toEqual([[4], [4, 5], [5]]);
   });
 });
 

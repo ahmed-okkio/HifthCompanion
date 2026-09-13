@@ -1,5 +1,5 @@
 // Pure logic for the Marked-pages / Needs-Focus feature (PRD 0009). No I/O, no Fabric.
-import { getSurahForPage } from '@/lib/quran';
+import { getSurahsForPage } from '@/lib/quran';
 
 /** Clustered mark count per mark colour, e.g. `{ '#ef4444': 4, '#f59e0b': 2 }`. */
 export type MarkColors = Record<string, number>;
@@ -113,8 +113,11 @@ export function sortMarked(rows: MarkedPage[]): MarkedPage[] {
 }
 
 export type SurahGroup = {
-  surah: number;
-  /** The surah's marked pages, mushaf order. */
+  /** Every surah with text on these pages — more than one where a page carries a boundary. */
+  surahs: number[];
+  /** Stable identity for the group (the surah numbers), for React keys and open/closed state. */
+  key: string;
+  /** The group's marked pages, mushaf order. */
   pages: MarkedPage[];
   /** Marks across the whole group — what the collapsed card reports. */
   count: number;
@@ -122,28 +125,40 @@ export type SurahGroup = {
   hasFocus: boolean;
 };
 
-// Group rows under the surah each page belongs to, mushaf order in and out. This is the
-// alternative to sortMarked's count-desc order: you can group OR rank, not both, so the
-// panel offers the two as a sort choice. `max` is taken over the full input, keeping
-// hasFocus in agreement with the flat list's Needs Focus pill.
+// Group rows by the surahs ON each page, mushaf order in and out. Grouping by a single
+// surah would misfile the 51 pages that carry a boundary: a page that is the tail of
+// An-Nisa above and the start of Al-Ma'ida below belongs to both, and lands in a card
+// naming both rather than silently under the later one.
+//
+// This is the alternative to sortMarked's count-desc order — you can group or rank, not
+// both. `max` is taken over the full input so hasFocus agrees with the row badges.
 export function groupBySurah(rows: MarkedPage[]): SurahGroup[] {
   const max = maxCount(rows);
-  const by = new Map<number, MarkedPage[]>();
+  const by = new Map<string, { surahs: number[]; pages: MarkedPage[] }>();
   for (const r of rows) {
-    const surah = getSurahForPage(r.page);
-    const pages = by.get(surah);
-    if (pages) pages.push(r);
-    else by.set(surah, [r]);
+    const surahs = getSurahsForPage(r.page);
+    const key = surahs.join(',');
+    const group = by.get(key);
+    if (group) group.pages.push(r);
+    else by.set(key, { surahs, pages: [r] });
   }
   return [...by.entries()]
-    .map(([surah, pages]) => {
+    .map(([key, { surahs, pages }]) => {
       pages.sort((a, b) => a.page - b.page);
       return {
-        surah,
+        surahs,
+        key,
         pages,
         count: pages.reduce((n, p) => n + p.count, 0),
         hasFocus: pages.some(p => isNeedsFocus(p.count, max)),
       };
     })
-    .sort((a, b) => a.surah - b.surah);
+    // By first page, not by surah number: a boundary group shares its lowest surah with
+    // the group before it, so surah number alone can't order the two.
+    .sort((a, b) => a.pages[0].page - b.pages[0].page);
+}
+
+/** The group key a page falls in — lets a caller open the card holding a given page. */
+export function surahGroupKey(page: number): string {
+  return getSurahsForPage(page).join(',');
 }

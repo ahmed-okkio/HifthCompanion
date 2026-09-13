@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { SURAH_PAGE_GROUPS, activeGroupPage, filterSurahGroups, getJuzForPage, getSurahForPage, getSurahName, pageFromLocation, spreadOf, type SurahPageGroup } from '@/lib/quran';
+import { SURAH_PAGE_GROUPS, activeGroupPage, filterSurahGroups, getJuzForPage, getSurahsForPage, getSurahName, pageFromLocation, spreadOf, type SurahPageGroup } from '@/lib/quran';
 import { pinStorageKey } from '@/lib/bookmark';
 import { useI18n } from '@/components/I18nProvider';
 import { sortMarked, type MarkedPage } from '@/lib/markedPages';
@@ -208,8 +208,9 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
   const jumpToPage = (page: number) => { void goToPage(page); };
 
   const markedRows = useMemo(() => sortMarked(markedPages ?? []), [markedPages]);
+  // Distinct surahs touched, not cards: a page carrying a boundary counts toward both.
   const markedSurahCount = useMemo(
-    () => new Set(markedRows.map(r => getSurahForPage(r.page))).size,
+    () => new Set(markedRows.flatMap(r => getSurahsForPage(r.page))).size,
     [markedRows],
   );
 

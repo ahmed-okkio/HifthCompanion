@@ -745,3 +745,14 @@ textarea,
   opacity: 1;
   transform: translate(-50%, 0);
 }
+
+/* A failed write borrows the danger palette so it can't be mistaken for the
+   "Saved" pill it replaces. Wider, because it carries the server's message. */
+.action-toast[data-tone='error'] {
+  background: var(--danger-muted);
+  border-color: var(--danger);
+  color: var(--danger);
+  max-width: min(92vw, 420px);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}

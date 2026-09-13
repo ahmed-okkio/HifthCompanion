@@ -968,16 +968,18 @@ export function shortId(id: string) {
  * live on the button. It surfaces here instead, above the whole tracker, and
  * outlives whatever triggered it.
  */
-const ActionFeedbackCtx = createContext<(message: string) => void>(() => {});
+type Tone = 'ok' | 'error';
+const ActionFeedbackCtx = createContext<(message: string, tone?: Tone) => void>(() => {});
 
 export function ActionFeedbackProvider({ children }: { children: ReactNode }) {
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; tone: Tone } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const announce = useCallback((next: string) => {
-    setMessage(next);
+  const announce = useCallback((next: string, tone: Tone = 'ok') => {
+    setMessage({ text: next, tone });
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setMessage(null), TOAST_MS);
+    // A failure has to stay up long enough to read — it names what went wrong.
+    timer.current = setTimeout(() => setMessage(null), tone === 'error' ? ERROR_TOAST_MS : TOAST_MS);
   }, []);
 
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
@@ -987,8 +989,14 @@ export function ActionFeedbackProvider({ children }: { children: ReactNode }) {
       {children}
       {/* Always mounted so screen readers announce into a live region that
           already exists, rather than one that appears with the text. */}
-      <div className="action-toast" role="status" aria-live="polite" data-shown={message ? 'true' : undefined}>
-        {message && (<><Icon name="check" size={14} />{message}</>)}
+      <div
+        className="action-toast"
+        role="status"
+        aria-live={message?.tone === 'error' ? 'assertive' : 'polite'}
+        data-shown={message ? 'true' : undefined}
+        data-tone={message?.tone === 'error' ? 'error' : undefined}
+      >
+        {message && (<><Icon name={message.tone === 'error' ? 'alert' : 'check'} size={14} />{message.text}</>)}
       </div>
     </ActionFeedbackCtx.Provider>
   );
@@ -996,6 +1004,8 @@ export function ActionFeedbackProvider({ children }: { children: ReactNode }) {
 
 /** How long the confirmation pill stays up. */
 const TOAST_MS = 1800;
+/** Longer for a failure: it carries the server's message, which has to be readable. */
+const ERROR_TOAST_MS = 6000;
 
 /**
  * Button whose onClick may be async: while the promise is in flight the button
@@ -1033,8 +1043,12 @@ export function ActionButton({
       setState('done');
       setTimeout(() => { if (alive.current) setState('idle'); }, DONE_MS);
     } catch (err) {
+      // A write that failed must never leave a "Saved" behind: the row is gone on the
+      // next load and nothing said so. Surface the server's own message — that is the
+      // only thing that tells the user (or us) WHY the write was refused.
+      console.error(err);
+      announce(err instanceof Error && err.message ? err.message : t('common.failed'), 'error');
       if (alive.current) setState('idle');
-      throw err;
     }
   }
 

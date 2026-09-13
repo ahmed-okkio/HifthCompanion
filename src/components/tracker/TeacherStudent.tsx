@@ -1007,11 +1007,14 @@ export function HomeworkPanel({
     try {
       const rows = await prescribeHomework(draft);
       vt(() => setItems((p) => [...rows, ...p]));
-    } catch {
+    } catch (e) {
       setEntries(draft.entries);
       setInstructions(draft.instructions ?? '');
       setDeadline(draft.deadline ?? '');
       setPrescribing(true);
+      // Rethrow: the form is back, but ActionButton still owes the teacher the
+      // truth. Swallowing here is what let a refused write flash "Saved".
+      throw e;
     } finally {
       setBusy(false);
     }
@@ -1555,10 +1558,11 @@ function ExamsPanel({
     try {
       const row = await scheduleExam(membershipId, draft.date, draft.entries);
       vt(() => setItems((p) => [row, ...p]));
-    } catch {
+    } catch (e) {
       setEntries(draft.entries);
       setDate(draft.date);
       setScheduling(true);
+      throw e; // same as prescribe: never let a failed insert report "Saved".
     } finally {
       setBusy(false);
     }

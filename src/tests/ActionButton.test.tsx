@@ -70,4 +70,26 @@ describe('ActionFeedbackProvider', () => {
     expect(toast).toHaveTextContent('Saved');
     expect(toast).toHaveAttribute('data-shown', 'true');
   });
+
+  it('reports the failure message instead of "Saved" when the write is refused', async () => {
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      render(
+        <ActionFeedbackProvider>
+          <ActionButton onClick={() => Promise.reject(new Error('new row violates row-level security policy'))}>
+            Schedule
+          </ActionButton>
+        </ActionFeedbackProvider>,
+      );
+      fireEvent.click(screen.getByRole('button', { name: /schedule/i }));
+
+      const toast = await screen.findByRole('status');
+      await waitFor(() => expect(toast).toHaveAttribute('data-tone', 'error'));
+      expect(toast).toHaveTextContent('new row violates row-level security policy');
+      expect(toast).not.toHaveTextContent('Saved');
+      expect(screen.getByRole('button', { name: /schedule/i })).toBeEnabled();
+    } finally {
+      quiet.mockRestore();
+    }
+  });
 });

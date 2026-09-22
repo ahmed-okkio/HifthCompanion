@@ -9,11 +9,7 @@
   z-index: 50;
   width: 100%;
   color: var(--text-primary);
-  /* Frosted glass (Gmail-style): translucent + blur. At scroll-top the solid
-     page bg behind it reads solid; scrolled content shows through the blur. */
-  background: color-mix(in srgb, var(--surface-main) 72%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: var(--surface-main);
   border-bottom: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-e1);
 }

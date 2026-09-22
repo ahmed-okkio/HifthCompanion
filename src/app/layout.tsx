@@ -47,9 +47,10 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// themeColor belongs in the viewport export in Next 16. Matches --green-600.
+// themeColor belongs in the viewport export in Next 16. Matches --surface-main
+// (the top nav bar background) so the installed-PWA status bar blends with it.
 export const viewport: Viewport = {
-  themeColor: "#0F8A67",
+  themeColor: "#FFFFFF",
 };
 
 export default async function RootLayout({

@@ -98,4 +98,31 @@ test.describe('Wird daily screen', () => {
     await outstandingDone(page).first().click();
     await expect(page.getByText('All done today')).toBeVisible({ timeout: 15000 });
   });
+
+  test('heatmap: completing a wird fills today\'s cell on the manage screen', async ({ page }) => {
+    guardConsole(page);
+    // The manage screen pulls a Google-hosted Arabic font; the suite-wide x-e2e-test
+    // header fails that cross-origin CORS preflight (harness artifact, not an app bug).
+    await page.route('https://fonts.gstatic.com/**', (r) =>
+      r.fulfill({ status: 200, body: '', headers: { 'access-control-allow-origin': '*' } }));
+    await reset(page, [seedWird('w-hm', 'Heatmap wird', 10)]);
+
+    const d = new Date();
+    const todayIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const todayCell = page.locator(`[title="${todayIso}"]`);
+
+    // Before: grid rendered, nothing done.
+    await page.goto('/wird/manage');
+    await expect(todayCell).toHaveCount(1);
+    await expect(page.locator('[data-done]')).toHaveCount(0);
+
+    await page.goto('/wird');
+    await outstandingDone(page).click();
+    await expect(page.getByText('All done today')).toBeVisible({ timeout: 15000 });
+
+    // After: exactly today's cell is filled, read back from the server.
+    await page.goto('/wird/manage');
+    await expect(todayCell).toHaveAttribute('data-done', 'true');
+    await expect(page.locator('[data-done]')).toHaveCount(1);
+  });
 });

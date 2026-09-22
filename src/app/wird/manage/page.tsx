@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { listWirds } from '@/lib/services/wird';
+import { listWirds, listEntryDatesByWird } from '@/lib/services/wird';
 import { getMyMemorization } from '@/lib/services/profile';
 import { getPageForAyah } from '@/lib/quran';
 import { getLocale } from '@/lib/i18n/server';
@@ -23,6 +23,7 @@ export default async function WirdManagePage() {
   if (!user) redirect('/login');
 
   const wirds = await listWirds();
+  const entriesByWird = await listEntryDatesByWird();
 
   const { ranges } = await getMyMemorization();
   // Real pass length = distinct memorized pages (gap-skipping), for the form's
@@ -41,6 +42,7 @@ export default async function WirdManagePage() {
     page_end: w.page_end,
     pages_per_period: w.pages_per_period,
     period_days: w.period_days,
+    doneDates: entriesByWird[w.id] ?? [],
   }));
 
   return <ManageList rows={rows} memorizedPages={memorizedPages} />;

@@ -52,6 +52,10 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
   // honoured for deep links (e.g. an external "New" link).
   const params = useSearchParams();
   const [newOpen, setNewOpen] = useState(false);
+  // Bridges the optimistic gap: the dialog hides the instant Create is tapped,
+  // and the new card only lands after the server write + refresh. This shows a
+  // loading placeholder in between so the tap has immediate feedback.
+  const [creating, setCreating] = useState(false);
   const openNew = () => setNewOpen(true);
   const formOpen = newOpen || params.get('new') === '1';
   const closeForm = () => {
@@ -100,12 +104,15 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
   return (
     <>
       {content}
+      {creating && <CreatingOverlay t={t} />}
       {/* Create + Manage live in the top bar (see WirdHeaderActions). No floating
           button sits over the card, so the Done disc is the one control (H10). */}
       <WirdForm
         open={formOpen}
         onClose={closeForm}
-        onCreated={() => { closeForm(); router.refresh(); }}
+        onSubmitStart={() => setCreating(true)}
+        onFailed={() => setCreating(false)}
+        onCreated={() => { setCreating(false); closeForm(); router.refresh(); }}
         canUseMemorized={memorizedPages > 0}
         memorizedPages={memorizedPages}
       />
@@ -273,6 +280,45 @@ function Strip({
         <OptionsMenu t={t} openUp onNew={onNew} />
       </div>
     </main>
+  );
+}
+
+/**
+ * A brief loading placeholder shown between the optimistic dialog close and the
+ * refreshed card landing. Non-blocking (pointer-events: none) so it never traps
+ * a tap; a shimmering card + spinner give the create immediate feedback.
+ */
+function CreatingOverlay({ t }: { t: ReturnType<typeof useI18n>['t'] }) {
+  return (
+    <div
+      aria-live="polite"
+      style={{
+        position: 'fixed', inset: 0, zIndex: 90, pointerEvents: 'none',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-16)',
+      }}
+    >
+      <div
+        style={{
+          width: 'min(360px, 100%)', display: 'flex', flexDirection: 'column', gap: 'var(--space-12)',
+          background: 'var(--surface-main)', border: '1px solid var(--border-subtle)',
+          borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-e3)', padding: 'var(--space-24)',
+        }}
+      >
+        {[70, 40, 90].map((w, i) => (
+          <div
+            key={i}
+            style={{
+              height: i === 1 ? 28 : 14, width: `${w}%`, borderRadius: 'var(--radius-sm)',
+              background: 'linear-gradient(90deg, var(--neutral-100), var(--neutral-200), var(--neutral-100))',
+              backgroundSize: '200% 100%', animation: 'shimmer 1.4s linear infinite',
+            }}
+          />
+        ))}
+        <span style={{ marginTop: 'var(--space-4)', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-muted)', textAlign: 'center' }}>
+          {t('common.loading')}
+        </span>
+      </div>
+    </div>
   );
 }
 

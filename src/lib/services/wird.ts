@@ -446,6 +446,23 @@ export async function getStudentWirdSummary(userId: string): Promise<StudentWird
 }
 
 /**
+ * Every completed entry_date grouped by wird, for the per-wird consistency
+ * heatmap on the manage screen. One query; RLS scopes rows to the caller (F4).
+ * Includes soft-deleted wirds' entries harmlessly (the caller only reads by the
+ * live wird ids it renders).
+ */
+export async function listEntryDatesByWird(): Promise<Record<string, string[]>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('wird_entry').select('wird_id, entry_date');
+  if (error) throw error;
+  const byWird: Record<string, string[]> = {};
+  for (const e of (data ?? []) as { wird_id: string; entry_date: string }[]) {
+    (byWird[e.wird_id] ??= []).push(e.entry_date);
+  }
+  return byWird;
+}
+
+/**
  * Every entry_date of the caller's wird entries, for the merged streak (E5, via
  * streak.mergeActivity). Soft-deleted wirds' entries are included — they still
  * count toward the streak (E6). RLS scopes the rows to the caller (F4).

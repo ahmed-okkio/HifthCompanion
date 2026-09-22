@@ -497,6 +497,33 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   100% { transform: scale(1); opacity: 1; }
 }
 
+/* Radial burst: 8 short lines shoot outward from the Done disc on completion,
+   in sync with the disc bounce. Each ray's angle is an inline --a; the keyframe
+   keeps that rotation constant while translating the bar out and fading it. */
+.wird-rays {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+.wird-rays span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 16px;
+  margin: -8px 0 0 -2px;
+  border-radius: 2px;
+  background: var(--accent);
+  transform-origin: center;
+  animation: wird-ray var(--duration-bounce) var(--ease-out) both;
+}
+@keyframes wird-ray {
+  0% { transform: rotate(var(--a)) translateY(-30px) scaleY(0.4); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: rotate(var(--a)) translateY(-76px) scaleY(1); opacity: 0; }
+}
+
 /* J2–J6: the completed card leaves toward the inline-start edge. The slide
    closes the gap WHILE the card is still travelling (flex-basis → 0 over the
    same --duration-exit); the JS that removes the node reads --duration-exit
@@ -540,6 +567,7 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
 @media (prefers-reduced-motion: reduce) {
   .wird-bounce,
   .wird-bounce .wird-tick,
+  .wird-rays span,
   .wird-slide.is-leaving .wird-card,
   .wird-alldone-enter {
     animation-duration: 1ms !important;

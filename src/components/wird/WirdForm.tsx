@@ -38,6 +38,8 @@ export default function WirdForm({
   open,
   onClose,
   onCreated,
+  onSubmitStart,
+  onFailed,
   canUseMemorized,
   memorizedPages,
   wird,
@@ -45,6 +47,11 @@ export default function WirdForm({
   open: boolean;
   onClose: () => void;
   onCreated: () => void;
+  /** Fired the instant the dialog hides (write in flight) so the parent can show
+      a loading placeholder for the gap until the refreshed card arrives. */
+  onSubmitStart?: () => void;
+  /** Fired when the write fails and the dialog re-appears, to clear that placeholder. */
+  onFailed?: () => void;
   canUseMemorized: boolean;
   /** Page span of the caller's memorized scope, for the memorized projection (0 if none). */
   memorizedPages: number;
@@ -111,6 +118,7 @@ export default function WirdForm({
     if (endBeforeStart) { setError(t('wird.errorEndBeforeStart')); return; }
     setError('');
     setPending(true); // dialog vanishes now; write runs in the background
+    onSubmitStart?.(); // parent shows a loading placeholder for the gap
     const payload = {
       name,
       scope_source: scope.scope_source,
@@ -125,6 +133,7 @@ export default function WirdForm({
         // Service rejects empty name / no-ranges memorized (D10) server-side too.
         // Un-hide with the form intact so nothing typed is lost.
         setPending(false);
+        onFailed?.();
         setError(t(editing ? 'wird.updateFailed' : 'wird.createFailed'));
       });
   };

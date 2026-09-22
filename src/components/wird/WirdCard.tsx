@@ -180,6 +180,16 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
           )}
 
           <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div style={{ position: 'relative', display: 'inline-flex' }}>
+            {/* Radial burst lines, mounted only during the tap bounce so the
+                animation replays on every completion. */}
+            {bouncing && (
+              <span className="wird-rays" aria-hidden>
+                {Array.from({ length: 8 }, (_, i) => (
+                  <span key={i} style={{ ['--a' as string]: `${i * 45}deg` }} />
+                ))}
+              </span>
+            )}
             <button
               type="button"
               className={`btn btn-circle${bouncing ? ' wird-bounce' : ''}`}
@@ -198,6 +208,7 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
             >
               <CheckGlyph />
             </button>
+            </div>
           </div>
         </div>
       </div>

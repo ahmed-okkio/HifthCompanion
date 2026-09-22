@@ -18,10 +18,13 @@ import {
   type WirdEntryRow,
 } from '@/lib/services/wird';
 import WirdForm, { type WirdEdit } from './WirdForm';
+import WirdHeatmap from './WirdHeatmap';
 import type { WirdScopeSource } from '@/types';
 
 export interface ManageRow extends WirdEdit {
   scope_source: WirdScopeSource;
+  /** Every date this wird was completed, for the consistency heatmap. */
+  doneDates: string[];
 }
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -131,6 +134,10 @@ function Row({ row, onEdit, onChanged }: { row: ManageRow; onEdit: () => void; o
         <button type="button" className="btn btn-ghost" style={{ minHeight: 40, color: 'var(--danger)' }} disabled={busy} onClick={onDelete}>
           {t('wird.deleteAction')}
         </button>
+      </div>
+
+      <div style={{ marginTop: 'var(--space-12)' }}>
+        <WirdHeatmap doneDates={row.doneDates} />
       </div>
 
       <button

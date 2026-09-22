@@ -63,13 +63,19 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
     // J7: arrives from the inline-end, the direction a next card would come from.
     content = (
       <StatePanel title={t('wird.allDoneTitle')} hint={t('wird.allDoneHint')} enter showOptions>
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-8)', width: '100%' }}>
-          {cards.map((c) => (
-            <li key={c.id} style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'center' }}>
-              {t('wird.nextBegins', { name: c.name, ref: c.nextRef })}
-            </li>
-          ))}
-        </ul>
+        {/* Only list next-begins refs once the data is truly advanced (every card
+            done_today). An optimistically-completed card still carries its OLD
+            nextRef, so rendering it before router.refresh lands makes the ref
+            visibly swap. Hold the list until the refreshed data arrives. */}
+        {cards.every((c) => c.doneToday) && (
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-8)', width: '100%' }}>
+            {cards.map((c) => (
+              <li key={c.id} style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'center' }}>
+                {t('wird.nextBegins', { name: c.name, ref: c.nextRef })}
+              </li>
+            ))}
+          </ul>
+        )}
       </StatePanel>
     );
   } else {

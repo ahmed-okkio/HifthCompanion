@@ -518,7 +518,7 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
 }
 @keyframes wird-card-exit {
   from { transform: translate(0, 0); }
-  to { transform: translate(calc(120% * var(--wird-exit-dir)), 18px); }
+  to { transform: translateX(calc(120% * var(--wird-exit-dir))); }
 }
 @keyframes wird-card-fade {
   from { opacity: 1; }

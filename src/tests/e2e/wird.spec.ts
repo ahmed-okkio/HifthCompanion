@@ -99,6 +99,25 @@ test.describe('Wird daily screen', () => {
     await expect(page.getByText('All done today')).toBeVisible({ timeout: 15000 });
   });
 
+  test('create: a start page midway shortens the first pass', async ({ page }) => {
+    guardConsole(page);
+    await reset(page, []); // empty state → the direct New wird button
+
+    await page.goto('/wird');
+    await page.getByRole('button', { name: 'New wird' }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'New wird' });
+    await dialog.getByLabel('Name').fill('Midway wird');
+    // Pages 1..10, already through 1..4 → start at 5.
+    await dialog.getByRole('spinbutton', { name: 'Last page' }).fill('10');
+    await dialog.getByRole('spinbutton', { name: 'Start from page' }).fill('5');
+    await dialog.getByRole('button', { name: 'Create' }).click();
+
+    // Outcome, read back from the server: pages 5..10 remain, not the full 10.
+    await page.goto('/wird');
+    await expect(page.getByText('6 pages to go')).toHaveCount(1);
+    await expect(page.getByText('10 pages to go')).toHaveCount(0);
+  });
+
   test('heatmap: completing a wird fills today\'s cell on the manage screen', async ({ page }) => {
     guardConsole(page);
     // The manage screen pulls a Google-hosted Arabic font; the suite-wide x-e2e-test

@@ -71,6 +71,8 @@ export default function WirdForm({
   );
   const [pagesPerPeriod, setPagesPerPeriod] = useState(wird?.pages_per_period ?? 1);
   const [periodDays, setPeriodDays] = useState<number>(wird?.period_days ?? 1);
+  // Create-only: begin the first pass midway (already partway through). Null = scope start.
+  const [startPage, setStartPage] = useState<number | null>(null);
   // Optimistic: on submit the dialog hides instantly (feels instant, no spinner)
   // but the component stays mounted, so if the write fails it re-appears with
   // every field intact and an error. onCreated (parent) closes + refreshes.
@@ -101,9 +103,14 @@ export default function WirdForm({
 
   // Pages in one pass. For 'memorized' the range is server-derived, so use the
   // caller's memorized span for the projection.
-  const passPages =
-    scope.scope_source === 'memorized' ? memorizedPages : scope.page_end - scope.page_start + 1;
   const endBeforeStart = scope.scope_source === 'pages' && scope.page_end < scope.page_start;
+  const showStart = !editing && scope.scope_source === 'pages' && !endBeforeStart;
+  // Clamped at render so a scope change never leaves the start outside it.
+  const firstPage = showStart
+    ? Math.min(Math.max(startPage ?? scope.page_start, scope.page_start), scope.page_end)
+    : scope.page_start;
+  const passPages =
+    scope.scope_source === 'memorized' ? memorizedPages : scope.page_end - firstPage + 1;
 
   const finishDays = passPages > 0 ? projectedFinishDays(passPages, rate) : 0;
   const finishDate = new Date(Date.now() + finishDays * 86_400_000).toLocaleDateString(
@@ -124,6 +131,7 @@ export default function WirdForm({
       scope_source: scope.scope_source,
       page_start: scope.scope_source === 'pages' ? scope.page_start : undefined,
       page_end: scope.scope_source === 'pages' ? scope.page_end : undefined,
+      start_page: showStart ? firstPage : undefined,
       pages_per_period: pagesPerPeriod,
       period_days: periodDays,
     };
@@ -203,6 +211,19 @@ export default function WirdForm({
             setValue={setScope}
             canUseMemorized={canUseMemorized}
           />
+
+          {showStart && (
+            <div className="flex flex-col gap-1">
+              <NumberStepper
+                label={t('wird.startFrom')}
+                value={firstPage}
+                min={scope.page_start}
+                max={scope.page_end}
+                onChange={setStartPage}
+              />
+              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('wird.startFromHint')}</span>
+            </div>
+          )}
 
           {/* Rate (K7) */}
           <div className="flex flex-col gap-2">

@@ -167,6 +167,9 @@ export async function createWird(input: {
   scope_source: WirdScopeSource;
   page_start?: number;
   page_end?: number;
+  /** Where the first pass begins (already midway through). Clamped into scope;
+      later passes run the full scope (wrap resets cycle_page_start). */
+  start_page?: number;
   pages_per_period: number;
   period_days: number;
 }): Promise<Wird> {
@@ -198,7 +201,7 @@ export async function createWird(input: {
       pages_per_period: input.pages_per_period,
       period_days: input.period_days,
       cycle_seq: 1,
-      cycle_page_start: page_start,
+      cycle_page_start: Math.min(Math.max(input.start_page ?? page_start, page_start), page_end),
       cycle_page_end: page_end,
     })
     .select()

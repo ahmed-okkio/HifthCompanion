@@ -62,6 +62,7 @@ export function NumberStepper({
         </button>
         <input
           type="number"
+          aria-label={label}
           inputMode="numeric"
           value={draft ?? value}
           min={min}

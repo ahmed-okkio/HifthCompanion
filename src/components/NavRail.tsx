@@ -28,7 +28,8 @@ import { LAST_CIRCLE_KEY, LAST_READER_PAGE_KEY } from '@/lib/tracker/lastCircle'
 
 // RAIL_ITEMS.label stays English (module-level, no hook access) — both NavRail
 // and MobileNavDrawer look the id up in LABEL_KEYS (exported) to localize it.
-export const LABEL_KEYS: Record<string, 'nav.myMushaf' | 'nav.circles' | 'nav.sets' | 'nav.sharedMushafs'> = {
+export const LABEL_KEYS: Record<string, 'nav.wird' | 'nav.myMushaf' | 'nav.circles' | 'nav.sets' | 'nav.sharedMushafs'> = {
+  wird: 'nav.wird',
   surahs: 'nav.myMushaf',
   circles: 'nav.circles',
   sets: 'nav.sets',
@@ -46,6 +47,17 @@ export const LABEL_KEYS: Record<string, 'nav.myMushaf' | 'nav.circles' | 'nav.se
 
 function strokeColor(active: boolean) {
   return active ? 'var(--green-600)' : 'var(--neutral-500)';
+}
+
+function IconWird({ active }: { active: boolean }) {
+  // Repeat / loop glyph with a centre mark — a recurring daily portion.
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={strokeColor(active)} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4.5 12a7.5 7.5 0 1 1 2.6 5.7" />
+      <path d="M4.5 13.5v-4h4" />
+      <circle cx="12" cy="12" r="2.2" />
+    </svg>
+  );
 }
 
 function IconSurahs({ active }: { active: boolean }) {
@@ -105,6 +117,13 @@ export interface RailItemDef {
 }
 
 export const RAIL_ITEMS: RailItemDef[] = [
+  {
+    id: 'wird',
+    label: 'Wird',
+    icon: (active) => <IconWird active={active} />,
+    href: '/wird',
+    matchPrefixes: ['/wird'],
+  },
   {
     id: 'surahs',
     label: 'My Mushaf',

@@ -15,8 +15,8 @@ export default async function Home() {
   const dict = getDictionary(await getLocale());
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  // Logged in → splash has nothing to offer; go straight to My Mushaf.
-  if (user) redirect('/reader');
+  // Logged in → splash has nothing to offer; go straight to the daily wird.
+  if (user) redirect('/wird');
   return (
     <main
       className="relative min-h-[100dvh] flex flex-col items-center overflow-hidden"

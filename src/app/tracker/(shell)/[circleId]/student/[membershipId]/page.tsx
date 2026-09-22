@@ -14,6 +14,7 @@ import SubStudent from '@/components/tracker/SubStudent';
 import { displayName } from '@/lib/displayName';
 import { rangesTotals } from '@/lib/analytics';
 import { markedPages as fetchMarkedPages } from '@/lib/services/markedPages';
+import { getStudentWirdSummary } from '@/lib/services/wird';
 import TeacherStudent from '@/components/tracker/TeacherStudent';
 import MarkCircleReady from '@/components/tracker/CircleReady';
 import { getLocale } from '@/lib/i18n/server';
@@ -85,7 +86,7 @@ export default async function StudentDetailPage({
   // Only active students have a control surface (pending = RLS-empty, C1/S1).
   if (!member || member.role !== 'student' || member.status !== 'active') notFound();
 
-  const [logs, sessions, defaultSetId, homework, notes, memorizedRanges, exams, agenda, subs] = await Promise.all([
+  const [logs, sessions, defaultSetId, homework, notes, memorizedRanges, exams, agenda, subs, wirdSummary] = await Promise.all([
     getLogsForMembership(membershipId),
     getSessions(membershipId),
     getStudentDefaultSetId(membershipId),
@@ -98,6 +99,10 @@ export default async function StudentDetailPage({
     listAgenda(membershipId),
     // 0013: covered-by per instant (F5) — independent of everything above.
     listSubstitutions([membershipId]),
+    // 0015 L1/D17: read-only merged wird summary. RLS (B3, teaches_user) is the
+    // gate; this only scopes to which student. This teacher-only branch is the
+    // sole caller — the sub branch and self-view never pass it (L3).
+    getStudentWirdSummary(member.user_id),
   ]);
 
   const memorized = rangesTotals(memorizedRanges);
@@ -142,6 +147,7 @@ export default async function StudentDetailPage({
           subByInstant={subByInstant}
           actorNames={actorNames}
           initialAgenda={agenda}
+          wirdSummary={wirdSummary}
         />
       </div>
     </main>

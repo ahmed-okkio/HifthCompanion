@@ -12,7 +12,7 @@ import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
 import { homeworkStatus, aggregateStatus, focusExamId, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus } from '@/lib/homework';
 import { recurringSlots } from '@/lib/recurrence';
-import { isStreakAtRisk } from '@/lib/streak';
+import { isStreakAtRisk, mergeActivity } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
 import MarkedPagesList from '@/components/MarkedPagesList';
 import { wholeSurahPages } from '@/lib/homework';
@@ -55,6 +55,7 @@ export default function StudentCircle({
   defaultSetId,
   markedPages,
   coveredBy,
+  initialWirdDates = [],
 }: {
   circle: Circle;
   membership: Membership;
@@ -71,6 +72,8 @@ export default function StudentCircle({
   markedPages: MarkedPage[];
   /** 0013 F5/D13: sub name keyed by session instant (ms) — "covered by X". */
   coveredBy?: Record<string, string>;
+  /** 0015 E5: the student's own wird entry dates, merged into the streak. */
+  initialWirdDates?: string[];
 }) {
   const { t, locale, fmtNum } = useI18n();
   const [logs, setLogs] = useState(initialLogs);
@@ -86,7 +89,13 @@ export default function StudentCircle({
     return () => mq.removeEventListener('change', apply);
   }, []);
 
-  const atRisk = useMemo(() => isStreakAtRisk(logs), [logs]);
+  // E5: the streak runs on the MERGED stream (logs + own wird dates), kept
+  // separate from `logs` so homework aggregation below is untouched (E1/E6).
+  const streakStream = useMemo(
+    () => mergeActivity(logs, initialWirdDates),
+    [logs, initialWirdDates],
+  );
+  const atRisk = useMemo(() => isStreakAtRisk(streakStream), [streakStream]);
   const statuses = circle.student_statuses;
 
   // Sidebar KPIs — mirror the teacher's view. Attendance from marked sessions;

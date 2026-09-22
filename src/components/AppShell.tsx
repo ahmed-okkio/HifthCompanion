@@ -68,7 +68,10 @@ export default function AppShell({
             (CircleRail is responsive — its own classes flip orientation).
             Relative + raised z so its hover tooltips paint over the content column. */}
         {secondRail && <div className="flex-shrink-0 relative" style={{ zIndex: 20 }}>{secondRail}</div>}
-        <div className="flex-1 min-w-0 min-h-0" style={{ overflow: 'hidden' }}>{children}</div>
+        {/* flex-col so a full-height page child (h-full / flex-1) resolves its
+            height on mobile, where the shell's height comes from flex-growth in
+            a min-h-dvh column, not a definite height. */}
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col" style={{ overflow: 'hidden' }}>{children}</div>
       </div>
 
       <MobileNavDrawer open={navOpen} onOpenChange={setNavOpen} />

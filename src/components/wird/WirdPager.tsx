@@ -47,9 +47,17 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
   const router = useRouter();
   // The create form opens from the top-bar "New" action via ?new=1, so no
   // floating button sits over the card — the Done disc is the one control.
+  // The create form opens as a client-side modal — no navigation, so the /wird
+  // server component isn't refetched just to show the pop-up. ?new=1 is still
+  // honoured for deep links (e.g. an external "New" link).
   const params = useSearchParams();
-  const formOpen = params.get('new') === '1';
-  const closeForm = () => router.replace('/wird');
+  const [newOpen, setNewOpen] = useState(false);
+  const openNew = () => setNewOpen(true);
+  const formOpen = newOpen || params.get('new') === '1';
+  const closeForm = () => {
+    setNewOpen(false);
+    if (params.get('new') === '1') router.replace('/wird');
+  };
 
   // Cards completed this session leave the strip optimistically and never return
   // (a refresh would otherwise re-render them as done-today and snap them back).
@@ -58,11 +66,11 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
 
   let content: React.ReactNode;
   if (cards.length === 0) {
-    content = <StatePanel title={t('wird.emptyTitle')} hint={t('wird.emptyHint')} showCreate />;
+    content = <StatePanel title={t('wird.emptyTitle')} hint={t('wird.emptyHint')} showCreate onNew={openNew} />;
   } else if (outstanding.length === 0) {
     // J7: arrives from the inline-end, the direction a next card would come from.
     content = (
-      <StatePanel title={t('wird.allDoneTitle')} hint={t('wird.allDoneHint')} enter showOptions>
+      <StatePanel title={t('wird.allDoneTitle')} hint={t('wird.allDoneHint')} enter showOptions onNew={openNew}>
         {/* Only list next-begins refs once the data is truly advanced (every card
             done_today). An optimistically-completed card still carries its OLD
             nextRef, so rendering it before router.refresh lands makes the ref
@@ -83,6 +91,7 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
       <Strip
         cards={outstanding}
         t={t}
+        onNew={openNew}
         onDoneCard={(id) => setDoneIds((s) => new Set(s).add(id))}
       />
     );
@@ -109,10 +118,12 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
 function Strip({
   cards,
   t,
+  onNew,
   onDoneCard,
 }: {
   cards: WirdCardData[];
   t: ReturnType<typeof useI18n>['t'];
+  onNew: () => void;
   onDoneCard: (id: string) => void;
 }) {
   const router = useRouter();
@@ -259,7 +270,7 @@ function Strip({
           not at the top corner. The card floats above it (H10 — the card face
           still holds only the Done disc). */}
       <div style={{ flex: '0 0 auto', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minHeight: 48, padding: '0 var(--space-16) var(--space-12)' }}>
-        <OptionsMenu t={t} openUp />
+        <OptionsMenu t={t} openUp onNew={onNew} />
       </div>
     </main>
   );
@@ -297,7 +308,7 @@ function ArrowButton({ dir, label, disabled, onClick }: { dir: 'prev' | 'next'; 
   );
 }
 
-function StatePanel({ title, hint, children, enter, showCreate, showOptions }: { title: string; hint: string; children?: React.ReactNode; enter?: boolean; showCreate?: boolean; showOptions?: boolean }) {
+function StatePanel({ title, hint, children, enter, showCreate, showOptions, onNew }: { title: string; hint: string; children?: React.ReactNode; enter?: boolean; showCreate?: boolean; showOptions?: boolean; onNew: () => void }) {
   const { t } = useI18n();
   return (
     <main className="w-full flex-1 min-h-0 flex flex-col" style={{ overflow: 'hidden' }}>
@@ -321,11 +332,14 @@ function StatePanel({ title, hint, children, enter, showCreate, showOptions }: {
         <p style={{ margin: 0, fontSize: 'var(--type-small-size)', color: 'var(--text-muted)', lineHeight: 1.45 }}>{hint}</p>
         {children}
         {showCreate && (
-          <Link
-            href="/wird?new=1"
+          <button
+            type="button"
+            onClick={onNew}
             aria-label={t('wird.newWird')}
             title={t('wird.newWird')}
             style={{
+              border: 'none',
+              cursor: 'pointer',
               marginTop: 'var(--space-8)',
               width: 64,
               height: 64,
@@ -342,13 +356,13 @@ function StatePanel({ title, hint, children, enter, showCreate, showOptions }: {
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-          </Link>
+          </button>
         )}
       </div>
       </div>
       {showOptions && (
         <div style={{ flex: '0 0 auto', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minHeight: 48, padding: '0 var(--space-16) var(--space-12)' }}>
-          <OptionsMenu t={t} openUp />
+          <OptionsMenu t={t} openUp onNew={onNew} />
         </div>
       )}
     </main>
@@ -360,7 +374,7 @@ function StatePanel({ title, hint, children, enter, showCreate, showOptions }: {
  * opens New + Manage. Keeps the card face clear (H10) and replaces the floating
  * create/manage buttons. Closes on outside click or Escape.
  */
-function OptionsMenu({ t, openUp }: { t: ReturnType<typeof useI18n>['t']; openUp?: boolean }) {
+function OptionsMenu({ t, openUp, onNew }: { t: ReturnType<typeof useI18n>['t']; openUp?: boolean; onNew: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -413,7 +427,7 @@ function OptionsMenu({ t, openUp }: { t: ReturnType<typeof useI18n>['t']; openUp
             borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-e3)', overflow: 'hidden', zIndex: 60,
           }}
         >
-          <Link href="/wird?new=1" role="menuitem" style={item} onClick={() => setOpen(false)}>{t('wird.newWird')}</Link>
+          <button type="button" role="menuitem" style={{ ...item, width: '100%', textAlign: 'start', border: 'none', background: 'transparent', cursor: 'pointer' }} onClick={() => { setOpen(false); onNew(); }}>{t('wird.newWird')}</button>
           <Link href="/wird/manage" role="menuitem" style={{ ...item, borderTop: '1px solid var(--border-subtle)' }} onClick={() => setOpen(false)}>{t('wird.manage')}</Link>
         </div>
       )}

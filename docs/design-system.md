@@ -153,7 +153,9 @@ Rules:
 - Atoms are global classes — do not re-implement a button as a component.
 - CSS Module internals must reference `var(--token)` — no bare hex/px inside them either.
 - **Promotion rule:** a tracker primitive moves to a shared `src/components/ui/` **only
-  when it is first reused outside tracker** — on demand, not upfront.
+  when it is first reused outside tracker** — on demand, not upfront. When it moves,
+  `tracker/ui.tsx` re-exports it so existing `from './ui'` import paths keep resolving.
+  Promoted so far: `NumberStepper`, `SegmentedControl` (`src/components/ui/`).
 
 ---
 

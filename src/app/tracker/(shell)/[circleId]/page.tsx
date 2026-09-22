@@ -20,6 +20,7 @@ import { displayName } from '@/lib/displayName';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import { listSubstitutions } from '@/lib/services/substitution';
+import { listWirdEntryDates } from '@/lib/services/wird';
 
 export default async function CirclePage({
   params,
@@ -107,7 +108,7 @@ export default async function CirclePage({
     );
   }
 
-  const [initialLogs, initialSessions, initialHomework, initialNotes, roster, initialExams, defaultSetId, memorizedRanges] = await Promise.all([
+  const [initialLogs, initialSessions, initialHomework, initialNotes, roster, initialExams, defaultSetId, memorizedRanges, initialWirdDates] = await Promise.all([
     getLogsForMembership(membership.id),
     getSessions(membership.id),
     listHomework(membership.id),
@@ -116,6 +117,9 @@ export default async function CirclePage({
     getExamsForMembership(membership.id),
     getStudentDefaultSetId(membership.id),
     getStudentMemorization(user.id),
+    // E5: the student's OWN wird entry dates — this is the self-view, so the
+    // RLS-scoped caller dates are exactly the ones to merge into the streak.
+    listWirdEntryDates(),
   ]);
   const memorized = rangesTotals(memorizedRanges);
   // C2: student sees their own default-set marked pages (own-set RLS).
@@ -151,6 +155,7 @@ export default async function CirclePage({
             defaultSetId={defaultSetId}
             markedPages={marked}
             coveredBy={coveredBy}
+            initialWirdDates={initialWirdDates}
         />
       </div>
     </main>

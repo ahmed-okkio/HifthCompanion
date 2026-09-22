@@ -1,6 +1,20 @@
 import type { ProgressLog } from '@/types';
 
 /**
+ * Merge progress logs and wird entries into one dated activity stream for the
+ * streak (E1). Keeps `computeStreak`/`isStreakAtRisk` on their `{ log_date }[]`
+ * shape — the merge happens here at the call site, not inside them. A day with
+ * only a wird entry, only a log, or both counts once (E2): computeStreak
+ * already dedupes by date. `wirdEntryDates` are `wird_entry.entry_date` values.
+ */
+export function mergeActivity(
+  logs: Pick<ProgressLog, 'log_date'>[],
+  wirdEntryDates: string[],
+): { log_date: string }[] {
+  return [...logs, ...wirdEntryDates.map((log_date) => ({ log_date }))];
+}
+
+/**
  * Streak = consecutive days up to today (or the most recent log day) that have
  * at least one log, counted by log_date. Alive if the latest log is today or
  * yesterday; otherwise 0.

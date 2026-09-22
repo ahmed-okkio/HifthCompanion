@@ -15,6 +15,10 @@ import { useI18n } from '@/components/I18nProvider';
 import { localizeDigits, isLocale } from '@/lib/i18n/config';
 import Link from 'next/link';
 
+// Promoted to the shared ui/ folder (first reused outside tracker); re-exported
+// here so existing `from './ui'` / `@/components/tracker/ui` imports still resolve.
+export { NumberStepper, SegmentedControl } from '@/components/ui';
+
 /**
  * Jump straight to a homework/exam row's first page. `task` carries the reason into
  * the reader's banner (label included, so the reader needs no fetch); `gradeable`
@@ -250,99 +254,6 @@ export function DateChip({ iso, locale }: { iso: string; locale: string }) {
       </span>
       <span style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.1 }}>{localizeDigits(d.getDate(), isLocale(locale) ? locale : 'en')}</span>
     </span>
-  );
-}
-
-/** Labeled −/+ stepper for bounded numbers (page ranges). Replaces bare
- *  type="number" inputs whose native spinners look nothing like the app. */
-export function NumberStepper({
-  label,
-  value,
-  min,
-  max,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  onChange: (v: number) => void;
-}) {
-  const { t } = useI18n();
-  const clamp = (v: number) => Math.max(min, Math.min(max, Number.isNaN(v) ? min : v));
-  // Draft mirrors the field while typing so intermediate states ("", "6" on the
-  // way to "60") aren't clamped mid-keystroke; commit on blur.
-  const [draft, setDraft] = useState<string | null>(null);
-  const step = (delta: number) => {
-    setDraft(null);
-    onChange(clamp(value + delta));
-  };
-  const btn: CSSProperties = {
-    width: 34,
-    alignSelf: 'stretch',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 16,
-    fontWeight: 600,
-    color: 'var(--text-muted)',
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'all var(--duration-fast) var(--ease-out)',
-  };
-  return (
-    <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-      {label}
-      <span
-        className="flex items-center"
-        style={{
-          height: 40,
-          border: '1px solid var(--border-default)',
-          borderRadius: 'var(--radius-sm)',
-          background: 'var(--bg-input)',
-          overflow: 'hidden',
-        }}
-      >
-        <button type="button" aria-label={t('common.decrement')} tabIndex={-1} style={btn}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => step(-1)}>
-          −
-        </button>
-        <input
-          type="number"
-          inputMode="numeric"
-          value={draft ?? value}
-          min={min}
-          max={max}
-          onChange={(e) => {
-            setDraft(e.target.value);
-            const n = Number(e.target.value);
-            if (e.target.value !== '' && n >= min && n <= max) onChange(n);
-          }}
-          onBlur={() => {
-            onChange(clamp(Number(draft ?? value)));
-            setDraft(null);
-          }}
-          onFocus={(e) => e.target.select()}
-          style={{
-            width: 46,
-            textAlign: 'center',
-            border: 'none',
-            outline: 'none',
-            background: 'transparent',
-            fontSize: 14,
-            fontWeight: 600,
-            color: 'var(--text-primary)',
-          }}
-        />
-        <button type="button" aria-label={t('common.increment')} tabIndex={-1} style={btn}
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => step(1)}>
-          +
-        </button>
-      </span>
-    </label>
   );
 }
 
@@ -855,63 +766,6 @@ export function Icon({ name, size = 18 }: { name: keyof typeof ICON_PATHS; size?
     >
       {ICON_PATHS[name]}
     </svg>
-  );
-}
-
-/** Wide segmented control: equal segments in a rounded frame, divided by thin
- *  separators. The active segment fills with the accent (fades, no slide).
- *  Used for status pickers and mode toggles. RTL-safe. */
-export function SegmentedControl({
-  options,
-  value,
-  onChange,
-}: {
-  options: { key: string; label: string; icon?: ReactNode }[];
-  value: string;
-  onChange: (key: string) => void;
-}) {
-  const n = options.length;
-  return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: `repeat(${n}, 1fr)`,
-        background: 'var(--bg-input)',
-        border: '1px solid var(--border-default)',
-        borderRadius: 'var(--radius-md)',
-        overflow: 'hidden',
-      }}
-    >
-      {options.map((o, i) => {
-        const on = o.key === value;
-        return (
-          <button
-            key={o.key}
-            type="button"
-            onClick={() => onChange(o.key)}
-            aria-pressed={on}
-            style={{
-              minHeight: 44,
-              padding: '0 12px',
-              border: 'none',
-              borderInlineStart: i > 0 ? '1px solid var(--border-default)' : 'none',
-              cursor: 'pointer',
-              fontSize: 14,
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-              background: on ? 'var(--accent)' : 'transparent',
-              color: on ? 'var(--accent-contrast)' : 'var(--text-secondary)',
-              transition: 'background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-            }}
-          >
-            <span className="flex items-center justify-center gap-2">
-              {o.icon}
-              {o.label}
-            </span>
-          </button>
-        );
-      })}
-    </div>
   );
 }
 

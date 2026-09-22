@@ -35,6 +35,7 @@ import { isLive } from '@/lib/agenda';
 import AgendaPanel from './AgendaPanel';
 import MarkedPagesList from '@/components/MarkedPagesList';
 import type { MarkedPage } from '@/lib/markedPages';
+import type { StudentWirdSummary } from '@/lib/services/wird';
 
 const LOG_TYPES: LogType[] = ['memorization', 'general_revision', 'targeted_revision'];
 const ATT_STATUSES: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'];
@@ -97,6 +98,7 @@ export default function TeacherStudent({
   subByInstant,
   actorNames,
   initialAgenda,
+  wirdSummary,
 }: {
   circle: Circle;
   member: MemberWithProfile;
@@ -116,6 +118,8 @@ export default function TeacherStudent({
   actorNames?: Record<string, string>;
   /** 0014 E5/E6: teacher-private agenda rows, already sectioned by the service. */
   initialAgenda?: AgendaTask[];
+  /** 0015 L1/D17: read-only merged wird summary; null when the student has no wirds (L4). */
+  wirdSummary?: StudentWirdSummary | null;
 }) {
   const { t, locale } = useI18n();
   const router = useRouter();
@@ -157,7 +161,7 @@ export default function TeacherStudent({
       <StudentProfileCard
         name={displayName(member)} circleName={circle.name} defaultSetId={defaultSetId}
         memorized={memorized} attendance={attendance} openHomework={openHomework}
-        markedPages={markedPages} markedDesktopOnly
+        markedPages={markedPages} markedDesktopOnly wirdSummary={wirdSummary}
       />
 
       {/* Right column — the feed: tabs + panels, unchanged */}
@@ -270,7 +274,7 @@ export default function TeacherStudent({
  * detail view and the student's own self-service view (same three cards).
  */
 export function StudentProfileCard({
-  name, circleName, defaultSetId, memorized, attendance, openHomework, markedPages, markedDesktopOnly,
+  name, circleName, defaultSetId, memorized, attendance, openHomework, markedPages, markedDesktopOnly, wirdSummary,
 }: {
   name: string;
   circleName: string;
@@ -284,6 +288,9 @@ export function StudentProfileCard({
   markedPages?: MarkedPage[];
   /** When set, the marked-pages card only shows ≥lg (mobile surfaces it as a tab instead). */
   markedDesktopOnly?: boolean;
+  /** 0015 L1/L3: teacher-only read-only wird summary; omitted for self-view and subs.
+   *  Null (no wirds) renders no card (L4). */
+  wirdSummary?: StudentWirdSummary | null;
 }) {
   const { t, fmtNum } = useI18n();
   const att = useMemo(() => attendanceStats(attendance), [attendance]);
@@ -310,6 +317,31 @@ export function StudentProfileCard({
         <AttendanceLine marked={att.marked} rate={att.rate} />
       </div>
       <StatCard icon={<Icon name="hourglass" />} value={fmtNum(openHomework)} label={t('homework.openHomework')} />
+
+      {/* 0015 L1–L4: read-only merged wird summary, only present for a teacher of an
+          active membership (page passes it on that branch alone). Null → no card (L4). */}
+      {wirdSummary && (
+        <div className="card flex flex-col gap-3" style={{ padding: '16px' }}>
+          <SectionTitle>{t('wird.summaryTitle')}</SectionTitle>
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('wird.summaryWirds')}</span>
+            <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{fmtNum(wirdSummary.wird_count)}</span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('wird.summaryActiveDays')}</span>
+            <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{fmtNum(wirdSummary.active_days)}</span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('wird.summaryLastActive')}</span>
+            <span style={{ color: 'var(--text-muted)' }}>
+              {wirdSummary.days_since_last === null ? t('wird.summaryNever')
+                : wirdSummary.days_since_last === 0 ? t('wird.summaryToday')
+                : wirdSummary.days_since_last === 1 ? t('wird.summaryYesterday')
+                : t('wird.summaryDaysAgo', { n: wirdSummary.days_since_last })}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* PRD 0009 C1/C3: default-set marked pages, read-only. Empty set → in-card empty state. */}
       {markedPages && (

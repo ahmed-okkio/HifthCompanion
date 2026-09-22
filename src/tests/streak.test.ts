@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { computeStreak, isStreakAtRisk } from '@/lib/streak';
+import { computeStreak, isStreakAtRisk, mergeActivity } from '@/lib/streak';
 
 const day = (offset: number) => {
   const d = new Date();
@@ -58,5 +58,32 @@ describe('isStreakAtRisk', () => {
   it('defaults today to the current day', () => {
     expect(isStreakAtRisk([{ log_date: day(-1) }])).toBe(true);
     expect(isStreakAtRisk([{ log_date: day(0) }])).toBe(false);
+  });
+});
+
+describe('mergeActivity — merged streak (E1–E4, E6)', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('a day counts once whether it has a log, a wird entry, or both (E2)', () => {
+    const merged = mergeActivity([{ log_date: day(0) }, { log_date: day(-2) }], [day(-1), day(-2)]);
+    // days 0,-1,-2 all covered → streak 3; -2 present in both counts once
+    expect(computeStreak(merged)).toBe(3);
+  });
+
+  it('a user with no logs but wird entries has a non-zero streak (E3)', () => {
+    const merged = mergeActivity([], [day(0), day(-1)]);
+    expect(computeStreak(merged)).toBe(2);
+  });
+
+  it('wird entries still count even when only they exist (E6 — soft-deleted wird entries persist)', () => {
+    // soft-deleting the wird does not drop its entries from the stream
+    expect(computeStreak(mergeActivity([], [day(-1)]))).toBe(2 - 1); // 1
+  });
+
+  it('isStreakAtRisk works over the merged stream (E4)', () => {
+    // alive from yesterday's wird entry, nothing today → at risk
+    expect(isStreakAtRisk(mergeActivity([], [day(-1)]), day(0))).toBe(true);
+    // wird entry today → not at risk
+    expect(isStreakAtRisk(mergeActivity([], [day(0)]), day(0))).toBe(false);
   });
 });

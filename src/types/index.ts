@@ -248,3 +248,51 @@ export interface MembershipNote {
   body: string;
   created_at: string;
 }
+
+// ---------------------------------------------------------------------------
+// Wird — the personal daily portion (PRD 0015)
+// ---------------------------------------------------------------------------
+
+/** Where a wird's page bounds come from: fixed pages, or the user's declared
+ *  memorization, which is re-derived from `user_hifth` on every read (D8). */
+export type WirdScopeSource = 'pages' | 'memorized';
+
+/** A recitation loop over a page range. There is no cursor column (D3):
+ *  position = max(page_end) + 1 over the entries of `cycle_seq`, or
+ *  `cycle_page_start` when the pass has none yet. */
+export interface Wird {
+  id: string;
+  user_id: string;
+  name: string;
+  /** Live scope. For 'memorized' these are resolved from `user_hifth` on read. */
+  page_start: number;
+  page_end: number;
+  scope_source: WirdScopeSource;
+  /** Rate is the pair; the daily portion is derived, never stored (C1/C2). */
+  pages_per_period: number;
+  period_days: number;
+  /** Which pass through the scope. Increments silently at the wrap (D7). */
+  cycle_seq: number;
+  /** Bounds frozen at the start of this pass, so the bar cannot run backwards
+   *  when the live scope grows mid-pass (D8). */
+  cycle_page_start: number;
+  cycle_page_end: number;
+  created_at: string;
+  updated_at: string;
+  /** Soft delete (D19). Entries survive and keep feeding the streak. */
+  deleted_at: string | null;
+}
+
+/** One completed portion. No partial or amount column — Done writes exactly
+ *  the computed portion (D4). */
+export interface WirdEntry {
+  id: string;
+  wird_id: string;
+  /** Local-midnight day (D20), same boundary as `progress_log.log_date`. */
+  entry_date: string;
+  page_start: number;
+  page_end: number;
+  /** The wird's `cycle_seq` at write time, so a wrap does not restate history. */
+  cycle_seq: number;
+  created_at: string;
+}

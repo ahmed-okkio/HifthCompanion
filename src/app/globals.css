@@ -225,6 +225,10 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   --duration-fast: 150ms;
   --duration-normal: 250ms;
   --duration-slow: 400ms;
+  /* Wird disc squash-and-stretch, and the completed card's exit (read from CSS
+     by the JS that removes the card, so removal stays in step with the travel). */
+  --duration-bounce: 520ms;
+  --duration-exit: 320ms;
 }
 
 /* ===== Base ===== */
@@ -435,6 +439,122 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
 .btn-outline:hover:not(:disabled) {
   background: var(--accent-muted);
   border-color: var(--accent);
+}
+
+/* 72px circular action disc (the wird "Done" control). Extends .btn so
+   [data-busy]/[data-done] keep working. Rests UNFILLED — an accent-solid ring
+   with an accent-solid glyph — and fills flat on completion. Its own
+   [data-done] rule overrides .btn[data-done] (which only recolours a border +
+   text): a filled disc needs its background and glyph colour flipped too. Flat
+   var(--accent-solid), not the .btn-primary gradient (which reads as a lighting
+   error across a large disc). */
+.btn-circle {
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  border: 2px solid var(--accent-solid);
+  color: var(--accent-solid);
+}
+
+.btn-circle[data-done='true'] {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--accent-contrast);
+}
+/* The completed disc is disabled (not re-tappable) but must read solid, not
+   faded — override the .btn:disabled dim for the done state. */
+.btn-circle[data-done='true']:disabled {
+  opacity: 1;
+}
+
+/* ===== Wird motion (M6, contract §J) =====
+   Layered onto the plain M5 state changes: the tap bounce, the completed
+   card's exit, and the all-done arrival. Exit direction is one property that
+   flips under RTL (J8) — cards leave toward the inline-start edge, and the
+   all-done screen arrives from the inline-end (the direction a next card comes
+   from). */
+:root { --wird-exit-dir: -1; }
+[dir='rtl'] { --wird-exit-dir: 1; }
+
+/* J1: tapping the disc runs a squash-and-stretch — compress on press,
+   overshoot on release — and the glyph springs in late. On --duration-bounce. */
+.wird-bounce { animation: wird-disc-bounce var(--duration-bounce) var(--ease-out) both; }
+.wird-bounce .wird-tick { animation: wird-tick-pop var(--duration-bounce) var(--ease-out) both; }
+@keyframes wird-disc-bounce {
+  0% { transform: scale(1, 1); }
+  16% { transform: scale(1.12, 0.86); }
+  40% { transform: scale(0.9, 1.14); }
+  66% { transform: scale(1.07, 0.95); }
+  86% { transform: scale(0.98, 1.02); }
+  100% { transform: scale(1, 1); }
+}
+@keyframes wird-tick-pop {
+  0%, 40% { transform: scale(0); opacity: 0; }
+  62% { transform: scale(1.35); opacity: 1; }
+  82% { transform: scale(0.92); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* J2–J6: the completed card leaves toward the inline-start edge. The slide
+   closes the gap WHILE the card is still travelling (flex-basis → 0 over the
+   same --duration-exit); the JS that removes the node reads --duration-exit
+   from CSS so removal lands at travel-end, never at 0ms (J5/J6). The card is
+   pinned to its measured width in WirdPager so the collapse can't squeeze it.
+   Travel is a SINGLE keyframe pair with NO rotation (J2/J3); the fade is its
+   own animation so it cannot re-split the travel (J4). */
+.wird-slide { transition: flex-basis var(--duration-exit) var(--ease-out); }
+.wird-slide.is-leaving {
+  flex-basis: 0 !important;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 3;
+}
+.wird-slide.is-leaving .wird-card {
+  animation:
+    wird-card-exit var(--duration-exit) var(--ease-out) both,
+    wird-card-fade 80ms linear 200ms both;
+}
+@keyframes wird-card-exit {
+  from { transform: translate(0, 0); }
+  to { transform: translate(calc(120% * var(--wird-exit-dir)), 18px); }
+}
+@keyframes wird-card-fade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* J7: the all-done screen arrives from the inline-end — it does not rise from
+   the bottom. */
+.wird-alldone-enter { animation: wird-alldone-in var(--duration-slow) var(--ease-out) both; }
+@keyframes wird-alldone-in {
+  from { opacity: 0; transform: translateX(calc(-22% * var(--wird-exit-dir))) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+/* J9: reduced motion collapses every animation to a near-instant step, but the
+   state still changes visibly — the disc still fills ([data-done]), the strip
+   still closes and the card still leaves (flex-basis + the fade snap), and the
+   all-done screen still lands. */
+@media (prefers-reduced-motion: reduce) {
+  .wird-bounce,
+  .wird-bounce .wird-tick,
+  .wird-slide.is-leaving .wird-card,
+  .wird-alldone-enter {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+  .wird-slide { transition-duration: var(--duration-fast) !important; }
+}
+
+/* Tall CTA: a full-height button for the primary action of a form/sheet, where
+   the default .btn height reads as too small against stacked inputs. */
+.btn-tall {
+  min-height: 52px;
+  padding: 0 20px;
+  font-size: 15px;
+  border-radius: var(--radius-md);
 }
 
 /* ===== Inputs ===== */

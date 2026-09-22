@@ -42,6 +42,8 @@ const globalForDb = global as unknown as {
   mockAgendaItem?: any[];
   mockExam?: any[];
   mockProfiles?: any[];
+  mockWird?: any[];
+  mockWirdEntry?: any[];
 };
 
 if (!globalForDb.mockSets) {
@@ -61,6 +63,8 @@ if (!globalForDb.mockHomework) globalForDb.mockHomework = [];
 if (!globalForDb.mockMembershipNote) globalForDb.mockMembershipNote = [];
 if (!globalForDb.mockAgendaItem) globalForDb.mockAgendaItem = [];
 if (!globalForDb.mockExam) globalForDb.mockExam = [];
+if (!globalForDb.mockWird) globalForDb.mockWird = [];
+if (!globalForDb.mockWirdEntry) globalForDb.mockWirdEntry = [];
 // One seeded profile for the mock user; email_prefs '{}' ⇒ all events enabled.
 if (!globalForDb.mockProfiles) globalForDb.mockProfiles = [
   { id: MOCK_USER_ID, first_name: 'Mock', last_name: 'User', email_prefs: {} },
@@ -89,8 +93,10 @@ const TRACKER_STORAGE: Record<string, string> = {
   agenda_item: 'mock_supabase_agenda_item',
   exam: 'mock_supabase_exam',
   profiles: 'mock_supabase_profiles',
+  wird: 'mock_supabase_wird',
+  wird_entry: 'mock_supabase_wird_entry',
 };
-const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockHomework' | 'mockMembershipNote' | 'mockAgendaItem' | 'mockExam' | 'mockProfiles'> = {
+const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockHomework' | 'mockMembershipNote' | 'mockAgendaItem' | 'mockExam' | 'mockProfiles' | 'mockWird' | 'mockWirdEntry'> = {
   circle: 'mockCircle',
   membership: 'mockMembership',
   progress_log: 'mockProgressLog',
@@ -100,6 +106,8 @@ const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProg
   agenda_item: 'mockAgendaItem',
   exam: 'mockExam',
   profiles: 'mockProfiles',
+  wird: 'mockWird',
+  wird_entry: 'mockWirdEntry',
 };
 function trackerGet(table: string): any[] {
   if (IS_SERVER) return (globalForDb as any)[TRACKER_GLOBAL[table]]!;
@@ -178,6 +186,7 @@ class MockQueryBuilder {
   private userId: string;
   private filters: { field: string; value: any }[] = [];
   private inFilters: { field: string; values: any[] }[] = [];
+  private isFilters: { field: string; value: any }[] = [];
   private selectColumns = '';
   private orderField: string | null = null;
   private orderAscending = true;
@@ -205,6 +214,13 @@ class MockQueryBuilder {
 
   in(field: string, values: any[]) {
     this.inFilters.push({ field, values });
+    return this;
+  }
+
+  // `.is(field, null)` — the soft-delete filter listWirds/getStudentWirdSummary
+  // use. Matches strictly (null-aware), unlike eq's loose `==`.
+  is(field: string, value: any) {
+    this.isFilters.push({ field, value });
     return this;
   }
 
@@ -254,6 +270,12 @@ class MockQueryBuilder {
     }
     for (const f of this.inFilters) {
       result = result.filter(item => f.values.includes(item[f.field]));
+    }
+    for (const f of this.isFilters) {
+      // `.is(field, null)` matches null/undefined; otherwise strict-equals.
+      result = result.filter(item =>
+        f.value === null ? item[f.field] == null : item[f.field] === f.value,
+      );
     }
     return result;
   }
@@ -460,6 +482,14 @@ class MockQueryBuilder {
         row = { author_id: this.userId, created_at: now, ...row };
       } else if (table === 'agenda_item') {
         row = { author_id: this.userId, done_at: null, created_at: now, updated_at: now, ...row };
+      } else if (table === 'wird') {
+        // Mirrors the column defaults in 20260921000001_wird.sql.
+        row = {
+          user_id: this.userId, scope_source: 'pages', cycle_seq: 1,
+          created_at: now, updated_at: now, deleted_at: null, ...row,
+        };
+      } else if (table === 'wird_entry') {
+        row = { created_at: now, ...row };
       } else {
         // progress_log
         row = { homework_id: null, log_date: now.slice(0, 10), created_at: now, updated_at: now, reviewed_at: null, ...row };
@@ -613,6 +643,8 @@ export function __resetMockStore() {
   globalForDb.mockMembershipNote = [];
   globalForDb.mockAgendaItem = [];
   globalForDb.mockExam = [];
+  globalForDb.mockWird = [];
+  globalForDb.mockWirdEntry = [];
 }
 
 export function __seedMockStore(payload: Partial<{
@@ -624,6 +656,8 @@ export function __seedMockStore(payload: Partial<{
   membership_note: any[];
   agenda_item: any[];
   exam: any[];
+  wird: any[];
+  wird_entry: any[];
 }>) {
   if (payload.circle) globalForDb.mockCircle!.push(...payload.circle);
   if (payload.membership) globalForDb.mockMembership!.push(...payload.membership);
@@ -633,4 +667,6 @@ export function __seedMockStore(payload: Partial<{
   if (payload.membership_note) globalForDb.mockMembershipNote!.push(...payload.membership_note);
   if (payload.agenda_item) globalForDb.mockAgendaItem!.push(...payload.agenda_item);
   if (payload.exam) globalForDb.mockExam!.push(...payload.exam);
+  if (payload.wird) globalForDb.mockWird!.push(...payload.wird);
+  if (payload.wird_entry) globalForDb.mockWirdEntry!.push(...payload.wird_entry);
 }

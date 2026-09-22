@@ -187,8 +187,9 @@ test.describe('Wird daily screen', () => {
       r.fulfill({ status: 200, body: '', headers: { 'access-control-allow-origin': '*' } }));
     await reset(page, [seedWird('w-hm', 'Heatmap wird', 10)]);
 
-    const d = new Date();
-    const todayIso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    // UTC day, as the app stamps entries and keys the heatmap (a local date
+    // disagrees for the first/last hours of the day off-UTC).
+    const todayIso = new Date().toISOString().slice(0, 10);
     const todayCell = page.locator(`[title="${todayIso}"]`);
 
     // Before: grid rendered, nothing done.
@@ -226,6 +227,6 @@ test.describe('Wird daily screen', () => {
     await expect(page.getByRole('menu')).toBeVisible();
     await page.keyboard.press('Escape');
     await outstandingDone(page).click();
-    await expect(page.getByText('All done today')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'All done today' })).toBeVisible({ timeout: 15000 });
   });
 });

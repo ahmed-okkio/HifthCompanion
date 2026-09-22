@@ -64,7 +64,10 @@ export default function WirdForm({
   );
   const [pagesPerPeriod, setPagesPerPeriod] = useState(wird?.pages_per_period ?? 1);
   const [periodDays, setPeriodDays] = useState<number>(wird?.period_days ?? 1);
-  const [saving, setSaving] = useState(false);
+  // Optimistic: on submit the dialog hides instantly (feels instant, no spinner)
+  // but the component stays mounted, so if the write fails it re-appears with
+  // every field intact and an error. onCreated (parent) closes + refreshes.
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -75,6 +78,9 @@ export default function WirdForm({
   }, [open, onClose]);
 
   if (!open) return null;
+  // Optimistic hide: dialog is gone the instant Create is tapped. Still mounted,
+  // so a failed write flips this back and restores the form with its values.
+  if (pending) return null;
 
   const rate = dailyRate(pagesPerPeriod, periodDays);
   // C2 portion sizes across the period — the display never uses floor(pages/days).
@@ -100,11 +106,11 @@ export default function WirdForm({
   const projectionLabel =
     finishDays > 0 ? t('wird.projectedFinish', { days: finishDays, date: finishDate }) : '';
 
-  const submit = async () => {
+  const submit = () => {
     if (name.trim() === '') { setError(t('wird.errorName')); return; }
     if (endBeforeStart) { setError(t('wird.errorEndBeforeStart')); return; }
-    setSaving(true);
     setError('');
+    setPending(true); // dialog vanishes now; write runs in the background
     const payload = {
       name,
       scope_source: scope.scope_source,
@@ -113,15 +119,14 @@ export default function WirdForm({
       pages_per_period: pagesPerPeriod,
       period_days: periodDays,
     };
-    try {
-      if (editing) await updateWird(wird.id, payload);
-      else await createWird(payload);
-      onCreated();
-    } catch {
-      // Service rejects empty name / no-ranges memorized (D10) server-side too.
-      setError(t(editing ? 'wird.updateFailed' : 'wird.createFailed'));
-      setSaving(false);
-    }
+    (editing ? updateWird(wird.id, payload) : createWird(payload))
+      .then(() => onCreated()) // parent closes + refreshes → the card appears
+      .catch(() => {
+        // Service rejects empty name / no-ranges memorized (D10) server-side too.
+        // Un-hide with the form intact so nothing typed is lost.
+        setPending(false);
+        setError(t(editing ? 'wird.updateFailed' : 'wird.createFailed'));
+      });
   };
 
   return (
@@ -248,11 +253,11 @@ export default function WirdForm({
             <button
               type="button"
               onClick={submit}
-              disabled={saving || endBeforeStart}
+              disabled={endBeforeStart}
               className="btn btn-primary"
-              style={{ minHeight: 44, opacity: saving || endBeforeStart ? 0.6 : 1 }}
+              style={{ minHeight: 44, opacity: endBeforeStart ? 0.6 : 1 }}
             >
-              {saving ? t('common.loading') : t(editing ? 'wird.saveChanges' : 'wird.create')}
+              {t(editing ? 'wird.saveChanges' : 'wird.create')}
             </button>
           </div>
         </div>

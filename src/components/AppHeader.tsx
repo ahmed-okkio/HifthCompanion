@@ -37,7 +37,12 @@ export default function AppHeader({
     <header
       className={`sticky top-0 z-50 w-full border-b transition-transform duration-200 lg:!translate-y-0 ${hidden ? '-translate-y-full' : 'translate-y-0'}`}
       style={{
-        background: 'var(--surface-main)',
+        // Frosted glass (Gmail-style): translucent + blur. At scroll-top the
+        // solid page bg sits behind it so it reads solid; scrolled content
+        // passes under and shows through the blur.
+        background: 'color-mix(in srgb, var(--surface-main) 72%, transparent)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
         borderColor: 'var(--border-subtle)',
         boxShadow: 'var(--shadow-e1)',
       }}

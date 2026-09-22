@@ -105,7 +105,7 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
       <WirdForm
         open={formOpen}
         onClose={closeForm}
-        onCreated={() => { router.replace('/wird'); router.refresh(); }}
+        onCreated={() => { closeForm(); router.refresh(); }}
         canUseMemorized={memorizedPages > 0}
         memorizedPages={memorizedPages}
       />

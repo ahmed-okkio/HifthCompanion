@@ -114,10 +114,10 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
         </div>
       )}
 
-      <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', padding: 'var(--space-20)' }}>
+      <div className="wird-fit-body" style={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {/* Header: name + scope */}
         <div style={{ flex: '0 0 auto' }}>
-          <div style={{ fontSize: 20, fontWeight: 700, ...ellipsis }}>{card.name}</div>
+          <div className="wird-fit-name" style={{ fontWeight: 700, ...ellipsis }}>{card.name}</div>
           <div style={{ marginTop: 'var(--space-4)', fontSize: 'var(--type-small-size)', fontWeight: 500, color: 'var(--text-muted)', ...ellipsis }}>
             {scopeText}
           </div>
@@ -126,7 +126,7 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
         {card.doneToday ? (
           /* I2: completed state. No next-portion task shown. */
           <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-16)' }}>
-            <span style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-accent)', textAlign: 'center' }}>
+            <span className="wird-fit-done" style={{ fontWeight: 800, color: 'var(--text-accent)', textAlign: 'center' }}>
               {t('wird.doneToday')}
             </span>
           </div>
@@ -136,7 +136,7 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
               {t('wird.startAt')}
             </span>
             {/* Opening reference — the largest element (H7). */}
-            <span style={{ display: 'block', fontSize: 34, fontWeight: 800, lineHeight: 1.1, marginTop: 'var(--space-4)', ...ellipsis }}>
+            <span className="wird-fit-hero" style={{ display: 'block', fontWeight: 800, lineHeight: 1.1, marginTop: 'var(--space-4)', ...ellipsis }}>
               {fmtNum(card.opening)}
             </span>
             <span style={{ display: 'block', marginTop: 'var(--space-4)', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)', ...ellipsis }}>
@@ -151,7 +151,7 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
         )}
 
         {/* Footer: progress + pages-to-go, then the disc in the thumb zone (H7/I8). */}
-        <div style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', gap: 'var(--space-12)', marginTop: 'var(--space-16)' }}>
+        <div className="wird-fit-footer" style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column' }}>
           {!card.doneToday && (
             <>
               <Progress pct={card.pct} label={t('wird.progressLabel')} />

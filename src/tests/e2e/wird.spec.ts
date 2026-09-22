@@ -205,4 +205,27 @@ test.describe('Wird daily screen', () => {
     await expect(todayCell).toHaveAttribute('data-done', 'true');
     await expect(page.locator('[data-done]')).toHaveCount(1);
   });
+
+  test('fit: on a short screen the card shrinks, the page never scrolls, controls work', async ({ page }) => {
+    guardConsole(page);
+    await reset(page, [seedWird('w-fit', 'Short screen wird', 10)]);
+
+    for (const [width, height] of [[375, 420], [640, 360]]) {
+      await page.setViewportSize({ width, height });
+      await page.goto('/wird');
+      await expect(page.getByText('10 pages to go')).toBeVisible();
+      // No page scroll: the document is exactly the viewport tall.
+      expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+      // Both controls fully on screen, not clipped below the fold.
+      await expect(outstandingDone(page)).toBeInViewport({ ratio: 1 });
+      await expect(page.getByRole('button', { name: 'Options' })).toBeInViewport({ ratio: 1 });
+    }
+
+    // Outcome, not just presence: the options menu opens and Done completes.
+    await page.getByRole('button', { name: 'Options' }).click();
+    await expect(page.getByRole('menu')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await outstandingDone(page).click();
+    await expect(page.getByText('All done today')).toBeVisible({ timeout: 15000 });
+  });
 });

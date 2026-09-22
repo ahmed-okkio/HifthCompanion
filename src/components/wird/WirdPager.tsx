@@ -259,7 +259,9 @@ function Strip({
               className={`wird-slide${leavingId === c.id ? ' is-leaving' : ''}`}
               style={{ flex: '0 0 100%', minWidth: 0, scrollSnapAlign: 'center', display: 'flex' }}
             >
-              <div style={{ width: '100%' }}>
+              {/* height: 100% so the card sizes to the strip, not its content
+                  (content-sized cards grow the page into a scroll). */}
+              <div style={{ width: '100%', height: '100%' }}>
                 <WirdCard card={c} onExit={onExit} />
               </div>
             </div>

@@ -524,6 +524,17 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   100% { transform: rotate(var(--a)) translateY(-76px) scaleY(1); opacity: 0; }
 }
 
+/* Card fits the screen: the card is a size container and its contents scale as
+   a share of its height (cqh), capped at the design tokens. A tall screen gets
+   the full token sizes; a short one shrinks the card instead of scrolling. */
+.wird-card { container-type: size; }
+.wird-fit-body { padding: min(var(--space-20), 4cqh); }
+.wird-fit-name { font-size: min(var(--type-heading-m-size), 4cqh); }
+.wird-fit-hero { font-size: min(var(--type-xl-size), 7cqh); }
+.wird-fit-done { font-size: min(var(--type-heading-l-size), 5cqh); }
+.wird-fit-footer { gap: min(var(--space-12), 2.5cqh); margin-top: min(var(--space-16), 3cqh); }
+.wird-card .btn-circle { max-width: 15cqh; max-height: 15cqh; }
+
 /* J2–J6: the completed card leaves toward the inline-start edge. The slide
    closes the gap WHILE the card is still travelling (flex-basis → 0 over the
    same --duration-exit); the JS that removes the node reads --duration-exit

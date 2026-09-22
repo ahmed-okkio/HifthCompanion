@@ -50,12 +50,10 @@ function strokeColor(active: boolean) {
 }
 
 function IconWird({ active }: { active: boolean }) {
-  // Repeat / loop glyph with a centre mark — a recurring daily portion.
+  // Bookmark glyph — the place you've reached in your wird.
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={strokeColor(active)} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4.5 12a7.5 7.5 0 1 1 2.6 5.7" />
-      <path d="M4.5 13.5v-4h4" />
-      <circle cx="12" cy="12" r="2.2" />
+      <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
     </svg>
   );
 }

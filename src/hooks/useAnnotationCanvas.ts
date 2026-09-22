@@ -202,7 +202,20 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
 
   useEffect(() => {
     const canvas = fabricRef.current;
-    if (!canvas || !selectedSetId) return;
+    if (!canvas) return;
+
+    // No set (e.g. a new user): nothing to load or flush, but the page image must still follow
+    // the page — otherwise a soft page turn leaves the previous image under a skeleton forever.
+    // ponytail: no ordering guard on the image load; a fast double-turn relies on cache order.
+    if (!selectedSetId) {
+      const page = pageNum;
+      void persistence.applyBackground(canvas, imageUrlRef.current).then(() => {
+        if (pageNumRef.current !== page) return;
+        persistence.cancelSkeleton();
+        setCanvasReady(true);
+      });
+      return;
+    }
 
     const prev = loadedKeyRef.current;
     const changed = !prev || prev.setId !== selectedSetId || prev.page !== pageNum;

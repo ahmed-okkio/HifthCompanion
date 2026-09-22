@@ -388,6 +388,6 @@ export function useCanvasPersistence({
     commit, commitRef, saveCanvas, saveNow, saveNowRef, scheduleSave, scheduleSaveRef,
     cancelPendingSave, lastLoadedRef,
     loadAnnotation, handleUndo, handleRedo, handleClear,
-    refreshHistory, applyBackground, scheduleSkeleton
+    refreshHistory, applyBackground, scheduleSkeleton, cancelSkeleton
   };
 }

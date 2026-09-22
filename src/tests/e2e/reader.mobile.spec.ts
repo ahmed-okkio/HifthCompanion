@@ -84,11 +84,11 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
     const scrollList = page.locator('[data-testid="mobile-surah-scroll-list"]');
     await expect(scrollList).toBeVisible({ timeout: 5000 });
 
-    // Use JS dispatch to click Al-Baqarah — the backdrop div (z-49) can intercept
+    // Use JS dispatch to click Al-Baqara — the backdrop div (z-49) can intercept
     // Playwright pointer events even though the sheet (z-50) should be on top.
     await page.evaluate(() => {
       const buttons = Array.from(document.querySelectorAll('[data-testid="mobile-surah-scroll-list"] button'));
-      const btn = buttons.find(b => /Al-Baqarah/i.test(b.textContent ?? '')) as HTMLButtonElement | undefined;
+      const btn = buttons.find(b => /Al-Baqara/i.test(b.textContent ?? '')) as HTMLButtonElement | undefined;
       btn?.click();
     });
 
@@ -271,11 +271,11 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
     expect(await wrapperPE()).toBe('none');
 
     // Toggle to Draw — canvas captures touch again.
-    await page.evaluate(() => (document.querySelector('button[aria-pressed]') as HTMLButtonElement)?.click());
+    await page.evaluate(() => (document.querySelector('button[aria-label^="Scroll mode"], button[aria-label^="Drawing mode"]') as HTMLButtonElement)?.click());
     await expect.poll(wrapperPE).not.toBe('none');
 
     // Picking a tool also implies Draw.
-    await page.evaluate(() => (document.querySelector('button[aria-pressed]') as HTMLButtonElement)?.click()); // back to Move
+    await page.evaluate(() => (document.querySelector('button[aria-label^="Scroll mode"], button[aria-label^="Drawing mode"]') as HTMLButtonElement)?.click()); // back to Move
     await expect.poll(wrapperPE).toBe('none');
     await page.evaluate(() => (document.querySelector('button[aria-label="Tools"]') as HTMLButtonElement)?.click());
     await page.evaluate(() => {
@@ -291,7 +291,7 @@ test.describe('Mobile share view (Pixel 5)', () => {
   test('(e) share view loads at mobile width with surah control', async ({ page }) => {
     listenForErrors(page);
 
-    await page.goto('/share/test-user/1?set=test-set');
+    await page.goto('/share/test-set/1');
     await page.waitForLoadState('networkidle');
 
     // Surah button must be present in share header at mobile width
@@ -315,7 +315,7 @@ test.describe('Mobile share view (Pixel 5)', () => {
   test('(e) share view has no horizontal overflow at mobile width', async ({ page }) => {
     listenForErrors(page);
 
-    await page.goto('/share/test-user/1?set=test-set');
+    await page.goto('/share/test-set/1');
     await page.waitForLoadState('networkidle');
 
     const viewport = page.viewportSize();
@@ -328,7 +328,7 @@ test.describe('Mobile share view (Pixel 5)', () => {
   test('(e) share view shows read-only badge at mobile width', async ({ page }) => {
     listenForErrors(page);
 
-    await page.goto('/share/test-user/1?set=test-set');
+    await page.goto('/share/test-set/1');
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('text=read-only').first()).toBeVisible({ timeout: 10000 });

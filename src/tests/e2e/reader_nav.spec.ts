@@ -4,7 +4,7 @@ test('page jumper navigates to the typed page (not page 1)', async ({ page }) =>
   await page.goto('/reader/1');
   await expect(page.locator('.upper-canvas')).toBeVisible();
   // open the page jumper, type 5, Enter
-  await page.locator('button[title="Click to jump to page"]').click();
+  await page.locator('[title="Click to jump to page"]').click();
   await page.locator('input[type="number"]').fill('5');
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/\/reader\/5(\?|$)/);
@@ -13,7 +13,10 @@ test('page jumper navigates to the typed page (not page 1)', async ({ page }) =>
 test('next button increments page', async ({ page }) => {
   await page.goto('/reader/3');
   await expect(page.locator('.upper-canvas')).toBeVisible();
-  await page.locator('button[title="Next page"]').click();
+  // The wide next-arrow hit zone runs under the surah panel; click its page-side edge.
+  const next = page.locator('button[aria-label="Next page"]:visible');
+  const nextBox = (await next.boundingBox())!;
+  await next.click({ position: { x: nextBox.width - 10, y: nextBox.height / 2 } });
   await expect(page).toHaveURL(/\/reader\/4(\?|$)/);
 });
 

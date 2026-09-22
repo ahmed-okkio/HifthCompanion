@@ -85,9 +85,10 @@ test.describe('Annotations Persistence', () => {
       } catch { /* retry */ }
     }
 
-    // 6. Wait for explicit save confirmation
-    await expect.poll(() => logs.some(l => l.includes('Save successful')), {
-      message: 'Wait for "Save successful" log',
+    // 6. Wait for the drawn path to land in the (localStorage-backed) mock store
+    await expect.poll(() => page.evaluate(() =>
+      (localStorage.getItem('mock_supabase_annotations') ?? '').includes('path')), {
+      message: 'Wait for the drawing to be saved',
       timeout: 10000,
     }).toBeTruthy();
 

@@ -190,7 +190,8 @@ class MockQueryBuilder {
   private userId: string;
   private filters: { field: string; value: any }[] = [];
   private inFilters: { field: string; values: any[] }[] = [];
-  private isFilters: { field: string; value: any }[] = [];
+  private isFilters: { field: string; value: any; negate?: boolean }[] = [];
+  private orFilters: string[] = [];
   private selectColumns = '';
   private orderField: string | null = null;
   private orderAscending = true;
@@ -225,6 +226,18 @@ class MockQueryBuilder {
   // use. Matches strictly (null-aware), unlike eq's loose `==`.
   is(field: string, value: any) {
     this.isFilters.push({ field, value });
+    return this;
+  }
+
+  // ponytail: only `.not(field, 'is', value)` — the one operator notes.ts uses.
+  not(field: string, _op: 'is', value: any) {
+    this.isFilters.push({ field, value, negate: true });
+    return this;
+  }
+
+  // PostgREST `.or('a.is.null,b.gte.X')`. ponytail: only is/eq/gt/gte/lt/lte — what agenda.ts uses.
+  or(expr: string) {
+    this.orFilters.push(expr);
     return this;
   }
 
@@ -278,8 +291,25 @@ class MockQueryBuilder {
     for (const f of this.isFilters) {
       // `.is(field, null)` matches null/undefined; otherwise strict-equals.
       result = result.filter(item =>
-        f.value === null ? item[f.field] == null : item[f.field] === f.value,
+        (f.value === null ? item[f.field] == null : item[f.field] === f.value) !== !!f.negate,
       );
+    }
+    for (const expr of this.orFilters) {
+      const conds = expr.split(',').map((part) => {
+        const [field, op, ...rest] = part.split('.');
+        return { field, op, value: rest.join('.') };
+      });
+      result = result.filter(item => conds.some(({ field, op, value }) => {
+        const v = item[field];
+        if (op === 'is') return value === 'null' ? v == null : String(v) === value;
+        if (op === 'eq') return String(v) === value;
+        if (v == null) return false;
+        if (op === 'gt') return v > value;
+        if (op === 'gte') return v >= value;
+        if (op === 'lt') return v < value;
+        if (op === 'lte') return v <= value;
+        return false;
+      }));
     }
     return result;
   }
@@ -635,7 +665,13 @@ function emailForUser(userId: string): string {
 // The server reads tracker tables from a process global. Playwright runs in the
 // browser and cannot touch that global, so a test-only route handler POSTs here
 // to seed/reset deterministic fixtures. Guarded upstream by the E2E env gate.
-export function __resetMockStore() {
+// `tables` limits the wipe to those tables — specs run in parallel against one server
+// store, so a full reset from one spec deletes another spec's rows mid-test.
+export function __resetMockStore(tables?: string[]) {
+  if (tables) {
+    for (const t of tables) (globalForDb as any)[TRACKER_GLOBAL[t]] = [];
+    return;
+  }
   globalForDb.mockSets = [];
   globalForDb.mockAnnotations = [];
   globalForDb.mockNotes = [];

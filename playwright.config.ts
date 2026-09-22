@@ -1,19 +1,38 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// E2E runs against a production build on its own port: `next dev` recompiles
+// routes mid-run and stalls 10-100s per request under parallel workers.
+const PORT = 3100;
+
+const desktop = {
+  ...devices['Desktop Chrome'],
+  storageState: 'playwright/.auth/user.json',
+};
+
+// Impact areas: run one with `npm run test:e2e:<area>` (= `playwright test --project=<area>`).
+const areas: Record<string, RegExp> = {
+  annotations: /(annotations|features|persistence)\.spec\.ts/,
+  reader: /(reader_nav|surah_panel|surah_panel_screenshot)\.spec\.ts/,
+  sets: /sets\.spec\.ts/,
+  tracker: /tracker\.spec\.ts/,
+  wird: /wird\.spec\.ts/,
+};
+
 export default defineConfig({
   testDir: './src/tests/e2e',
   // retries: 1 is a backstop for slow-FS timing jitter; the primary fix is in the draw helpers.
   retries: 1,
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: `http://localhost:${PORT}`,
     browserName: 'chromium',
     extraHTTPHeaders: {
       'x-e2e-test': 'true',
     },
   },
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: `npm run build && npx next start -p ${PORT}`,
+    url: `http://localhost:${PORT}`,
+    timeout: 300_000,
     reuseExistingServer: !process.env.CI,
     env: {
       PLAYWRIGHT_TEST: 'true',
@@ -21,15 +40,12 @@ export default defineConfig({
   },
   projects: [
     { name: 'setup', testMatch: /.*\.setup\.ts/ },
-    {
-      name: 'chromium',
-      use: {
-        ...devices['Desktop Chrome'],
-        storageState: 'playwright/.auth/user.json',
-      },
+    ...Object.entries(areas).map(([name, testMatch]) => ({
+      name,
+      use: desktop,
       dependencies: ['setup'],
-      testIgnore: /.*\.mobile\.spec\.ts/,
-    },
+      testMatch,
+    })),
     {
       name: 'mobile',
       use: {

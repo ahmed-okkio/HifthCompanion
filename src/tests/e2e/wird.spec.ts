@@ -36,7 +36,7 @@ function guardConsole(page: Page) {
 }
 
 async function reset(page: Page, wirds: unknown[]) {
-  await page.request.post('/api/test/tracker', { data: { reset: true } });
+  await page.request.post('/api/test/tracker', { data: { reset: ['wird', 'wird_entry', 'user_hifth'] } });
   await page.request.post('/api/test/tracker', { data: { seed: { wird: wirds } } });
 }
 
@@ -74,7 +74,7 @@ test.describe('Wird daily screen', () => {
 
     // Outcome, with the server still held: the card leaves → all-done screen,
     // and the "next begins at" line is already there (no wait on the refresh).
-    await expect(page.getByText('All done today')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: 'All done today' })).toBeVisible({ timeout: 5000 });
     const nextLine = page.locator('li', { hasText: /next begins at/i });
     await expect(nextLine).toBeVisible({ timeout: 3000 });
     // Position advanced (page 1 → page 2 = a different sūra), so it is NOT the
@@ -87,7 +87,7 @@ test.describe('Wird daily screen', () => {
     // Entry persisted (not just optimistic UI): a fresh navigation still shows
     // done, driven by the server re-read of wird_entry.
     await page.goto('/wird');
-    await expect(page.getByText('All done today')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'All done today' })).toBeVisible();
     await expect(page.getByText('10 pages to go')).toHaveCount(0);
     // The server's advanced position matches what was shown up front.
     await expect(page.locator('li', { hasText: /next begins at/i })).toHaveText(nextText);
@@ -99,17 +99,17 @@ test.describe('Wird daily screen', () => {
 
     await page.goto('/wird');
     // Two outstanding wirds → not all done yet.
-    await expect(page.getByText('All done today')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'All done today' })).toHaveCount(0);
 
     // Complete the first outstanding wird.
     await outstandingDone(page).first().click();
     // One remains → still not all done.
     await expect(outstandingDone(page)).toHaveCount(1, { timeout: 15000 });
-    await expect(page.getByText('All done today')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'All done today' })).toHaveCount(0);
 
     // Complete the last one → the all-done screen appears.
     await outstandingDone(page).first().click();
-    await expect(page.getByText('All done today')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'All done today' })).toBeVisible({ timeout: 15000 });
   });
 
   test('create: a start page midway shortens the first pass', async ({ page }) => {
@@ -198,7 +198,7 @@ test.describe('Wird daily screen', () => {
 
     await page.goto('/wird');
     await outstandingDone(page).click();
-    await expect(page.getByText('All done today')).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'All done today' })).toBeVisible({ timeout: 15000 });
 
     // After: exactly today's cell is filled, read back from the server.
     await page.goto('/wird/manage');

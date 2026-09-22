@@ -9,6 +9,12 @@
     "lint": "eslint",
     "test": "vitest",
     "test:e2e": "playwright test",
+    "test:e2e:annotations": "playwright test --project=annotations",
+    "test:e2e:reader": "playwright test --project=reader",
+    "test:e2e:sets": "playwright test --project=sets",
+    "test:e2e:tracker": "playwright test --project=tracker",
+    "test:e2e:wird": "playwright test --project=wird",
+    "test:e2e:mobile": "playwright test --project=mobile",
     "build:check": "next build"
   },
   "dependencies": {

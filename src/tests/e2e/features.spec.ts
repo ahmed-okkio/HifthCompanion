@@ -93,7 +93,7 @@ test.describe('Annotations — Core', () => {
     listenForErrors(page);
     await context.clearCookies();
     await page.goto('/reader/1');
-    await expect(page.locator('canvas')).toBeVisible();
+    await expect(page.locator('.upper-canvas')).toBeVisible();
     await expect(page.locator('text=Log in to annotate')).toBeVisible();
   });
 
@@ -102,7 +102,7 @@ test.describe('Annotations — Core', () => {
     await context.addCookies([{ name: 'sb-access-token', value: 'dummy-token', domain: 'localhost', path: '/' }]);
     await context.setExtraHTTPHeaders({ 'x-e2e-test': 'true' });
     await page.goto('/reader/1');
-    await expect(page.locator('canvas')).toBeVisible();
+    await expect(page.locator('.upper-canvas')).toBeVisible();
     await expect(page.locator('text=Log in to annotate')).not.toBeVisible();
   });
 });
@@ -124,7 +124,7 @@ test.describe('Toolbar tools', () => {
     expect(objCount).toBeGreaterThan(0);
   });
 
-  test('highlighter tool draws a semi-transparent rect', async ({ page }) => {
+  test('highlighter tool draws a semi-transparent stroke', async ({ page }) => {
     listenForErrors(page);
     const setName = `Hl-${Date.now()}`;
     await setupAuthenticatedReader(page, setName);
@@ -139,13 +139,17 @@ test.describe('Toolbar tools', () => {
       // @ts-ignore
       const c = window.fabricCanvas;
       if (!c) return null;
-      const rects = c.getObjects().filter((o: any) => o.type === 'rect');
-      return rects.length > 0 ? { count: rects.length, opacity: rects[0].opacity, fill: rects[0].fill } : null;
+      // The highlighter is a free-drawing brush: a path whose opacity lives in an rgba() stroke.
+      const paths = c.getObjects().filter((o: any) => o.type === 'path');
+      if (!paths.length) return null;
+      const alpha = Number(/rgba\([^)]*,\s*([\d.]+)\)/.exec(paths[0].stroke)?.[1]);
+      return { count: paths.length, alpha, blend: paths[0].globalCompositeOperation };
     });
     expect(result).not.toBeNull();
     expect(result!.count).toBeGreaterThan(0);
-    expect(result!.opacity).toBeGreaterThan(0);
-    expect(result!.opacity).toBeLessThan(1);
+    expect(result!.alpha).toBeGreaterThan(0);
+    expect(result!.alpha).toBeLessThan(1);
+    expect(result!.blend).toBe('multiply');
   });
 
   test('circle tool draws an ellipse on canvas', async ({ page }) => {
@@ -314,7 +318,7 @@ test.describe('Notes Panel', () => {
     await expect(page.getByTestId('notes-card')).toBeVisible();
 
     // Add a note
-    await page.fill('textarea[placeholder="Add a note about this page…"]', 'Test note content');
+    await page.fill('textarea[placeholder="Write a note…"]', 'Test note content');
     await page.click('button:has-text("Add Note")');
 
     // Note appears in list
@@ -326,7 +330,7 @@ test.describe('Notes Panel', () => {
     const setName = `NotesDel-${Date.now()}`;
     await setupAuthenticatedReader(page, setName);
 
-    await page.fill('textarea[placeholder="Add a note about this page…"]', 'Note to delete');
+    await page.fill('textarea[placeholder="Write a note…"]', 'Note to delete');
     await page.click('button:has-text("Add Note")');
     await expect(page.locator('text=Note to delete')).toBeVisible();
 
@@ -342,13 +346,13 @@ test.describe('Notes Panel', () => {
     const setName = `NotesColl-${Date.now()}`;
     await setupAuthenticatedReader(page, setName);
 
-    await expect(page.locator('textarea[placeholder="Add a note about this page…"]')).toBeVisible();
+    await expect(page.locator('textarea[placeholder="Write a note…"]')).toBeVisible();
 
     await page.getByTestId('notes-card').getByRole('button', { name: /Hide/ }).click();
-    await expect(page.locator('textarea[placeholder="Add a note about this page…"]')).not.toBeVisible();
+    await expect(page.locator('textarea[placeholder="Write a note…"]')).not.toBeVisible();
 
     await page.getByTestId('notes-card').getByRole('button', { name: /Show/ }).click();
-    await expect(page.locator('textarea[placeholder="Add a note about this page…"]')).toBeVisible();
+    await expect(page.locator('textarea[placeholder="Write a note…"]')).toBeVisible();
   });
 });
 

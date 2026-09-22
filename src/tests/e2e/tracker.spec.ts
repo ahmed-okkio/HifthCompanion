@@ -1,5 +1,8 @@
 import { test, expect, type BrowserContext } from '@playwright/test';
 
+// Only this spec's tables: other specs share the server mock store in parallel.
+const TRACKER_TABLES = ['circle', 'membership', 'progress_log', 'session', 'homework', 'membership_note', 'agenda_item', 'exam'];
+
 // Tracker — teacher create + open flow against the mock Supabase client.
 // One authenticated mock user (teacher of the circles they create).
 test.describe('Progression Tracker (Authenticated)', () => {
@@ -10,7 +13,7 @@ test.describe('Progression Tracker (Authenticated)', () => {
     await context.setExtraHTTPHeaders({ 'x-e2e-test': 'true' });
     // Start with no circles so /tracker shows the empty state (it redirects to the
     // first circle otherwise) and the rail "+" create flow is exercised deterministically.
-    await context.request.post('/api/test/tracker', { data: { reset: true } });
+    await context.request.post('/api/test/tracker', { data: { reset: TRACKER_TABLES } });
   });
 
   test('create a circle and open its teacher view', async ({ page }) => {
@@ -30,7 +33,7 @@ test.describe('Progression Tracker (Authenticated)', () => {
 
     // Creating switches straight into the new circle's teacher view.
     await expect(page).toHaveURL(/\/tracker\/[^/]+$/);
-    await expect(page.getByText('Invite code')).toBeVisible();
+    await expect(page.getByText('Invite link')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Students' })).toBeVisible();
     await expect(page.getByText('No students yet')).toBeVisible();
   });
@@ -38,7 +41,7 @@ test.describe('Progression Tracker (Authenticated)', () => {
   test('language switcher flips to Arabic + RTL', async ({ page }) => {
     await page.goto('/tracker');
     // The switcher now lives inside the account menu dropdown — open it first.
-    await page.getByRole('button', { name: 'Account menu' }).click();
+    await page.getByRole('button', { name: 'Account' }).click();
     await page.getByLabel('Language').selectOption('ar');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
@@ -72,7 +75,7 @@ test.describe('Progression Tracker (Two-actor)', () => {
     const studentCtx = await makeActor(browser, STUDENT_ID);
 
     // Reset the server-side mock store so the run is deterministic.
-    await teacherCtx.request.post('/api/test/tracker', { data: { reset: true } });
+    await teacherCtx.request.post('/api/test/tracker', { data: { reset: TRACKER_TABLES } });
 
     // 1) Teacher creates a circle and opens its teacher view.
     const teacher = await teacherCtx.newPage();
@@ -83,9 +86,10 @@ test.describe('Progression Tracker (Two-actor)', () => {
     await teacher.getByRole('button', { name: 'Create', exact: true }).click();
     await expect(teacher).toHaveURL(/\/tracker\/[^/]+$/);
     const circleId = teacher.url().split('/').pop()!;
-    await expect(teacher.getByText('Invite code')).toBeVisible();
+    await expect(teacher.getByText('Invite link')).toBeVisible();
     await expect(teacher.getByText('No students yet')).toBeVisible(); // C1: empty roster
-    const inviteCode = (await teacher.locator('code').first().innerText()).trim();
+    // The invite <code> shows the full join URL; the code is its last segment.
+    const inviteCode = (await teacher.locator('code').first().innerText()).trim().split('/').pop()!;
     expect(inviteCode.length).toBeGreaterThan(0);
 
     // 2) Student opens the invite link → joins as pending and lands on the ACCEPT
@@ -99,7 +103,8 @@ test.describe('Progression Tracker (Two-actor)', () => {
 
     // 3) Accepting flips the membership to active → student self-service view.
     await student.getByRole('button', { name: 'Accept & join' }).click();
-    await expect(student.getByText('Log today')).toBeVisible();
+    await student.getByRole('tab', { name: 'Log' }).click();
+    await expect(student.getByRole('button', { name: 'Log today' })).toBeVisible();
 
     // 4) After accept, the student appears ACTIVE in the teacher roster (C5) and is
     //    clickable into their profile.
@@ -108,9 +113,13 @@ test.describe('Progression Tracker (Two-actor)', () => {
     await expect(roster.first()).toBeVisible();
     await roster.first().click();
     await expect(teacher).toHaveURL(new RegExp(`/student/[^/]+$`));
+    await teacher.getByRole('tab', { name: 'Homework' }).click();
     await expect(teacher.getByRole('button', { name: 'Prescribe homework' })).toBeVisible();
 
     // 5) Open self-submission (F1): student logs with a fixed type, no prescription.
+    await student.getByRole('button', { name: 'Log today' }).click();
+    // The picker defaults to all of Al-Faatiha; Add it as the log's one entry.
+    await student.getByRole('button', { name: 'Add', exact: true }).click();
     await student.getByRole('button', { name: 'Submit' }).click();
     // The new log row reads "Memorization · p1–1" (the bare word also appears in the
     // type <option>, so match the row's page-range suffix to disambiguate).

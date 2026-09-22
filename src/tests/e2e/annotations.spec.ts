@@ -6,7 +6,7 @@ test.describe('Annotations', () => {
     await page.goto('/reader/1');
     
     // Check if canvas is visible
-    const canvas = page.locator('canvas');
+    const canvas = page.locator('.upper-canvas');
     await expect(canvas).toBeVisible();
 
     // Check for login prompt
@@ -28,7 +28,7 @@ test.describe('Annotations', () => {
     await page.goto('/reader/1');
 
     // Check if canvas is visible
-    const canvas = page.locator('canvas');
+    const canvas = page.locator('.upper-canvas');
     await expect(canvas).toBeVisible();
 
     // The set picker might not show up if there are no sets returned from mock supabase
@@ -98,22 +98,18 @@ test.describe('Annotations', () => {
       await page.mouse.move(startX + 150, startY + 100, { steps: 10 });
       await page.mouse.up();
 
-      try {
-        await expect.poll(async () => {
-          const fabricCanvas = (window as any).fabricCanvas;
-          if (!fabricCanvas) return 0;
-          return fabricCanvas.getObjects().filter((o: any) => o.type === 'rect').length;
-        }, { timeout: 3000 }).toBeGreaterThan(0);
-      } catch { /* retry */ }
-
-      objectsCount = await page.evaluate(() => {
+      const count = () => page.evaluate(() => {
         const fabricCanvas = (window as any).fabricCanvas;
         if (!fabricCanvas) return 0;
-        return fabricCanvas.getObjects().filter((o: any) => o.type === 'rect').length;
+        return fabricCanvas.getObjects().filter((o: any) => o.type === 'path').length;
       });
+      try {
+        await expect.poll(count, { timeout: 3000 }).toBeGreaterThan(0);
+      } catch { /* retry */ }
+      objectsCount = await count();
     }
 
-    // Verify object created is a Rect
+    // Verify a highlighter stroke (free-drawing path) was created
     expect(objectsCount).toBeGreaterThan(0);
   });
 });

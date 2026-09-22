@@ -50,7 +50,7 @@ test.describe('Surah panel and toolbar layout', () => {
   test('clicking a surah navigates on the first click', async ({ page }) => {
     listenForErrors(page);
 
-    await page.getByRole('button', { name: /Al-Baqarah/i }).click();
+    await page.getByRole('button', { name: /Al-Baqara\b/i }).click();
 
     await expect(page).toHaveURL(/\/reader\/2$/);
     await expect(page.locator('.upper-canvas')).toBeVisible();
@@ -68,9 +68,9 @@ test.describe('Surah panel and toolbar layout', () => {
     const before = await scrollList.evaluate((el) => el.scrollTop);
     expect(before).toBeGreaterThan(0);
 
-    // Navigate via a surah that is fully in view at this offset (Al-A'raf), so the click
+    // Navigate via a surah that is fully in view at this offset (Al-A'raaf), so the click
     // itself does not scroll the list — this isolates the restore behaviour we care about.
-    await scrollList.getByRole('button', { name: /Al-A'raf/i }).click();
+    await scrollList.getByRole('button', { name: /Al-A'raaf/i }).click();
     await expect(page).toHaveURL(/\/reader\/151$/);
 
     // The panel does not remount across navigation; its scroll position must be preserved
@@ -99,7 +99,7 @@ test.describe('Surah panel and toolbar layout', () => {
       canvas.__surahPanelSentinel = 'preserve-current-page-canvas';
     });
 
-    await page.getByRole('button', { name: /Al-Fatihah/i }).click();
+    await page.getByRole('button', { name: /Al-Faatiha/i }).click();
 
     await expect(page).toHaveURL(/\/reader\/1$/);
     await expect.poll(async () => page.evaluate(() => {
@@ -124,21 +124,24 @@ test.describe('Surah panel and toolbar layout', () => {
     };
 
     // 1) Next page (ReaderNav prev/next).
-    await page.locator('button[title="Next page"]').click();
+    // The wide next-arrow hit zone runs under the surah panel; click its page-side edge.
+    const next = page.locator('button[aria-label="Next page"]:visible');
+    const nextBox = (await next.boundingBox())!;
+    await next.click({ position: { x: nextBox.width - 10, y: nextBox.height / 2 } });
     await expectSoftSwap(/\/reader\/2$/);
 
     // 2) Jump to an arbitrary page (page jumper input).
-    await page.locator('button[title="Click to jump to page"]').click();
+    await page.locator('[title="Click to jump to page"]').click();
     await page.locator('input[type="number"]').fill('50');
     await page.locator('input[type="number"]').press('Enter');
     await expectSoftSwap(/\/reader\/50$/);
 
     // 3) Surah-select to a different page (surah panel).
-    await page.getByRole('button', { name: /Al-Fatihah/i }).click();
+    await page.getByRole('button', { name: /Al-Faatiha/i }).click();
     await expectSoftSwap(/\/reader\/1$/);
 
     // The page indicator reflects the final page — content genuinely changed throughout.
-    await expect(page.locator('button[title="Click to jump to page"]')).toContainText('1');
+    await expect(page.locator('[title="Click to jump to page"]')).toContainText('1');
   });
 
   test('surahs that start on the same page are combined into one active button', async ({ page }) => {
@@ -152,9 +155,9 @@ test.describe('Surah panel and toolbar layout', () => {
     await expect(panel).toBeVisible({ timeout: 10000 });
 
     const combinedButton = scrollList.locator('button')
-      .filter({ hasText: 'Al-Ikhlas' })
+      .filter({ hasText: 'Al-Ikhlaas' })
       .filter({ hasText: 'Al-Falaq' })
-      .filter({ hasText: 'An-Nas' });
+      .filter({ hasText: 'An-Naas' });
     await expect(combinedButton).toBeVisible();
     await expect(combinedButton).toContainText('112');
     await expect(combinedButton).toContainText('113');
@@ -190,7 +193,7 @@ test.describe('Surah panel and toolbar layout', () => {
     await page.locator('#set-picker-top').selectOption({ label: setB });
     await expect(page).toHaveURL(/\/reader\/1\?set=/);
 
-    await page.getByRole('button', { name: /Al-Baqarah/i }).click();
+    await page.getByRole('button', { name: /Al-Baqara\b/i }).click();
 
     await expect(page).toHaveURL(/\/reader\/2\?set=/);
     await expect(page.locator('#set-picker-top')).toContainText(setB);
@@ -224,15 +227,15 @@ test.describe('Surah panel and toolbar layout', () => {
   test('share page shows the surah panel and navigates within the shared route', async ({ page }) => {
     listenForErrors(page);
 
-    await page.goto('/share/test-user/1?set=test-set');
+    await page.goto('/share/test-set/1');
     await page.waitForLoadState('networkidle');
 
     const panel = page.locator('[data-testid="surah-panel"]');
     await expect(panel).toBeVisible({ timeout: 10000 });
 
-    await page.getByRole('button', { name: /Al-Baqarah/i }).click();
+    await page.getByRole('button', { name: /Al-Baqara\b/i }).click();
 
-    await expect(page).toHaveURL(/\/share\/test-user\/2\?set=test-set$/);
+    await expect(page).toHaveURL(/\/share\/test-set\/2$/);
   });
 
   test('reader page display is centered in the viewport', async ({ page }) => {

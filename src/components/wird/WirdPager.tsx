@@ -103,15 +103,18 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
       {creating && <CreatingOverlay t={t} />}
       {/* Create + Manage live in the top bar (see WirdHeaderActions). No floating
           button sits over the card, so the Done disc is the one control (H10). */}
-      <WirdForm
-        open={formOpen}
+      {/* Mounted only while open, so each New starts fresh: the form's
+          optimistic `pending` hide would otherwise outlive a create and keep
+          every later open invisible. */}
+      {formOpen && <WirdForm
+        open
         onClose={closeForm}
         onSubmitStart={() => setCreating(true)}
         onFailed={() => setCreating(false)}
         onCreated={() => { setCreating(false); closeForm(); router.refresh(); }}
         canUseMemorized={memorizedPages.length > 0}
         memorizedPages={memorizedPages}
-      />
+      />}
     </>
   );
 }

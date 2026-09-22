@@ -131,6 +131,23 @@ test.describe('Wird daily screen', () => {
     await expect(page.getByText('10 pages to go')).toHaveCount(0);
   });
 
+  test('create: New wird works again after a create, with a fresh form', async ({ page }) => {
+    guardConsole(page);
+    await reset(page, [seedWird('w-first', 'First wird', 10)]);
+
+    await page.goto('/wird');
+    const dialog = page.getByRole('dialog', { name: 'New wird' });
+    for (const name of ['Second wird', 'Third wird']) {
+      await page.getByRole('button', { name: 'Options' }).click();
+      await page.getByRole('menuitem', { name: 'New wird' }).click();
+      await expect(dialog.getByLabel('Name')).toHaveValue(''); // not the last create's name
+      await dialog.getByLabel('Name').fill(name);
+      await dialog.getByRole('spinbutton', { name: 'Last page' }).fill('20');
+      await dialog.getByRole('button', { name: 'Create' }).click();
+      await expect(page.getByText('20 pages to go')).toHaveCount(name === 'Second wird' ? 1 : 2);
+    }
+  });
+
   test('create: a memorized wird can start midway, skipping gap pages', async ({ page }) => {
     guardConsole(page);
     await reset(page, []);

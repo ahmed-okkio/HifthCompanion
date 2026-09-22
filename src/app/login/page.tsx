@@ -7,7 +7,6 @@ import { useI18n } from '@/components/I18nProvider';
 import { safeNext } from '@/lib/nextParam';
 
 export default function LoginPage() {
-  const supabase = createClient();
   const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,7 +19,9 @@ export default function LoginPage() {
   async function handleLogin() {
     setLoading(true);
     setError('');
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    // A leftover dev mock-mode cookie swaps in the mock client, which can't sign in. A real login always means real mode.
+    document.cookie = 'x-e2e-test=; Max-Age=0; path=/';
+    const { error } = await createClient().auth.signInWithPassword({ email, password });
     if (error) { setError(error.message); setLoading(false); }
     else window.location.assign(safeNext(new URLSearchParams(location.search).get('next')));
   }

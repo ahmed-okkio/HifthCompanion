@@ -11,22 +11,31 @@ export function NumberStepper({
   value,
   min,
   max,
+  values,
   onChange,
 }: {
   label: string;
   value: number;
   min: number;
   max: number;
+  /** Allowed values, ascending (e.g. memorized pages). −/+ step through them
+      and a typed value snaps to the next allowed one. Omit for every integer. */
+  values?: number[];
   onChange: (v: number) => void;
 }) {
   const { t } = useI18n();
-  const clamp = (v: number) => Math.max(min, Math.min(max, Number.isNaN(v) ? min : v));
+  const clamp = (v: number) => {
+    const n = Math.max(min, Math.min(max, Number.isNaN(v) ? min : v));
+    return values ? values.find((x) => x >= n) ?? values[values.length - 1] : n;
+  };
   // Draft mirrors the field while typing so intermediate states ("", "6" on the
   // way to "60") aren't clamped mid-keystroke; commit on blur.
   const [draft, setDraft] = useState<string | null>(null);
   const step = (delta: number) => {
     setDraft(null);
-    onChange(clamp(value + delta));
+    if (!values) { onChange(clamp(value + delta)); return; }
+    const i = values.indexOf(clamp(value)) + delta;
+    onChange(values[Math.max(0, Math.min(values.length - 1, i))]);
   };
   const btn: CSSProperties = {
     width: 34,
@@ -70,7 +79,7 @@ export function NumberStepper({
           onChange={(e) => {
             setDraft(e.target.value);
             const n = Number(e.target.value);
-            if (e.target.value !== '' && n >= min && n <= max) onChange(n);
+            if (e.target.value !== '' && n >= min && n <= max && (!values || values.includes(n))) onChange(n);
           }}
           onBlur={() => {
             onChange(clamp(Number(draft ?? value)));

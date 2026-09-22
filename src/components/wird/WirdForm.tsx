@@ -18,7 +18,7 @@ import { useI18n } from '@/components/I18nProvider';
 import { NumberStepper } from '@/components/ui';
 import { createWird, updateWird } from '@/lib/services/wird';
 import { dailyRate, portionSizes, projectedFinishDays } from '@/lib/wirdRate';
-import { TOTAL_PAGES } from '@/lib/quran';
+import { TOTAL_PAGES, getAyahsOnPage, getSurahName } from '@/lib/quran';
 import { ScopePicker, type Preset, type ScopeValue } from './ScopePicker';
 
 const PERIODS = [1, 7, 14, 30] as const;
@@ -110,9 +110,17 @@ export default function WirdForm({
   const hi = memorized ? memorizedPages[memorizedPages.length - 1] : scope.page_end;
   const showStart = !editing && !endBeforeStart && (!memorized || memorizedPages.length > 0);
   // Clamped at render so a scope change never leaves the start outside it.
+  // Memorized: the stepper only offers memorized pages (gaps skipped).
   const firstPage = showStart ? Math.min(Math.max(startPage ?? lo, lo), hi) : lo;
-  // A start on an unmemorized gap page begins at the next memorized one (the
-  // service's cyclePages filters gaps), so count only memorized pages ≥ start.
+  // What the start page holds, e.g. "Al-Baqara 6–16" or "Al-Ikhlas 1–4 · Al-Falaq 1–5".
+  const onPage = showStart ? getAyahsOnPage(firstPage) : [];
+  const pageContent = [...new Set(onPage.map((a) => a.surah))]
+    .map((s) => {
+      const ayahs = onPage.filter((a) => a.surah === s).map((a) => a.ayah);
+      const [a, b] = [ayahs[0], ayahs[ayahs.length - 1]];
+      return `${getSurahName(s, locale)} ${a === b ? a : `${a}–${b}`}`;
+    })
+    .join(' · ');
   const passPages = memorized
     ? memorizedPages.filter((p) => p >= firstPage).length
     : scope.page_end - firstPage + 1;
@@ -224,8 +232,12 @@ export default function WirdForm({
                 value={firstPage}
                 min={lo}
                 max={hi}
+                values={memorized ? memorizedPages : undefined}
                 onChange={setStartPage}
               />
+              <span data-testid="start-page-content" className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {pageContent}
+              </span>
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('wird.startFromHint')}</span>
             </div>
           )}

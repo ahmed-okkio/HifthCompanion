@@ -146,8 +146,18 @@ test.describe('Wird daily screen', () => {
     const dialog = page.getByRole('dialog', { name: 'New wird' });
     await dialog.getByLabel('Name').fill('Memorized midway');
     await dialog.getByRole('button', { name: 'What I’ve memorized' }).click();
-    // Already through pages 1–2 → start at 3.
-    await dialog.getByRole('spinbutton', { name: 'Start from page' }).fill('3');
+    // Already through pages 1–2 → start at 3. The stepper walks memorized pages
+    // only: + from 3 jumps the gap to 604, − comes back to 3.
+    const start = dialog.getByRole('spinbutton', { name: 'Start from page' });
+    const stepper = dialog.locator('label').filter({ hasText: 'Start from page' });
+    await start.fill('2');
+    await stepper.getByRole('button', { name: '+' }).click();
+    await expect(start).toHaveValue('3');
+    await stepper.getByRole('button', { name: '+' }).click();
+    await expect(start).toHaveValue('604');
+    await expect(dialog.getByTestId('start-page-content')).toHaveText('Al-Ikhlaas 1–4 · Al-Falaq 1–5 · An-Naas 1–6');
+    await stepper.getByRole('button', { name: '−' }).click();
+    await expect(start).toHaveValue('3');
     await dialog.getByRole('button', { name: 'Create' }).click();
 
     // Outcome: pages 3 and 604 remain (gap 4..603 skipped), not all 4.

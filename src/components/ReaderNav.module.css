@@ -21,6 +21,13 @@
     top: 0;
     left: 0;
     right: 0;
+    transition: transform 200ms var(--ease-out);
+  }
+
+  /* Gmail-style: slides out of view on scroll-down, back in on scroll-up.
+     Mobile only — desktop nav is in-flow flex chrome, never translated. */
+  .navbarHidden {
+    transform: translateY(-100%);
   }
 }
 

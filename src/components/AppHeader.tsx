@@ -14,6 +14,7 @@ import type { ReactNode } from 'react';
 import Link from 'next/link';
 import Brand from './Brand';
 import { useI18n } from './I18nProvider';
+import { useHideOnScrollDown } from '@/hooks/useHideOnScrollDown';
 
 export type Crumb = { label: string; href?: string };
 
@@ -31,9 +32,10 @@ export default function AppHeader({
   onOpenNav?: () => void;
 }) {
   const { t } = useI18n();
+  const hidden = useHideOnScrollDown();
   return (
     <header
-      className="sticky top-0 z-50 w-full border-b"
+      className={`sticky top-0 z-50 w-full border-b transition-transform duration-200 lg:!translate-y-0 ${hidden ? '-translate-y-full' : 'translate-y-0'}`}
       style={{
         background: 'var(--surface-main)',
         borderColor: 'var(--border-subtle)',

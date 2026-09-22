@@ -7,6 +7,7 @@ import Brand from './Brand';
 import Link from 'next/link';
 import styles from './ReaderNav.module.css';
 import { useI18n } from './I18nProvider';
+import { useHideOnScrollDown } from '@/hooks/useHideOnScrollDown';
 
 export default function ReaderNav({
   currentPage,
@@ -29,6 +30,7 @@ export default function ReaderNav({
 }) {
   const { goToPage } = useGoToPage({ basePath: sharePageBasePath, isSpread });
   const { t, fmtNum, locale } = useI18n();
+  const hidden = useHideOnScrollDown();
 
   // Spread label follows reading direction: RTL (ar) shows high-low so the page
   // on the right reads first. LTR keeps low-high. URL (spreadUrl) is always low-high.
@@ -47,7 +49,7 @@ export default function ReaderNav({
 
   return (
     <nav
-      className={styles.navbar}
+      className={`${styles.navbar}${hidden ? ` ${styles.navbarHidden}` : ''}`}
     >
       <div className={styles.inner}>
 

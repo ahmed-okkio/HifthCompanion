@@ -36,6 +36,10 @@ export interface WirdView extends Wird {
   pages_remaining: number;
   /** Total pages in the current pass (gap-skipping for memorized scope). */
   pass_length: number;
+  /** Where the portion after the next Done begins: `position` once done today,
+      else the page after today's portion (the live scope start on a wrap). Known
+      up front so the UI never waits on a refresh to show it. */
+  next_position: number;
 }
 
 const todayLocal = () => new Date().toISOString().slice(0, 10);
@@ -134,6 +138,11 @@ export async function listWirds(): Promise<WirdView[]> {
     const endIdx = len === 0 ? 0 : Math.min(startIdx + size - 1, len - 1);
     const position = len === 0 ? w.cycle_page_start : pages[startIdx];
     const pEnd = len === 0 ? w.cycle_page_start : pages[endIdx];
+    const doneToday = mine.some((e) => e.entry_date === today);
+    // After today's Done: the next page in this pass, or the live scope's start
+    // once the pass is used up (completeWird wraps from the live scope, D5).
+    const next_position =
+      doneToday || len === 0 ? position : endIdx + 1 < len ? pages[endIdx + 1] : page_start;
 
     const lastDone = mine.reduce<string | null>(
       (max, e) => (max === null || e.entry_date > max ? e.entry_date : max),
@@ -147,10 +156,11 @@ export async function listWirds(): Promise<WirdView[]> {
       position,
       portion_start: position,
       portion_end: pEnd,
-      done_today: mine.some((e) => e.entry_date === today),
+      done_today: doneToday,
       days_since_last_done: lastDone === null ? null : dayNumber(today) - dayNumber(lastDone),
       pages_remaining: Math.max(0, len - covered),
       pass_length: len,
+      next_position,
     };
   });
 

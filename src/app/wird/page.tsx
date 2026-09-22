@@ -63,9 +63,9 @@ export default async function WirdPage() {
       pagesToGo,
       doneToday: w.done_today,
       daysSinceLastDone: w.days_since_last_done,
-      // Where the next portion begins (I2/I3): for a done wird the service has
-      // already advanced position to the next portion's start.
-      nextRef: openingRef(w.position, locale).label,
+      // Where the next portion begins (I2/I3), known before Done is tapped so
+      // the all-done list shows it without waiting on the refresh.
+      nextRef: openingRef(w.next_position, locale).label,
     };
   });
 

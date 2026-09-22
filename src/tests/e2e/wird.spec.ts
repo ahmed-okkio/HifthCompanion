@@ -60,24 +60,37 @@ test.describe('Wird daily screen', () => {
         .innerText()
     ).trim();
 
-    // Complete it.
+    // Hold every server round-trip (the Done write + the refresh) so anything
+    // shown below is known before Done, not fetched after it.
+    await page.route('**/wird**', async (route) => {
+      if (route.request().resourceType() === 'fetch') await new Promise((r) => setTimeout(r, 8000));
+      await route.continue().catch(() => {});
+    });
+
+    // Complete it. The Done write is a server-action POST; keep its response
+    // to await before re-reading the server below.
+    const written = page.waitForResponse((r) => r.request().method() === 'POST', { timeout: 20000 });
     await outstandingDone(page).click();
 
-    // Outcome, after the route refresh brings back the server state:
-    // the outstanding strip is gone (card left) → the all-done screen takes over.
-    await expect(page.getByText('All done today')).toBeVisible({ timeout: 15000 });
-    // Position advanced: the "next begins at" line points past where it started
-    // (page 1 → page 2 = a different sūra), so it is NOT the original opening ref.
+    // Outcome, with the server still held: the card leaves → all-done screen,
+    // and the "next begins at" line is already there (no wait on the refresh).
+    await expect(page.getByText('All done today')).toBeVisible({ timeout: 5000 });
     const nextLine = page.locator('li', { hasText: /next begins at/i });
-    await expect(nextLine).toBeVisible();
-    // The next portion no longer starts at page 1's opening reference.
-    expect((await nextLine.innerText())).not.toContain(openingRef);
+    await expect(nextLine).toBeVisible({ timeout: 3000 });
+    // Position advanced (page 1 → page 2 = a different sūra), so it is NOT the
+    // original opening ref.
+    const nextText = await nextLine.innerText();
+    expect(nextText).not.toContain(openingRef);
+    await page.unroute('**/wird**');
+    await written;
 
     // Entry persisted (not just optimistic UI): a fresh navigation still shows
     // done, driven by the server re-read of wird_entry.
     await page.goto('/wird');
     await expect(page.getByText('All done today')).toBeVisible();
     await expect(page.getByText('10 pages to go')).toHaveCount(0);
+    // The server's advanced position matches what was shown up front.
+    await expect(page.locator('li', { hasText: /next begins at/i })).toHaveText(nextText);
   });
 
   test('O6: completing the LAST outstanding wird reaches the all-done screen', async ({ page }) => {

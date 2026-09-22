@@ -53,8 +53,9 @@ export default function WirdForm({
   /** Fired when the write fails and the dialog re-appears, to clear that placeholder. */
   onFailed?: () => void;
   canUseMemorized: boolean;
-  /** Page span of the caller's memorized scope, for the memorized projection (0 if none). */
-  memorizedPages: number;
+  /** Caller's memorized pages, ascending and unique (gap-skipping), for the
+      memorized start bounds and projection. Empty if none. */
+  memorizedPages: number[];
   wird?: WirdEdit;
 }) {
   const { t, locale, fmtNum } = useI18n();
@@ -102,15 +103,19 @@ export default function WirdForm({
       : t('wird.dailyPortionRange', { min: minSize, max: maxSize });
 
   // Pages in one pass. For 'memorized' the range is server-derived, so use the
-  // caller's memorized span for the projection.
+  // caller's memorized pages for the start bounds and projection.
+  const memorized = scope.scope_source === 'memorized';
   const endBeforeStart = scope.scope_source === 'pages' && scope.page_end < scope.page_start;
-  const showStart = !editing && scope.scope_source === 'pages' && !endBeforeStart;
+  const lo = memorized ? memorizedPages[0] : scope.page_start;
+  const hi = memorized ? memorizedPages[memorizedPages.length - 1] : scope.page_end;
+  const showStart = !editing && !endBeforeStart && (!memorized || memorizedPages.length > 0);
   // Clamped at render so a scope change never leaves the start outside it.
-  const firstPage = showStart
-    ? Math.min(Math.max(startPage ?? scope.page_start, scope.page_start), scope.page_end)
-    : scope.page_start;
-  const passPages =
-    scope.scope_source === 'memorized' ? memorizedPages : scope.page_end - firstPage + 1;
+  const firstPage = showStart ? Math.min(Math.max(startPage ?? lo, lo), hi) : lo;
+  // A start on an unmemorized gap page begins at the next memorized one (the
+  // service's cyclePages filters gaps), so count only memorized pages ≥ start.
+  const passPages = memorized
+    ? memorizedPages.filter((p) => p >= firstPage).length
+    : scope.page_end - firstPage + 1;
 
   const finishDays = passPages > 0 ? projectedFinishDays(passPages, rate) : 0;
   const finishDate = new Date(Date.now() + finishDays * 86_400_000).toLocaleDateString(
@@ -213,12 +218,12 @@ export default function WirdForm({
           />
 
           {showStart && (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col items-start gap-1">
               <NumberStepper
                 label={t('wird.startFrom')}
                 value={firstPage}
-                min={scope.page_start}
-                max={scope.page_end}
+                min={lo}
+                max={hi}
                 onChange={setStartPage}
               />
               <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('wird.startFromHint')}</span>

@@ -38,7 +38,7 @@ export default async function WirdPage() {
   for (const r of ranges) {
     for (let p = getPageForAyah(r.surah, r.from); p <= getPageForAyah(r.surah, r.to); p += 1) memorizedPageSet.add(p);
   }
-  const memorizedPages = memorizedPageSet.size;
+  const memorizedPages = [...memorizedPageSet].sort((a, b) => a - b);
 
   const cards: WirdCardData[] = wirds.map((w) => {
     // Progress is over the pass length (gap-skipping for memorized scope), not

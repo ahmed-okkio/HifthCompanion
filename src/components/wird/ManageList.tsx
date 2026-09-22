@@ -29,7 +29,7 @@ export interface ManageRow extends WirdEdit {
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
-export default function ManageList({ rows, memorizedPages }: { rows: ManageRow[]; memorizedPages: number }) {
+export default function ManageList({ rows, memorizedPages }: { rows: ManageRow[]; memorizedPages: number[] }) {
   const { t } = useI18n();
   const router = useRouter();
   const [editing, setEditing] = useState<WirdEdit | null>(null);
@@ -62,7 +62,7 @@ export default function ManageList({ rows, memorizedPages }: { rows: ManageRow[]
           wird={editing}
           onClose={() => setEditing(null)}
           onCreated={() => { setEditing(null); router.refresh(); }}
-          canUseMemorized={memorizedPages > 0}
+          canUseMemorized={memorizedPages.length > 0}
           memorizedPages={memorizedPages}
         />
       )}

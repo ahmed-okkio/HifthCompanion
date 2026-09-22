@@ -32,7 +32,7 @@ export default async function WirdManagePage() {
   for (const r of ranges) {
     for (let p = getPageForAyah(r.surah, r.from); p <= getPageForAyah(r.surah, r.to); p += 1) memorizedPageSet.add(p);
   }
-  const memorizedPages = memorizedPageSet.size;
+  const memorizedPages = [...memorizedPageSet].sort((a, b) => a - b);
 
   const rows: ManageRow[] = wirds.map((w) => ({
     id: w.id,

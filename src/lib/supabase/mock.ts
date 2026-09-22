@@ -44,6 +44,7 @@ const globalForDb = global as unknown as {
   mockProfiles?: any[];
   mockWird?: any[];
   mockWirdEntry?: any[];
+  mockUserHifth?: any[];
 };
 
 if (!globalForDb.mockSets) {
@@ -65,6 +66,7 @@ if (!globalForDb.mockAgendaItem) globalForDb.mockAgendaItem = [];
 if (!globalForDb.mockExam) globalForDb.mockExam = [];
 if (!globalForDb.mockWird) globalForDb.mockWird = [];
 if (!globalForDb.mockWirdEntry) globalForDb.mockWirdEntry = [];
+if (!globalForDb.mockUserHifth) globalForDb.mockUserHifth = [];
 // One seeded profile for the mock user; email_prefs '{}' ⇒ all events enabled.
 if (!globalForDb.mockProfiles) globalForDb.mockProfiles = [
   { id: MOCK_USER_ID, first_name: 'Mock', last_name: 'User', email_prefs: {} },
@@ -95,8 +97,9 @@ const TRACKER_STORAGE: Record<string, string> = {
   profiles: 'mock_supabase_profiles',
   wird: 'mock_supabase_wird',
   wird_entry: 'mock_supabase_wird_entry',
+  user_hifth: 'mock_supabase_user_hifth',
 };
-const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockHomework' | 'mockMembershipNote' | 'mockAgendaItem' | 'mockExam' | 'mockProfiles' | 'mockWird' | 'mockWirdEntry'> = {
+const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockHomework' | 'mockMembershipNote' | 'mockAgendaItem' | 'mockExam' | 'mockProfiles' | 'mockWird' | 'mockWirdEntry' | 'mockUserHifth'> = {
   circle: 'mockCircle',
   membership: 'mockMembership',
   progress_log: 'mockProgressLog',
@@ -108,6 +111,7 @@ const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProg
   profiles: 'mockProfiles',
   wird: 'mockWird',
   wird_entry: 'mockWirdEntry',
+  user_hifth: 'mockUserHifth',
 };
 function trackerGet(table: string): any[] {
   if (IS_SERVER) return (globalForDb as any)[TRACKER_GLOBAL[table]]!;
@@ -645,6 +649,7 @@ export function __resetMockStore() {
   globalForDb.mockExam = [];
   globalForDb.mockWird = [];
   globalForDb.mockWirdEntry = [];
+  globalForDb.mockUserHifth = [];
 }
 
 export function __seedMockStore(payload: Partial<{
@@ -658,6 +663,7 @@ export function __seedMockStore(payload: Partial<{
   exam: any[];
   wird: any[];
   wird_entry: any[];
+  user_hifth: any[];
 }>) {
   if (payload.circle) globalForDb.mockCircle!.push(...payload.circle);
   if (payload.membership) globalForDb.mockMembership!.push(...payload.membership);
@@ -669,4 +675,5 @@ export function __seedMockStore(payload: Partial<{
   if (payload.exam) globalForDb.mockExam!.push(...payload.exam);
   if (payload.wird) globalForDb.mockWird!.push(...payload.wird);
   if (payload.wird_entry) globalForDb.mockWirdEntry!.push(...payload.wird_entry);
+  if (payload.user_hifth) globalForDb.mockUserHifth!.push(...payload.user_hifth);
 }

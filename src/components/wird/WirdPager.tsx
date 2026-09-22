@@ -42,7 +42,7 @@ export interface WirdCardData {
 
 const DOTS_MAX = 5;
 
-export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardData[]; memorizedPages: number }) {
+export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardData[]; memorizedPages: number[] }) {
   const { t } = useI18n();
   const router = useRouter();
   // The create form opens from the top-bar "New" action via ?new=1, so no
@@ -113,7 +113,7 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
         onSubmitStart={() => setCreating(true)}
         onFailed={() => setCreating(false)}
         onCreated={() => { setCreating(false); closeForm(); router.refresh(); }}
-        canUseMemorized={memorizedPages > 0}
+        canUseMemorized={memorizedPages.length > 0}
         memorizedPages={memorizedPages}
       />
     </>

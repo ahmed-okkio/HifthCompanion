@@ -118,6 +118,44 @@ test.describe('Wird daily screen', () => {
     await expect(page.getByText('10 pages to go')).toHaveCount(0);
   });
 
+  test('create: a memorized wird can start midway, skipping gap pages', async ({ page }) => {
+    guardConsole(page);
+    await reset(page, []);
+    // Memorized pages {1, 2, 3, 604}: al-Fatiha, al-Baqara 1–16, and the last page.
+    await page.request.post('/api/test/tracker', {
+      data: {
+        seed: {
+          user_hifth: [{
+            user_id: MOCK_USER_ID,
+            memorized_ranges: [
+              { surah: 1, from: 1, to: 7 },
+              { surah: 2, from: 1, to: 16 },
+              { surah: 112, from: 1, to: 4 },
+              { surah: 113, from: 1, to: 5 },
+              { surah: 114, from: 1, to: 6 },
+            ],
+            weakest_surahs: [],
+            onboarded_at: new Date().toISOString(),
+          }],
+        },
+      },
+    });
+
+    await page.goto('/wird');
+    await page.getByRole('button', { name: 'New wird' }).first().click();
+    const dialog = page.getByRole('dialog', { name: 'New wird' });
+    await dialog.getByLabel('Name').fill('Memorized midway');
+    await dialog.getByRole('button', { name: 'What I’ve memorized' }).click();
+    // Already through pages 1–2 → start at 3.
+    await dialog.getByRole('spinbutton', { name: 'Start from page' }).fill('3');
+    await dialog.getByRole('button', { name: 'Create' }).click();
+
+    // Outcome: pages 3 and 604 remain (gap 4..603 skipped), not all 4.
+    await page.goto('/wird');
+    await expect(page.getByText('2 pages to go')).toHaveCount(1);
+    await expect(page.getByText('4 pages to go')).toHaveCount(0);
+  });
+
   test('heatmap: completing a wird fills today\'s cell on the manage screen', async ({ page }) => {
     guardConsole(page);
     // The manage screen pulls a Google-hosted Arabic font; the suite-wide x-e2e-test

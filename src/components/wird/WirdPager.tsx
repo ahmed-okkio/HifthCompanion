@@ -188,7 +188,10 @@ function Strip({
     const root = scrollerRef.current;
     const el = itemRefs.current[next];
     if (!root || !el) return;
-    root.scrollTo({ left: el.offsetLeft - (root.clientWidth - el.clientWidth) / 2, behavior: 'smooth' });
+    // Rect delta, not offsetLeft: offsetLeft is from the offset parent (the page),
+    // not the strip, so it overshot by the strip's own left edge.
+    const delta = el.getBoundingClientRect().left - root.getBoundingClientRect().left;
+    root.scrollTo({ left: root.scrollLeft + delta - (root.clientWidth - el.clientWidth) / 2, behavior: 'smooth' });
     setActive(next);
   }
 
@@ -251,7 +254,10 @@ function Strip({
             gap: 'var(--space-16)',
             overflowX: 'auto',
             overflowY: 'hidden',
-            scrollSnapType: 'x mandatory',
+            // Off while a card leaves: snapping would keep re-centring the
+            // shrinking slide, dragging the previous card in to collide with
+            // the next one. Unsnapped, only the neighbour closing the gap moves.
+            scrollSnapType: leavingId ? 'none' : 'x mandatory',
             scrollbarWidth: 'none',
           }}
         >

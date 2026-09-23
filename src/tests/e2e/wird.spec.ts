@@ -112,6 +112,44 @@ test.describe('Wird daily screen', () => {
     await expect(page.getByRole('heading', { name: 'All done today' })).toBeVisible({ timeout: 15000 });
   });
 
+  test('exit: Done on a middle card slides only the next card in, the previous one stays put', async ({ page }) => {
+    guardConsole(page);
+    await reset(page, [seedWird('w-1', 'Wird A', 5), seedWird('w-2', 'Wird B', 6), seedWird('w-3', 'Wird C', 7)]);
+
+    await page.goto('/wird');
+    // The card centred in the strip (scroll-clipped, so measured, not toBeInViewport).
+    const centred = () => page.evaluate(() => {
+      const slides = [...document.querySelectorAll('.wird-slide')];
+      const box = slides[0].parentElement!.getBoundingClientRect();
+      const mid = box.left + box.width / 2;
+      const hit = slides.find((s) => { const r = s.getBoundingClientRect(); return r.left <= mid && r.right >= mid; });
+      return [...(hit?.querySelectorAll('span') ?? [])].map((x) => x.textContent).find((x) => /^\d+ pages to go$/.test(x ?? '')) ?? null;
+    });
+    // Strip order, as rendered (each card's distinct pages-to-go).
+    await expect(outstandingDone(page)).toHaveCount(3);
+    const order = await page.locator('.wird-slide').evaluateAll((slides) => slides.map((sl) =>
+      [...sl.querySelectorAll('span')].map((x) => x.textContent).find((x) => /^\d+ pages to go$/.test(x ?? ''))));
+    await page.getByRole('button', { name: 'Next wird' }).click();
+    await expect.poll(centred).toBe(order[1]); // one card on, not past it
+
+    // Watch the left card through the whole exit: it must never scroll back into view.
+    await page.evaluate(() => {
+      const scroller = document.querySelector('.wird-slide')!.parentElement!;
+      const left = document.querySelectorAll('.wird-slide')[0];
+      const w = window as unknown as { leftSeen: number };
+      w.leftSeen = 0;
+      const tick = () => {
+        w.leftSeen = Math.max(w.leftSeen, left.getBoundingClientRect().right - scroller.getBoundingClientRect().left);
+        if (left.isConnected) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    await outstandingDone(page).nth(1).click();
+    await expect(outstandingDone(page)).toHaveCount(2, { timeout: 15000 });
+    await expect.poll(centred).toBe(order[2]); // the next card took its place
+    expect(await page.evaluate(() => (window as unknown as { leftSeen: number }).leftSeen)).toBeLessThanOrEqual(1);
+  });
+
   test('create: a start page midway shortens the first pass', async ({ page }) => {
     guardConsole(page);
     await reset(page, []); // empty state → the direct New wird button
@@ -129,6 +167,21 @@ test.describe('Wird daily screen', () => {
     await page.goto('/wird');
     await expect(page.getByText('6 pages to go')).toHaveCount(1);
     await expect(page.getByText('10 pages to go')).toHaveCount(0);
+  });
+
+  test('stale: done yesterday is simply due today; a missed day says "Waiting since yesterday"', async ({ page }) => {
+    guardConsole(page);
+    const day = (ago: number) => new Date(Date.now() - ago * 86_400_000).toISOString().slice(0, 10); // UTC, like the app
+    const entry = (wirdId: string, ago: number) => ({
+      id: `e-${wirdId}`, wird_id: wirdId, user_id: MOCK_USER_ID, entry_date: day(ago), cycle_seq: 1, page_start: 1, page_end: 1,
+    });
+    await reset(page, [seedWird('w-fresh', 'Fresh wird', 10), seedWird('w-missed', 'Missed wird', 10)]);
+    await page.request.post('/api/test/tracker', { data: { seed: { wird_entry: [entry('w-fresh', 1), entry('w-missed', 2)] } } });
+
+    await page.goto('/wird');
+    await expect(page.getByText('9 pages to go')).toHaveCount(2); // both entries counted
+    await expect(page.getByText(/^Waiting/)).toHaveCount(1);
+    await expect(page.getByText('Waiting since yesterday')).toHaveCount(1);
   });
 
   test('create: New wird works again after a create, with a fresh form', async ({ page }) => {

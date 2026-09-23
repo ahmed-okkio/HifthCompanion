@@ -76,12 +76,12 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
     });
   }
 
-  const stale =
-    !card.doneToday && card.daysSinceLastDone != null && card.daysSinceLastDone >= 1;
+  // Days missed, not days since the last Done: done yesterday means today's
+  // portion is simply due, not waiting. Done 2 days ago = yesterday was missed.
+  const missed = card.daysSinceLastDone == null ? 0 : card.daysSinceLastDone - 1;
+  const stale = !card.doneToday && missed >= 1;
   const staleText =
-    card.daysSinceLastDone === 1
-      ? t('wird.staleYesterday')
-      : t('wird.staleDays', { n: card.daysSinceLastDone ?? 0 });
+    missed === 1 ? t('wird.staleYesterday') : t('wird.staleDays', { n: missed });
 
   return (
     <div

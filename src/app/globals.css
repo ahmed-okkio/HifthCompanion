@@ -528,10 +528,10 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
    a share of its height (cqh), capped at the design tokens. A tall screen gets
    the full token sizes; a short one shrinks the card instead of scrolling. */
 /* A screen that must never scroll (the wird pager) pins the shell to exactly
-   the viewport. With only min-height the shell sizes to its content, so
-   anything that measures tall for a moment (a refresh, the skeleton, late
-   fonts) grows the page and pushes the bottom controls off screen. */
-.app-shell:has(.fit-screen) { height: 100dvh; overflow: hidden; }
+   the visible viewport. Not 100dvh: after a pull-to-refresh in the Android PWA
+   dvh resolved ~46px taller than the visible area, so the card grew and pushed
+   the options button off screen. Fixed + inset 0 is the viewport itself. */
+.app-shell:has(.fit-screen) { position: fixed; inset: 0; min-height: 0; overflow: hidden; }
 .wird-card { container-type: size; }
 .wird-fit-body { padding: min(var(--space-20), 4cqh); }
 .wird-fit-name { font-size: min(var(--type-heading-m-size), 4cqh); }

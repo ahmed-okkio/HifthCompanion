@@ -122,7 +122,8 @@ test.describe('Wird daily screen', () => {
       const slides = [...document.querySelectorAll('.wird-slide')];
       const box = slides[0].parentElement!.getBoundingClientRect();
       const mid = box.left + box.width / 2;
-      const hit = slides.find((s) => { const r = s.getBoundingClientRect(); return r.left <= mid && r.right >= mid; });
+      // Settled, not mid smooth-scroll: the centred slide sits flush with the strip.
+      const hit = slides.find((s) => { const r = s.getBoundingClientRect(); return r.left <= mid && r.right >= mid && Math.abs(r.left - box.left) <= 1; });
       return [...(hit?.querySelectorAll('span') ?? [])].map((x) => x.textContent).find((x) => /^\d+ pages to go$/.test(x ?? '')) ?? null;
     });
     // Strip order, as rendered (each card's distinct pages-to-go).
@@ -291,6 +292,15 @@ test.describe('Wird daily screen', () => {
       await expect(outstandingDone(page)).toBeInViewport({ ratio: 1 });
       await expect(page.getByRole('button', { name: 'Options' })).toBeInViewport({ ratio: 1 });
     }
+
+    // Android PWA after pull-to-refresh: dvh resolves taller than the visible
+    // area. Simulate it; the screen must still fit, since it can't rely on dvh.
+    await page.setViewportSize({ width: 390, height: 700 });
+    await page.goto('/wird');
+    await page.addStyleTag({ content: '.min-h-dvh { min-height: calc(100dvh + 46px); }' });
+    await expect(page.getByText('10 pages to go')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
+    await expect(page.getByRole('button', { name: 'Options' })).toBeInViewport({ ratio: 1 });
 
     // Outcome, not just presence: the options menu opens and Done completes.
     await page.getByRole('button', { name: 'Options' }).click();

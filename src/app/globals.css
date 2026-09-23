@@ -527,6 +527,11 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
 /* Card fits the screen: the card is a size container and its contents scale as
    a share of its height (cqh), capped at the design tokens. A tall screen gets
    the full token sizes; a short one shrinks the card instead of scrolling. */
+/* A screen that must never scroll (the wird pager) pins the shell to exactly
+   the viewport. With only min-height the shell sizes to its content, so
+   anything that measures tall for a moment (a refresh, the skeleton, late
+   fonts) grows the page and pushes the bottom controls off screen. */
+.app-shell:has(.fit-screen) { height: 100dvh; overflow: hidden; }
 .wird-card { container-type: size; }
 .wird-fit-body { padding: min(var(--space-20), 4cqh); }
 .wird-fit-name { font-size: min(var(--type-heading-m-size), 4cqh); }

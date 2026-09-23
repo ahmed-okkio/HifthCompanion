@@ -6,7 +6,7 @@ import { Sk } from '@/components/Skeleton';
 // scrolled after a pull-to-refresh.
 export default function Loading() {
   return (
-    <main className="w-full flex-1 min-h-0 flex flex-col items-center" style={{ overflow: 'hidden' }}>
+    <main className="fit-screen w-full flex-1 min-h-0 flex flex-col items-center" style={{ overflow: 'hidden' }}>
       <div className="w-full flex-1 min-h-0 flex flex-col items-center px-4 pt-8 pb-4" style={{ maxWidth: 520 }}>
         <div className="w-full flex flex-col gap-2 mb-6">
           <Sk w={120} h={24} />

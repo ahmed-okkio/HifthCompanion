@@ -204,7 +204,7 @@ function Strip({
 
   return (
     <main
-      className="w-full flex-1 min-h-0 flex flex-col"
+      className="fit-screen w-full flex-1 min-h-0 flex flex-col"
       style={{ overflow: 'hidden' }}
       tabIndex={0}
       onKeyDown={onKeyDown}
@@ -364,7 +364,7 @@ function ArrowButton({ dir, label, disabled, onClick }: { dir: 'prev' | 'next'; 
 function StatePanel({ title, hint, children, enter, showCreate, showOptions, onNew }: { title: string; hint: string; children?: React.ReactNode; enter?: boolean; showCreate?: boolean; showOptions?: boolean; onNew: () => void }) {
   const { t } = useI18n();
   return (
-    <main className="w-full flex-1 min-h-0 flex flex-col" style={{ overflow: 'hidden' }}>
+    <main className="fit-screen w-full flex-1 min-h-0 flex flex-col" style={{ overflow: 'hidden' }}>
       <div className="flex-1 min-h-0 flex items-center justify-center" style={{ padding: 'var(--space-16)' }}>
       <div
         className={enter ? 'wird-alldone-enter' : undefined}

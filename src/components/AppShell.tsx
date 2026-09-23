@@ -40,7 +40,7 @@ export default function AppShell({
   const [navOpen, setNavOpen] = useState(false);
 
   return (
-    <div className="flex flex-col min-h-dvh overflow-x-hidden" style={{ background: 'var(--bg-base)' }}>
+    <div className="app-shell flex flex-col min-h-dvh overflow-x-hidden" style={{ background: 'var(--bg-base)' }}>
       {/* Header on top, full width (sticky) */}
       <AppHeader
         breadcrumb={breadcrumb}

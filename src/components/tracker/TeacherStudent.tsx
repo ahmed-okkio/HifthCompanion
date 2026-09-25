@@ -36,10 +36,11 @@ import AgendaPanel from './AgendaPanel';
 import MarkedPagesList from '@/components/MarkedPagesList';
 import type { MarkedPage } from '@/lib/markedPages';
 import type { StudentWirdSummary } from '@/lib/services/wird';
+import { localDate } from '@/lib/localDate';
 
 const LOG_TYPES: LogType[] = ['memorization', 'general_revision', 'targeted_revision'];
 const ATT_STATUSES: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'];
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => localDate();
 
 /** Postgres and recurringSlots format the same instant differently — compare by
  *  epoch ms, the way sectionSessions dedups (T6). */

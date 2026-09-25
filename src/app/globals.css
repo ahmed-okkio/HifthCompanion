@@ -592,6 +592,9 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   .wird-slide { transition-duration: var(--duration-fast) !important; }
 }
 
+/* The wird reminder sheet asks the same question as NotifyBanner — show one. */
+html[data-reminder-sheet] .notify-banner { display: none; }
+
 /* Tall CTA: a full-height button for the primary action of a form/sheet, where
    the default .btn height reads as too small against stacked inputs. */
 .btn-tall {

@@ -1,12 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { computeStreak, isStreakAtRisk, mergeActivity } from '@/lib/streak';
+import { addDays, localDate } from '@/lib/localDate';
 
-const day = (offset: number) => {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + offset);
-  return d.toISOString().slice(0, 10);
-};
+const day = (offset: number) => addDays(localDate(), offset);
 
 describe('computeStreak', () => {
   afterEach(() => vi.useRealTimers());
@@ -33,6 +29,13 @@ describe('computeStreak', () => {
 
   it('dedupes multiple logs on the same day', () => {
     expect(computeStreak([{ log_date: day(0) }, { log_date: day(0) }, { log_date: day(-1) }])).toBe(2);
+  });
+});
+
+describe('computeStreak — explicit today', () => {
+  it('counts back across a month boundary from the given local date', () => {
+    const logs = ['2026-03-01', '2026-02-28', '2026-02-27'].map((log_date) => ({ log_date }));
+    expect(computeStreak(logs, '2026-03-01')).toBe(3);
   });
 });
 

@@ -310,3 +310,107 @@ test.describe('Wird daily screen', () => {
     await expect(page.getByRole('heading', { name: 'All done today' })).toBeVisible({ timeout: 15000 });
   });
 });
+
+// 0016 daily reminder. The push itself needs a real push service, so these pin
+// what the user controls: the saved time, the Off switch, and the one-time
+// offer after the first wird.
+test.describe('Wird reminder', () => {
+  const setReminder = async (page: Page, value: string) => {
+    await page.goto('/settings');
+    const select = page.getByLabel('Daily wird reminder');
+    await select.selectOption(value);
+    await expect(page.getByText('Saving…')).toHaveCount(0);
+  };
+
+  test('settings: the reminder time saves, survives a reload, and can be turned off', async ({ page }) => {
+    guardConsole(page);
+    // Not asked yet, not subscribed = push is off on this device. (Granting it
+    // instead would make PushToggle quietly subscribe.)
+    await page.addInitScript(() => {
+      Object.defineProperty(Notification, 'permission', { get: () => 'default' });
+      // ...which would also raise NotifyBanner; its ✕ falls back to the Google
+      // Arabic font, and the x-e2e-test header fails that font's CORS preflight.
+      localStorage.setItem('hifth:notifyDismissed', '1');
+    });
+    await reset(page, [seedWird('w-rem', 'Evening wird', 10)]);
+
+    await page.goto('/settings');
+    const select = page.getByLabel('Daily wird reminder');
+    await expect(select).toHaveValue('18:00'); // the column default
+    // Per-device warning, while the time stays editable.
+    await expect(page.getByText("Notifications are off on this device, so it won't arrive here.")).toBeVisible();
+    await expect(select).toBeEnabled();
+
+    await select.selectOption('07:30');
+    await expect(page.getByText('Saving…')).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByLabel('Daily wird reminder')).toHaveValue('07:30');
+
+    await page.getByLabel('Daily wird reminder').selectOption('');
+    await expect(page.getByText('Saving…')).toHaveCount(0);
+    await page.reload();
+    await expect(page.getByLabel('Daily wird reminder')).toHaveValue('');
+    // Off: nothing to warn about.
+    await expect(page.getByText(/so it won't arrive here/)).toHaveCount(0);
+
+    await setReminder(page, '18:00'); // the mock profile outlives the test
+  });
+
+  test('settings: with no wirds the reminder is dimmed and says what to do', async ({ page }) => {
+    guardConsole(page);
+    await reset(page, []);
+    await page.goto('/settings');
+    await expect(page.getByLabel('Daily wird reminder')).toBeDisabled();
+    await expect(page.getByText('Create a wird to use this.')).toBeVisible();
+  });
+
+  test('sheet: offered after the first wird; Not now turns the reminder off, once per device', async ({ page }) => {
+    guardConsole(page);
+    // Headless Chromium reports 'denied' and can't show the native prompt; stand
+    // in for a browser that hasn't asked yet, which is when the sheet offers.
+    await page.addInitScript(() => {
+      Object.defineProperty(Notification, 'permission', { get: () => 'default' });
+      // ...which would also raise NotifyBanner; its ✕ falls back to the Google
+      // Arabic font, and the x-e2e-test header fails that font's CORS preflight.
+      localStorage.setItem('hifth:notifyDismissed', '1');
+    });
+    await reset(page, []);
+    await page.goto('/wird');
+
+    const create = async (name: string) => {
+      const dialog = page.getByRole('dialog', { name: 'New wird' });
+      await dialog.getByLabel('Name').fill(name);
+      await dialog.getByRole('spinbutton', { name: 'Last page' }).fill('10');
+      await dialog.getByRole('button', { name: 'Create' }).click();
+    };
+    await page.getByRole('button', { name: 'New wird' }).first().click();
+    await create('First wird');
+
+    const sheet = page.getByTestId('reminder-sheet');
+    await expect(sheet.getByRole('heading', { name: 'Remind you each evening?' })).toBeVisible({ timeout: 15000 });
+    // The time can be moved on the spot, in 15-minute steps.
+    await expect(sheet.getByRole('button', { name: /^Remind me at 6:00\s?PM$/ })).toBeVisible();
+    await sheet.getByRole('button', { name: 'Change' }).click();
+    await sheet.getByRole('button', { name: 'Later' }).click();
+    await expect(sheet.getByRole('button', { name: /^Remind me at 6:15\s?PM$/ })).toBeVisible();
+
+    const saved = page.waitForResponse((r) => r.request().method() === 'POST');
+    await sheet.getByRole('button', { name: 'Not now' }).click();
+    await expect(sheet).toHaveCount(0);
+    await saved;
+
+    // Outcome: the account reminder is off, not just the sheet closed.
+    await page.goto('/settings');
+    await expect(page.getByLabel('Daily wird reminder')).toHaveValue('');
+
+    // Once per device: deleting back to zero and creating again doesn't re-ask.
+    await reset(page, []);
+    await page.goto('/wird');
+    await page.getByRole('button', { name: 'New wird' }).first().click();
+    await create('Second first wird');
+    await expect(page.getByText('10 pages to go')).toHaveCount(1);
+    await expect(sheet).toHaveCount(0);
+
+    await setReminder(page, '18:00');
+  });
+});

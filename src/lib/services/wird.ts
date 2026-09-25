@@ -10,7 +10,8 @@ import {
   coveredCount,
 } from '@/lib/wirdRate';
 import { getPageForAyah } from '@/lib/quran';
-import { getMyMemorization } from '@/lib/services/profile';
+import { getMyMemorization, getMyProfile } from '@/lib/services/profile';
+import { localDate } from '@/lib/localDate';
 import type { Wird, WirdEntry, WirdScopeSource, MemorizedRange } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -42,7 +43,15 @@ export interface WirdView extends Wird {
   next_position: number;
 }
 
-const todayLocal = () => new Date().toISOString().slice(0, 10);
+/**
+ * Today in the caller's saved timezone (D20: a local-midnight day). The server
+ * runs in UTC, so its own clock can't be used — after 8 pm in New York that is
+ * already tomorrow. No saved zone yet → UTC. The reminder cron uses the same
+ * rule (see src/lib/wirdReminder.ts), so "done today" means one thing.
+ */
+async function todayLocal(): Promise<string> {
+  return localDate((await getMyProfile())?.timezone);
+}
 const dayNumber = (isoDate: string) => Math.floor(Date.parse(isoDate) / 86_400_000);
 
 /**
@@ -115,7 +124,7 @@ export async function listWirds(): Promise<WirdView[]> {
   const needsMemorized = rows.some((w) => w.scope_source === 'memorized');
   if (needsMemorized) ranges = (await getMyMemorization()).ranges;
 
-  const today = todayLocal();
+  const today = await todayLocal();
   const views: WirdView[] = rows.map((w) => {
     const mine = entries.filter((e) => e.wird_id === w.id);
     const bounds =
@@ -348,7 +357,7 @@ export async function completeWird(id: string): Promise<void> {
   if (error) throw error;
   const wird = data as Wird;
 
-  const today = todayLocal();
+  const today = await todayLocal();
   const { data: entryData, error: entryErr } = await supabase
     .from('wird_entry')
     .select('*')
@@ -454,7 +463,7 @@ export async function getStudentWirdSummary(userId: string): Promise<StudentWird
   return {
     wird_count: ids.length,
     active_days: uniqueDays.size,
-    days_since_last: lastDone === null ? null : dayNumber(todayLocal()) - dayNumber(lastDone),
+    days_since_last: lastDone === null ? null : dayNumber(await todayLocal()) - dayNumber(lastDone),
   };
 }
 
@@ -485,4 +494,12 @@ export async function listWirdEntryDates(): Promise<string[]> {
   const { data, error } = await supabase.from('wird_entry').select('entry_date');
   if (error) throw error;
   return (data ?? []).map((e: { entry_date: string }) => e.entry_date);
+}
+
+/** Whether the caller keeps any live wird — gates the Settings reminder row (0016). RLS scopes to the caller. */
+export async function hasWirds(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('wird').select('id').is('deleted_at', null);
+  if (error) throw error;
+  return (data ?? []).length > 0;
 }

@@ -26,8 +26,8 @@ import Progress from './Progress';
 import type { WirdCardData } from './WirdPager';
 
 // Amber derived from --warning via color-mix — no new colour token (M5/I4).
-const AMBER_BG = 'color-mix(in srgb, var(--warning) 16%, var(--surface-main))';
-const AMBER_FG = 'color-mix(in srgb, var(--warning) 72%, var(--text-primary))';
+export const AMBER_BG = 'color-mix(in srgb, var(--warning) 16%, var(--surface-main))';
+export const AMBER_FG = 'color-mix(in srgb, var(--warning) 72%, var(--text-primary))';
 
 const ellipsis: React.CSSProperties = {
   overflow: 'hidden',

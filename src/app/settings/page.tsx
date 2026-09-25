@@ -5,8 +5,10 @@ import ProfileMenu from '@/components/ProfileMenu';
 import ProfileClient from '@/components/ProfileClient';
 import EmailPrefsSection from '@/components/EmailPrefsSection';
 import PushToggle from '@/components/PushToggle';
+import WirdReminderRow from '@/components/WirdReminderRow';
 import SettingsHeader, { SettingsSection } from '@/components/SettingsHeader';
 import { getMyChrome, getMyMemorization, getMyProfile } from '@/lib/services/profile';
+import { hasWirds } from '@/lib/services/wird';
 
 // Settings (PRD 0008 M4, U2; PRD 0010 M4). Two sections: My Hifth (the
 // memorization editor, prefilled from saved ranges — saving re-stamps
@@ -16,10 +18,11 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const [{ ranges, weakest }, account, profile] = await Promise.all([
+  const [{ ranges, weakest }, account, profile, anyWirds] = await Promise.all([
     getMyMemorization(),
     getMyChrome(user),
     getMyProfile(),
+    hasWirds(),
   ]);
 
   return (
@@ -36,6 +39,7 @@ export default async function SettingsPage() {
           <SettingsSection labelKey="settings.sectionNotifications">
             <EmailPrefsSection initial={profile?.email_prefs ?? {}} />
             <PushToggle />
+            <WirdReminderRow initial={profile?.wird_reminder_time ?? null} hasWirds={anyWirds} />
           </SettingsSection>
         </div>
       </main>

@@ -22,9 +22,10 @@ import type { RosterMember } from '@/lib/services/membership';
 import type { MarkedPage } from '@/lib/markedPages';
 import { displayName } from '@/lib/displayName';
 import { CoveredBy } from './subs';
+import { localDate } from '@/lib/localDate';
 
 const LOG_TYPES: LogType[] = ['memorization', 'general_revision', 'targeted_revision'];
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => localDate();
 
 const STATUS_KEY = {
   open: 'homework.statusOpen',

@@ -25,6 +25,10 @@ export default defineConfig({
   use: {
     baseURL: `http://localhost:${PORT}`,
     browserName: 'chromium',
+    // The browser's zone becomes profiles.timezone (I18nProvider), which decides
+    // the wird day (D20). Pin it so seeded UTC dates mean the same day on every
+    // machine; zone maths is covered by src/tests/wirdReminder.test.ts.
+    timezoneId: 'UTC',
     extraHTTPHeaders: {
       'x-e2e-test': 'true',
     },

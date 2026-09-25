@@ -48,3 +48,35 @@ export async function subscribeToPush(vapidKey: string): Promise<void> {
     userAgent: navigator.userAgent,
   });
 }
+
+/**
+ * iOS exposes PushManager ONLY to a home-screen install, so on Safari-in-a-tab
+ * push can never work. Detect that one case so the UI can explain it instead.
+ * ponytail: UA sniff. It is the only signal iOS gives us here.
+ */
+export function iosNotInstalled(): boolean {
+  if (typeof window === 'undefined' || pushSupported()) return false;
+  const ua = navigator.userAgent;
+  const isIOS =
+    /iPad|iPhone|iPod/.test(ua) ||
+    // iPadOS 13+ reports a desktop UA; touch points disambiguate.
+    (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  return isIOS && !(window.navigator as { standalone?: boolean }).standalone;
+}
+
+/** What push can do on THIS device. Per device, unlike the per-account reminder time. */
+export type PushStatus = 'on' | 'off' | 'denied' | 'ios' | 'unsupported';
+
+/** Fired on window whenever this tab subscribes or unsubscribes, so every reader refreshes. */
+export const PUSH_CHANGED = 'hifth:push-changed';
+
+export async function readPushStatus(): Promise<PushStatus> {
+  if (!pushSupported()) return iosNotInstalled() ? 'ios' : 'unsupported';
+  if (Notification.permission === 'denied') return 'denied';
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    return (await reg.pushManager.getSubscription()) ? 'on' : 'off';
+  } catch {
+    return 'off';
+  }
+}

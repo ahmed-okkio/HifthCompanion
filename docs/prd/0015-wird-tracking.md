@@ -55,9 +55,9 @@ Goal: a personal, standing daily practice that is legible in two seconds and cle
 | D15 | Stale marker: an amber inline bar across the top of the card, `--warning`. Wording names the gap ("Waiting since yesterday", "Waiting 3 days") at every age | It never escalates in tone, never says "overdue" or "unlock", and never blocks the disc |
 | D16 | Motion: squash-and-stretch on the disc, card slides out, all-done screen slides in from the inline-end. Exit 320ms | The tap is the one moment the feature lives on. Every animation has a `prefers-reduced-motion` path that still changes state visibly |
 | D17 | The teacher sees wird activity **merged into the existing progress view**, as a card in the left `<aside>` of `StudentProfileCard` (`TeacherStudent.tsx:291`), between the open-homework `StatCard` and the marked-pages card | Author's placement. Merged means the teacher sees *that* the student kept their practice, not *which* wird slipped — accepted trade |
-| D18 | **No reminders in v1.** `src/lib/push/send.ts` sends on demand only | A daily nudge needs a scheduler, per-user send time, timezone and quiet hours, plus suppression once done. The app opening on the wird screen is the reminder |
+| D18 | ~~No reminders in v1.~~ **Reversed (0016):** a daily push at the user's `profiles.wird_reminder_time` (default 18:00, 15-min steps, null = off) in `profiles.timezone`, only while a wird with a non-empty portion is undone today. pg_cron ticks `/api/cron/wird-reminder` every 15 min | Scheduler = pg_cron; per-user time in Settings; offered once in a sheet after the first wird. Suppression once done = the "left today" check. No quiet hours: the user picks the time |
 | D19 | Deleting a wird is a **soft delete**; its entries are retained and keep feeding the streak | You did recite on those days. A streak that shortens retroactively reads as a bug |
-| D20 | A day is a **local-midnight** day, matching `computeStreak` today | One streak means one boundary; changing it here would change every circle streak too |
+| D20 | A day is a **local-midnight** day, matching `computeStreak` today. (0016: the service had been stamping the UTC date; it now uses `profiles.timezone` via `src/lib/localDate.ts`, and `computeStreak` the runtime's local date) | One streak means one boundary; changing it here would change every circle streak too |
 | D21 | Create form: scope via presets that fill two page numbers (whole mushaf / juz range / one sūra / what I've memorized), rate via a number + a days dropdown (1 / 7 / 14 / 30) | Both numbers stay editable after a preset fills them. `src/lib/quran.ts` already ships every conversion (`juzPageBounds`, `SURAH_FIRST_PAGES`, `getPageForAyah`) |
 | D22 | `SegmentedControl` and `NumberStepper` move from `src/components/tracker/ui.tsx` to a new `src/components/ui/` and are re-exported | First use outside `tracker/`, which is exactly the promotion rule in `docs/design-system.md` §2 |
 | D23 | A sūra-named scope does **not** imply sūra-aligned pages, and the UI must not pretend otherwise | "Sūrat al-Kahf" resolves to 293–304, but page 293 opens on **Al-Isrā 105**. Labelling that boundary "Al-Kahf 1" would be false |
@@ -66,7 +66,7 @@ Goal: a personal, standing daily practice that is legible in two seconds and cle
 
 - No khatma counter and no wrap celebration (D7).
 - No partial or corrected entries (D4) — so no edit-history UI either.
-- No reminders, push or email (D18).
+- No email reminders. (Push reminders were added in 0016, D18.)
 - No per-wird teacher sharing toggle (D9) and no teacher-prescribed wird: `homework` is already the
   prescription primitive and two of them would confuse a student.
 - No dark mode. `docs/design-system.md` §5 still holds.

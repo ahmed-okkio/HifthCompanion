@@ -24,6 +24,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import WirdCard from './WirdCard';
 import WirdForm from './WirdForm';
+import ReminderSheet, { reminderSheetStart, type ReminderSheetStart } from './ReminderSheet';
 
 export interface WirdCardData {
   id: string;
@@ -57,6 +58,9 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
   // loading placeholder in between so the tap has immediate feedback.
   const [creating, setCreating] = useState(false);
   const openNew = () => setNewOpen(true);
+  // The daily reminder is offered once, after the FIRST wird is created (0016).
+  const [reminder, setReminder] = useState<ReminderSheetStart | null>(null);
+  const closeReminder = useCallback(() => setReminder(null), []);
   const formOpen = newOpen || params.get('new') === '1';
   const closeForm = () => {
     setNewOpen(false);
@@ -101,6 +105,7 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
     <>
       {content}
       {creating && <CreatingOverlay t={t} />}
+      {reminder && <ReminderSheet start={reminder} onClose={closeReminder} />}
       {/* Create + Manage live in the top bar (see WirdHeaderActions). No floating
           button sits over the card, so the Done disc is the one control (H10). */}
       {/* Mounted only while open, so each New starts fresh: the form's
@@ -111,7 +116,12 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
         onClose={closeForm}
         onSubmitStart={() => setCreating(true)}
         onFailed={() => setCreating(false)}
-        onCreated={() => { setCreating(false); closeForm(); router.refresh(); }}
+        onCreated={() => {
+          setCreating(false);
+          closeForm();
+          router.refresh();
+          if (cards.length === 0) void reminderSheetStart().then(setReminder);
+        }}
         canUseMemorized={memorizedPages.length > 0}
         memorizedPages={memorizedPages}
       />}

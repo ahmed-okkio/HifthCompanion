@@ -3,23 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import { deleteSubscription } from '@/lib/push/subscriptions';
-import { pushSupported, subscribeToPush } from '@/lib/push/client';
-
-/**
- * iOS exposes PushManager ONLY to a home-screen install, so on Safari-in-a-tab
- * the toggle can never work and would otherwise render nothing — a dead end for
- * every iPhone user. Detect that one case so we can explain it instead.
- * ponytail: UA sniff. It is the only signal iOS gives us here.
- */
-function iosNotInstalled(): boolean {
-  if (typeof window === 'undefined' || pushSupported()) return false;
-  const ua = navigator.userAgent;
-  const isIOS =
-    /iPad|iPhone|iPod/.test(ua) ||
-    // iPadOS 13+ reports a desktop UA; touch points disambiguate.
-    (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-  return isIOS && !(window.navigator as { standalone?: boolean }).standalone;
-}
+import { iosNotInstalled, PUSH_CHANGED, pushSupported, subscribeToPush } from '@/lib/push/client';
 
 export default function PushToggle() {
   const { t } = useI18n();
@@ -53,6 +37,7 @@ export default function PushToggle() {
         if (Notification.permission === 'granted' && vapidKey) {
           await subscribeToPush(vapidKey!);
           setEnabled(true);
+          window.dispatchEvent(new Event(PUSH_CHANGED));
         }
       } catch {
         // Best effort — a failed probe just leaves the toggle showing "enable".
@@ -79,10 +64,12 @@ export default function PushToggle() {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         setError(t('push.denied'));
+        window.dispatchEvent(new Event(PUSH_CHANGED));
         return;
       }
       await subscribeToPush(vapidKey!);
       setEnabled(true);
+      window.dispatchEvent(new Event(PUSH_CHANGED));
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -101,6 +88,7 @@ export default function PushToggle() {
         await sub.unsubscribe();
       }
       setEnabled(false);
+      window.dispatchEvent(new Event(PUSH_CHANGED));
     } catch (e) {
       setError((e as Error).message);
     } finally {

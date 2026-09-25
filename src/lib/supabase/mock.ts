@@ -69,7 +69,8 @@ if (!globalForDb.mockWirdEntry) globalForDb.mockWirdEntry = [];
 if (!globalForDb.mockUserHifth) globalForDb.mockUserHifth = [];
 // One seeded profile for the mock user; email_prefs '{}' ⇒ all events enabled.
 if (!globalForDb.mockProfiles) globalForDb.mockProfiles = [
-  { id: MOCK_USER_ID, first_name: 'Mock', last_name: 'User', email_prefs: {} },
+  // wird_reminder_time mirrors the 20260925000001 column default.
+  { id: MOCK_USER_ID, first_name: 'Mock', last_name: 'User', email_prefs: {}, wird_reminder_time: '18:00:00' },
 ];
 
 // Seeded config defaults mirroring the circle migration.

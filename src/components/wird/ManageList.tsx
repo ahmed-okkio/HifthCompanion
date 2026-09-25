@@ -20,6 +20,7 @@ import {
 import WirdForm, { type WirdEdit } from './WirdForm';
 import WirdHeatmap from './WirdHeatmap';
 import type { WirdScopeSource } from '@/types';
+import { localDate } from '@/lib/localDate';
 
 export interface ManageRow extends WirdEdit {
   scope_source: WirdScopeSource;
@@ -27,7 +28,7 @@ export interface ManageRow extends WirdEdit {
   doneDates: string[];
 }
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
+const todayISO = () => localDate();
 
 export default function ManageList({ rows, memorizedPages }: { rows: ManageRow[]; memorizedPages: number[] }) {
   const { t } = useI18n();

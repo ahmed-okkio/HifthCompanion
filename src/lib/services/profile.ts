@@ -52,7 +52,7 @@ export async function getMyProfile(): Promise<Profile | null> {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, first_name, last_name, email_prefs, locale')
+    .select('id, first_name, last_name, email_prefs, locale, timezone, wird_reminder_time')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -96,6 +96,18 @@ export async function saveLocale(locale: Locale, timezone?: string): Promise<voi
  */
 export async function saveTimezone(timezone: string): Promise<void> {
   await patchOwnProfile({ timezone });
+}
+
+/**
+ * Set (or clear, with null) the daily wird reminder time. 15-minute steps only:
+ * the cron fires every 15 minutes and matches one slot, so any other minute
+ * would never fire. The DB check constraint is the backstop.
+ */
+export async function saveWirdReminderTime(time: string | null): Promise<void> {
+  if (time !== null && !/^([01]\d|2[0-3]):(00|15|30|45)$/.test(time)) {
+    throw new Error('Reminder time must be HH:MM in 15-minute steps');
+  }
+  await patchOwnProfile({ wird_reminder_time: time });
 }
 
 async function patchOwnProfile(patch: Record<string, unknown>): Promise<void> {

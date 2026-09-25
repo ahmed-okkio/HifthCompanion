@@ -139,6 +139,10 @@ export interface Profile {
   email_prefs?: EmailPrefs;
   /** Preferred UI language, persisted by the language switcher. Null = unknown. */
   locale?: Locale | null;
+  /** IANA timezone, captured from the browser each session (0010). */
+  timezone?: string | null;
+  /** Daily wird reminder, local 'HH:MM[:SS]' in 15-min steps; null = off (0016). */
+  wird_reminder_time?: string | null;
 }
 
 /** A membership enriched with the member's display name (when a profile row is

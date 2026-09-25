@@ -17,7 +17,7 @@
 
 import { useEffect, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
-import { pushSupported, subscribeToPush } from '@/lib/push/client';
+import { PUSH_CHANGED, pushSupported, subscribeToPush } from '@/lib/push/client';
 
 const DISMISS_KEY = 'hifth:notifyDismissed';
 
@@ -57,6 +57,7 @@ export default function NotifyBanner() {
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') await subscribeToPush(vapidKey!);
+      window.dispatchEvent(new Event(PUSH_CHANGED));
       // Denied or dismissed: hide either way. The prompt is one-shot, and
       // Settings still has the toggle for anyone who changes their mind.
       setShow(false);
@@ -69,7 +70,7 @@ export default function NotifyBanner() {
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-3"
+      className="notify-banner flex items-center gap-3 px-4 py-3"
       style={{
         background: 'var(--bg-card)',
         borderBottom: '1px solid var(--border-subtle)',

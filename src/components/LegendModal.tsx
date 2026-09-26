@@ -183,7 +183,7 @@ export default function LegendModal({ open, onClose }: { open: boolean; onClose:
             type="button"
             onClick={onClose}
             aria-label={t('share.close')}
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, lineHeight: 0 }}
+            className="btn btn-ghost btn-icon"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -218,12 +218,11 @@ export function LegendButton() {
         aria-label={t('reader.symbolGuide')}
         title={t('reader.symbolGuide')}
         onClick={() => setOpen(true)}
-        className="hidden lg:flex items-center justify-center gap-2"
+        className="hidden lg:flex items-center justify-center gap-2 bg-[var(--surface-main)] hover:bg-[var(--neutral-100)]"
         style={{
           marginTop: 'var(--space-12)',
           height: '52px',
-          padding: '0 var(--space-16)',
-          background: 'var(--surface-main)',
+          padding: '0 var(--space-16)',
           borderRadius: 'var(--radius-lg)',
           border: '1px solid rgba(15, 23, 42, 0.05)',
           boxShadow: 'var(--shadow-e2)',
@@ -233,9 +232,7 @@ export function LegendButton() {
           fontWeight: 500,
           whiteSpace: 'nowrap',
           userSelect: 'none',
-        }}
-        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-main)'; }}
+        }}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <circle cx="12" cy="12" r="10" />

@@ -278,8 +278,8 @@ function CreateCircleModal({ onClose, onCreated }: { onClose: () => void; onCrea
         />
         {error && <div role="alert" style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</div>}
         <div className="flex gap-2 justify-end">
-          <button onClick={onClose} className="btn btn-outline" style={{ minHeight: 44 }}>{t('common.cancel')}</button>
-          <ActionButton onClick={submit} disabled={!name.trim() || busy} className="btn btn-primary" style={{ minHeight: 44 }}>{t('common.create')}</ActionButton>
+          <button onClick={onClose} className="btn btn-outline btn-lg">{t('common.cancel')}</button>
+          <ActionButton onClick={submit} disabled={!name.trim() || busy} className="btn btn-primary btn-lg">{t('common.create')}</ActionButton>
         </div>
       </div>
     </div>

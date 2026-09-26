@@ -90,8 +90,7 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
             type="button"
             onClick={() => onOpenChange(false)}
             aria-label={t('nav.closeNavigation')}
-            className="flex items-center justify-center"
-            style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)', background: 'var(--surface-app)', border: '1px solid var(--border-subtle)', cursor: 'pointer', color: 'var(--text-muted)' }}
+            className="btn btn-ghost btn-icon btn-sm"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
               <line x1="18" y1="6" x2="6" y2="18" />

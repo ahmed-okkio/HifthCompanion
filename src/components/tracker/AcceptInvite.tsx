@@ -68,16 +68,14 @@ export default function AcceptInvite({
           <ActionButton
             onClick={handleAccept}
             disabled={busy}
-            className="btn btn-primary"
-            style={{ minHeight: 44 }}
+            className="btn btn-primary btn-lg"
           >
             {t('accept.accept')}
           </ActionButton>
           <button
             onClick={() => router.push('/tracker')}
             disabled={busy}
-            className="btn btn-outline"
-            style={{ minHeight: 44 }}
+            className="btn btn-outline btn-lg"
           >
             {t('accept.decline')}
           </button>

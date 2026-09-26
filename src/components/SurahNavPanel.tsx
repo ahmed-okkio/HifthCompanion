@@ -397,14 +397,11 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
                   ref={group.page === activePage ? activeButtonRef : undefined}
                   type="button"
                   onClick={() => { void handleSelect(group); }}
-                  onMouseEnter={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-50)'; }}
-                  onMouseLeave={e => { if (!active) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
-                  className="group flex w-full items-center gap-3 px-4 text-start transition-colors duration-150"
+                  className={`group flex w-full items-center gap-3 px-4 text-start transition-colors duration-150 ${active ? 'bg-[var(--accent-muted)]' : 'hover:bg-[var(--neutral-50)]'}`}
                   style={{
                     minHeight: '72px',
                     paddingBlock: '20px',
                     paddingInlineStart: '40px',
-                    background: active ? 'var(--green-soft)' : 'transparent',
                     borderInlineStart: active
                       ? '4px solid var(--green-600)'
                       : '4px solid transparent',
@@ -472,7 +469,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
             ...(jumpDir === 'up' ? { top: '140px' } : { bottom: '24px' }),
             height: '40px',
             borderRadius: 'var(--radius-full)',
-            background: 'var(--green-600)',
+            background: 'var(--accent-solid)',
             color: 'var(--accent-contrast)',
             fontSize: 'var(--type-small-size)',
             boxShadow: 'var(--shadow-e3)',

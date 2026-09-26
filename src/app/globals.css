@@ -316,6 +316,8 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   border: 1px solid var(--border-subtle);
 }
 
+/* Atoms live in the components layer so Tailwind utilities (lg:hidden, w-full…) override them. */
+@layer components {
 /* ===== Card ===== */
 .card {
   background: var(--bg-card);
@@ -470,6 +472,7 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   opacity: 1;
 }
 
+}
 /* ===== Wird motion (M6, contract §J) =====
    Layered onto the plain M5 state changes: the tap bounce, the completed
    card's exit, and the all-done arrival. Exit direction is one property that
@@ -596,6 +599,7 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
 /* The wird reminder sheet asks the same question as NotifyBanner — show one. */
 html[data-reminder-sheet] .notify-banner { display: none; }
 
+@layer components {
 /* Size scale (design-system.md §2): xs 28 · sm 32 · md 40 (default) · lg 44.
    Pick a size class instead of inline minHeight/fontSize/padding overrides. */
 .btn-xs { min-height: 28px; padding: 0 8px; font-size: 11px; }
@@ -698,6 +702,7 @@ input[type="number"] {
 .badge-muted {
   background: rgba(2, 6, 23, 0.045);
   color: var(--text-muted);
+}
 }
 
 /* ===== Responsive helpers ===== */

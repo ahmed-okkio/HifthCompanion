@@ -41,7 +41,7 @@ export default function ManageList({ rows, memorizedPages }: { rows: ManageRow[]
         <h1 style={{ margin: 0, fontSize: 'var(--type-heading-m-size)', fontWeight: 700, color: 'var(--text-primary)' }}>
           {t('wird.manageTitle')}
         </h1>
-        <Link href="/wird" className="btn btn-ghost" style={{ minHeight: 40 }}>
+        <Link href="/wird" className="btn btn-ghost">
           {t('wird.back')}
         </Link>
       </div>
@@ -131,8 +131,8 @@ function Row({ row, onEdit, onChanged }: { row: ManageRow; onEdit: () => void; o
             {scopeText} · {rateText}
           </div>
         </div>
-        <button type="button" className="btn btn-ghost" style={{ minHeight: 40 }} onClick={onEdit}>{t('wird.editAction')}</button>
-        <button type="button" className="btn btn-ghost" style={{ minHeight: 40, color: 'var(--danger)' }} disabled={busy} onClick={onDelete}>
+        <button type="button" className="btn btn-ghost" onClick={onEdit}>{t('wird.editAction')}</button>
+        <button type="button" className="btn btn-danger-ghost" disabled={busy} onClick={onDelete}>
           {t('wird.deleteAction')}
         </button>
       </div>
@@ -165,7 +165,7 @@ function Row({ row, onEdit, onChanged }: { row: ManageRow; onEdit: () => void; o
                 <span style={{ flex: '1 1 0', fontSize: 'var(--type-small-size)', color: 'var(--text-muted)' }}>
                   {t('wird.scopePages', { range: e.page_start === e.page_end ? `${fmtNum(e.page_start)}` : `${fmtNum(e.page_start)}–${fmtNum(e.page_end)}` })}
                 </span>
-                <button type="button" className="btn btn-ghost" style={{ minHeight: 36, color: 'var(--danger)' }} disabled={busy} onClick={() => onUndo(e)}>
+                <button type="button" className="btn btn-danger-ghost btn-sm" disabled={busy} onClick={() => onUndo(e)}>
                   {t('wird.undo')}
                 </button>
               </li>

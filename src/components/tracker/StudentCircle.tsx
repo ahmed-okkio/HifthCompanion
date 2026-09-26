@@ -354,8 +354,8 @@ function CircleMembers({ roster, selfUserId, membershipId }: {
           );
         })}
       </div>
-      <ActionButton onClick={handleLeave} className="btn btn-outline"
-                    style={{ minHeight: 32, fontSize: 12, color: 'var(--text-muted)' }}>
+      <ActionButton onClick={handleLeave} className="btn btn-outline btn-sm"
+                    style={{ color: 'var(--text-muted)' }}>
         {t('tracker.leave')}
       </ActionButton>
     </div>
@@ -462,8 +462,7 @@ function HomeworkCard({
                   onCreated={(log) => { onCreated(log); setAttaching(null); }}
                 />
               ) : (
-                <button onClick={() => setAttaching(h.id)} className="btn btn-outline self-start"
-                        style={{ minHeight: 36, fontSize: 13 }}>
+                <button onClick={() => setAttaching(h.id)} className="btn btn-outline btn-sm self-start">
                   {t('homework.linkSubmission')}
                 </button>
               )
@@ -547,7 +546,7 @@ function LogEntryForm({
 
   if (!logging) {
     return (
-      <button onClick={() => setLogging(true)} className="btn btn-primary self-center" style={{ minHeight: 44 }}>
+      <button onClick={() => setLogging(true)} className="btn btn-primary btn-lg self-center">
         {t('log.new')}
       </button>
     );
@@ -604,10 +603,10 @@ function LogEntryForm({
       {error && <span className="text-xs" style={{ color: 'var(--danger)' }}>{error}</span>}
 
       <div className="flex justify-end gap-2">
-        <button onClick={() => setLogging(false)} className="btn btn-outline" style={{ minHeight: 44, padding: '0 20px' }}>
+        <button onClick={() => setLogging(false)} className="btn btn-outline btn-lg">
           {t('common.cancel')}
         </button>
-        <ActionButton onClick={submit} disabled={busy || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44, padding: '0 24px' }}>
+        <ActionButton onClick={submit} disabled={busy || entries.length === 0} className="btn btn-primary btn-lg">
           {t('log.submit')}
         </ActionButton>
       </div>
@@ -741,7 +740,7 @@ function LogForm({
       {error && <span className="text-xs" style={{ color: 'var(--danger)' }}>{error}</span>}
 
       <ActionButton onClick={handleSubmit} disabled={busy || pageEnd < pageStart}
-              className="btn btn-primary" style={{ minHeight: 44 }}>
+              className="btn btn-primary btn-lg">
         {t('log.submit')}
       </ActionButton>
     </div>
@@ -770,7 +769,7 @@ function LogRow({ log: l, onDelete }: { log: ProgressLog; onDelete: (id: string)
         </div>
       ) : (
         <div className="flex gap-2 mt-2">
-          <ActionButton onClick={() => onDelete(l.id)} className="btn btn-danger-ghost" style={{ minHeight: 36, fontSize: 13 }}>
+          <ActionButton onClick={() => onDelete(l.id)} className="btn btn-danger-ghost btn-sm">
             {t('common.delete')}
           </ActionButton>
         </div>

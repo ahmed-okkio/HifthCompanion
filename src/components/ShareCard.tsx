@@ -166,8 +166,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
               />
               <button
                 onClick={handleCopy}
-                className="btn btn-primary"
-                style={{ fontSize: '12px', padding: '6px 14px', flexShrink: 0 }}
+                className="btn btn-primary btn-sm shrink-0"
               >
                 {copied ? <span className="flex items-center gap-1"><Icon name="check" size={13} /> {t('common.copied')}</span> : t('common.copy')}
               </button>
@@ -178,8 +177,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
               </p>
               <button
                 onClick={() => setOpen(false)}
-                className="btn btn-ghost"
-                style={{ fontSize: '11px', padding: '2px 8px' }}
+                className="btn btn-ghost btn-xs"
               >
                 {t('share.close')}
               </button>
@@ -284,8 +282,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
                     </span>
                     <button
                       onClick={() => handleRemove(c.user_id)}
-                      className="btn btn-ghost shrink-0"
-                      style={{ fontSize: '11px', padding: '2px 8px' }}
+                      className="btn btn-ghost btn-xs shrink-0"
                     >
                       {t('share.remove')}
                     </button>

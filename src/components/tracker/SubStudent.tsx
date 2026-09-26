@@ -138,8 +138,7 @@ export default function SubStudent({
                   <div className="flex flex-wrap gap-1">
                     {ATT_STATUSES.map((st) => (
                       <button key={st} onClick={() => mark(iso, st)}
-                              className={s?.attendance_status === st ? 'btn btn-primary' : 'btn btn-ghost'}
-                              style={{ minHeight: 30, fontSize: 11, padding: '0 12px' }}>
+                              className={s?.attendance_status === st ? 'btn btn-primary btn-xs' : 'btn btn-ghost btn-xs'}>
                         {t(`att.${st}`)}
                       </button>
                     ))}

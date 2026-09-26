@@ -37,10 +37,8 @@ export default function ZoomControl({
         aria-label={t('reader.zoomOut')}
         onClick={onZoomOut}
         disabled={zoom <= 50}
-        className="flex items-center justify-center"
-        style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: zoom <= 50 ? 'default' : 'pointer', color: 'var(--neutral-600)', fontSize: '20px', fontWeight: 500, opacity: zoom <= 50 ? 0.4 : 1 }}
-        onMouseEnter={e => { if (zoom > 50) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+        className="btn btn-ghost btn-icon"
+        style={{ fontSize: 20 }}
       >
         −
       </button>
@@ -54,10 +52,8 @@ export default function ZoomControl({
         aria-label={t('reader.zoomIn')}
         onClick={onZoomIn}
         disabled={zoom >= 200}
-        className="flex items-center justify-center"
-        style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: zoom >= 200 ? 'default' : 'pointer', color: 'var(--neutral-600)', fontSize: '20px', fontWeight: 500, opacity: zoom >= 200 ? 0.4 : 1 }}
-        onMouseEnter={e => { if (zoom < 200) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+        className="btn btn-ghost btn-icon"
+        style={{ fontSize: 20 }}
       >
         +
       </button>
@@ -68,10 +64,7 @@ export default function ZoomControl({
         type="button"
         aria-label={t('reader.resetZoom')}
         onClick={onReset}
-        className="flex items-center gap-2"
-        style={{ height: '38px', padding: '0 var(--space-12)', borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: 'var(--neutral-600)', whiteSpace: 'nowrap' }}
-        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+        className="btn btn-ghost"
       >
         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M20 9a8 8 0 00-14.9-3M4 15a8 8 0 0014.9 3" />

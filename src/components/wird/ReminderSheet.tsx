@@ -108,10 +108,6 @@ export default function ReminderSheet({ start, onClose }: { start: ReminderSheet
 
   const h2: React.CSSProperties = { margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' };
   const muted: React.CSSProperties = { margin: 0, fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.45 };
-  const stepBtn: React.CSSProperties = {
-    width: 34, height: '100%', border: 'none', background: 'transparent', cursor: 'pointer',
-    fontSize: 16, fontWeight: 600, color: 'var(--text-muted)',
-  };
   const closeBtn = (
     <button ref={primaryRef} type="button" className="btn btn-ghost btn-tall" onClick={onClose}>
       {t('wird.reminder.close')}
@@ -156,14 +152,14 @@ export default function ReminderSheet({ start, onClose }: { start: ReminderSheet
           <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('wird.reminder.timeLabel')}</span>
           {timeOpen ? (
             <span style={{ display: 'inline-flex', alignItems: 'center', height: 40, border: '1px solid var(--border-default)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-input)', overflow: 'hidden' }}>
-              <button type="button" style={stepBtn} onClick={() => step(-1)} aria-label={t('wird.reminder.earlier')}>−</button>
+              <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => step(-1)} aria-label={t('wird.reminder.earlier')}>−</button>
               <output aria-live="polite" style={{ minWidth: 72, textAlign: 'center', fontSize: 14, fontWeight: 600 }}>{shown}</output>
-              <button type="button" style={stepBtn} onClick={() => step(1)} aria-label={t('wird.reminder.later')}>+</button>
+              <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => step(1)} aria-label={t('wird.reminder.later')}>+</button>
             </span>
           ) : (
             <>
               <span style={{ fontWeight: 700, fontSize: 15 }}>{shown}</span>
-              <button type="button" className="btn btn-ghost" style={{ padding: '8px 10px' }} onClick={() => setTimeOpen(true)}>
+              <button type="button" className="btn btn-ghost" onClick={() => setTimeOpen(true)}>
                 {t('wird.reminder.change')}
               </button>
             </>
@@ -178,7 +174,7 @@ export default function ReminderSheet({ start, onClose }: { start: ReminderSheet
             {t('wird.reminder.enableError')}
           </span>
         )}
-        <button type="button" className="btn btn-ghost" style={{ minHeight: 44, marginTop: -8 }} onClick={notNow} disabled={phase === 'busy'}>
+        <button type="button" className="btn btn-ghost btn-lg" style={{ marginTop: -8 }} onClick={notNow} disabled={phase === 'busy'}>
           {t('wird.reminder.notNow')}
         </button>
       </>

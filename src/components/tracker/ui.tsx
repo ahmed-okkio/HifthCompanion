@@ -446,15 +446,13 @@ export function SurahCombobox({
                 aria-selected={s === value}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => select(s)}
-                className="btn btn-ghost"
+                className="btn btn-ghost btn-sm"
                 style={{
                   width: '100%',
                   justifyContent: 'flex-start',
                   textAlign: 'start',
-                  minHeight: 34,
-                  padding: '6px 10px',
-                  fontSize: 13,
                   fontWeight: s === value ? 600 : 400,
+                  background: s === value ? 'var(--accent-muted)' : undefined,
                   color: s === value ? 'var(--text-accent)' : 'var(--text-primary)',
                 }}
               >
@@ -491,7 +489,6 @@ export function PagedList<T>({
         <button
           onClick={() => setShown((n) => n + pageSize)}
           className="btn btn-ghost self-center"
-          style={{ minHeight: 40, fontSize: 13 }}
         >
           {loadMoreLabel}
         </button>
@@ -629,12 +626,12 @@ export function TimeSelect({
             const sel = s === value;
             return (
               <li key={s}>
-                <button type="button" role="option" aria-selected={sel} className="btn btn-ghost"
+                <button type="button" role="option" aria-selected={sel} className="btn btn-ghost btn-sm"
                   onMouseDown={(e) => { e.preventDefault(); pick(s); }}
                   style={{
                     width: '100%', justifyContent: 'flex-start', textAlign: 'start',
-                    minHeight: 34, padding: '6px 10px', fontSize: 13,
                     fontWeight: sel ? 600 : 400,
+                    background: sel ? 'var(--accent-muted)' : undefined,
                     color: sel ? 'var(--text-accent)' : 'var(--text-primary)',
                   }}>
                   {to12h(s)}

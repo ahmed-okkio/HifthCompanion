@@ -136,8 +136,7 @@ export default function AgendaPanel({
             onBlur={() => void submit()}
           />
         ) : (
-          <button onClick={() => setAdding(true)} className="btn btn-ghost self-start"
-                  style={{ minHeight: 36, fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <button onClick={() => setAdding(true)} className="btn btn-ghost btn-sm self-start">
             <Icon name="plus" size={15} />
             {t('agenda.add')}
           </button>
@@ -145,8 +144,7 @@ export default function AgendaPanel({
 
         {done.length > 0 && (
           <div className="flex flex-col gap-2">
-            <button onClick={() => setShowDone((v) => !v)} className="btn btn-ghost self-start"
-                    style={{ minHeight: 32, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <button onClick={() => setShowDone((v) => !v)} className="btn btn-ghost btn-sm self-start">
               {t('agenda.done')} ({fmtNum(done.length)})
               <Chevron open={showDone} />
             </button>
@@ -294,8 +292,8 @@ function Row({
         </span>
       )}
 
-      <ActionButton onClick={() => onToggle(item, true)} aria-label={t('agenda.dismiss')} className="btn btn-ghost shrink-0"
-              style={{ minHeight: 26, minWidth: 26, padding: 0, fontSize: 14, color: 'var(--text-muted)' }}>
+      <ActionButton onClick={() => onToggle(item, true)} aria-label={t('agenda.dismiss')} className="btn btn-ghost btn-icon btn-sm shrink-0"
+              style={{ fontSize: 14, color: 'var(--text-muted)' }}>
         ×
       </ActionButton>
     </div>

@@ -185,8 +185,8 @@ export default function MemorizationEditor({
                         fontSize: 15,
                         fontWeight: 700,
                         cursor: 'pointer',
-                        border: on ? '1px solid var(--accent)' : '1px solid var(--border-default)',
-                        background: on ? 'var(--accent)' : 'var(--bg-surface)',
+                        border: on ? '1px solid var(--accent-solid)' : '1px solid var(--border-default)',
+                        background: on ? 'var(--accent-solid)' : 'var(--bg-surface)',
                         color: on ? 'var(--accent-contrast)' : 'var(--text-muted)',
                         transition: 'all var(--duration-fast) var(--ease-out)',
                       }}
@@ -206,7 +206,6 @@ export default function MemorizationEditor({
                     onClick={() => setShowJuzList((v) => !v)}
                     tabIndex={step === 0 ? 0 : -1}
                     className="btn btn-outline inline-flex items-center gap-3"
-                    style={{ minHeight: 38, fontSize: 13, padding: '0 16px' }}
                   >
                     <span>{t('memorization.juzSelected', { count: selected.size })}</span>
                     <Chevron open={showJuzList} color="currentColor" />
@@ -264,7 +263,7 @@ export default function MemorizationEditor({
                   disabled={!surah}
                   tabIndex={step === 1 ? 0 : -1}
                   className="btn btn-primary"
-                  style={{ minHeight: 40, opacity: surah ? 1 : 0.5 }}
+                  style={{ opacity: surah ? 1 : 0.5 }}
                 >
                   {t('memorization.add')}
                 </button>
@@ -385,8 +384,7 @@ export default function MemorizationEditor({
           <button
             type="button"
             onClick={() => setStep((s) => s - 1)}
-            className="btn btn-ghost"
-            style={{ minHeight: 44 }}
+            className="btn btn-ghost btn-lg"
           >
             {t('memorization.back')}
           </button>
@@ -398,8 +396,8 @@ export default function MemorizationEditor({
           <button
             type="button"
             onClick={() => setStep((s) => s + 1)}
-            className="btn btn-primary"
-            style={{ minHeight: 44, marginInlineStart: 'auto' }}
+            className="btn btn-primary btn-lg"
+            style={{ marginInlineStart: 'auto' }}
           >
             {t('memorization.next')}
           </button>
@@ -408,10 +406,9 @@ export default function MemorizationEditor({
             type="button"
             onClick={save}
             disabled={saving || justSaved}
-            className="btn btn-primary"
+            className="btn btn-primary btn-lg"
             style={{
-              minHeight: 44,
-              marginInlineStart: 'auto',
+                            marginInlineStart: 'auto',
               opacity: saving ? 0.6 : 1,
               background: justSaved ? 'var(--success)' : undefined,
               borderColor: justSaved ? 'var(--success)' : undefined,

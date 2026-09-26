@@ -79,16 +79,14 @@ export default function NoteItem({
               <button
                 onClick={() => onSave(note.id)}
                 disabled={isPending}
-                className="btn btn-primary flex items-center gap-1"
-                style={{ padding: '4px 12px', fontSize: '11px' }}
+                className="btn btn-primary btn-xs flex items-center gap-1"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                 {t('common.save')}
               </button>
               <button
                 onClick={onCancel}
-                className="btn btn-ghost flex items-center gap-1"
-                style={{ padding: '4px 12px', fontSize: '11px' }}
+                className="btn btn-ghost btn-xs flex items-center gap-1"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 {t('common.cancel')}
@@ -119,8 +117,8 @@ export default function NoteItem({
                     onClick={e => { e.stopPropagation(); onLink?.(note); }}
                     title={linked ? t('notes.relink') : t('notes.link')}
                     aria-label={linked ? t('notes.relink') : t('notes.link')}
-                    className="btn btn-ghost flex items-center"
-                    style={{ padding: '2px 6px', fontSize: '10px', color: linked ? 'var(--green-600)' : 'var(--text-muted)' }}
+                    className="btn btn-ghost btn-xs flex items-center"
+                    style={{ color: linked ? 'var(--green-600)' : 'var(--text-muted)' }}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 11-5.656-5.656l1.5-1.5m6.656-2.828a4 4 0 00-5.656 0l-.5.5m8.156 6.156l1.5-1.5a4 4 0 000-5.656 4 4 0 00-5.656 0l-3 3a4 4 0 000 5.656" /></svg>
                   </button>
@@ -130,8 +128,7 @@ export default function NoteItem({
                   >
                   <button
                     onClick={() => onEdit(note)}
-                    className="btn btn-ghost flex items-center gap-1"
-                    style={{ padding: '2px 8px', fontSize: '10px' }}
+                    className="btn btn-ghost btn-xs flex items-center gap-1"
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                     {t('common.edit')}
@@ -139,8 +136,7 @@ export default function NoteItem({
                   <button
                     onClick={() => onDelete(note.id)}
                     disabled={isPending}
-                    className="btn btn-danger-ghost flex items-center gap-1"
-                    style={{ padding: '2px 8px', fontSize: '10px' }}
+                    className="btn btn-danger-ghost btn-xs flex items-center gap-1"
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     {t('common.delete')}

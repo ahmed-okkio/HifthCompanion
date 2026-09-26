@@ -170,18 +170,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                 type="button"
                 onClick={() => onOpenChange(false)}
                 aria-label={t('reader.closeSurahList')}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: 'var(--radius-sm)',   /* 10px token */
-                  background: 'var(--surface-main)',
-                  border: '1px solid var(--border-subtle)',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                }}
+                className="btn btn-ghost btn-icon btn-sm"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
                   <line x1="18" y1="6" x2="6" y2="18" />
@@ -248,7 +237,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                       padding: isMultiSurah ? '14px 12px' : '10px 12px',
                       textAlign: 'left',
                       border: active ? '1px solid var(--border-accent)' : '1px solid transparent',
-                      background: active ? 'var(--green-soft)' : 'var(--surface-main)',
+                      background: active ? 'var(--accent-muted)' : 'var(--surface-main)',
                       cursor: 'pointer',
                       transition: 'all var(--duration-fast) var(--ease-out)',
                     }}

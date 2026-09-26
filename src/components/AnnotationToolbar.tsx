@@ -108,14 +108,11 @@ export default function AnnotationToolbar({
           type="button"
           onClick={onMoveToggle}
           title={t('annot.move')}
-          className="flex flex-col items-center justify-center gap-1"
+          className={`flex flex-col items-center justify-center gap-1 ${moveActive ? 'bg-[var(--accent-muted)]' : 'hover:bg-[var(--neutral-100)]'}`}
           style={{
             ...cellBase,
-            background: moveActive ? 'var(--green-soft)' : 'transparent',
             color: moveActive ? 'var(--text-accent)' : 'var(--text-muted)',
           }}
-          onMouseEnter={e => { if (!moveActive) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-          onMouseLeave={e => { if (!moveActive) (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
         >
           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px' }}>
             <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -132,20 +129,13 @@ export default function AnnotationToolbar({
             ref={el => { buttonRefs.current[t] = el; }}
             onClick={() => onToolClick(t)}
             title={toolLabel(t)}
-            className="flex flex-col items-center justify-center gap-1"
+            className={`flex flex-col items-center justify-center gap-1 ${(activeTool === t && !moveActive) ? 'bg-[var(--accent-muted)]' : 'hover:bg-[var(--neutral-100)]'}`}
             style={{
               ...cellBase,
-              background: (activeTool === t && !moveActive) ? 'var(--green-soft)' : 'transparent',
               color: (activeTool === t && !moveActive) ? 'var(--text-accent)' : 'var(--text-muted)',
             }}
-            onMouseEnter={e => {
-              if (!(activeTool === t && !moveActive)) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)';
-              handleMouseEnter(t);
-            }}
-            onMouseLeave={e => {
-              if (!(activeTool === t && !moveActive)) (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-              onHoverLeave();
-            }}
+            onMouseEnter={() => handleMouseEnter(t)}
+            onMouseLeave={onHoverLeave}
           >
             <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px' }}>
               {TOOL_ICONS[t]}
@@ -165,14 +155,11 @@ export default function AnnotationToolbar({
           suppressHydrationWarning
           title={t('annot.undo')}
           aria-disabled={!canUndo}
-          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6"
+          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6 hover:bg-[var(--neutral-100)]"
           style={{
             ...cellBase,
-            background: 'transparent',
             ...(!canUndo ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none' } : { color: 'var(--text-secondary)' }),
           }}
-          onMouseEnter={e => { if (canUndo) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
         >
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
@@ -186,14 +173,11 @@ export default function AnnotationToolbar({
           suppressHydrationWarning
           title={t('annot.redo')}
           aria-disabled={!canRedo}
-          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6"
+          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6 hover:bg-[var(--neutral-100)]"
           style={{
             ...cellBase,
-            background: 'transparent',
             ...(!canRedo ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none' } : { color: 'var(--text-secondary)' }),
           }}
-          onMouseEnter={e => { if (canRedo) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
         >
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
@@ -207,17 +191,14 @@ export default function AnnotationToolbar({
           title={t('annot.clearAll')}
           aria-label={t('annot.clearAll')}
           aria-disabled={!canClear}
-          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6"
+          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6 hover:bg-[var(--neutral-100)]"
           style={{
             ...cellBase,
-            background: 'transparent',
             // Same disabled treatment as undo/redo above, but keeps the danger hue when live.
             ...(!canClear
               ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none' }
               : { color: 'var(--danger-500)' }),
           }}
-          onMouseEnter={e => { if (canClear) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
         >
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

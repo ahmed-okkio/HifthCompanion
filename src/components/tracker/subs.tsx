@@ -70,7 +70,7 @@ export function SubAssignForm({
                }}
                placeholder={t('subs.email')} className={grow ? 'input flex-1 min-w-0' : 'input'} style={{ minHeight: 36, fontSize: 13 }} />
         {onCancel && (
-          <button onClick={onCancel} aria-label={t('common.cancel')} className="btn btn-ghost shrink-0" style={{ minHeight: 36, fontSize: 12, padding: '0 10px' }}>
+          <button onClick={onCancel} aria-label={t('common.cancel')} className="btn btn-ghost btn-icon btn-sm shrink-0">
             ✕
           </button>
         )}
@@ -124,10 +124,8 @@ export function CoveredBy({ name, onRemove }: { name: string; onRemove?: () => v
         <span className="truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('subs.substitute')}</span>
       </span>
       <ActionButton compact onClick={onRemove} aria-label={t('subs.removeSub', { name })}
-              className="btn btn-ghost shrink-0"
-              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')}
-              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-muted)')}
-              style={{ minHeight: 22, height: 22, width: 22, padding: 0, fontSize: 12, lineHeight: 1, color: 'var(--text-muted)', transition: 'color var(--duration-fast) var(--ease-out)' }}>
+              className="btn btn-ghost btn-icon btn-sm shrink-0"
+              style={{ color: 'var(--text-muted)' }}>
         ✕
       </ActionButton>
     </span>

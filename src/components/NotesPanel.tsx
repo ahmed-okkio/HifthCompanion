@@ -111,8 +111,7 @@ export default function NotesPanel({ setId, pageNum, initialNotes, readOnly = fa
           {readOnly && <span className="badge badge-muted">{t('notes.readOnly')}</span>}
           <button
             onClick={() => setCollapsed(c => !c)}
-            className="btn btn-ghost flex items-center gap-1"
-            style={{ padding: '2px 8px', fontSize: '11px' }}
+            className="btn btn-ghost btn-xs flex items-center gap-1"
           >
             {collapsed ? (
               <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>{t('notes.show')}</>

@@ -249,8 +249,8 @@ export default function TeacherStudent({
                 </span>
               </div>
               {member.status === 'active' ? (
-                <ActionButton onClick={handleDeactivate} className="btn btn-ghost shrink-0"
-                        style={{ minHeight: 34, fontSize: 13, color: 'var(--text-muted)' }}>
+                <ActionButton onClick={handleDeactivate} className="btn btn-ghost btn-sm shrink-0"
+                        style={{ color: 'var(--text-muted)' }}>
                   {t('tracker.deactivate')}
                 </ActionButton>
               ) : (
@@ -409,13 +409,13 @@ export function MushafButton({ setId }: { setId: string | null }) {
   // the student's current default (H2).
   if (!setId) {
     return (
-      <span className="btn btn-ghost" style={{ minHeight: 36, fontSize: 12, opacity: 0.5, cursor: 'default' }}>
+      <span className="btn btn-ghost btn-sm" style={{ opacity: 0.5, cursor: 'default' }}>
         {t('tracker.noDefaultSet')}
       </span>
     );
   }
   return (
-    <a href={`/share/${setId}`} className="btn btn-outline" style={{ minHeight: 36, fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+    <a href={`/share/${setId}`} className="btn btn-outline btn-sm">
       {/* Open-book glyph reused from NavRail's IconSurahs (M1). */}
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
@@ -696,19 +696,19 @@ function StudentSessions({
           {!canceled && (subForSlot(slot.scheduled_at) ? (
             <CoveredBy name={subForSlot(slot.scheduled_at)!} onRemove={() => reclaimSub(slot.scheduled_at)} />
           ) : (
-            <button onClick={() => setAssignKey(assignKey === slot.scheduled_at ? null : slot.scheduled_at)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <button onClick={() => setAssignKey(assignKey === slot.scheduled_at ? null : slot.scheduled_at)} className="btn btn-ghost btn-xs shrink-0">
               {t('subs.assign')}
               <Chevron open={assignKey === slot.scheduled_at} />
             </button>
           ))}
           {reschedulable && !canceled && (
-            <button onClick={() => (editing ? setReschedKey(null) : openReschedule(slot))} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <button onClick={() => (editing ? setReschedKey(null) : openReschedule(slot))} className="btn btn-ghost btn-xs shrink-0">
               {t('sessions.reschedule')}
               <Chevron open={editing} />
             </button>
           )}
           {cancelable && (
-            <ActionButton onClick={() => handleCancel(slot)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11 }}>
+            <ActionButton onClick={() => handleCancel(slot)} className="btn btn-ghost btn-xs shrink-0">
               {canceled ? t('sessions.reinstate') : t('sessions.cancel')}
             </ActionButton>
           )}
@@ -724,10 +724,10 @@ function StudentSessions({
                style={{ borderTop: '1px solid var(--border-subtle)', overflow: reschedOpen ? 'visible' : 'hidden', animation: 'slide-down 0.22s var(--ease-out) both' }}>
             <input type="date" value={reschedDate} onChange={(e) => setReschedDate(e.target.value)} className="input" style={{ minHeight: 36 }} />
             <TimeSelect value={reschedTime} onChange={setReschedTime} style={{ minHeight: 36, width: 130 }} />
-            <ActionButton onClick={() => handleReschedule(slot)} className="btn btn-primary" style={{ minHeight: 36, fontSize: 12, padding: '0 14px' }}>
+            <ActionButton onClick={() => handleReschedule(slot)} className="btn btn-primary btn-sm">
               {t('common.save')}
             </ActionButton>
-            <button onClick={() => setReschedKey(null)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 12 }}>
+            <button onClick={() => setReschedKey(null)} className="btn btn-ghost btn-sm">
               {t('common.cancel')}
             </button>
           </div>
@@ -737,8 +737,7 @@ function StudentSessions({
             {ATT_STATUSES.map((st) => {
               const on = s?.attendance_status === st;
               return (
-                <ActionButton key={st} onClick={() => handleAttendance(slot, st)} className={on ? 'btn btn-primary' : 'btn btn-ghost'}
-                        style={{ minHeight: 30, fontSize: 11, padding: '0 12px' }}>
+                <ActionButton key={st} onClick={() => handleAttendance(slot, st)} className={on ? 'btn btn-primary btn-xs' : 'btn btn-ghost btn-xs'}>
                   {t(`att.${st}`)}
                 </ActionButton>
               );
@@ -767,8 +766,7 @@ function StudentSessions({
       )}
       {part === 'rest' && (<>
       {/* Schedule + ad-hoc collapsed behind a button (set once, tweaked rarely). */}
-      <button onClick={() => setShowSchedule((v) => !v)} className={`${weekdays.length ? 'btn btn-outline' : 'btn btn-primary'} self-start`}
-              style={{ minHeight: 40, fontSize: 13, padding: '0 16px', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      <button onClick={() => setShowSchedule((v) => !v)} className={`${weekdays.length ? 'btn btn-outline' : 'btn btn-primary'} self-start`}>
         <Icon name="calendar" size={16} />
         {weekdays.length ? t('sessions.editSchedule') : t('sessions.setSchedule')}
         <Chevron open={showSchedule} color={weekdays.length ? 'var(--text-muted)' : 'var(--accent-contrast)'} />
@@ -782,7 +780,7 @@ function StudentSessions({
             const on = weekdays.includes(d);
             return (
               <button key={d} onClick={() => toggleDay(d)} className={on ? 'btn btn-primary' : 'btn btn-ghost'}
-                      style={{ minHeight: 40, minWidth: 52, fontSize: 13, borderRadius: 'var(--radius-full)', padding: '6px 14px' }}>
+                      style={{ minWidth: 52, borderRadius: 'var(--radius-full)', padding: '6px 14px' }}>
                 {label}
               </button>
             );
@@ -801,7 +799,7 @@ function StudentSessions({
               ))}
             </select>
           </label>
-          <ActionButton onClick={handleSave} className="btn btn-primary" style={{ minHeight: 40, fontSize: 13, padding: '0 18px' }}>
+          <ActionButton onClick={handleSave} className="btn btn-primary">
             {t('sessions.saveSchedule')}
           </ActionButton>
         </div>
@@ -816,7 +814,7 @@ function StudentSessions({
             <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('sessions.time')}</span>
             <input type="time" value={adhocTime} onChange={(e) => setAdhocTime(e.target.value)} className="input" style={{ minHeight: 40 }} />
           </label>
-          <ActionButton onClick={handleAdhoc} disabled={!adhocDate} className="btn btn-outline" style={{ minHeight: 40, fontSize: 13, padding: '0 16px' }}>
+          <ActionButton onClick={handleAdhoc} disabled={!adhocDate} className="btn btn-outline">
             {t('sessions.addAdhoc')}
           </ActionButton>
         </div>
@@ -931,19 +929,19 @@ function PagedHistory({
   const cur = Math.min(page, pages - 1);
   const shown = slots.slice(cur * perPage, cur * perPage + perPage);
 
-  const arrow: React.CSSProperties = { minHeight: 32, minWidth: 32, fontSize: 16, padding: 0 };
+  const arrow: React.CSSProperties = { fontSize: 16 };
 
   return (
     <div ref={ref} className="flex flex-col gap-2">
       {shown.map(render)}
       {pages > 1 && (
         <div className="flex items-center justify-center gap-3">
-          <button className="btn btn-ghost" style={arrow} disabled={cur === 0}
+          <button className="btn btn-ghost btn-icon btn-sm" style={arrow} disabled={cur === 0}
                   onClick={() => setPage(cur - 1)} aria-label="Previous">
             <span className="rtl:-scale-x-100">‹</span>
           </button>
           <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtNum(cur + 1)} / {fmtNum(pages)}</span>
-          <button className="btn btn-ghost" style={arrow} disabled={cur >= pages - 1}
+          <button className="btn btn-ghost btn-icon btn-sm" style={arrow} disabled={cur >= pages - 1}
                   onClick={() => setPage(cur + 1)} aria-label="Next">
             <span className="rtl:-scale-x-100">›</span>
           </button>
@@ -1095,7 +1093,7 @@ export function HomeworkPanel({
     <div className="flex flex-col gap-2">
       {/* Prescribe form collapsed behind a button; review is the default surface (P6/P7). */}
       {canPrescribe && !prescribing && (
-        <button onClick={() => setPrescribing(true)} className="btn btn-primary self-center" style={{ minHeight: 44 }}>
+        <button onClick={() => setPrescribing(true)} className="btn btn-primary btn-lg self-center">
           {t('homework.prescribe')}
         </button>
       )}
@@ -1120,10 +1118,10 @@ export function HomeworkPanel({
         <input value={instructions} onChange={(e) => setInstructions(e.target.value)}
                placeholder={t('homework.instructions')} className="input" />
         <div className="flex gap-2">
-          <ActionButton onClick={handlePrescribe} disabled={busy || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44 }}>
+          <ActionButton onClick={handlePrescribe} disabled={busy || entries.length === 0} className="btn btn-primary btn-lg">
             {t('homework.prescribe')}
           </ActionButton>
-          <button onClick={() => setPrescribing(false)} className="btn btn-ghost" style={{ minHeight: 44 }}>
+          <button onClick={() => setPrescribing(false)} className="btn btn-ghost btn-lg">
             {t('common.cancel')}
           </button>
         </div>
@@ -1150,7 +1148,7 @@ export function HomeworkPanel({
         ),
       )}
       {feed.length > shown && (
-        <button onClick={() => setShown((n) => n + PER_PAGE)} className="btn btn-ghost self-center" style={{ minHeight: 40, fontSize: 13 }}>
+        <button onClick={() => setShown((n) => n + PER_PAGE)} className="btn btn-ghost self-center">
           {t('grade.loadMore')}
         </button>
       )}
@@ -1247,7 +1245,7 @@ function PrescriptionCard({
         {canPrescribe && (
           <ActionButton
             onClick={() => { if (confirm(t('homework.deleteConfirm'))) onDelete(ids); }}
-            className="btn btn-danger-ghost self-start" style={{ minHeight: 36, fontSize: 13 }}
+            className="btn btn-danger-ghost btn-sm self-start"
           >
             {t('homework.delete')}
           </ActionButton>
@@ -1318,7 +1316,7 @@ function TeacherResultForm({
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="btn btn-ghost self-start" style={{ minHeight: 32, fontSize: 12 }}>
+      <button onClick={() => setOpen(true)} className="btn btn-ghost btn-sm self-start">
         {t('homework.submitForStudent')}
       </button>
     );
@@ -1329,7 +1327,7 @@ function TeacherResultForm({
       {opts.map((s) => (
         <button key={s.label} onClick={() => set(s.label)} className="badge" style={{
           cursor: 'pointer',
-          background: value === s.label ? 'var(--accent)' : undefined,
+          background: value === s.label ? 'var(--accent-solid)' : undefined,
           color: value === s.label ? 'var(--accent-contrast)' : undefined,
         }}>
           {s.label}
@@ -1351,10 +1349,10 @@ function TeacherResultForm({
       <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('grade.comment')} className="input input-sm" style={{ minHeight: 34 }} />
       {error && <span className="text-xs" style={{ color: 'var(--danger)' }}>{error}</span>}
       <div className="flex gap-2">
-        <ActionButton onClick={submit} disabled={busy} className="btn btn-primary self-start" style={{ minHeight: 36, fontSize: 13 }}>
+        <ActionButton onClick={submit} disabled={busy} className="btn btn-primary btn-sm self-start">
           {t('log.submit')}
         </ActionButton>
-        <button onClick={() => setOpen(false)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 13 }}>
+        <button onClick={() => setOpen(false)} className="btn btn-ghost btn-sm">
           {t('common.cancel')}
         </button>
       </div>
@@ -1519,8 +1517,7 @@ export function SurahPicker({
             </label>
           </>))}
           <button type="button" onClick={() => setIsRange((v) => !v)} aria-pressed={isRange}
-                  className={isRange ? 'btn btn-primary shrink-0' : 'btn btn-outline shrink-0'}
-                  style={{ minHeight: 44, fontSize: 13, padding: '0 16px' }}>
+                  className={isRange ? 'btn btn-primary btn-lg shrink-0' : 'btn btn-outline btn-lg shrink-0'}>
             {locale === 'ar' ? 'نطاق' : 'Range'}
           </button>
         </div>
@@ -1639,7 +1636,7 @@ function ExamsPanel({
   return (
     <div className="flex flex-col gap-2">
       {!scheduling && (
-        <button onClick={() => setScheduling(true)} className="btn btn-primary self-center" style={{ minHeight: 44 }}>
+        <button onClick={() => setScheduling(true)} className="btn btn-primary btn-lg self-center">
           {t('exam.schedule')}
         </button>
       )}
@@ -1651,10 +1648,10 @@ function ExamsPanel({
           </label>
           <ExamCoveragePicker onChange={setEntries} locale={locale} />
           <div className="flex gap-2">
-            <ActionButton onClick={handleSchedule} disabled={busy || !date || entries.length === 0} className="btn btn-primary" style={{ minHeight: 44 }}>
+            <ActionButton onClick={handleSchedule} disabled={busy || !date || entries.length === 0} className="btn btn-primary btn-lg">
               {t('exam.schedule')}
             </ActionButton>
-            <button onClick={() => setScheduling(false)} className="btn btn-ghost" style={{ minHeight: 44 }}>
+            <button onClick={() => setScheduling(false)} className="btn btn-ghost btn-lg">
               {t('common.cancel')}
             </button>
           </div>
@@ -1739,8 +1736,7 @@ function ExamCoveragePicker({
           />
         </div>
         <button type="button" onClick={() => setIsRange((v) => !v)} aria-pressed={isRange}
-                className={isRange ? 'btn btn-primary shrink-0' : 'btn btn-outline shrink-0'}
-                style={{ minHeight: 40, fontSize: 13, padding: '0 16px' }}>
+                className={isRange ? 'btn btn-primary shrink-0' : 'btn btn-outline shrink-0'}>
           {locale === 'ar' ? 'نطاق' : 'Range'}
         </button>
       </div>
@@ -1902,19 +1898,19 @@ export function ExamCard({
             </label>
           )}
           <div className="flex flex-wrap gap-2">
-            <ActionButton onClick={() => onGrade(exam.id, 'passed', notes || null)} className={exam.status === 'passed' ? 'btn btn-primary' : 'btn btn-outline'} style={{ minHeight: 36, fontSize: 13 }}>
+            <ActionButton onClick={() => onGrade(exam.id, 'passed', notes || null)} className={exam.status === 'passed' ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm'}>
               {t('exam.statusPassed')}
             </ActionButton>
-            <ActionButton onClick={() => onGrade(exam.id, 'failed', notes || null)} className={exam.status === 'failed' ? 'btn btn-primary' : 'btn btn-outline'} style={{ minHeight: 36, fontSize: 13 }}>
+            <ActionButton onClick={() => onGrade(exam.id, 'failed', notes || null)} className={exam.status === 'failed' ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm'}>
               {t('exam.statusFailed')}
             </ActionButton>
             {exam.status !== 'scheduled' && (
-              <ActionButton onClick={() => onGrade(exam.id, 'scheduled', notes || null)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 13 }}>
+              <ActionButton onClick={() => onGrade(exam.id, 'scheduled', notes || null)} className="btn btn-ghost btn-sm">
                 {t('exam.statusScheduled')}
               </ActionButton>
             )}
             {onDelete && (
-              <ActionButton onClick={() => onDelete(exam.id)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 13, color: 'var(--danger)', marginInlineStart: 'auto' }}>
+              <ActionButton onClick={() => onDelete(exam.id)} className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)', marginInlineStart: 'auto' }}>
                 {t('common.delete')}
               </ActionButton>
             )}
@@ -2001,7 +1997,7 @@ export function GradeableLog({
             {statuses.map((s) => (
               <button key={s.label} onClick={() => setStatus(s.label)} className="badge" style={{
                 cursor: 'pointer',
-                background: status === s.label ? 'var(--accent)' : undefined,
+                background: status === s.label ? 'var(--accent-solid)' : undefined,
                 color: status === s.label ? 'var(--accent-contrast)' : undefined,
               }}>
                 {s.label}
@@ -2009,7 +2005,7 @@ export function GradeableLog({
             ))}
           </div>
           <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('grade.comment')} className="input input-sm" style={{ minHeight: 34 }} />
-          <ActionButton onClick={handleGrade} disabled={busy || !status} className="btn btn-primary self-start" style={{ minHeight: 36, fontSize: 13 }}>
+          <ActionButton onClick={handleGrade} disabled={busy || !status} className="btn btn-primary btn-sm self-start">
             {t('grade.markReviewed')}
           </ActionButton>
         </div>

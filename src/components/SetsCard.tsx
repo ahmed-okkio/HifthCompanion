@@ -89,18 +89,18 @@ export default function SetsCard({ user, sets, selectedSetId, saving, onSetChang
                 {error && <p style={{ fontSize: 11, color: 'var(--danger)' }}>{error}</p>}
                 <div className="flex gap-2">
                   <button onClick={handleCreate} disabled={!name.trim() || busy}
-                          className="btn btn-primary flex-1" style={{ minHeight: 34, fontSize: 12 }}>
+                          className="btn btn-primary btn-sm flex-1">
                     {t('common.create')}
                   </button>
                   <button onClick={() => { setAdding(false); setName(''); setError(''); }}
-                          className="btn btn-ghost" style={{ minHeight: 34, fontSize: 12 }}>
+                          className="btn btn-ghost btn-sm">
                     {t('common.cancel')}
                   </button>
                 </div>
               </div>
             ) : (
               <button type="button" onClick={() => setAdding(true)}
-                      className="btn btn-outline w-full" style={{ minHeight: 36, fontSize: 12, justifyContent: 'center' }}>
+                      className="btn btn-outline btn-sm w-full" style={{ justifyContent: 'center' }}>
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>

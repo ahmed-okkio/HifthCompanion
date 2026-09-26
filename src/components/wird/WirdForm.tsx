@@ -194,7 +194,7 @@ export default function WirdForm({
             type="button"
             onClick={onClose}
             aria-label={t('wird.cancel')}
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, lineHeight: 0 }}
+            className="btn btn-ghost btn-icon btn-sm"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -294,15 +294,15 @@ export default function WirdForm({
           )}
 
           <div className="flex items-center justify-end gap-2">
-            <button type="button" onClick={onClose} className="btn btn-ghost" style={{ minHeight: 44 }}>
+            <button type="button" onClick={onClose} className="btn btn-ghost btn-lg">
               {t('wird.cancel')}
             </button>
             <button
               type="button"
               onClick={submit}
               disabled={endBeforeStart}
-              className="btn btn-primary"
-              style={{ minHeight: 44, opacity: endBeforeStart ? 0.6 : 1 }}
+              className="btn btn-primary btn-lg"
+              style={{ opacity: endBeforeStart ? 0.6 : 1 }}
             >
               {t(editing ? 'wird.saveChanges' : 'wird.create')}
             </button>

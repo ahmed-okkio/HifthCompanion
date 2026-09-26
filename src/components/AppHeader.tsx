@@ -52,8 +52,7 @@ export default function AppHeader({
               type="button"
               onClick={onOpenNav}
               aria-label={t('nav.openNavigation')}
-              className="lg:hidden flex items-center justify-center shrink-0"
-              style={{ width: 40, height: 40, marginInlineStart: -8, borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
+              className="btn btn-ghost btn-icon shrink-0 -ms-2 lg:hidden"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
                 <line x1="3" y1="6" x2="21" y2="6" />

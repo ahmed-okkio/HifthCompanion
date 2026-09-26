@@ -41,8 +41,7 @@ export default function NoteForm({ value, isPending, onChange, onSubmit, onAddAn
           <button
             onClick={onAddAndLink}
             disabled={disabled}
-            className="btn btn-primary w-full flex items-center justify-center gap-1"
-            style={{ padding: '8px 14px', fontSize: '12px' }}
+            className="btn btn-primary btn-sm w-full flex items-center justify-center gap-1"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 11-5.656-5.656l1.5-1.5m6.656-2.828a4 4 0 00-5.656 0l-.5.5m8.156 6.156l1.5-1.5a4 4 0 000-5.656 4 4 0 00-5.656 0l-3 3a4 4 0 000 5.656" /></svg>
             {t('notes.addAndLink')}
@@ -52,8 +51,7 @@ export default function NoteForm({ value, isPending, onChange, onSubmit, onAddAn
             <button
               onClick={() => onSubmit(undefined)}
               disabled={disabled}
-              className="btn btn-ghost flex items-center gap-1"
-              style={{ padding: '4px 12px', fontSize: '11px' }}
+              className="btn btn-ghost btn-xs flex items-center gap-1"
             >
               {t('notes.addNote')}
             </button>

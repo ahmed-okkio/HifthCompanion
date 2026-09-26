@@ -286,8 +286,8 @@ export default function TeacherCircle({
     <div className="card flex flex-col gap-4" style={{ padding: '18px' }}>
       {/* One green CTA for the whole invite component — expands link + email. */}
       <button onClick={() => setInviteOpen((o) => !o)}
-              className="btn btn-primary flex items-center justify-center gap-2"
-              style={{ minHeight: 44 }} aria-expanded={inviteOpen}>
+              className="btn btn-primary btn-lg flex items-center justify-center gap-2"
+              aria-expanded={inviteOpen}>
         {t('tracker.invite')}
         <Chevron open={inviteOpen} color="currentColor" />
       </button>
@@ -303,10 +303,10 @@ export default function TeacherCircle({
               {inviteLink}
             </code>
             <div className="flex gap-2">
-              <ActionButton onClick={handleCopy} className="btn btn-outline flex-1" style={{ minHeight: 38, fontSize: 13 }}>
+              <ActionButton onClick={handleCopy} className="btn btn-outline flex-1">
                 {t(copied ? 'common.copied' : 'common.copy')}
               </ActionButton>
-              <ActionButton onClick={handleRotate} className="btn btn-ghost flex-1" style={{ minHeight: 38, fontSize: 13 }}>
+              <ActionButton onClick={handleRotate} className="btn btn-ghost flex-1">
                 {t('tracker.rotateCode')}
               </ActionButton>
             </div>
@@ -319,7 +319,7 @@ export default function TeacherCircle({
             <input value={email} onChange={(e) => setEmail(e.target.value)} type="email"
                    onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
                    placeholder={t('tracker.inviteByEmail')} className="input" />
-            <ActionButton onClick={handleInvite} disabled={!email.trim()} className="btn btn-outline" style={{ minHeight: 40 }}>
+            <ActionButton onClick={handleInvite} disabled={!email.trim()} className="btn btn-outline">
               {t('common.create')}
             </ActionButton>
           </div>
@@ -430,7 +430,7 @@ export default function TeacherCircle({
                       <>
                         <div style={{ height: 1, background: 'var(--border-subtle)' }} />
                         <div className="flex gap-1">
-                          <ActionButton onClick={() => handleStatus(m.id, 'active')} className="btn btn-outline" style={{ minHeight: 32, fontSize: 12, padding: '4px 10px' }}>
+                          <ActionButton onClick={() => handleStatus(m.id, 'active')} className="btn btn-outline btn-sm">
                             {t('tracker.reactivate')}
                           </ActionButton>
                         </div>
@@ -457,8 +457,8 @@ export default function TeacherCircle({
                 <div className="flex justify-end min-w-0"
                      style={{ marginInlineStart: 'auto', flex: pickerOpen ? '1 1 auto' : '0 0 auto', maxWidth: pickerOpen ? 420 : 200, transition: 'max-width 480ms cubic-bezier(.22,1,.36,1), flex-basis 480ms cubic-bezier(.22,1,.36,1)' }}>
                   {!pickerOpen ? (
-                    <button onClick={() => setPickerOpen(true)} className="btn btn-primary shrink-0"
-                            style={{ minHeight: 34, fontSize: 12, padding: '0 14px', animation: 'fade-in-scale 200ms ease' }}>
+                    <button onClick={() => setPickerOpen(true)} className="btn btn-primary btn-sm shrink-0"
+                            style={{ animation: 'fade-in-scale 200ms ease' }}>
                       {t('subs.selectMode')}
                     </button>
                   ) : !pendingSub ? (
@@ -471,10 +471,10 @@ export default function TeacherCircle({
                         {t('subs.coveredBy', { name: pendingSub.name })} · {t('subs.selected', { count: selected.size })}
                       </span>
                       <ActionButton onClick={handleBulkAssign} disabled={selected.size === 0}
-                              className="btn btn-primary shrink-0" style={{ minHeight: 32, fontSize: 12, padding: '0 14px' }}>
+                              className="btn btn-primary btn-sm shrink-0">
                         {t('subs.confirmAssign')}
                       </ActionButton>
-                      <button onClick={exitSelectMode} className="btn btn-ghost shrink-0" style={{ minHeight: 32, fontSize: 12 }}>
+                      <button onClick={exitSelectMode} className="btn btn-ghost btn-sm shrink-0">
                         {t('common.cancel')}
                       </button>
                     </div>
@@ -511,18 +511,18 @@ export default function TeacherCircle({
                       {!item.canceled && (subName(item) ? (
                         <CoveredBy name={subName(item)!} onRemove={() => handleReclaim(item)} />
                       ) : (
-                        <button onClick={() => setManageKey(manageKey === item.key ? null : item.key)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <button onClick={() => setManageKey(manageKey === item.key ? null : item.key)} className="btn btn-ghost btn-xs shrink-0">
                           {t('subs.assign')}
                           <Chevron open={manageKey === item.key} />
                         </button>
                       ))}
                       {!item.canceled && (
-                        <button onClick={() => (editing ? setReschedKey(null) : openReschedule(item))} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <button onClick={() => (editing ? setReschedKey(null) : openReschedule(item))} className="btn btn-ghost btn-xs shrink-0">
                           {t('sessions.reschedule')}
                           <Chevron open={editing} />
                         </button>
                       )}
-                      <ActionButton onClick={() => handleCancelAgenda(item)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11 }}>
+                      <ActionButton onClick={() => handleCancelAgenda(item)} className="btn btn-ghost btn-xs shrink-0">
                         {item.canceled ? t('sessions.reinstate') : t('sessions.cancel')}
                       </ActionButton>
                       </div>
@@ -537,10 +537,10 @@ export default function TeacherCircle({
                            style={{ borderTop: '1px solid var(--border-subtle)', overflow: reschedOpen ? 'visible' : 'hidden', animation: 'slide-down 0.22s var(--ease-out) both' }}>
                         <input type="date" value={reschedDate} onChange={(e) => setReschedDate(e.target.value)} className="input" style={{ minHeight: 36 }} />
                         <TimeSelect value={reschedTime} onChange={setReschedTime} style={{ minHeight: 36, width: 130 }} />
-                        <ActionButton onClick={() => handleRescheduleAgenda(item)} className="btn btn-primary" style={{ minHeight: 36, fontSize: 12, padding: '0 14px' }}>
+                        <ActionButton onClick={() => handleRescheduleAgenda(item)} className="btn btn-primary btn-sm">
                           {t('common.save')}
                         </ActionButton>
-                        <button onClick={() => setReschedKey(null)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 12 }}>
+                        <button onClick={() => setReschedKey(null)} className="btn btn-ghost btn-sm">
                           {t('common.cancel')}
                         </button>
                       </div>
@@ -555,8 +555,7 @@ export default function TeacherCircle({
               <div className="flex items-center justify-center gap-3" style={{ marginTop: 4 }}>
                 <button onClick={() => setManageWeek((w) => Math.max(0, w - 1))}
                         disabled={manageWeek === 0 || loadingWeek}
-                        aria-label={t('subs.prevWeek')} className="btn btn-ghost"
-                        style={{ minHeight: 34, padding: '0 12px' }}>
+                        aria-label={t('subs.prevWeek')} className="btn btn-ghost btn-icon btn-sm">
                   <span className="flex rotate-180"><Chevron /></span>
                 </button>
                 <span className="text-xs" style={{ color: 'var(--text-muted)', minWidth: 90, textAlign: 'center' }}>
@@ -564,8 +563,7 @@ export default function TeacherCircle({
                 </span>
                 <button onClick={() => setManageWeek((w) => w + 1)}
                         disabled={!hasNextWeek || loadingWeek}
-                        aria-label={t('subs.nextWeek')} className="btn btn-ghost"
-                        style={{ minHeight: 34, padding: '0 12px' }}>
+                        aria-label={t('subs.nextWeek')} className="btn btn-ghost btn-icon btn-sm">
                   <Chevron />
                 </button>
               </div>
@@ -586,7 +584,7 @@ export default function TeacherCircle({
                     {t('tracker.deleteCircleConfirm')}
                   </span>
                 </div>
-                <ActionButton onClick={handleDelete} className="btn btn-danger-ghost shrink-0" style={{ minHeight: 34, fontSize: 13 }}>
+                <ActionButton onClick={handleDelete} className="btn btn-danger-ghost btn-sm shrink-0">
                   {t('tracker.deleteCircle')}
                 </ActionButton>
               </div>

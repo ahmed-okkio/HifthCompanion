@@ -50,7 +50,7 @@ export default function MobileAnnotationBar({
       className="fixed inset-x-3.5 bottom-[calc(env(safe-area-inset-bottom,0px)+16px)] z-45 lg:hidden"
     >
       {/* V3 Story 16 — glass bar: white-tinted glass + 16px backdrop blur, deep shadow. */}
-      <div className="relative rounded-xl border border-subtle bg-glass shadow-e3 backdrop-blur-lg backdrop-saturate-150">
+      <div className="relative rounded-xl border border-subtle bg-glass shadow-float backdrop-blur-lg backdrop-saturate-150">
       {saving && (
         <span
           aria-hidden

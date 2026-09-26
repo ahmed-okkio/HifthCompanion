@@ -53,7 +53,7 @@ export default function WirdHeatmap({ doneDates, weeks = 16 }: { doneDates: stri
           title={iso}
           data-done={filled || undefined}
           // out-of-range future days: hold the slot, draw nothing
-          className={`aspect-square min-w-0 rounded-sm ${filled ? 'bg-green-600' : 'bg-neutral-200'} ${future ? 'opacity-0' : ''}`}
+          className={`aspect-square min-w-0 rounded-xs ${filled ? 'bg-green-600' : 'bg-neutral-200'} ${future ? 'opacity-0' : ''}`}
         />,
       );
     }

@@ -33,14 +33,14 @@ test.describe('Annotations Persistence', () => {
     const upperCanvas = page.locator('.upper-canvas');
     await expect(upperCanvas).toBeVisible();
     await expect.poll(async () => {
-      return await page.evaluate(() => Boolean((window as any).fabricCanvas));
+      return await page.evaluate(() => Boolean(window.fabricCanvas));
     }, { timeout: 10000 }).toBeTruthy();
 
     // Explicitly select our set (parallel tests may have added other sets)
     const picker = page.locator('#set-picker-top');
     await picker.selectOption({ label: setName });
     await expect.poll(async () => {
-      return await page.evaluate(() => Boolean((window as any).fabricCanvas));
+      return await page.evaluate(() => Boolean(window.fabricCanvas));
     }, { timeout: 10000 }).toBeTruthy();
     // Poll until canvas-ready attr appears (handles cycle and instant load)
     await expect.poll(async () => {
@@ -53,7 +53,7 @@ test.describe('Annotations Persistence', () => {
 
     // Confirm drawing mode is armed before we draw
     await expect.poll(async () => {
-      return await page.evaluate(() => Boolean((window as any).fabricCanvas?.isDrawingMode));
+      return await page.evaluate(() => Boolean(window.fabricCanvas?.isDrawingMode));
     }, { timeout: 10000 }).toBeTruthy();
 
     // 5. Draw on the canvas with retry — slow FS can delay event registration
@@ -77,7 +77,7 @@ test.describe('Annotations Persistence', () => {
       try {
         await expect.poll(async () => {
           return await page.evaluate(() => {
-            const canvas = (window as any).fabricCanvas;
+            const canvas = window.fabricCanvas;
             return canvas ? canvas.getObjects().length > 0 : false;
           });
         }, { timeout: 3000 }).toBeTruthy();
@@ -103,7 +103,7 @@ test.describe('Annotations Persistence', () => {
     const pickerAfter = page.locator('#set-picker-top');
     await pickerAfter.selectOption({ label: setName });
     await expect.poll(async () => {
-      return await page.evaluate(() => Boolean((window as any).fabricCanvas));
+      return await page.evaluate(() => Boolean(window.fabricCanvas));
     }, { timeout: 10000 }).toBeTruthy();
     await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible();
     await page.click('button[title="Pen"]', { force: true });
@@ -111,7 +111,6 @@ test.describe('Annotations Persistence', () => {
     // Check if drawing restored
     await expect.poll(async () => {
       return await page.evaluate(() => {
-        // @ts-ignore
         const canvas = window.fabricCanvas;
         return canvas ? canvas.getObjects().length > 0 : false;
       });

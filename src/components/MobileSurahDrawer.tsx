@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { activeGroupPage, filterSurahGroups, getSurahName, pageFromLocation, type SurahPageGroup } from '@/lib/quran';
-import { pinStorageKey } from '@/lib/bookmark';
+import { usePinnedPage } from '@/hooks/usePinnedPage';
 import { useI18n } from '@/components/I18nProvider';
 import { useGoToPage } from '@/hooks/useGoToPage';
 
@@ -17,28 +17,15 @@ interface Props {
 export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/reader', isSpread = false }: Props) {
   const { t, locale, fmtNum } = useI18n();
   const [query, setQuery] = useState('');
-  const [bookmarkedPage, setBookmarkedPage] = useState<number | null>(null);
+  const [bookmarkedPage, toggleBookmarkedPage] = usePinnedPage(basePath);
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
   const hasAutoScrolledRef = useRef(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suppressClickRef = useRef(false);
 
-  const BOOKMARK_KEY = pinStorageKey(basePath);
-
-  useEffect(() => {
-    const raw = localStorage.getItem(BOOKMARK_KEY);
-    const n = raw ? parseInt(raw, 10) : NaN;
-    setBookmarkedPage(!isNaN(n) && n > 0 ? n : null);
-  }, [BOOKMARK_KEY]);
-
   const toggleBookmark = (page: number) => {
-    setBookmarkedPage(prev => {
-      const next = prev === page ? null : page;
-      if (next === null) localStorage.removeItem(BOOKMARK_KEY);
-      else localStorage.setItem(BOOKMARK_KEY, String(next));
-      return next;
-    });
+    toggleBookmarkedPage(page);
     if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(15);
   };
 
@@ -81,10 +68,10 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
       setTimeout(() => searchInputRef.current?.focus(), 150);
     } else {
       document.body.style.overflow = '';
-      setQuery('');
     }
     return () => {
       document.body.style.overflow = '';
+      if (open) setQuery(''); // closing clears the search
     };
   }, [open]);
 

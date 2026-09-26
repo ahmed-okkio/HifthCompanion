@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { createAnnotationStore, createFakeAnnotationStore, type CanvasJson } from '@/lib/annotationStore';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Minimal hand-written stub matching the Supabase query chain the store uses.
 function stubClient(opts: {
-  maybeSingle?: { data: any; error: any };
-  upsertError?: any;
-  deleteError?: any;
+  maybeSingle?: { data: unknown; error: unknown };
+  upsertError?: unknown;
+  deleteError?: unknown;
 }) {
-  const calls: any = { upsert: null, delete: null };
+  const calls: { upsert: { row: Record<string, unknown>; config: { onConflict?: string } } | null; delete: unknown } = { upsert: null, delete: null };
   const client = {
     from() {
       return {
@@ -26,13 +27,13 @@ function stubClient(opts: {
             },
           };
         },
-        upsert(row: any, config: any) {
+        upsert(row: Record<string, unknown>, config: { onConflict?: string }) {
           calls.upsert = { row, config };
           return Promise.resolve({ error: opts.upsertError ?? null });
         },
         delete() {
           return {
-            match(m: any) {
+            match(m: unknown) {
               calls.delete = m;
               return Promise.resolve({ error: opts.deleteError ?? null });
             },
@@ -41,7 +42,7 @@ function stubClient(opts: {
       };
     },
   };
-  return { client, calls };
+  return { client: client as unknown as SupabaseClient, calls };
 }
 
 const nonEmpty: CanvasJson = { objects: [{ type: 'path' }], width: 800, height: 600 };
@@ -60,11 +61,11 @@ describe('createAnnotationStore.save', () => {
     const { client, calls } = stubClient({});
     const res = await createAnnotationStore(client).save('s1', 3, nonEmpty);
     expect(res).toEqual({ status: 'saved' });
-    expect(calls.upsert.config.onConflict).toBe('set_id,page_number');
-    expect(calls.upsert.row.set_id).toBe('s1');
-    expect(calls.upsert.row.page_number).toBe(3);
-    expect(calls.upsert.row.canvas_json).toBe(nonEmpty);
-    expect(typeof calls.upsert.row.updated_at).toBe('string');
+    expect(calls.upsert!.config.onConflict).toBe('set_id,page_number');
+    expect(calls.upsert!.row.set_id).toBe('s1');
+    expect(calls.upsert!.row.page_number).toBe(3);
+    expect(calls.upsert!.row.canvas_json).toBe(nonEmpty);
+    expect(typeof calls.upsert!.row.updated_at).toBe('string');
   });
 
   it('upsert error code 42501 → denied', async () => {

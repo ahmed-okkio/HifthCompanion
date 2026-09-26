@@ -1,8 +1,10 @@
-import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect, useLayoutEffect } from 'react';
 import { fabric } from 'fabric';
 import { createClient } from '@/lib/supabase/client';
 import { createAnnotationStore, type CanvasJson } from '@/lib/annotationStore';
 import { pruneDegenerate, clusterCount, clusterColors, type MarkColors } from '@/lib/markedPages';
+
+type MarkObject = Parameters<typeof clusterColors>[0][number];
 import { CanvasHistory } from '@/lib/canvasHistory';
 import { TOTAL_PAGES } from '@/lib/quran';
 import { type PageCanvasSize } from '@/lib/pageCanvas';
@@ -11,7 +13,7 @@ import { reconcileNoteBindings } from '@/lib/services/notes';
 type AnnotCacheEntry = { json: CanvasJson | null };
 const annotCache = new Map<string, AnnotCacheEntry>();
 const annotKey = (setId: string, page: number) => `${setId}:${page}`;
-const objectsSig = (j: CanvasJson | null) => JSON.stringify((j as any)?.objects ?? []);
+const objectsSig = (j: CanvasJson | null) => JSON.stringify(j?.objects ?? []);
 
 const SAVE_DELAY_MS = 1500;
 const SKELETON_DELAY_MS = 140;
@@ -72,9 +74,9 @@ export function useCanvasPersistence({
   const store = useMemo(() => createAnnotationStore(supabase), [supabase]);
 
   const onCommitRef = useRef(onCommit);
-  onCommitRef.current = onCommit;
+  useLayoutEffect(() => { onCommitRef.current = onCommit; });
   const onSavedRef = useRef(onSaved);
-  onSavedRef.current = onSaved;
+  useLayoutEffect(() => { onSavedRef.current = onSaved; });
 
   const refreshHistory = useCallback(() => {
     const h = historyRef.current;
@@ -104,7 +106,7 @@ export function useCanvasPersistence({
   }, [historyRef, refreshHistory]);
 
   const commitRef = useRef(commit);
-  commitRef.current = commit;
+  useLayoutEffect(() => { commitRef.current = commit; });
 
   const scheduleSkeleton = useCallback(() => {
     if (skeletonTimerRef.current) return;
@@ -121,8 +123,7 @@ export function useCanvasPersistence({
   useEffect(() => () => cancelSkeleton(), [cancelSkeleton]);
 
   useEffect(() => {
-    const w = window as any;
-    const set: Set<() => void> = w.__hifthCanvasSkeletons ?? (w.__hifthCanvasSkeletons = new Set());
+    const set = (window.__hifthCanvasSkeletons ??= new Set());
     set.add(scheduleSkeleton);
     return () => { set.delete(scheduleSkeleton); };
   }, [scheduleSkeleton]);
@@ -139,10 +140,12 @@ export function useCanvasPersistence({
     if (!dirtyRef.current && !saveTimerRef.current) return;
     setSaving(true);
     try {
-      const json = canvas.toJSON(['id'] as any);
-      delete (json as any).backgroundImage;
-      (json as any).objects = pruneDegenerate((json as any).objects ?? []);
-      const payload: CanvasJson = { width: canvas.getWidth(), height: canvas.getHeight(), ...(json as any) };
+      const json = canvas.toJSON(['id']) as unknown as Partial<CanvasJson> & { backgroundImage?: unknown };
+      delete json.backgroundImage;
+      const payload: CanvasJson = {
+        width: canvas.getWidth(), height: canvas.getHeight(), ...json,
+        objects: pruneDegenerate((json.objects ?? []) as MarkObject[]),
+      };
       // Never let an empty payload DELETE a page unless the user actually emptied it. A blank
       // payload otherwise means a save raced the async load (fresh mount / hot reload leaves the
       // canvas momentarily empty), and deleting here would silently wipe saved annotations.
@@ -155,8 +158,8 @@ export function useCanvasPersistence({
       // One gap for both: the per-colour breakdown has to come from the same clustering as
       // the total, or the panel's chips won't sum to the badge next to them.
       const gap = Math.max(16, Math.round(canvas.getWidth() * 0.03));
-      const count = payload.objects.length === 0 ? 0 : clusterCount(payload.objects as any, gap);
-      const colors = count === 0 ? {} : clusterColors(payload.objects as any, gap);
+      const count = payload.objects.length === 0 ? 0 : clusterCount(payload.objects as MarkObject[], gap);
+      const colors = count === 0 ? {} : clusterColors(payload.objects as MarkObject[], gap);
       // Cleared BEFORE the write, not after: an edit landing mid-flight re-dirties and is
       // picked up by the next save, instead of being swallowed by a late reset.
       dirtyRef.current = false;
@@ -168,7 +171,7 @@ export function useCanvasPersistence({
         // Notes follow the objects they're bound to. Only after a confirmed save, and only for
         // this page — a denied/failed write must not soft-delete anything. `handleClear` lands
         // here too, with an empty id list.
-        const ids = (payload.objects as any[]).map(o => o?.id).filter(Boolean) as string[];
+        const ids = (payload.objects as { id?: string }[]).map(o => o?.id).filter(Boolean) as string[];
         const rec = await reconcileNoteBindings(setId, page, ids);
         if (rec.error) console.error('[AnnotationCanvas] Note reconcile error:', rec.error);
         else window.dispatchEvent(new CustomEvent('hifth:notes-stale', { detail: { setId, pageNum: page } }));
@@ -216,12 +219,12 @@ export function useCanvasPersistence({
 
   const scheduleSaveRef = useRef(scheduleSave);
   const saveNowRef = useRef(saveNow);
-  scheduleSaveRef.current = scheduleSave;
-  saveNowRef.current = saveNow;
+  useLayoutEffect(() => { scheduleSaveRef.current = scheduleSave; });
+  useLayoutEffect(() => { saveNowRef.current = saveNow; });
 
   useEffect(() => {
-    const w = window as any;
-    const savers: Set<() => Promise<void>> = w.__hifthReaderSavers ?? (w.__hifthReaderSavers = new Set());
+    const w = window;
+    const savers = (w.__hifthReaderSavers ??= new Set());
     savers.add(saveNow);
     w.__hifthFlushReaderCanvas = async () => { await Promise.all([...savers].map((fn) => fn())); };
     return () => {
@@ -238,7 +241,7 @@ export function useCanvasPersistence({
   const PREFETCH_RADIUS = 3;
 
   const prefetchAdjacent = useCallback((setId: string, page: number) => {
-    const idle: (cb: () => void) => void = (window as any).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 300));
+    const idle: (cb: () => void) => void = window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 300));
     const around: number[] = [];
     for (let i = 1; i <= PREFETCH_RADIUS; i++) around.push(page - i, page + i);
     idle(() => {
@@ -277,7 +280,7 @@ export function useCanvasPersistence({
     isLoadingRef.current = true;
     scheduleSkeleton();
 
-    const alive = () => activeLoadKeyRef.current === key && (canvas as any).lowerCanvasEl != null;
+    const alive = () => activeLoadKeyRef.current === key && (canvas as unknown as { lowerCanvasEl?: HTMLCanvasElement }).lowerCanvasEl != null;
 
     const render = (json: CanvasJson | null) => new Promise<void>((resolve) => {
       if (!alive()) return resolve();
@@ -370,7 +373,7 @@ export function useCanvasPersistence({
   // Unmount-only cleanup (original lived inside the mount-only init effect). Live values come
   // from refs so page/set changes don't re-run this and race the orchestrator's own flush.
   const cleanupRef = useRef({ selectedSetId, pageNum, saveCanvas });
-  cleanupRef.current = { selectedSetId, pageNum, saveCanvas };
+  useLayoutEffect(() => { cleanupRef.current = { selectedSetId, pageNum, saveCanvas }; });
   useEffect(() => {
     return () => {
       const { selectedSetId: setId, pageNum: page, saveCanvas: save } = cleanupRef.current;

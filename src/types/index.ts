@@ -1,4 +1,5 @@
 import type { Locale } from '@/lib/i18n/config';
+import type { CanvasJson } from '@/lib/annotationStore';
 
 export interface AnnotationSet {
   id: string;
@@ -12,7 +13,7 @@ export interface Annotation {
   id: string;
   set_id: string;
   page_number: number;
-  canvas_json: any; // Using any for Fabric.js JSON object
+  canvas_json: CanvasJson;
   updated_at: string;
 }
 

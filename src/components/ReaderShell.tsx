@@ -131,6 +131,8 @@ interface ReaderShellProps {
   sharePageBasePath?: string;
 }
 
+const NO_MARKED: MarkedPage[] = [];
+
 export default function ReaderShell({ children, user, sets, account = null, lockedSet = false, banner, sharePageBasePath }: ReaderShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -212,6 +214,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   const [pendingRedirect, setPendingRedirect] = useState(true);
   useEffect(() => {
     const isIndex = pathname === spreadBase || pathname === `${spreadBase}/`;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of window/localStorage, recomputed only on route change (see above)
     if (isIndex) { setPendingRedirect(true); return; }
 
     const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
@@ -230,9 +233,10 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   // load + set-switch); page navigation never refetches (this shell is persistent). Draw-saves
   // patch a single page's count in place via patchMarked (wired to the canvas onSaved callback).
   const activeSetId = searchParams.get('set') ?? sets[0]?.id ?? '';
-  const [markedRows, setMarkedRows] = useState<MarkedPage[]>([]);
+  const [fetchedMarked, setMarkedRows] = useState<MarkedPage[]>([]);
+  const markedRows = user && activeSetId ? fetchedMarked : NO_MARKED;
   useEffect(() => {
-    if (!user || !activeSetId) { setMarkedRows([]); return; }
+    if (!user || !activeSetId) return;
     let cancelled = false;
     fetchMarkedPages(createClient(), activeSetId)
       .then(rows => { if (!cancelled) setMarkedRows(rows); })

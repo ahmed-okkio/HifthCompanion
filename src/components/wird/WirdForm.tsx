@@ -62,6 +62,7 @@ export default function WirdForm({
   const editing = wird != null;
 
   const [name, setName] = useState(wird?.name ?? '');
+  const [openedAt] = useState(() => Date.now());
   const [preset, setPreset] = useState<Preset>(
     wird ? (wird.scope_source === 'memorized' ? 'memorized' : '') : 'whole',
   );
@@ -126,7 +127,7 @@ export default function WirdForm({
     : scope.page_end - firstPage + 1;
 
   const finishDays = passPages > 0 ? projectedFinishDays(passPages, rate) : 0;
-  const finishDate = new Date(Date.now() + finishDays * 86_400_000).toLocaleDateString(
+  const finishDate = new Date(openedAt + finishDays * 86_400_000).toLocaleDateString(
     locale === 'ar' ? 'ar' : 'en',
     { year: 'numeric', month: 'long', day: 'numeric' },
   );

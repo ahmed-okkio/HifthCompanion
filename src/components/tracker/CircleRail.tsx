@@ -33,8 +33,9 @@ export default function CircleRail({ circles }: { circles: RailCircle[] }) {
   // Optimistic selection: highlight the tapped circle immediately, before the route
   // actually changes. Sync when the pathname catches up.
   const [selected, setSelected] = useState(routeId);
+  const [syncedRouteId, setSyncedRouteId] = useState(routeId);
+  if (syncedRouteId !== routeId) { setSyncedRouteId(routeId); setSelected(routeId); }
   useEffect(() => {
-    setSelected(routeId);
     // Remember the current circle so the main NavRail's Circles item can jump straight
     // here next time (one hop, one skeleton — no /tracker index redirect).
     if (routeId) localStorage.setItem(LAST_CIRCLE_KEY, routeId);

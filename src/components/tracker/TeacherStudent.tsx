@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNow } from '@/hooks/useNow';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import { setMembershipStatus } from '@/lib/services/membership';
@@ -523,14 +524,7 @@ function StudentSessions({
   // 0014 D7/E4: live styling is client-side and purely presentational — it never
   // decides which tab is selected or what loads. Null until mounted so the first
   // render matches the server's.
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => {
-    if (part !== 'next') return;
-    const tick = () => setNow(new Date());
-    tick();
-    const id = setInterval(tick, 30_000);
-    return () => clearInterval(id);
-  }, [part]);
+  const now = useNow(30_000, part === 'next');
 
   // Localized weekday short labels (2023-01-01 is a Sunday → index 0 = Sun).
   const dayLabels = useMemo(
@@ -652,7 +646,8 @@ function StudentSessions({
   }
 
   // One card renderer for all three sections; flags gate attendance/cancel.
-  function SlotCard({ slot, attendance, cancelable, reschedulable, live }: {
+  // A render helper, not a component: it closes over this component's state and handlers.
+  function renderSlotCard({ slot, attendance, cancelable, reschedulable, live }: {
     slot: SessionSlot; attendance: boolean; cancelable: boolean; reschedulable?: boolean;
     /** 0014 E4: inside the ±60min window — accent border + ring, nothing else. */
     live?: boolean;
@@ -838,11 +833,11 @@ function StudentSessions({
               </span>
             ) : undefined}
           >
-            {new Date(sections.next.scheduled_at).getTime() <= Date.now()
+            {now && new Date(sections.next.scheduled_at).getTime() <= now.getTime()
               ? t('sessions.awaitingAttendance')
               : t('sessions.next')}
           </SectionTitle>
-          <SlotCard slot={sections.next} attendance={sections.nextEditable} cancelable reschedulable live={live} />
+          {renderSlotCard({ slot: sections.next, attendance: sections.nextEditable, cancelable: true, reschedulable: true, live })}
         </div>
       )}
 
@@ -861,7 +856,7 @@ function StudentSessions({
           {sessTab === 'upcoming' &&
             (sections.upcoming.length > 0 ? (
               sections.upcoming.map((slot) => (
-                <SlotCard key={slot.scheduled_at} slot={slot} attendance={false} cancelable reschedulable />
+                <Fragment key={slot.scheduled_at}>{renderSlotCard({ slot, attendance: false, cancelable: true, reschedulable: true })}</Fragment>
               ))
             ) : (
               <EmptyState>{t('sessions.none')}</EmptyState>
@@ -876,7 +871,7 @@ function StudentSessions({
                   // would nag about something with no way to fix it. The owning
                   // teacher's session policy has no time bound (the 12h limit in
                   // 20260723000001_substitution.sql is substitutes-only).
-                  <SlotCard key={slot.scheduled_at} slot={slot} attendance cancelable />
+                  <Fragment key={slot.scheduled_at}>{renderSlotCard({ slot, attendance: true, cancelable: true })}</Fragment>
                 )}
               />
             ) : (

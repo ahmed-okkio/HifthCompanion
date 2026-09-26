@@ -66,7 +66,7 @@ test.describe('Annotations', () => {
     const canvas = page.locator('.upper-canvas');
     await expect(canvas).toBeVisible();
     await expect.poll(async () => {
-      return await page.evaluate(() => Boolean((window as any).fabricCanvas));
+      return await page.evaluate(() => Boolean(window.fabricCanvas));
     }, { timeout: 10000 }).toBeTruthy();
     await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible();
 
@@ -78,7 +78,7 @@ test.describe('Annotations', () => {
 
     // Wait for fabric's shape handler to register the new tool
     await expect.poll(async () => {
-      return await page.evaluate(() => (window as any).__annotationTool === 'highlighter');
+      return await page.evaluate(() => window.__annotationTool === 'highlighter');
     }, { timeout: 5000 }).toBeTruthy();
 
     // Select Green color
@@ -99,9 +99,9 @@ test.describe('Annotations', () => {
       await page.mouse.up();
 
       const count = () => page.evaluate(() => {
-        const fabricCanvas = (window as any).fabricCanvas;
+        const fabricCanvas = window.fabricCanvas;
         if (!fabricCanvas) return 0;
-        return fabricCanvas.getObjects().filter((o: any) => o.type === 'path').length;
+        return fabricCanvas.getObjects().filter((o) => o.type === 'path').length;
       });
       try {
         await expect.poll(count, { timeout: 3000 }).toBeGreaterThan(0);

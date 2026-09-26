@@ -20,7 +20,7 @@ export class CanvasHistory {
   snapshot() {
     if (this.frozen) return;
     // 'id' is not a Fabric-native prop — without it here, undo/redo strips note bindings.
-    const json = JSON.stringify(this.canvas.toJSON(['id'] as any));
+    const json = JSON.stringify(this.canvas.toJSON(['id']));
     this.stack = this.stack.slice(0, this.ptr + 1);
     this.stack.push(json);
     this.ptr = this.stack.length - 1;
@@ -64,8 +64,9 @@ export class CanvasHistory {
     current.forEach((o) => this.canvas.remove(o));
     // Fabric 5 Canvas has enlivenObjects on its prototype — use it so tests can mock via
     // the canvas instance rather than needing the full fabric namespace.
-    const enliven: (objects: any[], cb: (enlivened: fabric.Object[]) => void) => void =
-      (this.canvas as any).enlivenObjects?.bind(this.canvas) ?? fabric.util.enlivenObjects;
+    type Enliven = (objects: unknown[], cb: (enlivened: fabric.Object[]) => void) => void;
+    const enliven: Enliven =
+      (this.canvas as fabric.Canvas & { enlivenObjects?: Enliven }).enlivenObjects?.bind(this.canvas) ?? (fabric.util.enlivenObjects as Enliven);
     enliven(snapshot.objects, (enlivened: fabric.Object[]) => {
       enlivened.forEach((o: fabric.Object) => this.canvas.add(o));
       this.canvas.renderOnAddRemove = true;

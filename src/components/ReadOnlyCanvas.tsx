@@ -5,11 +5,12 @@ import PageDisplayFrame from '@/components/PageDisplayFrame';
 import { calculatePageCanvasSize, type PageCanvasSize } from '@/lib/pageCanvas';
 import NoteBadgeLayer from '@/components/NoteBadgeLayer';
 import type { Note } from '@/types';
+import type { CanvasJson } from '@/lib/annotationStore';
 
 interface Props {
   pageNum: number;
   imageUrl: string;
-  canvasJson: any | null;
+  canvasJson: CanvasJson | null;
   /** Share view only: notes already fetched server-side (no client fetch, F5). */
   setId?: string;
   notes?: Note[];

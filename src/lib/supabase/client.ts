@@ -1,4 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { MockSupabaseClient, MOCK_USER_ID } from './mock';
 
 function e2eUserIdFromCookie(): string {
@@ -21,7 +22,7 @@ export function createClient() {
     // distinct teacher/student, so resolve the acting user per call.
     const authenticated = document.cookie.includes('sb-access-token=dummy-token') ||
                           document.cookie.includes('sb-auth-token');
-    return new MockSupabaseClient(authenticated, e2eUserIdFromCookie()) as any;
+    return new MockSupabaseClient(authenticated, e2eUserIdFromCookie()) as unknown as SupabaseClient;
   }
 
   return createBrowserClient(

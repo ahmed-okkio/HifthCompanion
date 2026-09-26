@@ -18,8 +18,6 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  if (sets.length === 0) return null;
-
   const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/share/${userId}/${pageNum}?set=${selectedSetId}`;
 
   const handleCopy = async () => {
@@ -33,10 +31,7 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
   };
 
   useLayoutEffect(() => {
-    if (!open || !buttonRef.current || typeof window === 'undefined') {
-      if (!open) setMenuPosition(null);
-      return;
-    }
+    if (!open || !buttonRef.current || typeof window === 'undefined') return;
 
     const updatePosition = () => {
       const rect = buttonRef.current?.getBoundingClientRect();
@@ -58,8 +53,11 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
     return () => {
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
+      setMenuPosition(null);
     };
   }, [open]);
+
+  if (sets.length === 0) return null;
 
   return (
     <div className="relative">

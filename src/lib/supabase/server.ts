@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { cookies, headers } from 'next/headers';
 import { MockSupabaseClient, MOCK_USER_ID } from './mock';
 
@@ -31,7 +32,7 @@ async function getE2EStatus() {
 export async function createClient() {
   const { isE2E, authenticated, userId } = await getE2EStatus();
   if (isE2E) {
-    return new MockSupabaseClient(authenticated, userId) as any;
+    return new MockSupabaseClient(authenticated, userId) as unknown as SupabaseClient;
   }
 
   const cookieStore = await cookies();
@@ -50,7 +51,7 @@ export async function createClient() {
 export async function createClientAction() {
   const { isE2E, authenticated, userId } = await getE2EStatus();
   if (isE2E) {
-    return new MockSupabaseClient(authenticated, userId) as any;
+    return new MockSupabaseClient(authenticated, userId) as unknown as SupabaseClient;
   }
 
   const cookieStore = await cookies();

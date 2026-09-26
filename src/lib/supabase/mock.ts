@@ -1,3 +1,6 @@
+// Untyped in-memory row: the mock serves every table through one query builder.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- heterogeneous rows across ~20 tables; mirrors untyped PostgREST results
+type Row = Record<string, any>;
 const IS_SERVER = typeof window === 'undefined';
 
 interface MockSet {
@@ -11,7 +14,7 @@ interface MockAnnotation {
   id: string;
   set_id: string;
   page_number: number;
-  canvas_json: any;
+  canvas_json: unknown;
   updated_at: string;
 }
 
@@ -33,18 +36,18 @@ const globalForDb = global as unknown as {
   mockSets?: MockSet[];
   mockAnnotations?: MockAnnotation[];
   mockNotes?: MockNote[];
-  mockCircle?: any[];
-  mockMembership?: any[];
-  mockProgressLog?: any[];
-  mockSession?: any[];
-  mockHomework?: any[];
-  mockMembershipNote?: any[];
-  mockAgendaItem?: any[];
-  mockExam?: any[];
-  mockProfiles?: any[];
-  mockWird?: any[];
-  mockWirdEntry?: any[];
-  mockUserHifth?: any[];
+  mockCircle?: Row[];
+  mockMembership?: Row[];
+  mockProgressLog?: Row[];
+  mockSession?: Row[];
+  mockHomework?: Row[];
+  mockMembershipNote?: Row[];
+  mockAgendaItem?: Row[];
+  mockExam?: Row[];
+  mockProfiles?: Row[];
+  mockWird?: Row[];
+  mockWirdEntry?: Row[];
+  mockUserHifth?: Row[];
 };
 
 if (!globalForDb.mockSets) {
@@ -114,12 +117,12 @@ const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProg
   wird_entry: 'mockWirdEntry',
   user_hifth: 'mockUserHifth',
 };
-function trackerGet(table: string): any[] {
-  if (IS_SERVER) return (globalForDb as any)[TRACKER_GLOBAL[table]]!;
+function trackerGet(table: string): Row[] {
+  if (IS_SERVER) return (globalForDb as unknown as Record<string, Row[]>)[TRACKER_GLOBAL[table]]!;
   try { const v = localStorage.getItem(TRACKER_STORAGE[table]); return v ? JSON.parse(v) : []; } catch { return []; }
 }
-function trackerSave(table: string, rows: any[]) {
-  if (IS_SERVER) (globalForDb as any)[TRACKER_GLOBAL[table]] = rows;
+function trackerSave(table: string, rows: Row[]) {
+  if (IS_SERVER) (globalForDb as unknown as Record<string, Row[]>)[TRACKER_GLOBAL[table]] = rows;
   else { try { localStorage.setItem(TRACKER_STORAGE[table], JSON.stringify(rows)); } catch {} }
 }
 function rid() { return Math.random().toString(36).substring(2, 11); }
@@ -189,9 +192,9 @@ function saveAnnotations(annos: MockAnnotation[]) {
 class MockQueryBuilder {
   private table: string;
   private userId: string;
-  private filters: { field: string; value: any }[] = [];
-  private inFilters: { field: string; values: any[] }[] = [];
-  private isFilters: { field: string; value: any; negate?: boolean }[] = [];
+  private filters: { field: string; value: unknown }[] = [];
+  private inFilters: { field: string; values: Row[] }[] = [];
+  private isFilters: { field: string; value: unknown; negate?: boolean }[] = [];
   private orFilters: string[] = [];
   private selectColumns = '';
   private orderField: string | null = null;
@@ -200,7 +203,7 @@ class MockQueryBuilder {
   private isMaybeSingle = false;
 
   private op: 'select' | 'insert' | 'update' | 'delete' | 'upsert' = 'select';
-  private opValues: any = null;
+  private opValues: Row | null = null;
 
   constructor(table: string, userId: string = MOCK_USER_ID) {
     this.table = table;
@@ -213,25 +216,25 @@ class MockQueryBuilder {
     return this;
   }
 
-  eq(field: string, value: any) {
+  eq(field: string, value: unknown) {
     this.filters.push({ field, value });
     return this;
   }
 
-  in(field: string, values: any[]) {
+  in(field: string, values: Row[]) {
     this.inFilters.push({ field, values });
     return this;
   }
 
   // `.is(field, null)` — the soft-delete filter listWirds/getStudentWirdSummary
   // use. Matches strictly (null-aware), unlike eq's loose `==`.
-  is(field: string, value: any) {
+  is(field: string, value: unknown) {
     this.isFilters.push({ field, value });
     return this;
   }
 
   // ponytail: only `.not(field, 'is', value)` — the one operator notes.ts uses.
-  not(field: string, _op: 'is', value: any) {
+  not(field: string, _op: 'is', value: unknown) {
     this.isFilters.push({ field, value, negate: true });
     return this;
   }
@@ -258,13 +261,13 @@ class MockQueryBuilder {
     return this;
   }
 
-  insert(values: any) {
+  insert(values: Row | Row[]) {
     this.op = 'insert';
     this.opValues = values;
     return this;
   }
 
-  update(values: any) {
+  update(values: Row | Row[]) {
     this.op = 'update';
     this.opValues = values;
     return this;
@@ -275,13 +278,13 @@ class MockQueryBuilder {
     return this;
   }
 
-  upsert(values: any, options?: { onConflict?: string }) {
+  upsert(values: Row | Row[], options?: { onConflict?: string }) {
     this.op = 'upsert';
     this.opValues = values;
     return this;
   }
 
-  private applyFilters(items: any[]) {
+  private applyFilters<T extends Row>(items: T[]): T[] {
     let result = [...items];
     for (const filter of this.filters) {
       result = result.filter(item => item[filter.field] == filter.value);
@@ -354,7 +357,7 @@ class MockQueryBuilder {
       let sets = getSets();
       sets = this.applyFilters(sets);
       if (this.orderField) {
-        sets.sort((a: any, b: any) => {
+        sets.sort((a: Row, b: Row) => {
           const valA = a[this.orderField!];
           const valB = b[this.orderField!];
           if (valA < valB) return this.orderAscending ? -1 : 1;
@@ -369,10 +372,10 @@ class MockQueryBuilder {
     } else if (this.table === 'annotations') {
       if (this.op === 'upsert') {
         const annos = getAnnotations();
-        const setId = this.opValues.set_id;
-        const pageNum = this.opValues.page_number;
+        const setId = this.opValues!.set_id;
+        const pageNum = this.opValues!.page_number;
         const existingIdx = annos.findIndex(a => a.set_id === setId && a.page_number === pageNum);
-        let updatedOrCreated;
+        let updatedOrCreated: MockAnnotation;
         if (existingIdx > -1) {
           annos[existingIdx] = {
             ...annos[existingIdx],
@@ -385,7 +388,7 @@ class MockQueryBuilder {
             id: Math.random().toString(36).substring(2, 9),
             ...this.opValues,
             updated_at: new Date().toISOString(),
-          };
+          } as MockAnnotation;
           annos.push(updatedOrCreated);
         }
         saveAnnotations(annos);
@@ -402,12 +405,12 @@ class MockQueryBuilder {
     } else if (this.table === 'notes') {
       if (this.op === 'insert') {
         const notes = getNotes();
-        const newNote = {
+        const newNote: MockNote = {
           id: Math.random().toString(36).substring(2, 9),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           ...this.opValues,
-        };
+        } as MockNote;
         notes.push(newNote);
         saveNotes(notes);
         return newNote;
@@ -422,15 +425,15 @@ class MockQueryBuilder {
       if (this.op === 'delete') {
         const notes = getNotes();
         const filtered = this.applyFilters(notes);
-        const ids = new Set(filtered.map((n: any) => n.id));
-        saveNotes(notes.filter((n: any) => !ids.has(n.id)));
+        const ids = new Set(filtered.map((n: Row) => n.id));
+        saveNotes(notes.filter((n: Row) => !ids.has(n.id)));
         return null;
       }
       // select
       let notes = getNotes();
       notes = this.applyFilters(notes) as MockNote[];
       if (this.orderField) {
-        notes.sort((a: any, b: any) => {
+        notes.sort((a: Row, b: Row) => {
           if (a[this.orderField!] < b[this.orderField!]) return this.orderAscending ? -1 : 1;
           if (a[this.orderField!] > b[this.orderField!]) return this.orderAscending ? 1 : -1;
           return 0;
@@ -444,9 +447,9 @@ class MockQueryBuilder {
     return [];
   }
 
-  private sortRows(rows: any[]) {
+  private sortRows(rows: Row[]) {
     if (!this.orderField) return rows;
-    return rows.sort((a: any, b: any) => {
+    return rows.sort((a: Row, b: Row) => {
       if (a[this.orderField!] < b[this.orderField!]) return this.orderAscending ? -1 : 1;
       if (a[this.orderField!] > b[this.orderField!]) return this.orderAscending ? 1 : -1;
       return 0;
@@ -463,10 +466,10 @@ class MockQueryBuilder {
       const rowsToWrite = Array.isArray(this.opValues) ? this.opValues : [this.opValues];
       if (this.op === 'upsert') {
         // Only caller is generateSessions: onConflict (membership_id, scheduled_at).
-        const written: any[] = [];
+        const written: Row[] = [];
         for (const v of rowsToWrite) {
           const idx = rows.findIndex(
-            (r: any) => r.membership_id === v.membership_id && r.scheduled_at === v.scheduled_at,
+            (r: Row) => r.membership_id === v.membership_id && r.scheduled_at === v.scheduled_at,
           );
           if (idx >= 0) {
             Object.assign(rows[idx], v);
@@ -481,7 +484,7 @@ class MockQueryBuilder {
         return written.length === 1 ? written[0] : written;
       }
       if (Array.isArray(this.opValues)) {
-        const inserted = rowsToWrite.map((v: any) => {
+        const inserted = rowsToWrite.map((v: Row) => {
           const defaults = table === 'homework' ? { prescribed_by: this.userId, deadline: null } : {};
           const r = { id: rid(), created_at: now, ...defaults, ...v };
           rows.push(r);
@@ -490,7 +493,7 @@ class MockQueryBuilder {
         trackerSave(table, rows);
         return inserted;
       }
-      let row: any = { id: rid(), ...this.opValues };
+      let row: Row = { id: rid(), ...this.opValues };
       if (table === 'circle') {
         row = {
           invite_code: rid().slice(0, 12),
@@ -543,8 +546,8 @@ class MockQueryBuilder {
 
     if (this.op === 'delete') {
       const filtered = this.applyFilters(rows);
-      const ids = new Set(filtered.map((r: any) => r.id));
-      trackerSave(table, rows.filter((r: any) => !ids.has(r.id)));
+      const ids = new Set(filtered.map((r: Row) => r.id));
+      trackerSave(table, rows.filter((r: Row) => !ids.has(r.id)));
       return null;
     }
 
@@ -558,20 +561,20 @@ class MockQueryBuilder {
       this.selectColumns.includes('circle') &&
       !this.filters.some((f) => f.field === 'circle_id')
     ) {
-      result = result.filter((m: any) => m.user_id === this.userId);
+      result = result.filter((m: Row) => m.user_id === this.userId);
     }
     if (table === 'membership' && this.selectColumns.includes('circle')) {
       const circles = trackerGet('circle');
-      result = result.map((m: any) => ({
+      result = result.map((m: Row) => ({
         ...m,
-        circle: circles.find((h: any) => h.id === m.circle_id) ?? null,
+        circle: circles.find((h: Row) => h.id === m.circle_id) ?? null,
       }));
     }
     if (this.isSingle || this.isMaybeSingle) return result[0] ?? null;
     return result;
   }
 
-  then(onfulfilled: (value: any) => any, onrejected?: (reason: any) => any) {
+  then(onfulfilled: (value: unknown) => unknown, onrejected?: (reason: unknown) => unknown) {
     this.execute()
       .then(data => onfulfilled({ data, error: null }))
       .catch(err => {
@@ -619,7 +622,7 @@ export class MockSupabaseClient {
     return new MockQueryBuilder(table, this.userId);
   }
 
-  async rpc(fn: string, args?: Record<string, any>) {
+  async rpc(fn: string, args?: Row) {
     if (fn === 'user_id_by_email') {
       // Mock: resolve any known e2e identity by email (teacher/student fixtures).
       const email = (args?._email ?? '').toLowerCase();
@@ -670,7 +673,7 @@ function emailForUser(userId: string): string {
 // store, so a full reset from one spec deletes another spec's rows mid-test.
 export function __resetMockStore(tables?: string[]) {
   if (tables) {
-    for (const t of tables) (globalForDb as any)[TRACKER_GLOBAL[t]] = [];
+    for (const t of tables) (globalForDb as unknown as Record<string, Row[]>)[TRACKER_GLOBAL[t]] = [];
     return;
   }
   globalForDb.mockSets = [];
@@ -690,17 +693,17 @@ export function __resetMockStore(tables?: string[]) {
 }
 
 export function __seedMockStore(payload: Partial<{
-  circle: any[];
-  membership: any[];
-  progress_log: any[];
-  session: any[];
-  homework: any[];
-  membership_note: any[];
-  agenda_item: any[];
-  exam: any[];
-  wird: any[];
-  wird_entry: any[];
-  user_hifth: any[];
+  circle: Row[];
+  membership: Row[];
+  progress_log: Row[];
+  session: Row[];
+  homework: Row[];
+  membership_note: Row[];
+  agenda_item: Row[];
+  exam: Row[];
+  wird: Row[];
+  wird_entry: Row[];
+  user_hifth: Row[];
 }>) {
   if (payload.circle) globalForDb.mockCircle!.push(...payload.circle);
   if (payload.membership) globalForDb.mockMembership!.push(...payload.membership);

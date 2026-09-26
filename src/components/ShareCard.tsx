@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useClientValue } from '@/hooks/useClientValue';
 import { addByEmail, searchAccountsByEmail, list, remove, type AccountMatch, type Collaborator } from '@/lib/services/collaborators';
 import PanelCard, { PanelIcon, ICON_PATHS } from '@/components/PanelCard';
 import { Avatar, Icon } from '@/components/tracker/ui';
@@ -32,13 +33,18 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
   // Edit-access management. ShareCard renders only in the owner's own reader over
   // the owner's own sets, so this section is inherently owner-only (contract D3).
   const [email, setEmail] = useState('');
-  const [lookup, setLookup] = useState<Lookup>({ state: 'idle' });
+  // Results are keyed by the query they answer; lookup state is derived from that.
+  const [results, setResults] = useState<{ query: string; accounts: AccountMatch[] } | null>(null);
+  const query = email.trim();
+  const lookup: Lookup =
+    query.length < 3 ? { state: 'idle' }
+    : results?.query === query ? { state: 'results', accounts: results.accounts }
+    : { state: 'searching' };
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState('');
   // Client-only state → SSR renders would hydration-mismatch; gate to post-mount.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useClientValue(() => true, false);
 
   useEffect(() => {
     if (!selectedSetId) return;
@@ -49,19 +55,14 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
   // chars — bound enforced by the RPC too). Matching accounts render as
   // pickable rows so the owner confirms WHO they're adding, not just a string.
   useEffect(() => {
-    const value = email.trim();
-    if (value.length < 3) {
-      setLookup({ state: 'idle' });
-      return;
-    }
-    setLookup({ state: 'searching' });
+    if (query.length < 3) return;
     const id = setTimeout(() => {
-      searchAccountsByEmail(value)
-        .then(accounts => setLookup({ state: 'results', accounts }))
-        .catch(() => setLookup({ state: 'results', accounts: [] }));
+      searchAccountsByEmail(query)
+        .then(accounts => setResults({ query, accounts }))
+        .catch(() => setResults({ query, accounts: [] }));
     }, 300);
     return () => clearTimeout(id);
-  }, [email]);
+  }, [query]);
 
   const fullName = (c: { first_name?: string; last_name?: string }) =>
     [c.first_name, c.last_name].filter(Boolean).join(' ').trim() || t('share.someone');
@@ -75,7 +76,6 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
       const name = fullName(r);
       setMessage(r.alreadyCollaborator ? t('share.alreadyHasAccess', { name }) : t('share.added', { name }));
       setEmail('');
-      setLookup({ state: 'idle' });
       list(selectedSetId).then(setCollaborators).catch(() => {});
     } catch (err) {
       setMessage(err instanceof Error ? err.message : t('share.somethingWentWrong'));

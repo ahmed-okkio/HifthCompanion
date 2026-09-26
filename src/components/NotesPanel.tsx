@@ -28,7 +28,7 @@ export function useNoteFocus(setId: string, pages: number[], onReveal?: () => vo
   const key = pages.join(',');
   // Ref so a fresh callback each render doesn't re-subscribe the listener.
   const onRevealRef = useRef(onReveal);
-  onRevealRef.current = onReveal;
+  useEffect(() => { onRevealRef.current = onReveal; });
 
   useEffect(() => {
     const onFocus = (e: Event) => {

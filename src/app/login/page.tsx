@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useClientValue } from '@/hooks/useClientValue';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import AuthBrand from '@/components/AuthBrand';
@@ -13,8 +14,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   // Resolved after mount to keep the ?next= carry-over out of SSR (hydration).
-  const [search, setSearch] = useState('');
-  useEffect(() => setSearch(location.search), []);
+  const search = useClientValue(() => location.search, '');
 
   async function handleLogin() {
     setLoading(true);

@@ -13,8 +13,14 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
   const [collapsed, setCollapsed] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  const [notesSetId, setNotesSetId] = useState(setId);
+  if (notesSetId !== setId) {
+    setNotesSetId(setId);
+    if (!setId) setNotes([]);
+  }
+
   useEffect(() => {
-    if (!setId) { setNotes([]); return; }
+    if (!setId) return;
     const fetchNotes = (reset: boolean) => {
       supabase
         .from('notes')
@@ -23,9 +29,8 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
         .eq('page_number', pageNum)
         .is('deleted_at', null)
         .order('created_at', { ascending: true })
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .then((res: any) => {
-          setNotes(res.data ?? []);
+        .then((res) => {
+          setNotes((res.data ?? []) as Note[]);
           if (!reset) return;
           setEditingId(null);
           setEditBody('');

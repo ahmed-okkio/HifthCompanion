@@ -76,7 +76,7 @@ export async function list(setId: string): Promise<Collaborator[]> {
     .order('created_at', { ascending: true });
   if (error) throw error;
 
-  const rows = (data ?? []) as { user_id: string; created_at: string }[];
+  const rows = (data ?? []) as unknown as { user_id: string; created_at: string }[];
   const profiles = await getProfilesByIds(rows.map((r) => r.user_id));
   return rows.map((r) => {
     const p = profiles.get(r.user_id);
@@ -109,7 +109,7 @@ export async function sharedWithMe(): Promise<AnnotationSet[]> {
     .eq('user_id', user.id);
   if (error) throw error;
 
-  const rows = (data ?? []) as { annotation_sets: AnnotationSet | null }[];
+  const rows = (data ?? []) as unknown as { annotation_sets: AnnotationSet | null }[];
   return rows
     .map((r) => r.annotation_sets)
     .filter((s): s is AnnotationSet => s != null);

@@ -7,7 +7,8 @@
  * ReaderShell and AppShell so every page has the cross-app nav on mobile.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useClientValue } from '@/hooks/useClientValue';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { RAIL_ITEMS, LABEL_KEYS, isRailItemActive, type RailItemDef } from './NavRail';
@@ -36,12 +37,9 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
   const items = RAIL_ITEMS;
 
   // Circles → last-viewed circle, My Mushaf → last-viewed page (one hop). See NavRail.
-  const [lastCircle, setLastCircle] = useState<string | null>(null);
-  const [lastReaderPage, setLastReaderPage] = useState<string | null>(null);
-  useEffect(() => {
-    setLastCircle(localStorage.getItem(LAST_CIRCLE_KEY));
-    setLastReaderPage(localStorage.getItem(LAST_READER_PAGE_KEY));
-  }, [open, pathname]);
+  // Re-read every render, so each open / pathname change sees the latest value.
+  const lastCircle = useClientValue(() => localStorage.getItem(LAST_CIRCLE_KEY), null);
+  const lastReaderPage = useClientValue(() => localStorage.getItem(LAST_READER_PAGE_KEY), null);
   const hrefFor = (item: RailItemDef) => {
     if (item.id === 'circles' && lastCircle) return `/tracker/${lastCircle}`;
     if (item.id === 'surahs' && lastReaderPage) return `/reader/${lastReaderPage}`;

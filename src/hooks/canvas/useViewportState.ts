@@ -15,7 +15,7 @@ export interface CanvasView {
   resetView: () => void;
 }
 
-export function useViewportState(resetDeps: any[]): CanvasView {
+export function useViewportState(resetDeps: unknown[]): CanvasView {
   const [zoom, setZoom] = useState(100);
   const clampZoom = useCallback((z: number) => Math.min(200, Math.max(50, z)), []);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -30,10 +30,11 @@ export function useViewportState(resetDeps: any[]): CanvasView {
   }, []);
 
   // Reset view when dependencies (like pageNum) change
-  useEffect(() => {
+  const [prevResetDeps, setPrevResetDeps] = useState(resetDeps);
+  if (resetDeps.length !== prevResetDeps.length || resetDeps.some((d, i) => !Object.is(d, prevResetDeps[i]))) {
+    setPrevResetDeps(resetDeps);
     resetView();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, resetDeps);
+  }
 
   const onPanDown = useCallback((e: React.MouseEvent) => {
     dragRef.current = { sx: e.clientX, sy: e.clientY, bx: pan.x, by: pan.y };
@@ -65,7 +66,7 @@ export function useHoverState() {
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const onHoverEnter = useCallback((t: Tool, pos: { top: number; left: number }) => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current as any);
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     setHoveredTool(t);
     setHoverPos(pos);
   }, []);
@@ -75,7 +76,7 @@ export function useHoverState() {
   }, []);
 
   const onHoverCancelLeave = useCallback(() => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current as any);
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
   }, []);
 
   return {

@@ -1,5 +1,5 @@
 'use client';
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type CSSProperties } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type CSSProperties, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import type { AnnotationSet } from '@/types';
@@ -73,7 +73,7 @@ function AnnotationCanvasInner(
   const { t } = useI18n();
 
   const onMarksChangeRef = useRef(onMarksChange);
-  onMarksChangeRef.current = onMarksChange;
+  useLayoutEffect(() => { onMarksChangeRef.current = onMarksChange; });
   useEffect(() => { onMarksChangeRef.current?.(hasMarks); }, [hasMarks]);
 
   // Spread shell drives undo/redo/clear through this handle (F4). clear skips the per-canvas
@@ -111,6 +111,7 @@ function AnnotationCanvasInner(
   // not above the page. Portal it there once that slot is in the DOM so it shares canvas state.
   const [setsSlot, setSetsSlot] = useState<HTMLElement | null>(null);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the slot is ReaderShell's DOM node; it only exists after commit
     setSetsSlot(document.getElementById('sets-card-portal'));
   }, []);
 

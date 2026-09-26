@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useClientValue } from '@/hooks/useClientValue';
+import { useNow } from '@/hooks/useNow';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
@@ -55,17 +57,10 @@ export default function TeacherCircle({
   const [copied, setCopied] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   // Origin resolved after mount to avoid an SSR/hydration mismatch on location.
-  const [origin, setOrigin] = useState('');
-  useEffect(() => setOrigin(process.env.NEXT_PUBLIC_SITE_URL || location.origin), []);
+  const origin = useClientValue(() => process.env.NEXT_PUBLIC_SITE_URL || location.origin, '');
   // 0014 G1: live is purely presentational and client-side — null until mounted
   // so the first render matches the server's.
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => {
-    const tick = () => setNow(new Date());
-    tick();
-    const id = setInterval(tick, 30_000);
-    return () => clearInterval(id);
-  }, []);
+  const now = useNow(30_000);
   const inviteLink = `${origin}/tracker/join/${code}`;
   const [students, setStudents] = useState(initialStudents);
   const [email, setEmail] = useState('');
@@ -97,12 +92,15 @@ export default function TeacherCircle({
   const [manageWeek, setManageWeek] = useState(0);
   const [manageRows, setManageRows] = useState<AgendaItem[]>([]);
   const [hasNextWeek, setHasNextWeek] = useState(false);
-  const [loadingWeek, setLoadingWeek] = useState(false);
+  // Loading until the fetch for this week lands; leaving the tab forgets it (refetch on return).
+  const weekKey = `${circle.id}:${manageWeek}`;
+  const [loadedWeekKey, setLoadedWeekKey] = useState<string | null>(null);
+  if (tab !== 'manage' && loadedWeekKey !== null) setLoadedWeekKey(null);
+  const loadingWeek = loadedWeekKey !== weekKey;
 
   useEffect(() => {
     if (tab !== 'manage') return;
     let alive = true;
-    setLoadingWeek(true);
     getManageSlots(circle.id, (manageWeek + 2) * 7)
       .then((rows) => {
         if (!alive) return;
@@ -114,9 +112,9 @@ export default function TeacherCircle({
         setHasNextWeek(rows.some((r) => at(r) >= end));
       })
       .catch((e) => alive && setError((e as Error).message))
-      .finally(() => alive && setLoadingWeek(false));
+      .finally(() => alive && setLoadedWeekKey(weekKey));
     return () => { alive = false; };
-  }, [tab, manageWeek, circle.id, weekAnchor, DAY_MS]);
+  }, [tab, manageWeek, circle.id, weekAnchor, DAY_MS, weekKey]);
 
   const weekLabel = new Date(weekAnchor + manageWeek * 7 * DAY_MS)
     .toLocaleDateString(locale, { month: 'short', day: 'numeric' });

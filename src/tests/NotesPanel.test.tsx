@@ -15,7 +15,7 @@ vi.mock('@/lib/services/notes', () => ({
 // query builder that resolves to an empty result (notes come via initialNotes prop).
 vi.mock('@/lib/supabase/client', () => ({
   createClient: vi.fn(() => {
-    const builder: any = {
+    const builder: Record<string, () => unknown> = {
       from: () => builder,
       select: () => builder,
       eq: () => builder,

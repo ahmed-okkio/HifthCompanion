@@ -57,7 +57,11 @@ export default function NoteBadgeLayer({ fabricRef, setId, pageNum, canvasReady,
   // so no ancestor's overflow clip can cut it off.
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
 
-  useEffect(() => { if (notesProp) setNotes(notesProp); }, [notesProp]);
+  const [prevNotesProp, setPrevNotesProp] = useState(notesProp);
+  if (notesProp !== prevNotesProp) {
+    setPrevNotesProp(notesProp);
+    if (notesProp) setNotes(notesProp);
+  }
 
   useEffect(() => {
     if (notesProp) return;

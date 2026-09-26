@@ -20,7 +20,8 @@
  *   --space-4, --space-16. No bare hex / hard-coded radius / shadow.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useClientValue } from '@/hooks/useClientValue';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useI18n } from './I18nProvider';
@@ -174,19 +175,17 @@ export default function NavRail({ activeView }: NavRailProps) {
   // Optimistic selection: highlight the tapped item immediately, before the (slower)
   // cross-section navigation commits. Cleared once the pathname actually changes.
   const [pending, setPending] = useState<string | null>(null);
-  useEffect(() => setPending(null), [pathname]);
+  const [pendingPath, setPendingPath] = useState(pathname);
+  if (pendingPath !== pathname) { setPendingPath(pathname); setPending(null); }
   const routeActiveId = RAIL_ITEMS.find((i) => isRailItemActive(i, pathname))?.id;
   const activeId = pending ?? routeActiveId;
 
   // Send "Circles" straight to the last-viewed circle so it's a single navigation
   // (one skeleton). Hitting /tracker instead redirects to a circle — a double hop
   // that flashes the index skeleton, then blank, then the circle skeleton.
-  const [lastCircle, setLastCircle] = useState<string | null>(null);
-  const [lastReaderPage, setLastReaderPage] = useState<string | null>(null);
-  useEffect(() => {
-    setLastCircle(localStorage.getItem(LAST_CIRCLE_KEY));
-    setLastReaderPage(localStorage.getItem(LAST_READER_PAGE_KEY));
-  }, [pathname]);
+  // Re-read every render, so each open / pathname change sees the latest value.
+  const lastCircle = useClientValue(() => localStorage.getItem(LAST_CIRCLE_KEY), null);
+  const lastReaderPage = useClientValue(() => localStorage.getItem(LAST_READER_PAGE_KEY), null);
   const hrefFor = (item: RailItemDef) => {
     if (item.id === 'circles' && lastCircle) return `/tracker/${lastCircle}`;
     if (item.id === 'surahs' && lastReaderPage) return `/reader/${lastReaderPage}`;

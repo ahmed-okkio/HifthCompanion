@@ -256,7 +256,7 @@ export function AnchoredPopup({
   const [rect, setRect] = useState<DOMRect | null>(null);
 
   useEffect(() => {
-    if (!open) { setRect(null); return; }
+    if (!open) return;
     const measure = () => {
       const el = anchorRef.current;
       if (el) setRect(el.getBoundingClientRect());
@@ -268,6 +268,7 @@ export function AnchoredPopup({
     return () => {
       window.removeEventListener('resize', measure);
       window.removeEventListener('scroll', measure, true);
+      setRect(null);
     };
   }, [open, anchorRef]);
 
@@ -510,12 +511,12 @@ export function TimeSelect({
 }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(to12h(value));
+  const [lastValue, setLastValue] = useState(value);
   const wrapRef = useRef<HTMLDivElement>(null);
 
   // Follow external value changes (e.g. reopening the editor on another slot).
-  const lastValue = useRef(value);
-  if (value !== lastValue.current) {
-    lastValue.current = value;
+  if (value !== lastValue) {
+    setLastValue(value);
     setText(to12h(value));
   }
 

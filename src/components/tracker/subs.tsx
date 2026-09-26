@@ -25,24 +25,24 @@ export function SubAssignForm({
 }) {
   const { t } = useI18n();
   const [email, setEmail] = useState('');
-  const [matches, setMatches] = useState<AccountMatch[] | null>(null);
-  const [searching, setSearching] = useState(false);
+  // Results are keyed by the query they answer; matches/searching derive from that.
+  const [found, setFound] = useState<{ query: string; accounts: AccountMatch[] } | null>(null);
+  const query = email.trim();
+  const searching = query.length >= 3 && found?.query !== query;
+  const matches = query.length >= 3 && found?.query === query ? found.accounts : null;
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   // Debounced prefix search; <3 chars is a no-op (bound also enforced in the RPC).
   useEffect(() => {
-    const v = email.trim();
-    if (v.length < 3) { setMatches(null); setSearching(false); return; }
-    setSearching(true);
+    if (query.length < 3) return;
     const id = setTimeout(() => {
-      searchAccountsByEmail(v)
-        .then((a) => setMatches(a))
-        .catch(() => setMatches([]))
-        .finally(() => setSearching(false));
+      searchAccountsByEmail(query)
+        .then((a) => setFound({ query, accounts: a }))
+        .catch(() => setFound({ query, accounts: [] }));
     }, 300);
     return () => clearTimeout(id);
-  }, [email]);
+  }, [query]);
 
   const label = (a: AccountMatch) =>
     [a.first_name, a.last_name].filter(Boolean).join(' ').trim() || a.email;
@@ -54,7 +54,7 @@ export function SubAssignForm({
     setBusy(true); setErr(null);
     try {
       await onAssign(a.id, label(a));
-      setEmail(''); setMatches(null);
+      setEmail('');
     } catch (ex) {
       setErr((ex as Error).message);
     } finally { setBusy(false); }

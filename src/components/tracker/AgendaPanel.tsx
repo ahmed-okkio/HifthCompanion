@@ -8,7 +8,8 @@
  * teacher's private item list. The "waiting on you" block is M4 and lands below.
  */
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { useClientValue } from '@/hooks/useClientValue';
 import { useI18n } from '@/components/I18nProvider';
 import type { AgendaTask, Exam, Homework, ProgressLog, Session } from '@/types';
 import { isStale, waitingOnYou } from '@/lib/agenda';
@@ -43,8 +44,8 @@ export default function AgendaPanel({
   const [showDone, setShowDone] = useState(false);
   // Client-side clock for the staleness treatment only (E7). Null until mounted
   // so the first render matches the server's.
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => setNow(new Date()), []);
+  const [clock] = useState(() => new Date());
+  const now = useClientValue(() => clock, null);
 
   const open = items.filter((i) => i.done_at === null);
   const done = items.filter((i) => i.done_at !== null);

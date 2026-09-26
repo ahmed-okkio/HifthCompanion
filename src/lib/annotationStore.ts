@@ -6,6 +6,7 @@ import type { MarkColors } from '@/lib/markedPages';
 
 export type CanvasJson = { objects: unknown[]; width: number; height: number; [k: string]: unknown };
 export type SaveResult = { status: 'saved' } | { status: 'denied' } | { status: 'error'; err: unknown };
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface AnnotationStore {
   load(setId: string, page: number): Promise<CanvasJson | null>;
@@ -24,7 +25,7 @@ export function isRlsDenial(error: { code?: string; message?: string } | null | 
   return m.includes('row-level security') || m.includes('permission denied');
 }
 
-export function createAnnotationStore(supabase: any): AnnotationStore {
+export function createAnnotationStore(supabase: SupabaseClient): AnnotationStore {
   return {
     async load(setId, page) {
       const { data, error } = await supabase

@@ -2,7 +2,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { SURAH_PAGE_GROUPS, activeGroupPage, filterSurahGroups, getJuzForPage, getSurahsForPage, getSurahName, pageFromLocation, spreadOf, type SurahPageGroup } from '@/lib/quran';
-import { pinStorageKey } from '@/lib/bookmark';
+import { usePinnedPage } from '@/hooks/usePinnedPage';
 import { useI18n } from '@/components/I18nProvider';
 import { sortMarked, type MarkedPage } from '@/lib/markedPages';
 import MarkedPagesList from '@/components/MarkedPagesList';
@@ -25,27 +25,11 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
   const { t, locale, fmtNum } = useI18n();
   const [tab, setTab] = useState<'surahs' | 'marked'>('surahs');
   const [query, setQuery] = useState('');
-  const [pinnedPage, setPinnedPage] = useState<number | null>(null);
+  const [pinnedPage, togglePin] = usePinnedPage(basePath);
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
   const hasAutoScrolledRef = useRef(false);
   const scrollListRef = useRef<HTMLDivElement | null>(null);
   const SCROLL_STORAGE_KEY = 'surahPanelScrollTop';
-  const PIN_STORAGE_KEY = pinStorageKey(basePath);
-
-  useEffect(() => {
-    const raw = localStorage.getItem(PIN_STORAGE_KEY);
-    const n = raw ? parseInt(raw, 10) : NaN;
-    setPinnedPage(!isNaN(n) && n > 0 ? n : null);
-  }, [PIN_STORAGE_KEY]);
-
-  const togglePin = (page: number) => {
-    setPinnedPage(prev => {
-      const next = prev === page ? null : page;
-      if (next === null) localStorage.removeItem(PIN_STORAGE_KEY);
-      else localStorage.setItem(PIN_STORAGE_KEY, String(next));
-      return next;
-    });
-  };
 
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -78,6 +62,10 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
 
   const filtered = useMemo(() => filterSurahGroups(query), [query]);
 
+  // Set by handleSelect so the scroll-to-active effect knows this nav was a panel click
+  // (preserve position) rather than a URL / prev-next / bookmark nav (scroll to surah).
+  const cameFromPanelRef = useRef(false);
+
   // Scroll to the active surah whenever the open page changes — EXCEPT when the change
   // came from a panel click (that path preserves the user's browse position, below).
   useEffect(() => {
@@ -97,9 +85,6 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
   const lastScrollTopRef = useRef<number>(0);
   const pinningRef = useRef<boolean>(false);
   const pendingTargetRef = useRef<number | null>(null);
-  // Set by handleSelect so the scroll-to-active effect knows this nav was a panel click
-  // (preserve position) rather than a URL / prev-next / bookmark nav (scroll to surah).
-  const cameFromPanelRef = useRef(false);
 
   useEffect(() => {
     const el = scrollListRef.current;

@@ -9,7 +9,7 @@ import {
   logToMemorizedRanges,
   rangesTotals,
 } from '../lib/analytics';
-import type { Circle, ProgressLog } from '../types';
+import type { AttendanceStatus, Circle, ProgressLog } from '../types';
 
 // Mirror buildHeatmap's date derivation (local midnight -> toISOString) so the
 // comparison is timezone-stable: buildHeatmap's last cell is daysAgo(0).
@@ -185,7 +185,7 @@ describe('rollup', () => {
 });
 
 describe('attendanceStats (M3-4)', () => {
-  const a = (status: string) => ({ status } as any);
+  const a = (status: AttendanceStatus) => ({ status });
 
   it('counts present and late as attended; excused leaves the denominator', () => {
     const s = attendanceStats([a('present'), a('late'), a('absent'), a('excused')]);

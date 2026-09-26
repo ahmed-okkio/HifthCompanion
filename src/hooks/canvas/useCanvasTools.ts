@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { fabric } from 'fabric';
 import { type Tool, getToolCursor } from '@/lib/canvasTools';
 import { ensureObjectId } from '@/lib/canvasHistory';
@@ -52,7 +52,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
   // annotation to link a note to. Toggled entirely by window events — no toolbar tool.
   const [linking, setLinking] = useState(false);
   const linkingRef = useRef(false);
-  linkingRef.current = linking;
+  useLayoutEffect(() => { linkingRef.current = linking; });
   // Whether an empty-area click is a valid pick (page placement) or should be ignored.
   const allowEmptyRef = useRef(false);
 
@@ -118,7 +118,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
   }, [interactionMode, canvasReady, fabricRef]);
 
   const onHoverEnter = useCallback((t: Tool, pos: { top: number; left: number }) => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current as any);
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     setHoveredTool(t);
     setHoverPos(pos);
   }, []);
@@ -128,7 +128,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
   }, []);
 
   const onHoverCancelLeave = useCallback(() => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current as any);
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
   }, []);
 
   // Sync drawing mode + brush when tool/color/width changes
@@ -161,7 +161,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
     if (activeTool !== 'eraser' || linking) return;
 
     const r = eraserSize;
-    const upper = (canvas as any).upperCanvasEl as HTMLElement | undefined;
+    const upper = (canvas as unknown as { upperCanvasEl?: HTMLElement }).upperCanvasEl;
     const container = upper?.parentElement ?? null;
 
     const cursorEl = document.createElement('div');
@@ -218,7 +218,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas || activeTool !== 'underline' || linking) return;
-    const upper = (canvas as any).upperCanvasEl as HTMLElement | undefined;
+    const upper = (canvas as unknown as { upperCanvasEl?: HTMLElement }).upperCanvasEl;
     const container = upper?.parentElement ?? null;
 
     const guide = document.createElement('div');
@@ -253,7 +253,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas || !linking) return;
-    const upper = (canvas as any).upperCanvasEl as HTMLElement | undefined;
+    const upper = (canvas as unknown as { upperCanvasEl?: HTMLElement }).upperCanvasEl;
     const container = upper?.parentElement ?? null;
 
     // Ring that hugs the target annotation (feedback lands on the object, not empty space).
@@ -350,7 +350,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas || activeTool !== 'highlighter' || linking) return;
-    const upper = (canvas as any).upperCanvasEl as HTMLElement | undefined;
+    const upper = (canvas as unknown as { upperCanvasEl?: HTMLElement }).upperCanvasEl;
     const container = upper?.parentElement ?? null;
 
     const cursorEl = document.createElement('div');
@@ -386,7 +386,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
-    (window as any).__annotationTool = activeTool;
+    window.__annotationTool = activeTool;
     let isDrawing = false;
     let shape: fabric.Object | null = null;
     let startX = 0;
@@ -443,7 +443,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
       if (!isDrawing) return;
       isDrawing = false;
       if (shape) {
-        const obj = shape as any;
+        const obj = shape as fabric.Object & { rx?: number; ry?: number; x1?: number; x2?: number; y1?: number; y2?: number };
         let tooSmall = false;
         if (obj.type === 'rect') tooSmall = (obj.width ?? 0) < 2 || (obj.height ?? 0) < 2;
         else if (obj.type === 'ellipse') tooSmall = (obj.rx ?? 0) < 2 || (obj.ry ?? 0) < 2;

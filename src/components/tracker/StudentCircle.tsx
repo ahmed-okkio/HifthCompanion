@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type {
   Circle, Homework, LogType, Membership, ProgressLog, Recurrence, Session, StatusConfig, Exam
@@ -42,6 +42,13 @@ function fmtTime(iso: string, locale: string) {
  * Read-only on scheduling/attendance/prescriptions — RLS also enforces this; the
  * UI simply never renders teacher-only controls or other students.
  */
+const MOBILE_MQ = '(max-width: 1023px)';
+function subscribeMobile(cb: () => void) {
+  const mq = window.matchMedia(MOBILE_MQ);
+  mq.addEventListener('change', cb);
+  return () => mq.removeEventListener('change', cb);
+}
+
 export default function StudentCircle({
   circle,
   membership,
@@ -78,17 +85,10 @@ export default function StudentCircle({
 }) {
   const { t, locale, fmtNum } = useI18n();
   const [logs, setLogs] = useState(initialLogs);
-  const [tab, setTab] = useState('homework');
   // Members live in the desktop sidebar; below lg they become a tab instead.
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 1023px)');
-    const apply = () => setIsMobile(mq.matches);
-    apply();
-    if (mq.matches) setTab('sessions'); // mobile lands on Next Session by default
-    mq.addEventListener('change', apply);
-    return () => mq.removeEventListener('change', apply);
-  }, []);
+  const isMobile = useSyncExternalStore(subscribeMobile, () => window.matchMedia(MOBILE_MQ).matches, () => false);
+  const [pickedTab, setTab] = useState<string | null>(null);
+  const tab = pickedTab ?? (isMobile ? 'sessions' : 'homework'); // mobile lands on Next Session by default
 
   // E5: the streak runs on the MERGED stream (logs + own wird dates), kept
   // separate from `logs` so homework aggregation below is untouched (E1/E6).
@@ -229,7 +229,7 @@ export default function StudentCircle({
 
 function UpcomingSessions({ sessions, schedule, coveredBy, hideHeading = false }: { sessions: Session[]; schedule: Recurrence | null; coveredBy?: Record<string, string>; hideHeading?: boolean }) {
   const { t, locale } = useI18n();
-  const now = Date.now();
+  const [now] = useState(() => Date.now());
   const subFor = (iso: string) => coveredBy?.[String(new Date(iso).getTime())];
 
   // Generate 1 week of virtual slots to accurately derive local days and times
@@ -259,7 +259,7 @@ function UpcomingSessions({ sessions, schedule, coveredBy, hideHeading = false }
     <div className="flex flex-col gap-3">
       {/* Recurring schedule — one card per weekday, reusing the session look */}
       <div className="flex flex-col gap-2">
-        {!hideHeading && <SectionTitle>{t('sessions.nextSession' as any) ?? t('sessions.tabSessions')}</SectionTitle>}
+        {!hideHeading && <SectionTitle>{t('sessions.nextSession') ?? t('sessions.tabSessions')}</SectionTitle>}
         {weekSlots && weekSlots.length > 0 ? weekSlots.map((iso) => {
           const d = new Date(iso);
           return (

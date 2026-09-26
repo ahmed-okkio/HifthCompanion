@@ -32,7 +32,7 @@ const eslintConfig = defineConfig([
   },
   { files: ["src/components/ui/**"], rules: { "shadcn/no-restyle": "off" } },
   // Override default ignores of eslint-config-next.
-  globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
+  globalIgnores([".next/**", ".claude/**", "out/**", "build/**", "next-env.d.ts"]),
 ]);
 
 export default eslintConfig;

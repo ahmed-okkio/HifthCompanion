@@ -19,7 +19,7 @@ vi.mock('@/lib/supabase/client', () => ({
 
 describe('ReaderNav', () => {
   it('renders the modern English brand and page controls', () => {
-    (useRouter as any).mockReturnValue({ push: vi.fn() });
+    vi.mocked(useRouter).mockReturnValue({ push: vi.fn() } as unknown as ReturnType<typeof useRouter>);
     render(<ReaderNav currentPage={1} />);
     expect(screen.getByText('Hifth Companion')).toBeDefined();
     expect(screen.getByText('Page')).toBeDefined();

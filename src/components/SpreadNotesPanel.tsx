@@ -87,7 +87,7 @@ export default function SpreadNotesPanel({ setId, pages, initialNotes, readOnly 
       <div className="flex flex-col">
         {/* Composer: one textbox, split add-button (left half → page[0], right half → page[1]) */}
         {!readOnly && (
-          <div style={{ padding: 'var(--space-12) var(--space-16)', background: 'var(--surface-main)', borderBottom: '1px solid var(--neutral-200)' }}>
+          <div className="border-b border-neutral-200 bg-surface-main px-4 py-3">
             <textarea
               dir="auto"
               ref={textareaRef}
@@ -95,11 +95,10 @@ export default function SpreadNotesPanel({ setId, pages, initialNotes, readOnly 
               onChange={e => setBody(e.target.value)}
               placeholder={t('notes.placeholder')}
               rows={2}
-              className="input"
-              style={{ fontSize: '13px', resize: 'none' }}
+              className="input resize-none text-small"
             />
             {linkTarget === 'draft' ? (
-              <div className="mt-2" style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, textAlign: 'center' }}>
+              <div className="mt-2 text-center text-caption font-semibold text-accent">
                 {t('notes.placePrompt')}
               </div>
             ) : (
@@ -118,7 +117,7 @@ export default function SpreadNotesPanel({ setId, pages, initialNotes, readOnly 
 
         {/* Merged note list */}
         {rows.length === 0 && (
-          <p style={{ padding: 'var(--space-24) var(--space-16)', textAlign: 'center', fontSize: 'var(--type-caption-size)', color: 'var(--text-muted)' }}>
+          <p className="px-6 py-8 text-center text-small text-muted">
             {t('notes.empty')}
           </p>
         )}

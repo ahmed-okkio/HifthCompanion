@@ -22,13 +22,12 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-start justify-center px-4 py-10 overflow-x-hidden"
-         style={{ background: 'var(--bg-base)' }}>
+    <div className="min-h-screen flex items-start justify-center px-4 py-10 overflow-x-hidden bg-surface-app">
       <div className="w-full max-w-xl animate-fade-in-scale">
         {/* Brand */}
         <AuthBrand />
         <div className="text-center mb-8">
-          <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+          <h1 className="text-xl font-bold text-primary">
             {t('onboarding.title')}
           </h1>
         </div>

@@ -33,7 +33,7 @@ export default async function CoveringSection() {
   return (
     <div className="flex flex-col gap-2 mb-6">
       <SectionTitle
-        trailing={<span className="badge" style={{ fontSize: 10 }}>{dict['subs.badge']}</span>}
+        trailing={<span className="badge text-micro">{dict['subs.badge']}</span>}
       >
         {dict['subs.covering']}
       </SectionTitle>
@@ -42,13 +42,13 @@ export default async function CoveringSection() {
           const r = group[0];
           const name = r.student_name || dict['tracker.roleStudent'];
           return (
-            <div key={r.membership_id} className="card flex flex-col gap-3" style={{ padding: '14px 16px' }}>
+            <div key={r.membership_id} className="card flex flex-col gap-3 p-4">
               <Link href={`/tracker/${r.circle_id}/student/${r.membership_id}`} className="flex items-center gap-2 min-w-0">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <Avatar seed={name} size={40} />
                   <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                    <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{name}</span>
-                    <span className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>
+                    <span className="text-sm font-semibold truncate text-primary">{name}</span>
+                    <span className="text-xs truncate text-muted">
                       {r.circle_name} · {dict['subs.awayTeacher'].replace('{teacher}', r.teacher_name)}
                     </span>
                   </div>
@@ -57,7 +57,7 @@ export default async function CoveringSection() {
               </Link>
               <div className="flex flex-wrap gap-1">
                 {group.map((s) => (
-                  <span key={s.scheduled_at} className="badge badge-muted" style={{ fontSize: 10 }}>
+                  <span key={s.scheduled_at} className="badge badge-muted text-micro">
                     {chip(s.scheduled_at)}
                   </span>
                 ))}

@@ -58,12 +58,12 @@ export default async function StudentDetailPage({
       listHomework(membershipId),
     ]);
     return (
-      <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+      <main className="px-4 py-6 animate-fade-in w-full overflow-y-auto h-full">
         {/* Without this the rail never leaves its skeleton on the sub's pages. */}
         <MarkCircleReady />
         {/* Same wrapper as the teacher branch below — the sub view is the same
             screen, so it must sit in the same column width. */}
-        <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
+        <div className="max-w-[96rem] mx-auto w-full relative">
         <SubStudent
           membershipId={membershipId}
           studentName={rows[0].student_name || dict['tracker.roleStudent']}
@@ -130,9 +130,9 @@ export default async function StudentDetailPage({
   for (const s of subs) subByInstant[String(new Date(s.scheduled_at).getTime())] = nameOf(s.substitute_user_id);
 
   return (
-    <main className="px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+    <main className="px-4 py-6 animate-fade-in w-full overflow-y-auto h-full">
       <MarkCircleReady />
-      <div className="max-w-[96rem] mx-auto w-full" style={{ position: 'relative' }}>
+      <div className="max-w-[96rem] mx-auto w-full relative">
         <TeacherStudent
           circle={circle}
           member={member}

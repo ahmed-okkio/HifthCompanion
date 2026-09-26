@@ -78,24 +78,23 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
         <div
           role="dialog"
           aria-label={t('share.shareLinkAriaLabel')}
-          className="card fixed z-[9999]"
-          style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px`, padding: '16px', width: '280px' }}
+          className="card fixed z-[9999] p-4 w-70"
+          // eslint-disable-next-line shadcn/no-inline-styles -- anchored to measured button position
+          style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
         >
-          <p className="text-xs font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
+          <p className="text-xs font-semibold mb-3 text-primary">
             {t('share.sharePage', { page: pageNum })}
           </p>
 
           {sets.length > 1 && (
             <div className="mb-3">
-              <label className="text-[10px] font-semibold mb-1 block"
-                     style={{ color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <label className="text-micro font-semibold mb-1 block text-muted uppercase tracking-wider">
                 {t('share.annotationSet')}
               </label>
               <select
                 value={selectedSetId}
                 onChange={e => setSelectedSetId(e.target.value)}
-                className="input input-sm w-full"
-                style={{ cursor: 'pointer' }}
+                className="input input-sm w-full cursor-pointer"
               >
                 {sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
@@ -106,8 +105,7 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
             <input
               readOnly
               value={shareUrl}
-              className="input input-sm flex-1 font-mono truncate"
-              style={{ fontSize: '10px' }}
+              className="input input-sm flex-1 font-mono truncate text-micro"
             />
             <button
               onClick={handleCopy}
@@ -117,7 +115,7 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
             </button>
           </div>
 
-          <p className="mt-2.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+          <p className="mt-3 text-micro text-muted">
             {t('share.viewOnlyHint')}
           </p>
         </div>,

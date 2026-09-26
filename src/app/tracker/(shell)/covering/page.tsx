@@ -22,7 +22,7 @@ export default async function CoveringPage() {
   const dict = getDictionary(await getLocale());
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-6 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+    <main className="max-w-5xl mx-auto px-4 py-6 animate-fade-in w-full overflow-y-auto h-full">
       <MarkCircleReady />
       {/* Empty only once the last covered instant expired out of the RPC — the
           rail entry is gone by the next load. */}

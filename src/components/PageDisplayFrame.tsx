@@ -33,54 +33,33 @@ export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, 
       <div
         ref={containerRef}
         data-canvas-ready={ready ? 'true' : undefined}
-        className="page-display-frame flex items-center justify-center overflow-hidden"
+        className={`page-display-frame relative flex max-w-full items-center justify-center overflow-hidden rounded-page object-contain ${noShadow ? '' : 'shadow-[0_6px_16px_rgba(15,23,42,0.10)]'}`}
         style={{
-          position: 'relative',
           // No maxHeight cap: `size` already fits the page to the container per-page (desktop is
           // capped to available height; mobile is full height and scrolls). An inline maxHeight
           // here previously clipped tall mobile pages (it overrode the responsive CSS rule).
           // Pre-size fallback resolves against the viewport (not the shrink-to-fit cream
           // wrapper) so consumers that read this frame's clientWidth before the image loads
           // (ReadOnlyCanvas on the share page) still measure a real column width.
+          // eslint-disable-next-line shadcn/no-inline-styles -- runtime page size
           width: size ? `${size.width}px` : 'clamp(280px, 90vw, 820px)',
+          // eslint-disable-next-line shadcn/no-inline-styles -- runtime page size
           height: size ? `${size.height}px` : 'auto',
-          maxWidth: '100%',
-          // object-fit: contain — page scales to fit its size box preserving aspect ratio.
-          borderRadius: 'var(--radius-page)',
-          // Drop shadow under the page so it lifts off the flat workspace background.
-          boxShadow: noShadow ? 'none' : '0 6px 16px rgba(15, 23, 42, 0.10)',
-          objectFit: 'contain',
         }}
       >
         <div
           aria-hidden
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: 'var(--radius-page)',
-            background: 'linear-gradient(90deg, rgba(15,23,42,0.04) 0%, rgba(15,23,42,0.08) 50%, rgba(15,23,42,0.04) 100%)',
-            backgroundSize: '200% 100%',
-            animation: ready ? 'none' : 'shimmer 1.4s linear infinite',
-            opacity: ready ? 0 : 1,
-            pointerEvents: 'none',
-            // Fade OUT smoothly when the page is ready; appear INSTANTLY when a swap starts
-            // (ready→false) so a fast/cached page change still flashes the skeleton.
-            transition: ready ? 'opacity 0.25s ease' : 'none',
-          }}
+          // Fade OUT smoothly when the page is ready; appear INSTANTLY when a swap starts
+          // (ready→false) so a fast/cached page change still flashes the skeleton.
+          className={`pointer-events-none absolute inset-0 rounded-page bg-[linear-gradient(90deg,var(--skeleton-base)_0%,var(--skeleton-shine)_50%,var(--skeleton-base)_100%)] bg-size-[200%_100%] ${
+            ready ? 'opacity-0 transition-opacity duration-250' : 'animate-[shimmer_1.4s_linear_infinite] opacity-100 transition-none'
+          }`}
         />
         {/* Page fades in once the canvas is ready; skeleton (above) fades out. No scale — the
             frame keeps its size the whole time so the page never appears to grow on swap. */}
+        {/* Fade IN when ready; hide instantly on swap start so the skeleton shows at once. */}
         <div
-          style={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: ready ? 1 : 0,
-            // Fade IN when ready; hide instantly on swap start so the skeleton shows at once.
-            transition: ready ? 'opacity 0.35s ease' : 'none',
-          }}
+          className={`flex h-full w-full items-center justify-center ${ready ? 'opacity-100 transition-opacity duration-350' : 'opacity-0 transition-none'}`}
         >
           {children}
         </div>

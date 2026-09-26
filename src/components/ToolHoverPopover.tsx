@@ -28,52 +28,42 @@ export default function ToolHoverPopover({
     <div
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      style={{ position: 'fixed', left: hoverPos.left, top: hoverPos.top, width: 260, zIndex: 60 }}
-      className="hidden lg:block"
+      className="fixed z-60 hidden w-65 lg:block"
+      // eslint-disable-next-line shadcn/no-inline-styles -- runtime anchor position
+      style={{ left: hoverPos.left, top: hoverPos.top }}
     >
-      <div
-        style={{
-          background: 'var(--surface-main)',
-          border: '1px solid var(--neutral-200)',
-          borderRadius: 'var(--radius-md)',
-          boxShadow: 'var(--shadow-e3)',
-          padding: 'var(--space-12) var(--space-16)',
-        }}
-      >
+      <div className="rounded-md border border-neutral-200 bg-surface-main px-4 py-3 shadow-e2">
         {(hoveredTool === 'pen' || hoveredTool === 'circle' || hoveredTool === 'underline') && (
-          <div className="flex items-center gap-3" style={{ minHeight: '28px' }}>
-            <span style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('annot.size')}</span>
+          <div className="flex min-h-7 items-center gap-3">
+            <span className="text-small font-semibold text-secondary">{t('annot.size')}</span>
             <input
               type="range" min="1" max="40" step="1" value={penWidth}
               onChange={e => onPenWidthChange(Number(e.target.value))}
-              className="w-full cursor-pointer accent-green-600"
-              style={{ height: '4px' }}
+              className="h-1 w-full cursor-pointer accent-green-600"
             />
-            <span style={{ minWidth: '36px', textAlign: 'right', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{penWidth}</span>
+            <span className="min-w-9 text-right text-small font-semibold tabular-nums text-primary">{penWidth}</span>
           </div>
         )}
         {hoveredTool === 'eraser' && (
-          <div className="flex items-center gap-3" style={{ minHeight: '28px' }}>
-            <span style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('annot.size')}</span>
+          <div className="flex min-h-7 items-center gap-3">
+            <span className="text-small font-semibold text-secondary">{t('annot.size')}</span>
             <input
               type="range" min="8" max="60" step="1" value={eraserSize}
               onChange={e => onEraserSizeChange(Number(e.target.value))}
-              className="w-full cursor-pointer accent-green-600"
-              style={{ height: '4px' }}
+              className="h-1 w-full cursor-pointer accent-green-600"
             />
-            <span style={{ minWidth: '36px', textAlign: 'right', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{eraserSize}</span>
+            <span className="min-w-9 text-right text-small font-semibold tabular-nums text-primary">{eraserSize}</span>
           </div>
         )}
         {hoveredTool === 'highlighter' && (
-          <div className="flex items-center gap-3" style={{ minHeight: '28px' }}>
-            <span style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)' }}>{t('annot.opacity')}</span>
+          <div className="flex min-h-7 items-center gap-3">
+            <span className="text-small font-semibold text-secondary">{t('annot.opacity')}</span>
             <input
               type="range" min="0.1" max="0.9" step="0.05" value={opacity}
               onChange={e => onOpacityChange(parseFloat(e.target.value))}
-              className="w-full cursor-pointer accent-green-600"
-              style={{ height: '4px' }}
+              className="h-1 w-full cursor-pointer accent-green-600"
             />
-            <span style={{ minWidth: '36px', textAlign: 'right', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{Math.round(opacity * 100)}%</span>
+            <span className="min-w-9 text-right text-small font-semibold tabular-nums text-primary">{Math.round(opacity * 100)}%</span>
           </div>
         )}
       </div>

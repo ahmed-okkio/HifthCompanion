@@ -100,12 +100,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
         <div
           onClick={() => onOpenChange(false)}
           aria-hidden
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 49,
-            background: 'rgba(0,0,0,0.4)',
-          }}
+          className="fixed inset-0 z-(--z-sticky) bg-overlay"
         />
       )}
 
@@ -114,56 +109,20 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
         role="dialog"
         aria-modal="true"
         aria-label={t('reader.surahNavigation')}
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 50,
-          height: '85vh',
-          background: 'var(--surface-main)',
-          borderTopLeftRadius: 'var(--radius-xl)',   /* 20px token */
-          borderTopRightRadius: 'var(--radius-xl)',
-          boxShadow: 'var(--shadow-e3)',
-          flexDirection: 'column',
-          transform: open ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
-          willChange: 'transform',
-        }}
-        className="lg:hidden flex"
+        className={`lg:hidden flex fixed bottom-0 left-0 right-0 z-50 h-[85vh] flex-col bg-surface-main rounded-t-xl shadow-e3 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform`}
+        // eslint-disable-next-line shadcn/no-inline-styles -- open/closed state; e2e reads style.transform
+        style={{ transform: open ? 'translateY(0)' : 'translateY(100%)' }}
       >
         {/* Drag handle */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            paddingTop: '12px',
-            paddingBottom: '4px',
-            flexShrink: 0,
-          }}
-        >
-          <div
-            style={{
-              width: '36px',
-              height: '4px',
-              borderRadius: 'var(--radius-full)',   /* pill — drag handle only */
-              background: 'var(--neutral-300)',
-            }}
-          />
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-9 h-1 rounded-full bg-neutral-300" />
         </div>
 
         {/* Header */}
-        <div style={{ padding: 'var(--space-8) var(--space-12) var(--space-12)', flexShrink: 0 }}>
-          <div
-            style={{
-              borderRadius: 'var(--radius-lg)',  /* 18px token */
-              border: '1px solid var(--border-subtle)',
-              background: 'var(--surface-app)',     /* neutral app bg inside drawer header */
-              padding: 'var(--space-12)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-12)' }}>
-              <span style={{ fontSize: 'var(--type-heading-m-size)', fontWeight: 'var(--type-heading-m-weight)' as React.CSSProperties['fontWeight'], color: 'var(--text-primary)' }}>
+        <div className="px-3 pt-2 pb-3 shrink-0">
+          <div className="rounded-lg border border-subtle bg-surface-app p-3">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-heading-m text-primary">
                 {t('reader.surahs')}
               </span>
               <button
@@ -179,9 +138,9 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
               </button>
             </div>
 
-            <div style={{ position: 'relative' }}>
+            <div className="relative">
               <svg
-                style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', width: '18px', height: '18px', color: 'var(--text-muted)', pointerEvents: 'none' }}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4.5 text-muted pointer-events-none"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -195,13 +154,12 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder={t('reader.searchSurah')}
-                className="input input-sm w-full"
+                className="input input-sm w-full bg-transparent pl-11"
                 aria-label={t('reader.searchSurah')}
-                style={{ background: 'transparent', paddingLeft: '2.75rem' }}
               />
             </div>
           </div>
-          <p style={{ margin: '8px 4px 0', fontSize: 'var(--type-caption-size)', color: 'var(--text-muted)' }}>
+          <p className="mt-2 mx-1 mb-0 text-caption text-muted">
             {t('reader.holdToBookmark')}
           </p>
         </div>
@@ -209,15 +167,14 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
         {/* Scrollable list */}
         <div
           data-testid="mobile-surah-scroll-list"
-          className="thin-scroll"
-          style={{ flex: 1, overflowY: 'auto', padding: '0 8px 32px' }}
+          className="thin-scroll flex-1 overflow-y-auto px-2 pb-8"
         >
-          <ul style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <ul className="flex flex-col gap-1">
             {filtered.map(group => {
               const active = activePage === group.page;
               const isMultiSurah = group.surahs.length > 1;
               return (
-                <li key={group.page} style={{ padding: '2px 8px' }}>
+                <li key={group.page} className="px-2 py-0.5">
                   <button
                     ref={active ? activeButtonRef : undefined}
                     type="button"
@@ -230,52 +187,20 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                     onPointerLeave={cancelLongPress}
                     onPointerCancel={cancelLongPress}
                     onContextMenu={e => e.preventDefault()}
-                    style={{
-                      width: '100%',
-                      /* V3 Story 16: token radius + token colors */
-                      borderRadius: 'var(--radius-lg)',    /* 18px */
-                      padding: isMultiSurah ? '14px 12px' : '10px 12px',
-                      textAlign: 'left',
-                      border: active ? '1px solid var(--border-accent)' : '1px solid transparent',
-                      background: active ? 'var(--accent-muted)' : 'var(--surface-main)',
-                      cursor: 'pointer',
-                      transition: 'all var(--duration-fast) var(--ease-out)',
-                    }}
+                    className={`w-full rounded-lg px-3 text-left border cursor-pointer transition-all duration-(--duration-fast) ease-(--ease-out) ${isMultiSurah ? 'py-3.5' : 'py-2.5'} ${
+                      active ? 'border-(--border-accent) bg-accent-muted' : 'border-transparent bg-surface-main'
+                    }`}
                   >
-                    <div style={{ display: 'flex', flexDirection: isMultiSurah ? 'column' : 'row', gap: isMultiSurah ? 'var(--space-8)' : '0' }}>
+                    <div className={`flex ${isMultiSurah ? 'flex-col gap-2' : 'flex-row gap-0'}`}>
                       {group.surahs.map(n => (
-                        <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-12)' }}>
+                        <div key={n} className="flex items-center gap-3">
                           <span
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              minWidth: '28px',
-                              height: '28px',
-                              borderRadius: 'var(--radius-sm)',  /* 10px token */
-                              padding: '0 6px',
-                              fontSize: 'var(--type-caption-size)',  /* 12px */
-                              fontWeight: 700,
-                              fontVariantNumeric: 'tabular-nums',
-                              boxShadow: 'var(--shadow-e1)',
-                              background: active ? 'var(--surface-main)' : 'var(--green-soft)',
-                              color: 'var(--green-600)',
-                              outline: '1px solid var(--border-accent)',
-                              flexShrink: 0,
-                            }}
+                            className={`inline-flex items-center justify-center min-w-7 h-7 rounded-sm px-1.5 text-caption font-bold tabular-nums shadow-e1 text-green-600 outline outline-(--border-accent) shrink-0 ${active ? 'bg-surface-main' : 'bg-green-soft'}`}
                           >
                             {fmtNum(n)}
                           </span>
                           <span
-                            style={{
-                              fontSize: 'var(--type-body-size)',  /* 14px */
-                              fontWeight: 600,
-                              lineHeight: 1.3,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              color: active ? 'var(--text-accent)' : 'var(--text-primary)',
-                            }}
+                            className={`text-body font-semibold leading-[1.3] truncate ${active ? 'text-(--text-accent)' : 'text-primary'}`}
                           >
                             {getSurahName(n, locale)}
                           </span>
@@ -283,20 +208,11 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                       ))}
                     </div>
                     <div
-                      style={{
-                        marginTop: 'var(--space-4)',
-                        paddingLeft: '40px',
-                        fontSize: 'var(--type-caption-size)',  /* 12px */
-                        fontWeight: 500,
-                        color: active ? 'var(--text-accent)' : 'var(--text-muted)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                      }}
+                      className={`mt-1 pl-10 text-caption font-medium flex items-center gap-1.5 ${active ? 'text-(--text-accent)' : 'text-muted'}`}
                     >
                       {t('reader.pageNum', { n: group.page })}{group.surahs.length > 1 ? ` · ${t('reader.surahsCount', { count: group.surahs.length })}` : ''}
                       {bookmarkedPage === group.page && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', color: 'var(--green-600)', fontWeight: 700 }}>
+                        <span className="inline-flex items-center gap-0.75 text-green-600 font-bold">
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" aria-hidden>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.2L5 21V4a1 1 0 0 1 1-1z" />
                           </svg>

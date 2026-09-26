@@ -20,30 +20,19 @@ export default function ZoomControl({
     <div
       data-testid="zoom-control"
       aria-label={t('reader.zoomControls')}
-      className="hidden lg:flex items-center justify-center"
-      style={{
-        marginTop: 'var(--space-12)',
-        height: '52px',
-        background: 'var(--surface-main)',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid rgba(15, 23, 42, 0.05)',
-        boxShadow: 'var(--shadow-e2)',
-        padding: '0 var(--space-8)',
-        userSelect: 'none',
-      }}
+      className="mt-3 hidden h-13 select-none items-center justify-center rounded-lg border border-subtle bg-surface-main px-2 shadow-e2 lg:flex"
     >
       <button
         type="button"
         aria-label={t('reader.zoomOut')}
         onClick={onZoomOut}
         disabled={zoom <= 50}
-        className="btn btn-ghost btn-icon"
-        style={{ fontSize: 20 }}
+        className="btn btn-ghost btn-icon text-heading-m"
       >
         −
       </button>
 
-      <span style={{ minWidth: '52px', textAlign: 'center', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+      <span className="min-w-13 text-center text-small font-semibold tabular-nums text-primary">
         {zoom}%
       </span>
 
@@ -52,13 +41,12 @@ export default function ZoomControl({
         aria-label={t('reader.zoomIn')}
         onClick={onZoomIn}
         disabled={zoom >= 200}
-        className="btn btn-ghost btn-icon"
-        style={{ fontSize: 20 }}
+        className="btn btn-ghost btn-icon text-heading-m"
       >
         +
       </button>
 
-      <div aria-hidden="true" style={{ width: '1px', height: '24px', background: 'var(--border-subtle)', margin: '0 var(--space-8)' }} />
+      <div aria-hidden="true" className="mx-2 h-6 w-px bg-subtle" />
 
       <button
         type="button"

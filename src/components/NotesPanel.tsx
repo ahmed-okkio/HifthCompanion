@@ -140,14 +140,7 @@ export default function NotesPanel({ setId, pageNum, initialNotes, readOnly = fa
           {/* Note list */}
           <div ref={listRef}>
             {notes.length === 0 && (
-              <p
-                style={{
-                  padding: 'var(--space-24) var(--space-16)',
-                  textAlign: 'center',
-                  fontSize: 'var(--type-caption-size)',
-                  color: 'var(--text-muted)',
-                }}
-              >
+              <p className="px-6 py-8 text-center text-small text-muted">
                 {t('notes.empty')}
               </p>
             )}

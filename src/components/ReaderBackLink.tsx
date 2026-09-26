@@ -12,8 +12,8 @@ export default function ReaderBackLink() {
     if (last) setHref(`/reader/${last}`);
   }, []);
   return (
-    <Link href={href} className="btn btn-ghost flex items-center gap-1.5" style={{ fontSize: '12px', minHeight: '44px' }}>
-      <span style={{ display: 'inline-flex', transform: locale === 'ar' ? 'scaleX(-1)' : undefined }}>
+    <Link href={href} className="btn btn-ghost flex items-center gap-1.5 text-caption min-h-11">
+      <span className={`inline-flex ${locale === 'ar' ? '-scale-x-100' : ''}`}>
         <Icon name="arrow-left" size={15} />
       </span> {t('reader.backToReader')}
     </Link>

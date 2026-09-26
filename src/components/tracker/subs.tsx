@@ -61,14 +61,14 @@ export function SubAssignForm({
   }
 
   return (
-    <div ref={wrapRef} className="flex flex-col gap-1 w-full" style={{ position: 'relative' }}>
+    <div ref={wrapRef} className="flex flex-col gap-1 w-full relative">
       <div className="flex gap-2 items-center">
         <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoFocus={autoFocus}
                onKeyDown={(e) => {
                  if (e.key === 'Escape') onCancel?.();
                  if (e.key === 'Enter' && matches?.length) pick(matches[0]);
                }}
-               placeholder={t('subs.email')} className={grow ? 'input flex-1 min-w-0' : 'input'} style={{ minHeight: 36, fontSize: 13 }} />
+               placeholder={t('subs.email')} className={`input min-h-9 text-small${grow ? ' flex-1 min-w-0' : ''}`} />
         {onCancel && (
           <button onClick={onCancel} aria-label={t('common.cancel')} className="btn btn-ghost btn-icon btn-sm shrink-0">
             ✕
@@ -78,28 +78,25 @@ export function SubAssignForm({
 
       {/* Results float over the list so the header row doesn't jump. */}
       <AnchoredPopup open={searching || !!matches} anchorRef={wrapRef} className="card">
-        <div style={{ padding: 0 }}>
-          {searching && <p className="text-xs" style={{ color: 'var(--text-muted)', padding: '8px 10px' }}>{t('share.searching')}</p>}
+        <div className="p-0">
+          {searching && <p className="text-caption text-muted px-3 py-2">{t('share.searching')}</p>}
           {!searching && matches?.length === 0 && (
-            <p className="text-xs" style={{ color: 'var(--text-muted)', padding: '8px 10px' }}>{t('share.noMatchingAccounts')}</p>
+            <p className="text-caption text-muted px-3 py-2">{t('share.noMatchingAccounts')}</p>
           )}
           {!searching && matches?.map((a) => (
             <button key={a.id} onClick={() => pick(a)} disabled={busy}
-                    className="flex items-center gap-2 text-start w-full"
-                    style={{ padding: '8px 10px', background: 'transparent', border: 'none', borderBottom: '1px solid var(--border-subtle)', cursor: 'pointer' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--accent-muted)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+                    className="flex items-center gap-2 text-start w-full px-3 py-2 bg-transparent border-0 border-b border-subtle cursor-pointer hover:bg-accent-muted">
               <Avatar seed={label(a)} size={28} />
               <div className="flex flex-col min-w-0 flex-1">
-                <span className="truncate" style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{label(a)}</span>
-                <span className="truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{a.email}</span>
+                <span className="truncate text-caption font-semibold text-primary">{label(a)}</span>
+                <span className="truncate text-micro text-muted">{a.email}</span>
               </div>
-              <span className="badge shrink-0" style={{ fontSize: 10 }}>{t('subs.assign')}</span>
+              <span className="badge shrink-0 text-micro">{t('subs.assign')}</span>
             </button>
           ))}
         </div>
       </AnchoredPopup>
-      {err && <span className="text-xs" style={{ color: 'var(--danger)' }}>{err}</span>}
+      {err && <span className="text-caption text-danger">{err}</span>}
     </div>
   );
 }
@@ -112,20 +109,18 @@ export function SubAssignForm({
 export function CoveredBy({ name, onRemove }: { name: string; onRemove?: () => void }) {
   const { t } = useI18n();
   if (!onRemove) {
-    return <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('subs.coveredBy', { name })}</span>;
+    return <span className="badge badge-muted text-micro">{t('subs.coveredBy', { name })}</span>;
   }
   // Teacher-facing: reads as the person, not a tag — avatar, name, role line.
   return (
-    <span className="shrink-0 inline-flex items-center gap-2"
-          style={{ maxWidth: 240, padding: '4px 6px 4px 4px', borderRadius: 'var(--radius-md)', background: 'var(--surface-app)', border: '1px solid var(--border-subtle)' }}>
+    <span className="shrink-0 inline-flex items-center gap-2 max-w-60 py-1 ps-1 pe-2 rounded-md bg-surface-app border border-subtle">
       <Avatar seed={name} size={28} />
-      <span className="flex flex-col min-w-0" style={{ lineHeight: 1.15 }}>
-        <span className="truncate" style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{name}</span>
-        <span className="truncate" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('subs.substitute')}</span>
+      <span className="flex flex-col min-w-0 leading-tight">
+        <span className="truncate text-caption font-semibold text-primary">{name}</span>
+        <span className="truncate text-micro text-muted">{t('subs.substitute')}</span>
       </span>
       <ActionButton compact onClick={onRemove} aria-label={t('subs.removeSub', { name })}
-              className="btn btn-ghost btn-icon btn-sm shrink-0"
-              style={{ color: 'var(--text-muted)' }}>
+              className="btn btn-ghost btn-icon btn-sm shrink-0 text-muted">
         ✕
       </ActionButton>
     </span>
@@ -161,7 +156,7 @@ export function Attribution({ actorId }: { actorId?: string | null }) {
   // than rendering a blank line (E4/E5).
   const name = names[actorId] || (isSub ? t('subs.substitute') : t('subs.teacher'));
   return (
-    <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+    <span className="text-caption text-muted">
       {t('subs.by', { name })}{isSub ? t('subs.bySuffix') : ''}
     </span>
   );

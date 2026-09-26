@@ -23,29 +23,10 @@ interface Props {
 
 type Popover = 'tools' | 'colors' | 'more' | null;
 
-const cardStyle: React.CSSProperties = {
-  position: 'absolute',
-  bottom: 'calc(100% + 8px)',
-  background: 'var(--bg-glass)',
-  backdropFilter: 'blur(16px)',
-  WebkitBackdropFilter: 'blur(16px)',
-  border: '1px solid var(--border-subtle)',
-  borderRadius: 'var(--radius-xl)',  /* 20px — token cap */
-  boxShadow: 'var(--shadow-e3)',
-  padding: 'var(--space-8)',
-  zIndex: 2,
-};
+const cardCls = 'absolute bottom-[calc(100%+8px)] z-2 rounded-xl border border-subtle bg-[var(--bg-glass)] p-2 shadow-e3 backdrop-blur-lg';
 
-const triggerStyle: React.CSSProperties = {
-  width: 46,
-  height: 46,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  borderRadius: 'var(--radius-md)',  /* 14px */
-  flexShrink: 0,
-  transition: 'background var(--duration-fast) var(--ease-out)',
-};
+const triggerCls = 'flex h-11.5 shrink-0 items-center justify-center rounded-md transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)]';
+const disabledCls = 'pointer-events-none opacity-40';
 
 export default function MobileAnnotationBar({
   activeTool, activeColor, canUndo, canRedo, canClear, saving,
@@ -62,37 +43,18 @@ export default function MobileAnnotationBar({
   return (
     <div
       data-testid="mobile-annotation-bar"
-      className="lg:hidden"
-      style={{
-        position: 'fixed',
-        /* Floating: lifted off the bottom edge and inset from the sides so all four rounded
-           corners are visible (a hovering pill, not a flush-to-edge bar). */
-        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
-        left: 14,
-        right: 14,
-        zIndex: 45,
-        /* iOS Safari bug: position:fixed + backdrop-filter on the SAME element drops the
-           fixed behaviour on scroll (bar stops sticking, only reappears scrolled to the
-           bottom). Keep this fixed layer plain; the glass/blur lives on the inner wrapper. */
-      }}
+      /* Floating: lifted off the bottom edge and inset from the sides so all four rounded
+         corners are visible. iOS Safari bug: position:fixed + backdrop-filter on the SAME
+         element drops the fixed behaviour on scroll — keep this fixed layer plain; the
+         glass/blur lives on the inner wrapper. */
+      className="fixed inset-x-3.5 bottom-[calc(env(safe-area-inset-bottom,0px)+16px)] z-45 lg:hidden"
     >
-      <div
-        style={{
-          position: 'relative',
-          borderRadius: 'var(--radius-xl)',
-          /* V3 Story 16 — glass bar: white-tinted glass + 16px backdrop blur. Lifted off the
-             bottom with a deep shadow so it clearly hovers above the page. */
-          background: 'var(--bg-glass)',
-          backdropFilter: 'blur(16px) saturate(1.4)',
-          WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
-          border: '1px solid var(--border-subtle)',
-          boxShadow: '0 14px 36px rgba(15, 23, 42, 0.22)',
-        }}
-      >
+      {/* V3 Story 16 — glass bar: white-tinted glass + 16px backdrop blur, deep shadow. */}
+      <div className="relative rounded-xl border border-subtle bg-[var(--bg-glass)] shadow-e3 backdrop-blur-lg backdrop-saturate-150">
       {saving && (
         <span
           aria-hidden
-          style={{ position: 'absolute', top: 6, right: 8, width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-solid)', zIndex: 3 }}
+          className="absolute right-2 top-1.5 z-3 h-1.5 w-1.5 rounded-full bg-green-600"
         />
       )}
 
@@ -102,27 +64,20 @@ export default function MobileAnnotationBar({
         <div
           aria-hidden
           onClick={close}
-          style={{ position: 'fixed', inset: 0, zIndex: 1, background: 'transparent' }}
+          className="fixed inset-0 z-1 bg-transparent"
         />
       )}
 
       {/* Tool grid popover */}
       {open === 'tools' && (
-        <div role="menu" aria-label={t('annot.tools')} style={{ ...cardStyle, left: 8, display: 'flex', gap: 4 }}>
+        <div role="menu" aria-label={t('annot.tools')} className={`${cardCls} left-2 flex gap-1`}>
           {ALL_TOOLS.map(t => (
             <button
               key={t}
               onClick={() => { onToolClick(t); close(); }}
               title={toolLabel(t)}
               aria-label={toolLabel(t)}
-              className="[&>svg]:h-5 [&>svg]:w-5"
-              style={{
-                width: 46, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: 'var(--radius-md)',  /* 12px */
-                ...(activeTool === t
-                  ? { background: 'var(--accent-muted)', color: 'var(--text-accent)' }
-                  : { color: 'var(--text-muted)' }),
-              }}
+              className={`flex h-11.5 w-11.5 items-center justify-center rounded-md [&>svg]:h-5 [&>svg]:w-5 ${activeTool === t ? 'bg-accent-muted text-green-600' : 'text-muted'}`}
             >
               {TOOL_ICONS[t]}
               <span className="sr-only">{toolLabel(t)}</span>
@@ -133,19 +88,16 @@ export default function MobileAnnotationBar({
 
       {/* Color palette popover */}
       {open === 'colors' && (
-        <div role="menu" aria-label={t('annot.colors')} style={{ ...cardStyle, left: 62, display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div role="menu" aria-label={t('annot.colors')} className={`${cardCls} left-15.5 flex items-center gap-2`}>
           {PRESET_COLORS.map(c => (
             <button
               key={c.value}
               onClick={() => { onColorChange(c.value); close(); }}
               title={colorLabel(c.name)}
               aria-label={colorLabel(c.name)}
-              style={{
-                width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
-                backgroundColor: c.value,
-                border: activeColor === c.value ? '2px solid var(--text-primary)' : '2px solid transparent',
-                boxShadow: activeColor === c.value ? '0 0 0 2px var(--bg-base)' : 'none',
-              }}
+              className={`h-8.5 w-8.5 shrink-0 rounded-full border-2 ${activeColor === c.value ? 'border-primary shadow-[0_0_0_2px_var(--bg-base)]' : 'border-transparent'}`}
+              // eslint-disable-next-line shadcn/no-inline-styles -- preset swatch colour from data
+              style={{ backgroundColor: c.value }}
             >
               <span className="sr-only">{colorLabel(c.name)}</span>
             </button>
@@ -155,44 +107,33 @@ export default function MobileAnnotationBar({
 
       {/* Overflow menu popover */}
       {open === 'more' && (
-        <div role="menu" aria-label={t('annot.moreActions')} style={{ ...cardStyle, right: 8, minWidth: 160 }}>
+        <div role="menu" aria-label={t('annot.moreActions')} className={`${cardCls} right-2 min-w-40`}>
           <button
             onClick={() => { onClear(); close(); }}
             disabled={!canClear}
             title={t('annot.clearAll')}
             aria-label={t('annot.clearAll')}
             aria-disabled={!canClear}
-            className="btn btn-danger-ghost"
-            style={{ width: '100%', gap: 10, borderRadius: 'var(--radius-md)', justifyContent: 'flex-start', ...(!canClear ? { opacity: 0.4, pointerEvents: 'none' } : {}) }}
+            className={`btn btn-danger-ghost w-full justify-start gap-2.5 rounded-md ${!canClear ? disabledCls : ''}`}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-            <span style={{ fontSize: 14, fontWeight: 600 }}>{t('annot.clearPage')}</span>
+            <span className="text-body font-semibold">{t('annot.clearPage')}</span>
           </button>
         </div>
       )}
 
       {/* The bar row — five evenly-spaced controls, always fits (no horizontal scroll). */}
-      <div style={{ position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '5px 8px', gap: 4 }}>
+      {/* eslint-disable-next-line shadcn/no-inline-styles -- e2e selects row via style*="space-around" */}
+      <div className="relative z-2 flex items-center gap-1 px-2 py-[5px]" style={{ justifyContent: 'space-around' }}>
         {/* Move / Draw toggle — default Move lets a finger scroll the page; tap to draw. */}
         <button
           onClick={() => onModeChange(drawing ? 'move' : 'draw')}
           title={drawing ? t('annot.drawingTapScroll') : t('annot.scrollingTapDraw')}
           aria-label={drawing ? t('annot.drawingModeAria') : t('annot.scrollModeAria')}
           aria-pressed={drawing}
-          className="[&>svg]:h-5 [&>svg]:w-5"
-          style={{
-            ...triggerStyle,
-            width: 'auto',
-            paddingInline: 10,
-            gap: 4,
-            fontSize: 13,
-            fontWeight: 700,
-            ...(drawing
-              ? { background: 'var(--accent-solid)', color: 'var(--accent-contrast)' }
-              : { background: 'transparent', color: 'var(--text-muted)', boxShadow: 'inset 0 0 0 1px var(--border-subtle)' }),
-          }}
+          className={`${triggerCls} gap-1 px-2.5 text-small font-bold [&>svg]:h-5 [&>svg]:w-5 ${drawing ? 'bg-green-600 text-accent-contrast' : 'bg-transparent text-muted ring-1 ring-inset ring-subtle'}`}
         >
           {drawing ? (
             // pencil
@@ -217,11 +158,10 @@ export default function MobileAnnotationBar({
           title={t('annot.tools')}
           aria-label={t('annot.tools')}
           aria-expanded={open === 'tools'}
-          className="[&>svg]:h-5 [&>svg]:w-5"
-          style={{ ...triggerStyle, gap: 2, width: 'auto', paddingInline: 8, color: 'var(--text-accent)', background: open === 'tools' ? 'var(--accent-muted)' : 'transparent' }}
+          className={`${triggerCls} gap-0.5 px-2 text-green-600 [&>svg]:h-5 [&>svg]:w-5 ${open === 'tools' ? 'bg-accent-muted' : 'bg-transparent'}`}
         >
           {TOOL_ICONS[activeTool]}
-          <svg style={{ width: 12, height: 12 }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 8l5 5 5-5" />
           </svg>
           <span className="sr-only">{t('annot.tools')}</span>
@@ -233,9 +173,13 @@ export default function MobileAnnotationBar({
           title={t('annot.color')}
           aria-label={t('annot.color')}
           aria-expanded={open === 'colors'}
-          style={{ ...triggerStyle, background: open === 'colors' ? 'var(--accent-muted)' : 'transparent' }}
+          className={`${triggerCls} w-11.5 ${open === 'colors' ? 'bg-accent-muted' : 'bg-transparent'}`}
         >
-          <span style={{ width: 22, height: 22, borderRadius: '50%', backgroundColor: activeColor, boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.15)' }} />
+          <span
+            className="h-5.5 w-5.5 rounded-full ring-1 ring-inset ring-default"
+            // eslint-disable-next-line shadcn/no-inline-styles -- user-picked colour
+            style={{ backgroundColor: activeColor }}
+          />
           <span className="sr-only">{t('annot.color')}</span>
         </button>
 
@@ -245,7 +189,7 @@ export default function MobileAnnotationBar({
           suppressHydrationWarning
           title={t('annot.undo')}
           aria-disabled={!canUndo}
-          style={{ ...triggerStyle, color: 'var(--text-muted)', ...(!canUndo ? { opacity: 0.4, pointerEvents: 'none' } : {}) }}
+          className={`${triggerCls} w-11.5 text-muted ${!canUndo ? disabledCls : ''}`}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
@@ -259,7 +203,7 @@ export default function MobileAnnotationBar({
           suppressHydrationWarning
           title={t('annot.redo')}
           aria-disabled={!canRedo}
-          style={{ ...triggerStyle, color: 'var(--text-muted)', ...(!canRedo ? { opacity: 0.4, pointerEvents: 'none' } : {}) }}
+          className={`${triggerCls} w-11.5 text-muted ${!canRedo ? disabledCls : ''}`}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
@@ -272,7 +216,7 @@ export default function MobileAnnotationBar({
           title={t('annot.more')}
           aria-label={t('annot.moreActions')}
           aria-expanded={open === 'more'}
-          style={{ ...triggerStyle, color: 'var(--text-muted)', background: open === 'more' ? 'var(--accent-muted)' : 'transparent' }}
+          className={`${triggerCls} w-11.5 text-muted ${open === 'more' ? 'bg-accent-muted' : 'bg-transparent'}`}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M5 12h.01M12 12h.01M19 12h.01" />

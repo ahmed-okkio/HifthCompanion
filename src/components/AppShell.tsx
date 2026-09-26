@@ -40,7 +40,7 @@ export default function AppShell({
   const [navOpen, setNavOpen] = useState(false);
 
   return (
-    <div className="app-shell flex flex-col min-h-dvh overflow-x-hidden" style={{ background: 'var(--bg-base)' }}>
+    <div className="app-shell flex flex-col min-h-dvh overflow-x-hidden bg-surface-app">
       {/* Header on top, full width (sticky) */}
       <AppHeader
         breadcrumb={breadcrumb}
@@ -61,17 +61,17 @@ export default function AppShell({
             grows with the page (align-stretch is the flex default). */}
         {/* z above the circle rail (z-20) so the right-edge shadow casts over it,
             reading as a separator between the two rails. */}
-        <div className="hidden lg:block flex-shrink-0 relative" style={{ width: 96, zIndex: 30, boxShadow: '1px 0 3px -2px rgba(15,23,42,0.10)' }}>
+        <div className="hidden lg:block flex-shrink-0 relative w-24 z-30 shadow-[1px_0_3px_-2px_rgba(15,23,42,0.10)]">
           <NavRail />
         </div>
         {/* Secondary rail: left column on desktop, full-width strip on mobile
             (CircleRail is responsive — its own classes flip orientation).
             Relative + raised z so its hover tooltips paint over the content column. */}
-        {secondRail && <div className="flex-shrink-0 relative" style={{ zIndex: 20 }}>{secondRail}</div>}
+        {secondRail && <div className="flex-shrink-0 relative z-20">{secondRail}</div>}
         {/* flex-col so a full-height page child (h-full / flex-1) resolves its
             height on mobile, where the shell's height comes from flex-growth in
             a min-h-dvh column, not a definite height. */}
-        <div className="flex-1 min-w-0 min-h-0 flex flex-col" style={{ overflow: 'hidden' }}>{children}</div>
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden">{children}</div>
       </div>
 
       <MobileNavDrawer open={navOpen} onOpenChange={setNavOpen} />

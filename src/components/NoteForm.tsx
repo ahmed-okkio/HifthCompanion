@@ -19,7 +19,7 @@ export default function NoteForm({ value, isPending, onChange, onSubmit, onAddAn
   const { t } = useI18n();
   const disabled = !value.trim() || isPending;
   return (
-    <div style={{ padding: 'var(--space-12) var(--space-16)', background: 'var(--surface-main)', borderBottom: '1px solid var(--neutral-200)' }}>
+    <div className="border-b border-neutral-200 bg-surface-main px-4 py-3">
       <textarea
         dir="auto"
         ref={textareaRef}
@@ -27,12 +27,11 @@ export default function NoteForm({ value, isPending, onChange, onSubmit, onAddAn
         onChange={e => onChange(e.target.value)}
         placeholder={t('notes.placeholder')}
         rows={2}
-        className="input"
-        style={{ fontSize: '13px', resize: 'none' }}
+        className="input resize-none text-small"
         onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) onSubmit(undefined); }}
       />
       {linkPending ? (
-        <div className="mt-2" style={{ fontSize: '12px', color: 'var(--accent)', fontWeight: 600, textAlign: 'center' }}>
+        <div className="mt-2 text-center text-caption font-semibold text-accent">
           {t('notes.placePrompt')}
         </div>
       ) : (
@@ -47,7 +46,7 @@ export default function NoteForm({ value, isPending, onChange, onSubmit, onAddAn
             {t('notes.addAndLink')}
           </button>
           <div className="flex items-center justify-between">
-            <span style={{ fontSize: 'var(--type-meta-size)', color: 'var(--text-muted)' }}>{t('notes.ctrlEnterSave')}</span>
+            <span className="text-meta text-muted">{t('notes.ctrlEnterSave')}</span>
             <button
               onClick={() => onSubmit(undefined)}
               disabled={disabled}

@@ -46,15 +46,13 @@ export default function SetsList({ initialSets }: { initialSets: AnnotationSet[]
   return (
     <div className="flex flex-col gap-3">
       {/* Create new set */}
-      <div className="card flex gap-2 items-center"
-           style={{ padding: '12px 16px' }}>
+      <div className="card flex gap-2 items-center px-4 py-3">
         <input
           value={newName}
           onChange={e => setNewName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleCreateSet()}
           placeholder={t('sets.newSetNamePlaceholder')}
-          className="input"
-          style={{ flex: 1, minWidth: 0 }}
+          className="input flex-1 min-w-0"
         />
         <button onClick={handleCreateSet}
                 disabled={!newName.trim()}
@@ -68,9 +66,8 @@ export default function SetsList({ initialSets }: { initialSets: AnnotationSet[]
 
       {/* Empty state */}
       {sets.length === 0 && (
-        <div className="card text-center animate-fade-in"
-             style={{ padding: '40px 24px', color: 'var(--text-muted)' }}>
-          <div className="flex justify-center mb-3 text-emerald-500">
+        <div className="card text-center animate-fade-in px-6 py-10 text-muted">
+          <div className="flex justify-center mb-3 text-success">
             <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
             </svg>
@@ -83,11 +80,9 @@ export default function SetsList({ initialSets }: { initialSets: AnnotationSet[]
       {/* Set items */}
       {sets.map((set, i) => (
         <div key={set.id}
-             className="card group animate-fade-in"
-             style={{
-               padding: '14px 18px',
-               animationDelay: `${i * 50}ms`,
-             }}>
+             className="card group animate-fade-in px-4 py-3"
+             // eslint-disable-next-line shadcn/no-inline-styles -- staggered per-row delay
+             style={{ animationDelay: `${i * 50}ms` }}>
           {/* Top row: name / edit-input */}
           {editingId === set.id ? (
             <div className="flex gap-2 items-center">
@@ -99,13 +94,11 @@ export default function SetsList({ initialSets }: { initialSets: AnnotationSet[]
                   if (e.key === 'Enter') handleRenameSet(set.id);
                   if (e.key === 'Escape') setEditingId(null);
                 }}
-                className="input input-sm"
-                style={{ flex: 1, minWidth: 0, minHeight: '44px' }}
+                className="input input-sm flex-1 min-w-0 min-h-11"
               />
               <div className="flex gap-1 flex-shrink-0">
                 <button onClick={() => handleRenameSet(set.id)}
-                        className="btn btn-ghost btn-lg flex items-center gap-1"
-                        style={{ color: 'var(--text-accent)' }}>
+                        className="btn btn-ghost btn-lg flex items-center gap-1 text-green-600">
                   <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
@@ -123,14 +116,12 @@ export default function SetsList({ initialSets }: { initialSets: AnnotationSet[]
           ) : (
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="w-2 h-2 rounded-full flex-shrink-0"
-                     style={{ background: 'var(--accent)' }} />
-                <span className="font-medium text-sm truncate"
-                      style={{ color: 'var(--text-primary)' }}>
+                <div className="w-2 h-2 rounded-full flex-shrink-0 bg-accent" />
+                <span className="font-medium text-sm truncate text-primary">
                   {set.name}
                 </span>
                 {set.is_default && (
-                  <span className="badge flex-shrink-0" style={{ fontSize: '11px' }}>{t('sets.default')}</span>
+                  <span className="badge flex-shrink-0 text-meta">{t('sets.default')}</span>
                 )}
               </div>
               {/* Always visible on touch (hover: none); hover-reveal on pointer devices */}

@@ -226,9 +226,9 @@ export default function TeacherStudent({
         {tab === 'exams' && <ExamsPanel membershipId={member.id} initial={initialExams} locale={locale} setId={defaultSetId} />}
         {tab === 'notes' && <NotesThread membershipId={member.id} initial={initialNotes} />}
         {isMobile && tab === 'annotations' && (
-          <div className="card flex flex-col gap-2" style={{ padding: '16px 0 8px' }}>
+          <div className="card flex flex-col gap-2 pt-4 px-0 pb-2">
             <div className="px-4"><SectionTitle>{t('reader.marked')}</SectionTitle></div>
-            <div className="overflow-y-auto thin-scroll" style={{ maxHeight: 400 }}>
+            <div className="overflow-y-auto thin-scroll max-h-100">
               <MarkedPagesList
                 rows={markedPages}
                 hrefFor={defaultSetId ? (page) => `/share/${defaultSetId}/${spreadUrl(page)}` : undefined}
@@ -237,20 +237,19 @@ export default function TeacherStudent({
           </div>
         )}
         {tab === 'settings' && (
-          <div className="card flex flex-col gap-3" style={{ padding: '18px 20px' }}>
+          <div className="card flex flex-col gap-3 py-4 px-5">
             <SectionTitle>{t('common.settings')}</SectionTitle>
             <div className="flex items-center justify-between gap-4 flex-wrap">
               <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-sm font-semibold text-primary">
                   {t('tracker.deactivate')}
                 </span>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <span className="text-xs text-muted">
                   {t('tracker.deactivateHint')}
                 </span>
               </div>
               {member.status === 'active' ? (
-                <ActionButton onClick={handleDeactivate} className="btn btn-ghost btn-sm shrink-0"
-                        style={{ color: 'var(--text-muted)' }}>
+                <ActionButton onClick={handleDeactivate} className="btn btn-ghost btn-sm shrink-0 text-muted">
                   {t('tracker.deactivate')}
                 </ActionButton>
               ) : (
@@ -297,23 +296,22 @@ export function StudentProfileCard({
   const att = useMemo(() => attendanceStats(attendance), [attendance]);
   return (
     <aside className="order-first lg:order-none flex flex-col gap-3 self-start">
-      <div className="card flex flex-col items-center text-center gap-2" style={{ padding: '22px' }}>
+      <div className="card flex flex-col items-center text-center gap-2 p-6">
         <Avatar seed={name} size={64} />
-        <h1 className="font-bold tracking-tight truncate max-w-full"
-            style={{ color: 'var(--text-primary)', fontSize: 'var(--type-heading-m-size)' }}>
+        <h1 className="font-bold tracking-tight truncate max-w-full text-primary text-heading-m">
           {name}
         </h1>
-        <span className="text-xs truncate max-w-full" style={{ color: 'var(--text-muted)' }}>{circleName}</span>
+        <span className="text-xs truncate max-w-full text-muted">{circleName}</span>
         <div className="mt-1"><MushafButton setId={defaultSetId} /></div>
       </div>
 
-      <div className="card flex flex-col gap-3" style={{ padding: '16px' }}>
+      <div className="card flex flex-col gap-3 p-4">
         {memorized && (<>
           <div className="grid grid-cols-2 gap-2">
             <RingTile value={memorized.juz} max={TOTAL_JUZ} label={t('analytics.juz')} />
             <RingTile value={memorized.surahs} max={TOTAL_SURAHS} label={t('analytics.surahs')} />
           </div>
-          <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+          <div className="h-px bg-subtle" />
         </>)}
         <AttendanceLine marked={att.marked} rate={att.rate} />
       </div>
@@ -322,19 +320,19 @@ export function StudentProfileCard({
       {/* 0015 L1–L4: read-only merged wird summary, only present for a teacher of an
           active membership (page passes it on that branch alone). Null → no card (L4). */}
       {wirdSummary && (
-        <div className="card flex flex-col gap-3" style={{ padding: '16px' }}>
+        <div className="card flex flex-col gap-3 p-4">
           <SectionTitle>{t('wird.summaryTitle')}</SectionTitle>
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('wird.summaryWirds')}</span>
-            <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{fmtNum(wirdSummary.wird_count)}</span>
+            <span className="font-semibold text-secondary">{t('wird.summaryWirds')}</span>
+            <span className="font-semibold text-primary">{fmtNum(wirdSummary.wird_count)}</span>
           </div>
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('wird.summaryActiveDays')}</span>
-            <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{fmtNum(wirdSummary.active_days)}</span>
+            <span className="font-semibold text-secondary">{t('wird.summaryActiveDays')}</span>
+            <span className="font-semibold text-primary">{fmtNum(wirdSummary.active_days)}</span>
           </div>
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('wird.summaryLastActive')}</span>
-            <span style={{ color: 'var(--text-muted)' }}>
+            <span className="font-semibold text-secondary">{t('wird.summaryLastActive')}</span>
+            <span className="text-muted">
               {wirdSummary.days_since_last === null ? t('wird.summaryNever')
                 : wirdSummary.days_since_last === 0 ? t('wird.summaryToday')
                 : wirdSummary.days_since_last === 1 ? t('wird.summaryYesterday')
@@ -346,9 +344,9 @@ export function StudentProfileCard({
 
       {/* PRD 0009 C1/C3: default-set marked pages, read-only. Empty set → in-card empty state. */}
       {markedPages && (
-        <div className={`card flex-col gap-2 ${markedDesktopOnly ? 'hidden lg:flex' : 'flex'}`} style={{ padding: '16px 0 8px' }}>
+        <div className={`card flex-col gap-2 ${markedDesktopOnly ? 'hidden lg:flex' : 'flex'} pt-4 px-0 pb-2`}>
           <div className="px-4"><SectionTitle>{t('reader.marked')}</SectionTitle></div>
-          <div className="overflow-y-auto thin-scroll" style={{ maxHeight: 320 }}>
+          <div className="overflow-y-auto thin-scroll max-h-80">
             <MarkedPagesList
               rows={markedPages}
               hrefFor={defaultSetId ? (page) => `/share/${defaultSetId}/${spreadUrl(page)}` : undefined}
@@ -364,12 +362,12 @@ export function StudentProfileCard({
 function RingTile({ value, max, label }: { value: number; max: number; label: string }) {
   const { fmtNum } = useI18n();
   return (
-    <div className="flex flex-col items-center text-center gap-1.5" style={{ padding: '4px 0' }}>
+    <div className="flex flex-col items-center text-center gap-1.5 py-1 px-0">
       <Ring value={value} max={max} size={52} />
-      <span className="font-bold leading-tight" style={{ color: 'var(--text-primary)', fontSize: 16 }}>
+      <span className="font-bold leading-tight text-primary text-body">
         {fmtNum(value)} / {fmtNum(max)}
       </span>
-      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</span>
+      <span className="text-xs text-muted">{label}</span>
     </div>
   );
 }
@@ -379,8 +377,8 @@ function AttendanceLine({ marked, rate }: { marked: number; rate: number }) {
   const { t, fmtNum } = useI18n();
   if (marked === 0) {
     return (
-      <div className="flex items-center justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
-        <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('analytics.attendance')}</span>
+      <div className="flex items-center justify-between text-xs text-muted">
+        <span className="font-semibold text-secondary">{t('analytics.attendance')}</span>
         <span>{t('analytics.attNone')}</span>
       </div>
     );
@@ -391,7 +389,8 @@ function AttendanceLine({ marked, rate }: { marked: number; rate: number }) {
     : ['analytics.attLow', 'var(--danger)'] as const;
   return (
     <div className="flex items-center justify-between text-xs">
-      <span className="font-semibold" style={{ color: 'var(--text-secondary)' }}>{t('analytics.attendance')}</span>
+      <span className="font-semibold text-secondary">{t('analytics.attendance')}</span>
+      {/* eslint-disable-next-line shadcn/no-inline-styles -- colour from status data */}
       <span className="flex items-center gap-1.5 font-semibold" style={{ color }}>
         <StatusDot color={color} />
         {t(key)} · {fmtNum(Math.round(rate * 100))}%
@@ -409,7 +408,7 @@ export function MushafButton({ setId }: { setId: string | null }) {
   // the student's current default (H2).
   if (!setId) {
     return (
-      <span className="btn btn-ghost btn-sm" style={{ opacity: 0.5, cursor: 'default' }}>
+      <span className="btn btn-ghost btn-sm opacity-50 cursor-default">
         {t('tracker.noDefaultSet')}
       </span>
     );
@@ -663,29 +662,26 @@ function StudentSessions({
     const moved = !!s?.moved_from;
     const editing = reschedKey === slot.scheduled_at;
     return (
-      <div className="card flex flex-col gap-2" style={{
-        padding: '12px 14px', opacity: canceled ? 0.5 : 1,
-        // Named so cancel/reschedule/attendance animate this row, not the page.
-        viewTransitionName: vtName(`slot${part}`, slot.scheduled_at),
-        ...(live ? { borderColor: 'var(--accent)', boxShadow: '0 0 0 2px var(--accent-muted)' } : null),
-      }}>
+      <div className={`card flex flex-col gap-2 py-3 px-4 ${canceled ? 'opacity-50' : ''} ${live ? 'border-accent ring-2 ring-accent-muted' : ''}`}
+        // eslint-disable-next-line shadcn/no-inline-styles -- per-row view-transition name; animates this row, not the page
+        style={{ viewTransitionName: vtName(`slot${part}`, slot.scheduled_at) }}>
         {/* Wraps on narrow screens: the action group drops to its own line
             instead of overflowing the card. */}
         <div className="flex flex-wrap items-center gap-2">
           <DateChip iso={slot.scheduled_at} locale={locale} />
-          <div className="flex flex-col gap-0.5 min-w-0 flex-1" style={{ minWidth: 140 }}>
-            <span className="flex flex-wrap items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+          <div className="flex flex-col gap-0.5 flex-1 min-w-35">
+            <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-primary">
               {fmtNum(new Date(slot.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' }))}
-              {s?.is_adhoc && <span className="badge" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
-              {moved && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.rescheduled')}</span>}
-              {canceled && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.canceled')}</span>}
+              {s?.is_adhoc && <span className="badge text-micro">{t('sessions.adhoc')}</span>}
+              {moved && <span className="badge badge-muted text-micro">{t('sessions.rescheduled')}</span>}
+              {canceled && <span className="badge badge-muted text-micro">{t('sessions.canceled')}</span>}
               {!canceled && s?.attendance_status && (
-                <span className="badge" style={{ fontSize: 10 }}>{t(`att.${s.attendance_status}`)}</span>
+                <span className="badge text-micro">{t(`att.${s.attendance_status}`)}</span>
               )}
               {/* Canceled rows have no controls, so the chip stays informational here. */}
               {canceled && subForSlot(slot.scheduled_at) && <CoveredBy name={subForSlot(slot.scheduled_at)!} />}
             </span>
-            <span className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+            <span className="flex items-center gap-2 text-xs text-muted">
               {fmtNum(fmtTime(slot.scheduled_at, locale))}
               {/* E4/E5: who marked attendance (student self-write → null → nothing). */}
               {s?.attendance_status && <Attribution actorId={s.marked_by} />}
@@ -715,15 +711,15 @@ function StudentSessions({
           </div>
         </div>
         {assignKey === slot.scheduled_at && !canceled && !subForSlot(slot.scheduled_at) && (
-          <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
+          <div className="border-t border-subtle pt-2">
             <SubAssignForm autoFocus onAssign={(uid, name) => assignSub(slot.scheduled_at, uid, name)} onCancel={() => setAssignKey(null)} />
           </div>
         )}
         {editing && (
-          <div className="flex gap-2 items-end flex-wrap" onAnimationEnd={() => setReschedOpen(true)}
-               style={{ borderTop: '1px solid var(--border-subtle)', overflow: reschedOpen ? 'visible' : 'hidden', animation: 'slide-down 0.22s var(--ease-out) both' }}>
-            <input type="date" value={reschedDate} onChange={(e) => setReschedDate(e.target.value)} className="input" style={{ minHeight: 36 }} />
-            <TimeSelect value={reschedTime} onChange={setReschedTime} style={{ minHeight: 36, width: 130 }} />
+          <div className={`flex gap-2 items-end flex-wrap border-t border-subtle animate-[slide-down_0.22s_var(--ease-out)_both] ${reschedOpen ? 'overflow-visible' : 'overflow-hidden'}`} onAnimationEnd={() => setReschedOpen(true)}>
+            <input type="date" value={reschedDate} onChange={(e) => setReschedDate(e.target.value)} className="input min-h-9" />
+            {/* eslint-disable-next-line shadcn/no-inline-styles -- TimeSelect takes style, not className */}
+            <TimeSelect style={{ minHeight: 36, width: 132 }} value={reschedTime} onChange={setReschedTime} />
             <ActionButton onClick={() => handleReschedule(slot)} className="btn btn-primary btn-sm">
               {t('common.save')}
             </ActionButton>
@@ -760,7 +756,7 @@ function StudentSessions({
   return (
     <div className="flex flex-col gap-3">
       {err && (
-        <div className="card" role="alert" style={{ padding: '10px 14px', color: 'var(--danger)', background: 'var(--danger-muted)', borderColor: 'var(--danger-muted)', fontSize: 13 }}>
+        <div className="card py-3 px-4 text-danger bg-danger-muted border-danger-muted text-small" role="alert">
           {err}
         </div>
       )}
@@ -773,14 +769,13 @@ function StudentSessions({
       </button>
 
       {showSchedule && (
-      <div className="card flex flex-col gap-3" style={{ padding: '16px 18px' }}>
+      <div className="card flex flex-col gap-3 p-4">
         <SectionTitle>{t('tracker.tabSchedule')}</SectionTitle>
         <div className="flex flex-wrap gap-2">
           {dayLabels.map((label, d) => {
             const on = weekdays.includes(d);
             return (
-              <button key={d} onClick={() => toggleDay(d)} className={on ? 'btn btn-primary' : 'btn btn-ghost'}
-                      style={{ minWidth: 52, borderRadius: 'var(--radius-full)', padding: '6px 14px' }}>
+              <button key={d} onClick={() => toggleDay(d)} className={`btn btn-sm min-w-13 rounded-full px-4 ${on ? 'btn-primary' : 'btn-ghost'}`}>
                 {label}
               </button>
             );
@@ -788,12 +783,12 @@ function StudentSessions({
         </div>
         <div className="flex gap-2 items-end flex-wrap">
           <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('sessions.time')}</span>
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="input" style={{ minHeight: 40, width: 140 }} />
+            <span className="text-xs font-medium text-muted">{t('sessions.time')}</span>
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="input min-h-10 w-35" />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>{t('sessions.length')}</span>
-            <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} className="input" style={{ minHeight: 40, width: 110 }}>
+            <span className="text-xs font-medium text-muted">{t('sessions.length')}</span>
+            <select value={minutes} onChange={(e) => setMinutes(Number(e.target.value))} className="input min-h-10 w-27.5">
               {SESSION_LENGTHS.map((m) => (
                 <option key={m} value={m}>{t('sessions.minutes').replace('{n}', fmtNum(m))}</option>
               ))}
@@ -805,14 +800,14 @@ function StudentSessions({
         </div>
 
         {/* Ad-hoc */}
-        <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 12 }} className="flex gap-2 items-end flex-wrap">
-          <label className="flex flex-col gap-1" style={{ flex: 2, minWidth: 120 }}>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('sessions.adhocTitle')}</span>
-            <input type="date" value={adhocDate} onChange={(e) => setAdhocDate(e.target.value)} className="input" style={{ minHeight: 40 }} />
+        <div className="flex gap-2 items-end flex-wrap border-t border-subtle pt-3">
+          <label className="flex flex-col gap-1 flex-2 min-w-30">
+            <span className="text-xs text-muted">{t('sessions.adhocTitle')}</span>
+            <input type="date" value={adhocDate} onChange={(e) => setAdhocDate(e.target.value)} className="input min-h-10" />
           </label>
-          <label className="flex flex-col gap-1" style={{ flex: 1, minWidth: 90 }}>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('sessions.time')}</span>
-            <input type="time" value={adhocTime} onChange={(e) => setAdhocTime(e.target.value)} className="input" style={{ minHeight: 40 }} />
+          <label className="flex flex-col gap-1 flex-1 min-w-22.5">
+            <span className="text-xs text-muted">{t('sessions.time')}</span>
+            <input type="time" value={adhocTime} onChange={(e) => setAdhocTime(e.target.value)} className="input min-h-10" />
           </label>
           <ActionButton onClick={handleAdhoc} disabled={!adhocDate} className="btn btn-outline">
             {t('sessions.addAdhoc')}
@@ -835,7 +830,7 @@ function StudentSessions({
         <div className="flex flex-col gap-2">
           <SectionTitle
             trailing={live ? (
-              <span className="badge flex items-center gap-1.5" style={{ fontSize: 10, background: 'var(--accent-muted)', color: 'var(--text-accent)' }}>
+              <span className="badge flex items-center gap-1.5 text-micro bg-accent-muted text-(--text-accent)">
                 <StatusDot color="var(--accent)" />
                 {liveMinutes > 0 ? t('agenda.startsIn', { n: liveMinutes })
                   : liveMinutes < 0 ? t('agenda.startedAgo', { n: -liveMinutes })
@@ -929,19 +924,17 @@ function PagedHistory({
   const cur = Math.min(page, pages - 1);
   const shown = slots.slice(cur * perPage, cur * perPage + perPage);
 
-  const arrow: React.CSSProperties = { fontSize: 16 };
-
   return (
     <div ref={ref} className="flex flex-col gap-2">
       {shown.map(render)}
       {pages > 1 && (
         <div className="flex items-center justify-center gap-3">
-          <button className="btn btn-ghost btn-icon btn-sm" style={arrow} disabled={cur === 0}
+          <button className="btn btn-ghost btn-icon btn-sm text-body" disabled={cur === 0}
                   onClick={() => setPage(cur - 1)} aria-label="Previous">
             <span className="rtl:-scale-x-100">‹</span>
           </button>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtNum(cur + 1)} / {fmtNum(pages)}</span>
-          <button className="btn btn-ghost btn-icon btn-sm" style={arrow} disabled={cur >= pages - 1}
+          <span className="text-xs text-muted">{fmtNum(cur + 1)} / {fmtNum(pages)}</span>
+          <button className="btn btn-ghost btn-icon btn-sm text-body" disabled={cur >= pages - 1}
                   onClick={() => setPage(cur + 1)} aria-label="Next">
             <span className="rtl:-scale-x-100">›</span>
           </button>
@@ -1098,17 +1091,17 @@ export function HomeworkPanel({
         </button>
       )}
       {canPrescribe && prescribing && (
-      <div className="card flex flex-col gap-3" style={{ padding: '16px 18px', animation: 'fade-in-scale 0.2s var(--ease-out) both', transformOrigin: 'top' }}>
+      <div className="card flex flex-col gap-3 p-4 animate-[fade-in-scale_0.2s_var(--ease-out)_both] origin-top">
         <div className="flex flex-wrap gap-2 items-end">
           <label className="flex flex-col gap-1">
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('log.type')}</span>
-            <select value={type} onChange={(e) => setType(e.target.value as LogType)} className="input" style={{ minHeight: 40 }}>
+            <span className="text-xs text-muted">{t('log.type')}</span>
+            <select value={type} onChange={(e) => setType(e.target.value as LogType)} className="input min-h-10">
               {LOG_TYPES.map((lt) => <option key={lt} value={lt}>{t(`logType.${lt}`)}</option>)}
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('homework.deadline')}</span>
-            <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="input" style={{ minHeight: 40 }} />
+            <span className="text-xs text-muted">{t('homework.deadline')}</span>
+            <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="input min-h-10" />
           </label>
         </div>
 
@@ -1142,7 +1135,7 @@ export function HomeworkPanel({
             canPrescribe={canPrescribe} setId={setId}
           />
         ) : (
-          <div key={entry.key} className="card" style={{ padding: '12px 16px' }}>
+          <div key={entry.key} className="card py-3 px-4">
             <GradeableLog log={entry.log} statuses={teacherStatuses} onGraded={onGraded} />
           </div>
         ),
@@ -1182,41 +1175,42 @@ function PrescriptionCard({
   const instr = group.items.find((h) => h.instructions)?.instructions;
 
   return (
-    <div className="card flex flex-col gap-2"
-         style={{ padding: '12px 16px', viewTransitionName: vtName('hw', group.key) }}>
-      <button onClick={() => setOpen((o) => !o)} className="flex items-center justify-between gap-2 text-start"
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
-        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+        <div className="card flex flex-col gap-2 py-3 px-4"
+      // eslint-disable-next-line shadcn/no-inline-styles -- per-group view-transition name
+      style={{ viewTransitionName: vtName('hw', group.key) }}>
+      <button onClick={() => setOpen((o) => !o)} className="flex items-center justify-between gap-2 text-start bg-transparent border-none cursor-pointer p-0">
+        <span className="text-sm font-medium text-primary">
           {`${t(group.items[0].type === 'memorization' ? 'homework.verbMemorize' : 'homework.verbReview')} ${homeworkTarget(group.items, locale, t('homework.juz'))}`}
         </span>
         <span className="flex items-center gap-2 shrink-0">
-          <span className="badge" style={{ fontSize: 10, ...HOMEWORK_STATUS_STYLE[status] }}>{t(STATUS_KEY[status])}</span>
+          {/* eslint-disable-next-line shadcn/no-inline-styles -- status colours from data map */}
+          <span className="badge text-micro" style={{ ...HOMEWORK_STATUS_STYLE[status] }}>{t(STATUS_KEY[status])}</span>
           <Chevron open={open} />
         </span>
       </button>
       {open && (<>
-        {instr && <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{instr}</span>}
+        {instr && <span className="text-xs text-secondary">{instr}</span>}
         {canPrescribe ? (
-          <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+          <label className="flex items-center gap-2 text-xs text-muted">
             {t('homework.deadline')}
             <input type="date" defaultValue={group.items[0].deadline ?? ''} onChange={(e) => onEditDeadline(ids, e.target.value)}
-                   className="input input-sm" style={{ minHeight: 34 }} />
+                   className="input input-sm min-h-8" />
           </label>
         ) : group.items[0].deadline && (
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          <span className="text-xs text-muted">
             {t('homework.deadline')}: {group.items[0].deadline}
           </span>
         )}
         {group.items.map((h) => {
           const subs = logsByHomework.get(h.id) ?? [];
           return (
-            <div key={h.id} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }} className="flex flex-col gap-2">
+            <div key={h.id} className="flex flex-col gap-2 border-t border-subtle pt-2">
               {/* The prescription target */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
                   {t('homework.prescribedLabel')}
                 </span>
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-sm font-medium text-primary">
                   {homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${fmtNum(h.page_start)}–${fmtNum(h.page_end)}`}
                   {h.surah && h.ayah_start == null ? ` ${t('homework.whole')}` : ''}
                 </span>
@@ -1230,12 +1224,12 @@ function PrescriptionCard({
                 />
               </div>
               {/* Student submissions logged against it — indented under a subhead */}
-              <div className="flex flex-col gap-1" style={{ marginInlineStart: 10, paddingInlineStart: 10, borderInlineStart: '2px solid var(--border-subtle)' }}>
-                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              <div className="flex flex-col gap-1 ms-3 ps-3 border-s-2 border-subtle">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
                   {t('homework.submissions')}
                 </span>
                 {subs.length === 0
-                  ? <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('homework.noSubmissionsYet')}</span>
+                  ? <span className="text-xs text-muted">{t('homework.noSubmissionsYet')}</span>
                   : subs.map((l, i) => <GradeableLog key={l.id} log={l} statuses={teacherStatuses} onGraded={onGraded} divided={i > 0} />)}
                 <TeacherResultForm hw={h} membershipId={membershipId} teacherStatuses={teacherStatuses} onResult={onResult} />
               </div>
@@ -1325,11 +1319,7 @@ function TeacherResultForm({
   const chipRow = (opts: StatusConfig[], value: string | null, set: (v: string) => void) => (
     <div className="flex flex-wrap gap-2">
       {opts.map((s) => (
-        <button key={s.label} onClick={() => set(s.label)} className="badge" style={{
-          cursor: 'pointer',
-          background: value === s.label ? 'var(--accent-solid)' : undefined,
-          color: value === s.label ? 'var(--accent-contrast)' : undefined,
-        }}>
+        <button key={s.label} onClick={() => set(s.label)} className={`badge cursor-pointer ${value === s.label ? 'bg-(--accent-solid) text-accent-contrast' : ''}`}>
           {s.label}
         </button>
       ))}
@@ -1338,16 +1328,16 @@ function TeacherResultForm({
 
   return (
     <div className="flex flex-col gap-2 mt-1">
-      <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+      <label className="flex flex-col gap-1 text-xs text-secondary">
         {t('log.date')}
         <input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)}
-               className="input input-sm" style={{ minHeight: 34 }} />
+               className="input input-sm min-h-8" />
       </label>
-      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('log.note')} className="input input-sm" style={{ minHeight: 34 }} />
-      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('grade.teacherStatus')}</span>
+      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('log.note')} className="input input-sm min-h-8" />
+      <span className="text-xs text-muted">{t('grade.teacherStatus')}</span>
       {chipRow(teacherStatuses, teacherStatus, setTeacherStatus)}
-      <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('grade.comment')} className="input input-sm" style={{ minHeight: 34 }} />
-      {error && <span className="text-xs" style={{ color: 'var(--danger)' }}>{error}</span>}
+      <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('grade.comment')} className="input input-sm min-h-8" />
+      {error && <span className="text-xs text-danger">{error}</span>}
       <div className="flex gap-2">
         <ActionButton onClick={submit} disabled={busy} className="btn btn-primary btn-sm self-start">
           {t('log.submit')}
@@ -1428,31 +1418,8 @@ export function SurahPicker({
     }
     onChange([...entries, ...rangeEntries]);
   }
-
-  const fieldLabel = { color: 'var(--text-secondary)' } as const;
   const addEntry = mode === 'juz' ? (isRange ? addJuzRange : () => onChange([...entries, { kind: 'juz', juz }])) : (isRange ? addSurahRange : add);
   const addLabel = t('common.add');
-  // Wide dashed "add" button — a quiet way to append another entry.
-  const dashedAdd: React.CSSProperties = {
-    minHeight: 44, border: '1px dashed var(--border-default)', borderRadius: 'var(--radius-md)',
-    background: 'transparent', color: 'var(--text-accent)', fontSize: 14, fontWeight: 600,
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer',
-    transition: 'background var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out)',
-  };
-  // Inline hover/press feedback (dashed button isn't a .btn, so no CSS states).
-  const dashedFx = {
-    onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.background = 'var(--accent-muted)';
-      e.currentTarget.style.borderColor = 'var(--accent)';
-    },
-    onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.currentTarget.style.background = 'transparent';
-      e.currentTarget.style.borderColor = 'var(--border-default)';
-      e.currentTarget.style.transform = 'none';
-    },
-    onMouseDown: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'scale(0.99)'; },
-    onMouseUp: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.transform = 'none'; },
-  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -1468,52 +1435,52 @@ export function SurahPicker({
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap gap-3 items-end">
           {mode === 'juz' ? (isRange ? (<>
-            <label className="flex flex-col gap-1.5" style={{ width: 90 }}>
-              <span className="text-xs font-medium" style={fieldLabel}>{locale === 'ar' ? 'من جزء' : 'From juz'}</span>
+            <label className="flex flex-col gap-1.5 w-22.5">
+              <span className="text-xs font-medium text-secondary">{locale === 'ar' ? 'من جزء' : 'From juz'}</span>
               <input type="number" inputMode="numeric" min={1} max={TOTAL_JUZ} value={juz}
                      onChange={(e) => setJuz(Math.max(1, Math.min(TOTAL_JUZ, Number(e.target.value) || 1)))}
-                     className="input" style={{ minHeight: 44, width: '100%' }} />
+                     className="input min-h-11 w-full" />
             </label>
-            <label className="flex flex-col gap-1.5" style={{ width: 90 }}>
-              <span className="text-xs font-medium" style={fieldLabel}>{locale === 'ar' ? 'إلى جزء' : 'To juz'}</span>
+            <label className="flex flex-col gap-1.5 w-22.5">
+              <span className="text-xs font-medium text-secondary">{locale === 'ar' ? 'إلى جزء' : 'To juz'}</span>
               <input type="number" inputMode="numeric" min={1} max={TOTAL_JUZ} value={juzEnd}
                      onChange={(e) => setJuzEnd(Math.max(1, Math.min(TOTAL_JUZ, Number(e.target.value) || 1)))}
-                     className="input" style={{ minHeight: 44, width: '100%' }} />
+                     className="input min-h-11 w-full" />
             </label>
           </>) : (
-            <label className="flex flex-col gap-1.5" style={{ width: 120 }}>
-              <span className="text-xs font-medium" style={fieldLabel}>{t('homework.juz')}</span>
+            <label className="flex flex-col gap-1.5 w-30">
+              <span className="text-xs font-medium text-secondary">{t('homework.juz')}</span>
               <input type="number" inputMode="numeric" min={1} max={TOTAL_JUZ} value={juz}
                      onChange={(e) => setJuz(Math.max(1, Math.min(TOTAL_JUZ, Number(e.target.value) || 1)))}
-                     className="input" style={{ minHeight: 44, width: '100%' }} />
+                     className="input min-h-11 w-full" />
             </label>
           )) : (isRange ? (<>
-            <label className="flex flex-col gap-1.5 flex-1" style={{ minWidth: 160 }}>
-              <span className="text-xs font-medium" style={fieldLabel}>{locale === 'ar' ? 'من سورة' : 'From surah'}</span>
+            <label className="flex flex-col gap-1.5 flex-1 min-w-40">
+              <span className="text-xs font-medium text-secondary">{locale === 'ar' ? 'من سورة' : 'From surah'}</span>
               <SurahCombobox fluid value={surahStart} onChange={setSurahStart} locale={locale} placeholder={t('homework.searchSurah')} />
             </label>
-            <label className="flex flex-col gap-1.5 flex-1" style={{ minWidth: 160 }}>
-              <span className="text-xs font-medium" style={fieldLabel}>{locale === 'ar' ? 'إلى سورة' : 'To surah'}</span>
+            <label className="flex flex-col gap-1.5 flex-1 min-w-40">
+              <span className="text-xs font-medium text-secondary">{locale === 'ar' ? 'إلى سورة' : 'To surah'}</span>
               <SurahCombobox fluid value={surahEnd} onChange={setSurahEnd} locale={locale} placeholder={t('homework.searchSurah')} />
             </label>
           </>) : (<>
-            <label className="flex flex-col gap-1.5 flex-1" style={{ minWidth: 160 }}>
-              <span className="text-xs font-medium" style={fieldLabel}>{t('homework.modeSurah')}</span>
+            <label className="flex flex-col gap-1.5 flex-1 min-w-40">
+              <span className="text-xs font-medium text-secondary">{t('homework.modeSurah')}</span>
               <SurahCombobox fluid value={surah} onChange={pickSurah} locale={locale} placeholder={t('homework.searchSurah')} />
             </label>
-            <label className="flex flex-col gap-1.5" style={{ width: 76 }}>
-              <span className="text-xs font-medium" style={fieldLabel}>{t('log.ayahFrom')}</span>
+            <label className="flex flex-col gap-1.5 w-19">
+              <span className="text-xs font-medium text-secondary">{t('log.ayahFrom')}</span>
               <input type="number" inputMode="numeric" min={1} max={max} value={startText}
                      onChange={(e) => setStartText(e.target.value)}
                      onBlur={() => setStartText(String(coerce(startText, 1)))}
-                     className="input" style={{ minHeight: 44, width: '100%' }} />
+                     className="input min-h-11 w-full" />
             </label>
-            <label className="flex flex-col gap-1.5" style={{ width: 76 }}>
-              <span className="text-xs font-medium" style={fieldLabel}>{t('log.ayahTo')}</span>
+            <label className="flex flex-col gap-1.5 w-19">
+              <span className="text-xs font-medium text-secondary">{t('log.ayahTo')}</span>
               <input type="number" inputMode="numeric" min={1} max={max} value={endText}
                      onChange={(e) => setEndText(e.target.value)}
                      onBlur={() => setEndText(String(coerce(endText, max)))}
-                     className="input" style={{ minHeight: 44, width: '100%' }} />
+                     className="input min-h-11 w-full" />
             </label>
           </>))}
           <button type="button" onClick={() => setIsRange((v) => !v)} aria-pressed={isRange}
@@ -1521,8 +1488,8 @@ export function SurahPicker({
             {locale === 'ar' ? 'نطاق' : 'Range'}
           </button>
         </div>
-        <button type="button" onClick={addEntry} style={dashedAdd} {...dashedFx}>
-          <span aria-hidden style={{ fontSize: 17, lineHeight: 1, fontWeight: 500 }}>+</span>
+        <button type="button" onClick={addEntry} className="btn btn-dashed w-full gap-2 font-semibold">
+          <span className="text-heading-m leading-none font-medium" aria-hidden>+</span>
           {addLabel}
         </button>
       </div>
@@ -1530,14 +1497,12 @@ export function SurahPicker({
       {entries.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {entries.map((e, i) => (
-            <span key={i} className="flex items-center gap-2"
-                  style={{ padding: '6px 8px 6px 12px', borderRadius: 'var(--radius-full)', background: 'var(--accent-muted)', color: 'var(--text-accent)', fontSize: 13, fontWeight: 500 }}>
+            <span key={i} className="flex items-center gap-2 pt-2 pr-2 pb-2 pl-3 rounded-full bg-accent-muted text-(--text-accent) text-small font-medium">
               {e.kind === 'juz'
                 ? `${t('homework.juz')} ${fmtNum(e.juz)}`
                 : `${getSurahName(e.surah, locale)}${e.ayah_start ? ` ${fmtNum(e.ayah_start)}–${fmtNum(e.ayah_end!)}` : ` ${t('homework.whole')}`}`}
               <button onClick={() => onChange(entries.filter((_, j) => j !== i))} aria-label={t('memorization.remove')}
-                      className="flex items-center justify-center"
-                      style={{ width: 18, height: 18, borderRadius: 'var(--radius-full)', background: 'var(--bg-surface)', color: 'var(--text-muted)', fontSize: 12, lineHeight: 1, cursor: 'pointer' }}>
+                      className="flex items-center justify-center w-4.5 h-4.5 rounded-full bg-(--bg-surface) text-muted text-caption leading-none cursor-pointer">
                 ×
               </button>
             </span>
@@ -1641,10 +1606,10 @@ function ExamsPanel({
         </button>
       )}
       {scheduling && (
-        <div className="card flex flex-col gap-3" style={{ padding: '16px 18px', animation: 'fade-in-scale 0.2s var(--ease-out) both', transformOrigin: 'top' }}>
+        <div className="card flex flex-col gap-3 p-4 animate-[fade-in-scale_0.2s_var(--ease-out)_both] origin-top">
           <label className="flex flex-col gap-1">
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('exam.date')}</span>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input" style={{ minHeight: 40 }} />
+            <span className="text-xs text-muted">{t('exam.date')}</span>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input min-h-10" />
           </label>
           <ExamCoveragePicker onChange={setEntries} locale={locale} />
           <div className="flex gap-2">
@@ -1720,7 +1685,6 @@ function ExamCoveragePicker({
     setStartText('1');
     setEndText(String(AYAH_COUNTS[s] ?? 1));
   };
-  const fieldLabel = { color: 'var(--text-secondary)' } as const;
 
   return (
     <div className="flex flex-col gap-3">
@@ -1743,49 +1707,49 @@ function ExamCoveragePicker({
 
       <div className="flex flex-wrap gap-3 items-end">
         {mode === 'juz' ? (isRange ? (<>
-          <label className="flex flex-col gap-1.5" style={{ width: 90 }}>
-            <span className="text-xs font-medium" style={fieldLabel}>{locale === 'ar' ? 'من جزء' : 'From juz'}</span>
+          <label className="flex flex-col gap-1.5 w-22.5">
+            <span className="text-xs font-medium text-secondary">{locale === 'ar' ? 'من جزء' : 'From juz'}</span>
             <input type="number" inputMode="numeric" min={1} max={TOTAL_JUZ} value={juz}
-                   onChange={(e) => setJuz(clampJuz(Number(e.target.value)))} className="input" style={{ minHeight: 44, width: '100%' }} />
+                   onChange={(e) => setJuz(clampJuz(Number(e.target.value)))} className="input min-h-11 w-full" />
           </label>
-          <label className="flex flex-col gap-1.5" style={{ width: 90 }}>
-            <span className="text-xs font-medium" style={fieldLabel}>{locale === 'ar' ? 'إلى جزء' : 'To juz'}</span>
+          <label className="flex flex-col gap-1.5 w-22.5">
+            <span className="text-xs font-medium text-secondary">{locale === 'ar' ? 'إلى جزء' : 'To juz'}</span>
             <input type="number" inputMode="numeric" min={1} max={TOTAL_JUZ} value={juzEnd}
-                   onChange={(e) => setJuzEnd(clampJuz(Number(e.target.value)))} className="input" style={{ minHeight: 44, width: '100%' }} />
+                   onChange={(e) => setJuzEnd(clampJuz(Number(e.target.value)))} className="input min-h-11 w-full" />
           </label>
         </>) : (
-          <label className="flex flex-col gap-1.5" style={{ width: 120 }}>
-            <span className="text-xs font-medium" style={fieldLabel}>{t('homework.juz')}</span>
+          <label className="flex flex-col gap-1.5 w-30">
+            <span className="text-xs font-medium text-secondary">{t('homework.juz')}</span>
             <input type="number" inputMode="numeric" min={1} max={TOTAL_JUZ} value={juz}
-                   onChange={(e) => setJuz(clampJuz(Number(e.target.value)))} className="input" style={{ minHeight: 44, width: '100%' }} />
+                   onChange={(e) => setJuz(clampJuz(Number(e.target.value)))} className="input min-h-11 w-full" />
           </label>
         )) : (isRange ? (<>
-          <label className="flex flex-col gap-1.5 flex-1" style={{ minWidth: 160 }}>
-            <span className="text-xs font-medium" style={fieldLabel}>{locale === 'ar' ? 'من سورة' : 'From surah'}</span>
+          <label className="flex flex-col gap-1.5 flex-1 min-w-40">
+            <span className="text-xs font-medium text-secondary">{locale === 'ar' ? 'من سورة' : 'From surah'}</span>
             <SurahCombobox fluid value={surah} onChange={setSurah} locale={locale} placeholder={t('homework.searchSurah')} />
           </label>
-          <label className="flex flex-col gap-1.5 flex-1" style={{ minWidth: 160 }}>
-            <span className="text-xs font-medium" style={fieldLabel}>{locale === 'ar' ? 'إلى سورة' : 'To surah'}</span>
+          <label className="flex flex-col gap-1.5 flex-1 min-w-40">
+            <span className="text-xs font-medium text-secondary">{locale === 'ar' ? 'إلى سورة' : 'To surah'}</span>
             <SurahCombobox fluid value={surahEnd} onChange={setSurahEnd} locale={locale} placeholder={t('homework.searchSurah')} />
           </label>
         </>) : (<>
-          <label className="flex flex-col gap-1.5 flex-1" style={{ minWidth: 160 }}>
-            <span className="text-xs font-medium" style={fieldLabel}>{t('homework.modeSurah')}</span>
+          <label className="flex flex-col gap-1.5 flex-1 min-w-40">
+            <span className="text-xs font-medium text-secondary">{t('homework.modeSurah')}</span>
             <SurahCombobox fluid value={surah} onChange={pickSurah} locale={locale} placeholder={t('homework.searchSurah')} />
           </label>
-          <label className="flex flex-col gap-1.5" style={{ width: 76 }}>
-            <span className="text-xs font-medium" style={fieldLabel}>{t('log.ayahFrom')}</span>
+          <label className="flex flex-col gap-1.5 w-19">
+            <span className="text-xs font-medium text-secondary">{t('log.ayahFrom')}</span>
             <input type="number" inputMode="numeric" min={1} max={max} value={startText}
                    onChange={(e) => setStartText(e.target.value)}
                    onBlur={() => setStartText(String(coerce(startText, 1)))}
-                   className="input" style={{ minHeight: 44, width: '100%' }} />
+                   className="input min-h-11 w-full" />
           </label>
-          <label className="flex flex-col gap-1.5" style={{ width: 76 }}>
-            <span className="text-xs font-medium" style={fieldLabel}>{t('log.ayahTo')}</span>
+          <label className="flex flex-col gap-1.5 w-19">
+            <span className="text-xs font-medium text-secondary">{t('log.ayahTo')}</span>
             <input type="number" inputMode="numeric" min={1} max={max} value={endText}
                    onChange={(e) => setEndText(e.target.value)}
                    onBlur={() => setEndText(String(coerce(endText, max)))}
-                   className="input" style={{ minHeight: 44, width: '100%' }} />
+                   className="input min-h-11 w-full" />
           </label>
         </>))}
       </div>
@@ -1862,18 +1826,19 @@ export function ExamCard({
   const target = examTarget(exam, locale, t('homework.juz'), fmtNum);
 
   return (
-    <div className="card flex flex-col gap-2"
-         style={{ padding: '12px 16px', viewTransitionName: vtName('exam', exam.id) }}>
-      <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-3 text-start"
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
+        <div className="card flex flex-col gap-2 py-3 px-4"
+      // eslint-disable-next-line shadcn/no-inline-styles -- per-exam view-transition name
+      style={{ viewTransitionName: vtName('exam', exam.id) }}>
+      <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-3 text-start bg-transparent border-none cursor-pointer p-0">
         <DateChip iso={exam.scheduled_date} locale={locale} />
         <span className="flex flex-col gap-0.5 min-w-0 flex-1">
-          <span className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{target}</span>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          <span className="text-sm font-medium truncate text-primary">{target}</span>
+          <span className="text-xs text-muted">
             {fmtNum(new Date(exam.scheduled_date).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' }))}
           </span>
         </span>
-        <span className="badge shrink-0" style={{ fontSize: 10, ...EXAM_STATUS_STYLE[exam.status] }}>{t(EXAM_STATUS_KEY[exam.status])}</span>
+        {/* eslint-disable-next-line shadcn/no-inline-styles -- status colours from data map */}
+        <span className="badge shrink-0 text-micro" style={{ ...EXAM_STATUS_STYLE[exam.status] }}>{t(EXAM_STATUS_KEY[exam.status])}</span>
         <Chevron open={open} />
       </button>
 
@@ -1883,16 +1848,15 @@ export function ExamCard({
 
       {onGrade ? (
         // Teacher: editable notes + grade controls.
-        <div className="flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
-          <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('exam.notes')} className="input input-sm" style={{ minHeight: 34 }} />
+        <div className="flex flex-col gap-2 border-t border-subtle pt-2">
+          <input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('exam.notes')} className="input input-sm min-h-8" />
           {onReschedule && (
             // ponytail: the native date input IS the reschedule control — no
             // reveal button, no modal. Changing it moves the exam.
-            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+            <label className="flex items-center gap-2 text-xs text-muted">
               {t('exam.date')}
               <input
-                type="date" value={exam.scheduled_date} className="input input-sm"
-                style={{ minHeight: 34, maxWidth: 190 }}
+                type="date" value={exam.scheduled_date} className="input input-sm min-h-8 max-w-48"
                 onChange={(e) => { if (e.target.value) onReschedule(exam.id, e.target.value); }}
               />
             </label>
@@ -1910,7 +1874,7 @@ export function ExamCard({
               </ActionButton>
             )}
             {onDelete && (
-              <ActionButton onClick={() => onDelete(exam.id)} className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)', marginInlineStart: 'auto' }}>
+              <ActionButton onClick={() => onDelete(exam.id)} className="btn btn-ghost btn-sm text-danger ms-auto">
                 {t('common.delete')}
               </ActionButton>
             )}
@@ -1919,7 +1883,7 @@ export function ExamCard({
       ) : (
         // Student: read-only teacher notes, when present.
         exam.teacher_notes && (
-          <div className="text-xs" style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8, color: 'var(--text-secondary)' }}>
+          <div className="text-xs border-t border-subtle pt-2 text-secondary">
             {exam.teacher_notes}
           </div>
         )
@@ -1963,28 +1927,27 @@ export function GradeableLog({
   }
 
   return (
-    <div style={divided ? { borderTop: '1px solid var(--border-subtle)', paddingTop: 8 } : undefined} className="flex flex-col gap-1">
-      <button onClick={() => setOpen((o) => !o)} className="flex items-center justify-between gap-2 text-start"
-              style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
-        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+    <div className={`flex flex-col gap-1 ${divided ? 'border-t border-subtle pt-2' : ''}`}>
+      <button onClick={() => setOpen((o) => !o)} className="flex items-center justify-between gap-2 text-start bg-transparent border-none cursor-pointer p-0">
+        <span className="text-sm font-medium text-primary">
           {t(`logType.${l.log_type}`)} · p{fmtNum(l.page_start)}–{fmtNum(l.page_end)}
           {l.surah && l.ayah_start ? ` · ${fmtNum(l.surah)}:${fmtNum(l.ayah_start)}${l.ayah_end && l.ayah_end !== l.ayah_start ? `–${fmtNum(l.ayah_end)}` : ''}` : ''}
         </span>
         <span className="flex items-center gap-2 shrink-0">
-          {!l.reviewed_at && <span className="badge" style={{ fontSize: 10, background: 'var(--accent-muted)', color: 'var(--text-accent)' }}>{t('grade.needsReview')}</span>}
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtNum(l.log_date)}</span>
+          {!l.reviewed_at && <span className="badge text-micro bg-accent-muted text-(--text-accent)">{t('grade.needsReview')}</span>}
+          <span className="text-xs text-muted">{fmtNum(l.log_date)}</span>
           <Chevron open={open} />
         </span>
       </button>
 
       {open && (<>
-      {l.student_status && <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{l.student_status}</div>}
-      {l.student_notes && <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>{l.student_notes}</div>}
+      {l.student_status && <div className="text-xs text-secondary">{l.student_status}</div>}
+      {l.student_notes && <div className="text-xs text-secondary">{l.student_notes}</div>}
 
       {l.reviewed_at ? (
         // Locked/graded — mirrors the student-side treatment (G4).
         <div className="flex flex-col gap-0.5 mt-1">
-          <div className="text-xs" style={{ color: 'var(--text-accent)' }}>
+          <div className="text-xs text-(--text-accent)">
             {t('grade.reviewed')}{l.teacher_status ? `: ${l.teacher_status}` : ''}
             {l.teacher_comment ? ` — ${l.teacher_comment}` : ''}
           </div>
@@ -1995,16 +1958,12 @@ export function GradeableLog({
         <div className="flex flex-col gap-2 mt-1">
           <div className="flex flex-wrap gap-2">
             {statuses.map((s) => (
-              <button key={s.label} onClick={() => setStatus(s.label)} className="badge" style={{
-                cursor: 'pointer',
-                background: status === s.label ? 'var(--accent-solid)' : undefined,
-                color: status === s.label ? 'var(--accent-contrast)' : undefined,
-              }}>
+              <button key={s.label} onClick={() => setStatus(s.label)} className={`badge cursor-pointer ${status === s.label ? 'bg-(--accent-solid) text-accent-contrast' : ''}`}>
                 {s.label}
               </button>
             ))}
           </div>
-          <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('grade.comment')} className="input input-sm" style={{ minHeight: 34 }} />
+          <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('grade.comment')} className="input input-sm min-h-8" />
           <ActionButton onClick={handleGrade} disabled={busy || !status} className="btn btn-primary btn-sm self-start">
             {t('grade.markReviewed')}
           </ActionButton>

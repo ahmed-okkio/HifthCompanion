@@ -14,7 +14,7 @@ export default function AuthBrand({ subtitle }: { subtitle?: string }) {
     <div className="text-center mb-8">
       <Link href="/reader" className="inline-block">
         {broken ? (
-          <span className="text-3xl font-bold" style={{ color: 'var(--text-accent)' }}>
+          <span className="text-3xl font-bold text-green-600">
             حفظ
           </span>
         ) : (
@@ -24,12 +24,12 @@ export default function AuthBrand({ subtitle }: { subtitle?: string }) {
             src="/logo.png"
             alt="حفظ"
             onError={() => setBroken(true)}
-            style={{ height: 64, width: 'auto', margin: '0 auto', objectFit: 'contain' }}
+            className="h-16 w-auto mx-auto object-contain"
           />
         )}
       </Link>
       {subtitle && (
-        <p className="mt-3 text-sm" style={{ color: 'var(--text-muted)' }}>
+        <p className="mt-3 text-sm text-muted">
           {subtitle}
         </p>
       )}

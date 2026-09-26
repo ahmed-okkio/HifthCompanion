@@ -103,8 +103,7 @@ export default function AgendaPanel({
   const scheduleLink = (
     <button
       onClick={() => onNavigate?.('sessions')} disabled={!onNavigate}
-      className="card flex items-center gap-3 text-start"
-      style={{ padding: '14px 16px', fontSize: 14, width: '100%', cursor: onNavigate ? 'pointer' : 'default' }}
+      className={`card flex items-center gap-3 text-start p-4 text-body w-full ${onNavigate ? 'cursor-pointer' : 'cursor-default'}`}
     >
       <Icon name="calendar" size={15} />
       <span className="flex-1 min-w-0">{t('agenda.noSchedule')}</span>
@@ -126,7 +125,7 @@ export default function AgendaPanel({
 
         {adding ? (
           <input
-            autoFocus className="input" style={{ minHeight: 40 }}
+            autoFocus className="input min-h-10"
             value={draft} placeholder={t('agenda.placeholder')}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
@@ -221,12 +220,7 @@ function WaitingRow({
   return (
     <button
       onClick={onClick} disabled={!onClick}
-      className="card flex items-center gap-3 text-start"
-      style={{
-        padding: '10px 14px', fontSize: 14, width: '100%',
-        cursor: onClick ? 'pointer' : 'default',
-        color: warn ? 'var(--warning)' : 'var(--text-primary)',
-      }}
+      className={`card flex items-center gap-3 text-start px-4 py-3 text-body w-full ${onClick ? 'cursor-pointer' : 'cursor-default'} ${warn ? 'text-warning' : 'text-primary'}`}
     >
       <Icon name={icon} size={15} />
       <span className="flex-1 min-w-0">{children}</span>
@@ -250,26 +244,17 @@ function Row({
   const days = now ? Math.floor((now.getTime() - new Date(item.created_at).getTime()) / DAY) : 0;
 
   return (
-    <div className="card flex items-center gap-3"
-         style={{
-           padding: '10px 14px',
-           opacity: isDone || isPending(item.id) ? 0.6 : 1,
-           viewTransitionName: vtName('agenda', item.id),
-         }}>
+    <div className={`card flex items-center gap-3 px-4 py-3${isDone || isPending(item.id) ? ' opacity-60' : ''}`}
+         // eslint-disable-next-line shadcn/no-inline-styles -- per-item view-transition name
+         style={{ viewTransitionName: vtName('agenda', item.id) }}>
       <ActionButton onClick={() => onToggle(item, !isDone)} aria-pressed={isDone} aria-label={t('agenda.toggle')}
-              className="flex items-center justify-center shrink-0"
-              style={{
-                width: 20, height: 20, borderRadius: 'var(--radius-sm)', cursor: 'pointer',
-                border: `1.5px solid ${isDone ? 'var(--accent)' : 'var(--border-default)'}`,
-                background: isDone ? 'var(--accent)' : 'transparent',
-                color: 'var(--accent-contrast)',
-              }}>
+              className={`flex items-center justify-center shrink-0 size-5 rounded-sm cursor-pointer border-2 text-accent-contrast ${isDone ? 'border-accent bg-accent' : 'border-default bg-transparent'}`}>
         {isDone && <Icon name="check" size={13} />}
       </ActionButton>
 
       {editing ? (
         <input
-          autoFocus className="input" style={{ minHeight: 34, flex: 1 }} defaultValue={item.body}
+          autoFocus className="input min-h-8 flex-1" defaultValue={item.body}
           onBlur={(e) => { onSave(item, e.target.value); setEditing(false); }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') e.currentTarget.blur();
@@ -277,23 +262,18 @@ function Row({
           }}
         />
       ) : (
-        <button onClick={() => setEditing(true)} className="text-start flex-1 min-w-0"
-                style={{
-                  background: 'transparent', border: 'none', padding: 0, cursor: 'text', fontSize: 14,
-                  color: 'var(--text-primary)', textDecoration: isDone ? 'line-through' : undefined,
-                }}>
+        <button onClick={() => setEditing(true)} className={`text-start flex-1 min-w-0 bg-transparent border-0 p-0 cursor-text text-body text-primary${isDone ? ' line-through' : ''}`}>
           {item.body}
         </button>
       )}
 
       {!isDone && days > 0 && (
-        <span className="text-xs shrink-0" style={{ color: stale ? 'var(--warning)' : 'var(--text-muted)', fontWeight: stale ? 600 : 400 }}>
+        <span className={`text-caption shrink-0 ${stale ? 'text-warning font-semibold' : 'text-muted font-normal'}`}>
           {t('agenda.ageDays', { n: fmtNum(days) })}
         </span>
       )}
 
-      <ActionButton onClick={() => onToggle(item, true)} aria-label={t('agenda.dismiss')} className="btn btn-ghost btn-icon btn-sm shrink-0"
-              style={{ fontSize: 14, color: 'var(--text-muted)' }}>
+      <ActionButton onClick={() => onToggle(item, true)} aria-label={t('agenda.dismiss')} className="btn btn-ghost btn-icon btn-sm shrink-0 text-body text-muted">
         ×
       </ActionButton>
     </div>

@@ -16,22 +16,13 @@ export default function Progress({ pct, label }: { pct: number; label: string })
       aria-valuenow={clamped}
       aria-valuemin={0}
       aria-valuemax={100}
-      style={{
-        display: 'flex',
-        height: 8,
-        borderRadius: 'var(--radius-full)',
-        background: 'var(--accent-muted)',
-        overflow: 'hidden',
-      }}
+      className="flex h-2 rounded-full bg-accent-muted overflow-hidden"
     >
       <span
         aria-hidden
-        style={{
-          width: `${clamped}%`,
-          background: 'var(--accent)',
-          borderRadius: 'var(--radius-full)',
-          transition: 'width var(--duration-normal) var(--ease-out)',
-        }}
+        className="bg-accent rounded-full transition-all duration-(--duration-normal) ease-(--ease-out)"
+        // eslint-disable-next-line shadcn/no-inline-styles -- runtime progress %
+        style={{ width: `${clamped}%` }}
       />
     </div>
   );

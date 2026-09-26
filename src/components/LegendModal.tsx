@@ -19,7 +19,7 @@ import { useEffect, useState } from 'react';
 import { useI18n } from './I18nProvider';
 import type { Locale } from '@/lib/i18n/config';
 
-const ARABIC = "'Noto Sans Arabic Web', serif";
+const ARABIC = "font-['Noto_Sans_Arabic_Web',serif]";
 
 type Glyph = { char: string; name: string; nameAr: string; meaning: string; meaningAr: string; standalone?: boolean };
 
@@ -62,16 +62,16 @@ const TAJWEED: Swatch[] = [
  *  versa) keeps its own run and never reorders the rest. */
 function Label({ primary, secondary, primaryAr, secondaryAr }: { primary: string; secondary: string; primaryAr: boolean; secondaryAr: boolean }) {
   return (
-    <div style={{ minWidth: 0 }}>
+    <div className="min-w-0">
       <div
         dir={primaryAr ? 'rtl' : 'ltr'}
-        style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)', fontFamily: primaryAr ? ARABIC : undefined, unicodeBidi: 'isolate' }}
+        className={`text-body font-semibold text-primary [unicode-bidi:isolate] ${primaryAr ? ARABIC : ''}`}
       >
         {primary}
       </div>
       <div
         dir={secondaryAr ? 'rtl' : 'ltr'}
-        style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: secondaryAr ? ARABIC : undefined, unicodeBidi: 'isolate' }}
+        className={`text-small text-secondary [unicode-bidi:isolate] ${secondaryAr ? ARABIC : ''}`}
       >
         {secondary}
       </div>
@@ -82,8 +82,8 @@ function Label({ primary, secondary, primaryAr, secondaryAr }: { primary: string
 function GlyphRow({ g, locale }: { g: Glyph; locale: Locale }) {
   const ar = locale === 'ar';
   return (
-    <div style={rowStyle}>
-      <span style={{ fontFamily: ARABIC, fontSize: 26, lineHeight: 1, width: 48, textAlign: 'center', color: 'var(--text-primary)', flexShrink: 0 }}>
+    <div className={rowCls}>
+      <span className={`w-12 shrink-0 text-center text-[26px] leading-none text-primary ${ARABIC}`}>
         {/* combining marks attach to the dotted-circle base so they render centred, not floating */}
         {g.standalone ? g.char : `◌${g.char}`}
       </span>
@@ -100,9 +100,13 @@ function GlyphRow({ g, locale }: { g: Glyph; locale: Locale }) {
 function SwatchRow({ s, locale }: { s: Swatch; locale: Locale }) {
   const ar = locale === 'ar';
   return (
-    <div style={rowStyle}>
-      <span style={{ width: 48, display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
-        <span style={{ width: 22, height: 22, borderRadius: '50%', background: s.color, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.12)' }} />
+    <div className={rowCls}>
+      <span className="flex w-12 shrink-0 justify-center">
+        <span
+          className="h-5.5 w-5.5 rounded-full ring-1 ring-inset ring-default"
+          // eslint-disable-next-line shadcn/no-inline-styles -- per-row tajweed colour from data
+          style={{ background: s.color }}
+        />
       </span>
       {/* AR: Arabic term + Arabic gloss. EN: English name + Arabic term — English gloss. */}
       <Label
@@ -115,16 +119,11 @@ function SwatchRow({ s, locale }: { s: Swatch; locale: Locale }) {
   );
 }
 
-const rowStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 12,
-  padding: '8px 4px',
-};
+const rowCls = 'flex items-center gap-3 px-1 py-2';
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', margin: '24px 4px 12px' }}>
+    <h3 className="mx-1 mb-3 mt-6 text-caption font-semibold uppercase tracking-[var(--tracking-label)] text-muted">
       {children}
     </h3>
   );
@@ -132,7 +131,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function Grid({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '2px 20px' }}>
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-x-5 gap-y-0.5">
       {children}
     </div>
   );
@@ -157,28 +156,15 @@ export default function LegendModal({ open, onClose }: { open: boolean; onClose:
       aria-label={t('reader.symbolGuide')}
       dir={locale === 'ar' ? 'rtl' : 'ltr'}
       onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 100,
-        background: 'rgba(15,23,42,0.45)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 16,
-      }}
+      className="fixed inset-0 z-100 flex items-center justify-center bg-overlay p-4"
     >
       <div
         onClick={e => e.stopPropagation()}
-        style={{
-          background: 'var(--surface-main)',
-          borderRadius: 'var(--radius-lg, 14px)',
-          boxShadow: 'var(--shadow-e3, 0 20px 60px rgba(0,0,0,0.3))',
-          width: 'min(860px, 100%)',
-          maxHeight: '85vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden', // clips inner scroller so all 4 corners stay rounded (Firefox scrollbar fix)
-        }}
+        // overflow-hidden clips inner scroller so all 4 corners stay rounded (Firefox scrollbar fix)
+        className="flex max-h-[85vh] w-[min(860px,100%)] flex-col overflow-hidden rounded-xl bg-surface-main shadow-e3"
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px 12px', flexShrink: 0 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{t('reader.symbolGuide')}</h2>
+        <div className="flex shrink-0 items-center justify-between px-6 pb-3 pt-5">
+          <h2 className="m-0 text-heading-m font-bold text-primary">{t('reader.symbolGuide')}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -192,7 +178,7 @@ export default function LegendModal({ open, onClose }: { open: boolean; onClose:
           </button>
         </div>
 
-        <div className="thin-scroll" style={{ overflowY: 'auto', padding: '0 24px 28px' }}>
+        <div className="thin-scroll overflow-y-auto px-6 pb-7">
           <SectionTitle>{t('legend.waqf')}</SectionTitle>
           <Grid>{WAQF.map(g => <GlyphRow key={g.char} g={g} locale={locale} />)}</Grid>
 
@@ -218,21 +204,7 @@ export function LegendButton() {
         aria-label={t('reader.symbolGuide')}
         title={t('reader.symbolGuide')}
         onClick={() => setOpen(true)}
-        className="hidden lg:flex items-center justify-center gap-2 bg-surface-main hover:bg-neutral-100"
-        style={{
-          marginTop: 'var(--space-12)',
-          height: '52px',
-          padding: '0 var(--space-16)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid rgba(15, 23, 42, 0.05)',
-          boxShadow: 'var(--shadow-e2)',
-          cursor: 'pointer',
-          color: 'var(--neutral-600)',
-          fontSize: '13px',
-          fontWeight: 500,
-          whiteSpace: 'nowrap',
-          userSelect: 'none',
-        }}
+        className="mt-3 hidden h-13 cursor-pointer select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-subtle bg-surface-main px-4 text-small font-medium text-neutral-600 shadow-e2 hover:bg-neutral-100 lg:flex"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <circle cx="12" cy="12" r="10" />

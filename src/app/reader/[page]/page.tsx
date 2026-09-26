@@ -74,7 +74,7 @@ export default async function ReaderPage({ params, searchParams }: Props) {
 
       {/* ── 1. NOTES (top) ── */}
       {user && viewSetId ? (
-        <div className="animate-fade-in-scale" style={{ animationDelay: '100ms' }}>
+        <div className="animate-fade-in-scale [animation-delay:100ms]">
           {spread ? (
             <SpreadNotesPanel
               setId={viewSetId}
@@ -87,19 +87,19 @@ export default async function ReaderPage({ params, searchParams }: Props) {
           )}
         </div>
       ) : !user ? (
-        <div className="card p-8 text-center flex flex-col items-center justify-center animate-fade-in-scale" style={{ animationDelay: '100ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>
-          <div className="mb-4 opacity-50" style={{ color: 'var(--text-muted)' }}><Icon name="lock" size={36} /></div>
-          <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{dict['reader.signInToAnnotate']}</h3>
-          <p className="text-sm mt-2 max-w-[240px]" style={{ color: 'var(--text-muted)' }}>
+        <div className="card p-8 text-center flex flex-col items-center justify-center animate-fade-in-scale [animation-delay:100ms] bg-white/82 backdrop-blur-lg">
+          <div className="mb-4 opacity-50 text-muted"><Icon name="lock" size={36} /></div>
+          <h3 className="text-body font-semibold text-primary">{dict['reader.signInToAnnotate']}</h3>
+          <p className="text-small mt-2 max-w-60 text-muted">
             {dict['reader.signInHint']}
           </p>
           <a href="/login" className="btn btn-primary mt-6">{dict['reader.logInSignUp']}</a>
         </div>
       ) : (
-        <div className="card p-6 text-center animate-fade-in-scale" style={{ animationDelay: '100ms', background: 'rgba(255,255,255,0.82)', backdropFilter: 'blur(16px)' }}>
-          <div className="mb-3 opacity-50" style={{ color: 'var(--text-muted)' }}><Icon name="folder" size={30} /></div>
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{dict['reader.noAnnotationSets']}</h3>
-          <p className="text-xs mt-1.5" style={{ color: 'var(--text-muted)' }}>
+        <div className="card p-6 text-center animate-fade-in-scale [animation-delay:100ms] bg-white/82 backdrop-blur-lg">
+          <div className="mb-3 opacity-50 text-muted"><Icon name="folder" size={30} /></div>
+          <h3 className="text-body font-semibold text-primary">{dict['reader.noAnnotationSets']}</h3>
+          <p className="text-caption mt-1.5 text-muted">
             {dict['reader.createSetHint']}
           </p>
           <a href="/sets" className="btn btn-outline mt-4">{dict['sets.createSet']}</a>
@@ -108,7 +108,7 @@ export default async function ReaderPage({ params, searchParams }: Props) {
 
       {/* ── 2. SHARE (Story 14) — dedicated card, white surface / radius-lg / neutral-200 border / shadow-e1 ── */}
       {user && (sets ?? []).length > 0 && (
-        <div className="animate-fade-in-scale" style={{ animationDelay: '200ms' }}>
+        <div className="animate-fade-in-scale [animation-delay:200ms]">
           <ShareCard userId={user.id} pageNum={pageNum} sets={sets ?? []} />
         </div>
       )}

@@ -18,9 +18,9 @@ export default function SettingsHeader() {
 export function SettingsSection({ labelKey, children }: { labelKey: MessageKey; children: ReactNode }) {
   const { t } = useI18n();
   return (
-    <section className="flex flex-col" style={{ gap: 'var(--space-12)' }}>
+    <section className="flex flex-col gap-3">
       <SectionTitle>{t(labelKey)}</SectionTitle>
-      <div className="card" style={{ padding: 'var(--space-20)' }}>
+      <div className="card p-4">
         {children}
       </div>
     </section>

@@ -17,6 +17,7 @@ import type { RailCircle } from '@/lib/tracker/railCircles';
 import { ActionButton, Avatar, Icon } from './ui';
 import { LAST_CIRCLE_KEY } from '@/lib/tracker/lastCircle';
 import { useCircleReady } from './CircleReady';
+import { Sk } from '@/components/Skeleton';
 
 export type { RailCircle };
 
@@ -48,18 +49,11 @@ export default function CircleRail({ circles }: { circles: RailCircle[] }) {
   return (
     <nav
       aria-label={t('tracker.title')}
-      className="flex justify-center w-full p-3 lg:h-full lg:w-auto lg:items-stretch lg:p-0"
-      style={{ overflow: 'visible' }}
+      className="flex justify-center w-full p-3 lg:h-full lg:w-auto lg:items-stretch lg:p-0 overflow-visible"
     >
       {/* Horizontal strip on mobile, vertical column on desktop. */}
       <div
-        className="thin-scroll flex flex-row lg:flex-col items-center gap-2 w-full lg:w-auto lg:h-full overflow-x-auto lg:overflow-visible rounded-2xl lg:rounded-none border lg:border-y-0 lg:border-s-0"
-        style={{
-          padding: 'var(--space-8) var(--space-12)',
-          background: 'var(--surface-main)',
-          borderColor: 'var(--border-subtle)',
-          boxShadow: 'var(--shadow-e1)',
-        }}
+        className="thin-scroll flex flex-row lg:flex-col items-center gap-2 w-full lg:w-auto lg:h-full overflow-x-auto lg:overflow-visible rounded-2xl lg:rounded-none border lg:border-y-0 lg:border-s-0 py-2 px-3 bg-surface-main border-subtle shadow-e1"
       >
       {circles.map((c) => {
         const active = c.id === selected;
@@ -79,40 +73,24 @@ export default function CircleRail({ circles }: { circles: RailCircle[] }) {
             onMouseLeave={() => setHovered(null)}
             onFocus={() => setHovered(c.id)}
             onBlur={() => setHovered(null)}
-            className="relative flex-shrink-0 rounded-full transition-transform duration-150 ease-out hover:scale-110 focus-visible:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-600"
-            style={{
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              padding: 0,
-              opacity: c.pending ? 0.55 : 1,
-              // active ring via box-shadow so `outline` stays free for the keyboard focus ring
-              boxShadow: active ? '0 0 0 2px var(--surface-app, #fff), 0 0 0 4px var(--green-600)' : 'none',
-            }}
+            className={`relative flex-shrink-0 rounded-full transition-transform duration-150 ease-out hover:scale-110 focus-visible:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-600 border-0 bg-transparent cursor-pointer p-0${c.pending ? ' opacity-55' : ''}${active ? ' ring-2 ring-green-600 ring-offset-2 ring-offset-surface-app' : ''}`}
           >
             {active && (
               <>
                 {/* desktop: bar on the inline-start edge; mobile: bar on top of the avatar */}
                 <span
                   aria-hidden
-                  className="hidden lg:block"
-                  style={{ position: 'absolute', insetInlineStart: -12, top: '50%', transform: 'translateY(-50%)', width: 3, height: 28, borderRadius: 2, background: 'var(--green-600)' }}
+                  className="hidden lg:block absolute -start-3 top-1/2 -translate-y-1/2 w-0.75 h-7 rounded-sm bg-green-600"
                 />
                 <span
                   aria-hidden
-                  className="lg:hidden"
-                  style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', width: 28, height: 3, borderRadius: 2, background: 'var(--green-600)' }}
+                  className="lg:hidden absolute -top-2.5 left-1/2 -translate-x-1/2 w-7 h-0.75 rounded-sm bg-green-600"
                 />
               </>
             )}
             {c.covering ? (
               <span
-                className="flex items-center justify-center rounded-full"
-                style={{
-                  width: 44, height: 44,
-                  border: '1px dashed var(--border-strong, var(--border-subtle))',
-                  color: 'var(--text-accent)', background: 'var(--surface-main)',
-                }}
+                className="flex items-center justify-center rounded-full size-11 border border-dashed border-strong text-green-600 bg-surface-main"
               >
                 <Icon name="cap" size={18} />
               </span>
@@ -122,13 +100,7 @@ export default function CircleRail({ circles }: { circles: RailCircle[] }) {
             {c.teaching && (
               <span
                 aria-hidden
-                className="flex items-center justify-center"
-                style={{
-                  position: 'absolute', bottom: -2, insetInlineEnd: -2,
-                  width: 18, height: 18, borderRadius: '50%',
-                  background: 'var(--green-600)', color: 'var(--accent-contrast)',
-                  border: '2px solid var(--surface-app, #fff)',
-                }}
+                className="flex items-center justify-center absolute -bottom-0.5 -end-0.5 size-4.5 rounded-full bg-green-600 text-accent-contrast border-2 border-surface-app"
               >
                 <Icon name="cap" size={11} />
               </span>
@@ -138,7 +110,7 @@ export default function CircleRail({ circles }: { circles: RailCircle[] }) {
         );
       })}
 
-      <div aria-hidden className="hidden lg:block" style={{ width: 28, height: 1, background: 'var(--border-subtle)', margin: 'var(--space-4) 0' }} />
+      <div aria-hidden className="hidden lg:block w-7 h-px bg-subtle my-1" />
 
       <button
         type="button"
@@ -148,14 +120,7 @@ export default function CircleRail({ circles }: { circles: RailCircle[] }) {
         onMouseLeave={() => setHovered(null)}
         onFocus={() => setHovered('__create__')}
         onBlur={() => setHovered(null)}
-        className="relative flex flex-shrink-0 items-center justify-center rounded-full bg-transparent transition-[transform,background-color] duration-150 ease-out hover:scale-110 focus-visible:scale-110 hover:bg-green-soft hover:border-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-600"
-        style={{
-          width: 44,
-          height: 44,
-          border: '1px dashed var(--border-strong, var(--border-subtle))',
-          cursor: 'pointer',
-          color: 'var(--green-600)',
-        }}
+        className="relative flex flex-shrink-0 items-center justify-center rounded-full bg-transparent transition duration-150 ease-out hover:scale-110 focus-visible:scale-110 hover:bg-green-soft hover:border-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-green-600 size-11 border border-dashed border-strong cursor-pointer text-green-600"
       >
         <Icon name="plus" size={18} />
         <Tooltip show={hovered === '__create__'} label={t('tracker.createCircle')} />
@@ -177,26 +142,10 @@ function RailSkeleton({ count }: { count: number }) {
   return (
     <nav className="flex justify-center w-full p-3 lg:h-full lg:w-auto lg:items-stretch lg:p-0" aria-hidden>
       <div
-        className="flex flex-row lg:flex-col items-center gap-2 w-full lg:w-auto lg:h-full rounded-2xl lg:rounded-none border lg:border-y-0 lg:border-s-0"
-        style={{
-          padding: 'var(--space-8) var(--space-12)',
-          background: 'var(--surface-main)',
-          borderColor: 'var(--border-subtle)',
-          boxShadow: 'var(--shadow-e1)',
-        }}
+        className="flex flex-row lg:flex-col items-center gap-2 w-full lg:w-auto lg:h-full rounded-2xl lg:rounded-none border lg:border-y-0 lg:border-s-0 py-2 px-3 bg-surface-main border-subtle shadow-e1"
       >
         {Array.from({ length: Math.min(count, 6) }, (_, i) => (
-          <div
-            key={i}
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: '50%',
-              background: 'linear-gradient(90deg, var(--neutral-100), var(--neutral-200), var(--neutral-100))',
-              backgroundSize: '200% 100%',
-              animation: 'shimmer 1.4s linear infinite',
-            }}
-          />
+          <Sk key={i} w={44} h={44} r={22} />
         ))}
       </div>
     </nav>
@@ -209,26 +158,7 @@ function Tooltip({ show, label }: { show: boolean; label: string }) {
     <span
       role="tooltip"
       aria-hidden={!show}
-      className="hidden lg:block"
-      style={{
-        position: 'absolute',
-        insetInlineStart: '100%',
-        marginInlineStart: 12,
-        top: '50%',
-        transform: `translateY(-50%) scale(${show ? 1 : 0.9})`,
-        opacity: show ? 1 : 0,
-        pointerEvents: 'none',
-        whiteSpace: 'nowrap',
-        background: 'var(--neutral-800)',
-        color: '#fff',
-        fontSize: 12,
-        fontWeight: 600,
-        padding: '6px 10px',
-        borderRadius: 'var(--radius-md, 8px)',
-        boxShadow: 'var(--shadow-e2)',
-        transition: 'opacity var(--duration-fast, 0.15s) ease, transform var(--duration-fast, 0.15s) var(--ease-out, ease)',
-        zIndex: 10,
-      }}
+      className={`hidden lg:block absolute start-full ms-3 top-1/2 -translate-y-1/2 pointer-events-none whitespace-nowrap bg-neutral-800 text-white text-caption font-semibold px-3 py-1.5 rounded-md shadow-e2 transition duration-150 ease-out z-10 ${show ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
     >
       {label}
     </span>
@@ -260,14 +190,13 @@ function CreateCircleModal({ onClose, onCreated }: { onClose: () => void; onCrea
       aria-modal="true"
       aria-label={t('tracker.createCircle')}
       onClick={onClose}
-      style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      className="fixed inset-0 z-100 bg-overlay flex items-center justify-center p-4"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="card flex flex-col gap-4"
-        style={{ width: 'min(400px, 100%)', padding: '22px 24px' }}
+        className="card flex flex-col gap-4 w-full max-w-100 p-6 rounded-xl shadow-e3 bg-surface-main"
       >
-        <h2 style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{t('tracker.createCircle')}</h2>
+        <h2 className="text-heading-m font-bold text-primary m-0">{t('tracker.createCircle')}</h2>
         <input
           value={name}
           autoFocus
@@ -276,7 +205,7 @@ function CreateCircleModal({ onClose, onCreated }: { onClose: () => void; onCrea
           placeholder={t('tracker.createCircleHint')}
           className="input"
         />
-        {error && <div role="alert" style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</div>}
+        {error && <div role="alert" className="text-danger text-small">{error}</div>}
         <div className="flex gap-2 justify-end">
           <button onClick={onClose} className="btn btn-outline btn-lg">{t('common.cancel')}</button>
           <ActionButton onClick={submit} disabled={!name.trim() || busy} className="btn btn-primary btn-lg">{t('common.create')}</ActionButton>

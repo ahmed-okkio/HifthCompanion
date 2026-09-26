@@ -29,7 +29,7 @@ function Divider() {
   return (
     <div
       aria-hidden
-      style={{ width: '1px', height: '40px', alignSelf: 'center', background: 'var(--border-subtle)', margin: '0 var(--space-8, 8px)' }}
+      className="mx-2 h-10 w-px self-center bg-subtle"
     />
   );
 }
@@ -63,63 +63,41 @@ export default function AnnotationToolbar({
   // selectors scope to `aside` (aside.sticky + aside button[title=...]), so this stays one aside.
   // Every tool/action button is flex:1 and stretches to the full bar height, so they read as a
   // uniform row of equal-sized cells that fills the bar (no clustered groups with empty gaps).
-  const cellBase: React.CSSProperties = {
-    flex: '1 1 0',
-    // Never shrink below a usable touch target; cells grow equally to fill the bar at real
-    // desktop widths, and the bar scrolls only if the column is extremely narrow.
-    minWidth: '44px',
-    alignSelf: 'stretch',
-    borderRadius: 'var(--radius-md)',
-    transition: 'background var(--duration-fast, 120ms) var(--ease-out, ease)',
-  };
+  // Never shrink below a usable touch target; cells grow equally to fill the bar.
+  const cellBase = 'flex min-w-11 flex-1 flex-col items-center justify-center gap-1 self-stretch rounded-md transition-colors duration-[var(--duration-fast,120ms)] ease-[var(--ease-out,ease)]';
+  const cellDisabled = 'pointer-events-none cursor-not-allowed text-muted opacity-45';
+  const labelCls = 'text-meta leading-none';
+  const iconBox = 'flex h-6 w-6 items-center justify-center';
 
   return (
     <aside
-      className="sticky top-24 z-10 flex w-full items-center"
-      style={{
-        minHeight: '88px',
-        /* Shadow lives on the outer (unclipped) element — clip-path on the inner
-           wrapper would otherwise cut the box-shadow off at the border box. */
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-e2)',
-      }}
+      /* Shadow lives on the outer (unclipped) element — clip-path on the inner
+         wrapper would otherwise cut the box-shadow off at the border box. */
+      className="sticky top-24 z-10 flex min-h-22 w-full items-center rounded-lg shadow-e2"
     >
       {/* Rounded wrapper clips the scroll edge — a reserved (classic) scrollbar's
           corner is NOT clipped by plain overflow:hidden on Windows, so we use
           clip-path (geometry-based, platform-independent) to hard-clip the box,
           scrollbar included, to the rounded rect. */}
       <div
-        className="relative w-full"
-        style={{
-          minHeight: '88px',
-          background: 'var(--surface-main)',
-          borderRadius: 'var(--radius-lg)',
-          border: '1px solid var(--border-subtle)',
-          overflow: 'hidden',
-          clipPath: 'inset(0 round var(--radius-lg))',
-        }}
+        className="relative min-h-22 w-full overflow-hidden rounded-lg border border-subtle bg-surface-main [clip-path:inset(0_round_var(--radius-lg))]"
       >
       <div
-        className="relative flex w-full items-stretch gap-2 overflow-x-auto p-3"
-        style={{ minHeight: '88px' }}
+        className="relative flex min-h-22 w-full items-stretch gap-2 overflow-x-auto p-3"
       >
         {/* Move/pan tool — left of the drawing tools. Active = drag pans the zoomed page. */}
         <button
           type="button"
           onClick={onMoveToggle}
           title={t('annot.move')}
-          className={`flex flex-col items-center justify-center gap-1 ${moveActive ? 'bg-accent-muted' : 'hover:bg-neutral-100'}`}
-          style={{
-            ...cellBase,
-            color: moveActive ? 'var(--text-accent)' : 'var(--text-muted)',
-          }}
+          className={`${cellBase} ${moveActive ? 'bg-accent-muted text-green-600' : 'text-muted hover:bg-neutral-100'}`}
         >
-          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px' }}>
+          <span className={iconBox}>
             <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20" />
             </svg>
           </span>
-          <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>{t('annot.move')}</span>
+          <span className={labelCls}>{t('annot.move')}</span>
         </button>
 
         {/* Tools — equal-width cells filling the bar height */}
@@ -129,18 +107,14 @@ export default function AnnotationToolbar({
             ref={el => { buttonRefs.current[t] = el; }}
             onClick={() => onToolClick(t)}
             title={toolLabel(t)}
-            className={`flex flex-col items-center justify-center gap-1 ${(activeTool === t && !moveActive) ? 'bg-accent-muted' : 'hover:bg-neutral-100'}`}
-            style={{
-              ...cellBase,
-              color: (activeTool === t && !moveActive) ? 'var(--text-accent)' : 'var(--text-muted)',
-            }}
+            className={`${cellBase} ${(activeTool === t && !moveActive) ? 'bg-accent-muted text-green-600' : 'text-muted hover:bg-neutral-100'}`}
             onMouseEnter={() => handleMouseEnter(t)}
             onMouseLeave={onHoverLeave}
           >
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '24px', height: '24px' }}>
+            <span className={iconBox}>
               {TOOL_ICONS[t]}
             </span>
-            <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>
+            <span className={labelCls}>
               {toolLabel(t)}
             </span>
           </button>
@@ -155,16 +129,12 @@ export default function AnnotationToolbar({
           suppressHydrationWarning
           title={t('annot.undo')}
           aria-disabled={!canUndo}
-          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6 hover:bg-neutral-100"
-          style={{
-            ...cellBase,
-            ...(!canUndo ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none' } : { color: 'var(--text-secondary)' }),
-          }}
+          className={`${cellBase} [&>svg]:h-6 [&>svg]:w-6 hover:bg-neutral-100 ${!canUndo ? cellDisabled : 'text-secondary'}`}
         >
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
           </svg>
-          <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>{t('annot.undo')}</span>
+          <span className={labelCls}>{t('annot.undo')}</span>
         </button>
 
         <button
@@ -173,16 +143,12 @@ export default function AnnotationToolbar({
           suppressHydrationWarning
           title={t('annot.redo')}
           aria-disabled={!canRedo}
-          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6 hover:bg-neutral-100"
-          style={{
-            ...cellBase,
-            ...(!canRedo ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none' } : { color: 'var(--text-secondary)' }),
-          }}
+          className={`${cellBase} [&>svg]:h-6 [&>svg]:w-6 hover:bg-neutral-100 ${!canRedo ? cellDisabled : 'text-secondary'}`}
         >
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
           </svg>
-          <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>{t('annot.redo')}</span>
+          <span className={labelCls}>{t('annot.redo')}</span>
         </button>
 
         <button
@@ -191,19 +157,13 @@ export default function AnnotationToolbar({
           title={t('annot.clearAll')}
           aria-label={t('annot.clearAll')}
           aria-disabled={!canClear}
-          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6 hover:bg-neutral-100"
-          style={{
-            ...cellBase,
-            // Same disabled treatment as undo/redo above, but keeps the danger hue when live.
-            ...(!canClear
-              ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none' }
-              : { color: 'var(--danger-500)' }),
-          }}
+          // Same disabled treatment as undo/redo above, but keeps the danger hue when live.
+          className={`${cellBase} [&>svg]:h-6 [&>svg]:w-6 hover:bg-neutral-100 ${!canClear ? cellDisabled : 'text-danger'}`}
         >
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
           </svg>
-          <span style={{ fontSize: 'var(--type-meta-size)', fontWeight: 'var(--type-meta-weight)', lineHeight: 1 }}>{t('annot.clear')}</span>
+          <span className={labelCls}>{t('annot.clear')}</span>
         </button>
 
         <Divider />
@@ -215,17 +175,9 @@ export default function AnnotationToolbar({
               key={c.value}
               onClick={() => onColorChange(c.value)}
               title={colorLabel(c.name)}
-              className="flex-shrink-0 rounded-full"
-              style={{
-                width: '20px',
-                height: '20px',
-                backgroundColor: c.value,
-                border: activeColor === c.value ? '2px solid var(--text-primary)' : '2px solid transparent',
-                boxShadow: activeColor === c.value ? `0 0 0 2px ${c.value}40` : 'none',
-                outline: activeColor === c.value ? '2px solid var(--text-primary)' : 'none',
-                outlineOffset: '2px',
-                transition: 'box-shadow var(--duration-fast, 120ms) var(--ease-out, ease)',
-              }}
+              className={`h-5 w-5 flex-shrink-0 rounded-full border-2 outline-offset-2 transition-shadow duration-[var(--duration-fast,120ms)] ease-[var(--ease-out,ease)] ${activeColor === c.value ? 'border-primary outline-2 outline-primary' : 'border-transparent'}`}
+              // eslint-disable-next-line shadcn/no-inline-styles -- preset swatch colour (+ its tinted ring) from data
+              style={{ backgroundColor: c.value, boxShadow: activeColor === c.value ? `0 0 0 2px ${c.value}40` : 'none' }}
             />
           ))}
         </div>

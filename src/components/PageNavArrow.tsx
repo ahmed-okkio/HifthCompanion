@@ -15,44 +15,12 @@ export default function PageNavArrow({ direction, disabled, onClick, 'aria-label
       onClick={onClick}
       disabled={disabled}
       aria-label={ariaLabel}
-      className={className}
-      style={{
-        border: 'none',
-        background: 'transparent',
-        boxShadow: 'none',
-        cursor: disabled ? 'default' : 'pointer',
-        borderRadius: 'var(--radius-lg)',
-        transition: 'background 220ms ease, box-shadow 220ms ease, transform 120ms var(--ease-out)',
-        opacity: disabled ? 0.3 : 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        ...style,
-      }}
-      onMouseEnter={e => {
-        if (disabled) return;
-        const el = e.currentTarget;
-        el.style.background = 'var(--surface-app)';
-        el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
-      }}
-      onMouseLeave={e => {
-        const el = e.currentTarget;
-        el.style.background = 'transparent';
-        el.style.boxShadow = 'none';
-      }}
-      onMouseDown={e => {
-        if (disabled) return;
-        const el = e.currentTarget;
-        el.style.transform = 'scale(0.94)';
-        el.style.boxShadow = '0 2px 8px rgba(15,23,42,0.18)';
-      }}
-      onMouseUp={e => {
-        const el = e.currentTarget;
-        el.style.transform = '';
-        el.style.boxShadow = '0 4px 12px rgba(15,23,42,0.12)';
-      }}
+      className={`flex items-center justify-center rounded-lg border-none bg-transparent shadow-none transition-[background,box-shadow,scale] duration-220 ${
+        disabled ? 'cursor-default opacity-30' : 'cursor-pointer hover:bg-surface-app hover:shadow-[0_4px_12px_rgba(15,23,42,0.12)] active:scale-94 active:shadow-[0_2px_8px_rgba(15,23,42,0.18)]'
+      } ${className ?? ''}`}
+      style={style}
     >
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={{ transition: 'color 220ms ease' }}>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className="transition-colors duration-220">
         {direction === 'left' ? <path d="M15 19l-7-7 7-7" /> : <path d="M9 5l7 7-7 7" />}
       </svg>
     </button>

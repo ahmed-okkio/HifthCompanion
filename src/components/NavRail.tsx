@@ -200,29 +200,13 @@ export default function NavRail({ activeView }: NavRailProps) {
     <nav
       data-testid="nav-rail"
       aria-label={t('nav.mainNavigation')}
-      style={{
-        width: '96px',
-        height: '100%',
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        gap: 'var(--space-16)',
-        paddingTop: 'var(--space-16)',
-        paddingBottom: 'var(--space-16)',
-        background: 'var(--surface-main)',
-        boxShadow: 'var(--shadow-e2)',
-        position: 'relative',
-        zIndex: 2,
-        overflow: 'hidden',
-      }}
+      className="relative z-2 flex h-full w-24 shrink-0 flex-col items-center justify-start gap-4 overflow-hidden bg-surface-main py-4 shadow-e2"
     >
       {/* Top section: main nav items */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-16)', width: '100%' }}>
-        <ul role="list" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-4)', width: '100%' }}>
+      <div className="flex w-full flex-col items-center gap-4">
+        <ul role="list" className="m-0 flex w-full list-none flex-col items-center gap-1 p-0">
           {RAIL_ITEMS.map((item) => (
-            <li key={item.id} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+            <li key={item.id} className="flex w-full justify-center">
               <RailButton item={item} href={hrefFor(item)} isActive={resolveActive(item)} label={LABEL_KEYS[item.id] ? t(LABEL_KEYS[item.id]) : item.label} onNavigate={() => setPending(item.id)} />
             </li>
           ))}
@@ -240,55 +224,21 @@ function RailButton({ item, href, isActive, label, onNavigate }: { item: RailIte
   const { t } = useI18n();
   const isInert = !item.href;
 
-  const sharedStyle: React.CSSProperties = {
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 'var(--space-4)',
-    width: '80px',
-    height: '60px',
-    border: 'none',
-    borderRadius: 'var(--radius-sm)',
-    cursor: isInert ? 'default' : 'pointer',
-    background: isActive ? 'var(--green-soft)' : 'transparent',
-    color: isActive ? 'var(--green-600)' : 'var(--neutral-500)',
-    transition: 'background 0.15s ease',
-    padding: '0 var(--space-4)',
-    textDecoration: 'none',
-  };
-
-  const hoverIn = isInert
-    ? undefined
-    : (e: React.MouseEvent<HTMLElement>) => {
-        if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--neutral-100)';
-      };
-  const hoverOut = isInert
-    ? undefined
-    : (e: React.MouseEvent<HTMLElement>) => {
-        if (!isActive) (e.currentTarget as HTMLElement).style.background = 'transparent';
-      };
+  const sharedClass = `relative flex h-15 w-20 flex-col items-center justify-center gap-1 rounded-sm border-none px-1 no-underline transition-[background] duration-150 ${
+    isInert ? 'cursor-default' : 'cursor-pointer'
+  } ${isActive ? 'bg-green-soft text-green-600' : `bg-transparent text-neutral-500${isInert ? '' : ' hover:bg-neutral-100'}`}`;
 
   const inner = (
     <>
       {isActive && (
         <span
           aria-hidden="true"
-          style={{ position: 'absolute', left: '-8px', top: '50%', transform: 'translateY(-50%)', width: '3px', height: '28px', borderRadius: '0 2px 2px 0', background: 'var(--green-600)', pointerEvents: 'none' }}
+          className="pointer-events-none absolute top-1/2 -left-2 h-7 w-0.75 -translate-y-1/2 rounded-r-xs bg-green-600"
         />
       )}
-      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{item.icon(isActive)}</span>
+      <span className="flex shrink-0 items-center justify-center">{item.icon(isActive)}</span>
       <span
-        style={{
-          fontSize: '11px',
-          fontWeight: 500,
-          lineHeight: 1.1,
-          letterSpacing: '-0.01em',
-          textAlign: 'center',
-          userSelect: 'none',
-          color: isActive ? 'var(--green-600)' : isInert ? 'var(--neutral-400)' : 'var(--neutral-500)',
-        }}
+        className={`text-meta leading-[1.1] font-medium tracking-[-0.01em] text-center select-none ${isActive ? 'text-green-600' : isInert ? 'text-neutral-400' : 'text-neutral-500'}`}
       >
         {label}
       </span>
@@ -297,7 +247,7 @@ function RailButton({ item, href, isActive, label, onNavigate }: { item: RailIte
 
   if (isInert) {
     return (
-      <button type="button" aria-label={label} aria-disabled title={t('nav.comingSoon', { label })} style={sharedStyle}>
+      <button type="button" aria-label={label} aria-disabled title={t('nav.comingSoon', { label })} className={sharedClass}>
         {inner}
       </button>
     );
@@ -309,10 +259,8 @@ function RailButton({ item, href, isActive, label, onNavigate }: { item: RailIte
       aria-label={label}
       aria-current={isActive ? 'page' : undefined}
       title={label}
-      style={sharedStyle}
+      className={sharedClass}
       onClick={onNavigate}
-      onMouseEnter={hoverIn}
-      onMouseLeave={hoverOut}
     >
       {inner}
     </Link>

@@ -51,10 +51,10 @@ export default function SetsCard({ user, sets, selectedSetId, saving, onSetChang
       icon={<PanelIcon d={ICON_PATHS.layers} />}
       title={t('sets.title')}
       trailing={saving && (
-        <span style={{ fontSize: 'var(--type-meta-size)', color: 'var(--text-accent)' }}>{t('sets.saving')}</span>
+        <span className="text-meta text-green-600">{t('sets.saving')}</span>
       )}
     >
-      <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div className="px-4 pt-3 pb-4 flex flex-col gap-3">
         {user ? (
           <>
             {sets.length > 0 ? (
@@ -62,13 +62,12 @@ export default function SetsCard({ user, sets, selectedSetId, saving, onSetChang
                 id="set-picker-top"
                 value={selectedSetId}
                 onChange={e => onSetChange(e.target.value)}
-                className="input input-sm"
-                style={{ width: '100%', cursor: 'pointer' }}
+                className="input input-sm w-full cursor-pointer"
               >
                 {sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             ) : (
-              <p style={{ fontSize: 'var(--type-caption-size)', color: 'var(--text-muted)' }}>
+              <p className="text-caption text-muted">
                 {t('sets.noneYet')}
               </p>
             )}
@@ -86,7 +85,7 @@ export default function SetsCard({ user, sets, selectedSetId, saving, onSetChang
                   placeholder={t('sets.setNamePlaceholder')}
                   className="input input-sm"
                 />
-                {error && <p style={{ fontSize: 11, color: 'var(--danger)' }}>{error}</p>}
+                {error && <p className="text-meta text-danger">{error}</p>}
                 <div className="flex gap-2">
                   <button onClick={handleCreate} disabled={!name.trim() || busy}
                           className="btn btn-primary btn-sm flex-1">
@@ -100,7 +99,7 @@ export default function SetsCard({ user, sets, selectedSetId, saving, onSetChang
               </div>
             ) : (
               <button type="button" onClick={() => setAdding(true)}
-                      className="btn btn-outline btn-sm w-full" style={{ justifyContent: 'center' }}>
+                      className="btn btn-outline btn-sm w-full justify-center">
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
@@ -109,7 +108,7 @@ export default function SetsCard({ user, sets, selectedSetId, saving, onSetChang
             )}
           </>
         ) : (
-          <a href="/login" style={{ fontSize: 'var(--type-small-size)', color: 'var(--text-accent)' }}>
+          <a href="/login" className="text-small text-green-600">
             {t('sets.loginToAnnotate')}
           </a>
         )}

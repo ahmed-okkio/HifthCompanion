@@ -73,8 +73,7 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
 
   return (
     <div
-      className="lg:h-[100dvh] lg:flex lg:flex-col lg:overflow-hidden"
-      style={{ background: 'var(--bg-base)' }}
+      className="lg:h-dvh lg:flex lg:flex-col lg:overflow-hidden bg-surface-app"
     >
       {/* On mobile the header is position:fixed (see ShareShell.module.css); on
           desktop it sits in-flow at the top of the flex column. */}
@@ -82,8 +81,7 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
         {/* V3 — read-only header mirrors ReaderNav (brand left, centered page navigator pill,
             actions right) using the same ReaderNav.module.css so the style matches the reader. */}
         <header
-          className="w-full"
-          style={{ background: 'var(--surface-main)', borderBottom: '1px solid var(--border-subtle)', borderRadius: 0, boxShadow: 'var(--shadow-e1)' }}
+          className="w-full bg-surface-main border-b border-subtle rounded-none shadow-e1"
         >
           <div className={navStyles.inner}>
 
@@ -151,8 +149,7 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
                 href={`${basePath}/${nextPage}`}
                 title={t('share.nextPage')}
                 aria-disabled={pageNum === TOTAL_PAGES}
-                className={navStyles.navButton}
-                style={pageNum === TOTAL_PAGES ? { pointerEvents: 'none', opacity: 0.35 } : undefined}
+                className={`${navStyles.navButton} ${pageNum === TOTAL_PAGES ? 'pointer-events-none opacity-35' : ''}`}
               >
                 <svg width="16" height="16" className={navStyles.navIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
@@ -160,7 +157,7 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
               </Link>
 
               <div className={navStyles.pageShell}>
-                <span className={navStyles.pageButton} style={{ cursor: 'default' }}>
+                <span className={`${navStyles.pageButton} cursor-default`}>
                   <span className={navStyles.pageCurrent}>{pageNum}</span>
                   <span className={navStyles.pageDivider}>/</span>
                   <span className={navStyles.pageTotal}>{TOTAL_PAGES}</span>
@@ -171,8 +168,7 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
                 href={`${basePath}/${prevPage}`}
                 title={t('share.previousPage')}
                 aria-disabled={pageNum === 1}
-                className={navStyles.navButton}
-                style={pageNum === 1 ? { pointerEvents: 'none', opacity: 0.35 } : undefined}
+                className={`${navStyles.navButton} ${pageNum === 1 ? 'pointer-events-none opacity-35' : ''}`}
               >
                 <svg width="16" height="16" className={navStyles.navIcon} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -196,26 +192,21 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
       {/* Content row: fills the remaining height on desktop. On mobile the nav is
           position:fixed, so --nav-h drives the padding-top via mobile-nav-offset. */}
       <div
-        className="lg:flex-1 lg:min-h-0 mobile-nav-offset"
-        style={{ display: 'flex', alignItems: 'flex-start', ['--nav-h' as string]: `${navHeight}px` } as React.CSSProperties}
+        className="lg:flex-1 lg:min-h-0 mobile-nav-offset flex items-start"
+        // eslint-disable-next-line shadcn/no-inline-styles -- measured header height
+        style={{ ['--nav-h' as string]: `${navHeight}px` } as React.CSSProperties}
         suppressHydrationWarning
       >
-        <div className="hidden lg:block flex-shrink-0" style={{ width: '96px', height: '100%' }}>
+        <div className="hidden lg:block flex-shrink-0 w-24 h-full">
           <NavRail />
         </div>
         <div
-          className="hidden lg:flex lg:flex-col flex-shrink-0"
-          style={{
-            height: '100%',
-            width: '320px',
-            overflow: 'hidden',
-          }}
+          className="hidden lg:flex lg:flex-col flex-shrink-0 h-full w-80 overflow-hidden"
         >
           <SurahNavPanel currentPage={pageNum} basePath={basePath} topOffset={navHeight} markedPages={markedRows} />
         </div>
         <div
-          className="lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col"
-          style={{ flex: 1, minWidth: 0 }}
+          className="lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col flex-1 min-w-0"
         >
           {children}
         </div>

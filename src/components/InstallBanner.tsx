@@ -103,26 +103,21 @@ export default function InstallBanner() {
 
   return (
     <div
-      className="lg:hidden flex items-center gap-3 px-4 py-3"
-      style={{
-        background: 'var(--bg-card)',
-        borderBottom: '1px solid var(--border-subtle)',
-      }}
+      className="lg:hidden flex items-center gap-3 px-4 py-3 bg-surface-main border-b border-subtle"
     >
       <div className="flex flex-col flex-1 min-w-0">
-        <span style={{ fontWeight: 600, fontSize: 14 }}>{t('install.title')}</span>
-        <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{message}</span>
+        <span className="font-semibold text-body">{t('install.title')}</span>
+        <span className="text-muted text-small">{message}</span>
       </div>
       {mode === 'prompt' && (
-        <button onClick={install} className="btn btn-primary" style={{ minHeight: 40 }}>
+        <button onClick={install} className="btn btn-primary">
           {t('install.action')}
         </button>
       )}
       <button
         onClick={dismiss}
         aria-label={t('install.dismiss')}
-        className="btn btn-ghost"
-        style={{ minHeight: 40, minWidth: 40 }}
+        className="btn btn-ghost btn-icon"
       >
         ✕
       </button>

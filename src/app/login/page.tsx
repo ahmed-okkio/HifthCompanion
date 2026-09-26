@@ -27,11 +27,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 overflow-x-hidden"
-         style={{
-           background:
-             'radial-gradient(120% 80% at 50% -10%, var(--accent-muted), transparent 60%), var(--bg-base)',
-         }}>
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 overflow-x-hidden bg-surface-app bg-[radial-gradient(120%_80%_at_50%_-10%,var(--accent-muted),transparent_60%)]">
       <div className="w-full max-w-sm animate-fade-in-scale">
         <AuthBrand subtitle={t('auth.signInSubtitle')} />
 
@@ -39,8 +35,7 @@ export default function LoginPage() {
         <div className="card p-6 sm:p-8">
           <div className="flex flex-col gap-4">
             <div>
-              <label className="block text-xs font-semibold mb-1.5"
-                     style={{ color: 'var(--text-secondary)' }}>
+              <label className="block text-xs font-semibold mb-1.5 text-secondary">
                 {t('auth.email')}
               </label>
               <input
@@ -57,8 +52,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1.5"
-                     style={{ color: 'var(--text-secondary)' }}>
+              <label className="block text-xs font-semibold mb-1.5 text-secondary">
                 {t('auth.password')}
               </label>
               <input
@@ -73,12 +67,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="text-xs font-medium px-3 py-2 rounded-md animate-fade-in"
-                   style={{
-                     background: 'var(--danger-muted)',
-                     color: 'var(--danger)',
-                     border: '1px solid rgba(248, 113, 113, 0.2)',
-                   }}>
+              <div className="text-xs font-medium px-3 py-2 rounded-md animate-fade-in bg-danger-muted text-danger border border-danger-muted">
                 {error}
               </div>
             )}
@@ -86,8 +75,7 @@ export default function LoginPage() {
             <button
               onClick={handleLogin}
               disabled={loading || !email || !password}
-              className="btn btn-primary w-full min-h-[44px]"
-              style={{ fontSize: '14px', marginTop: '4px' }}
+              className="btn btn-primary w-full min-h-11 text-body mt-1"
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -100,11 +88,10 @@ export default function LoginPage() {
         </div>
 
         {/* Footer link */}
-        <p className="text-center mt-5 text-sm" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-center mt-5 text-sm text-muted">
           {t('auth.noAccount')}{' '}
           <Link href={`/signup${search}`}
-                className="font-semibold hover:underline"
-                style={{ color: 'var(--text-accent)' }}>
+                className="font-semibold hover:underline text-green-600">
             {t('auth.signUpLink')}
           </Link>
         </p>

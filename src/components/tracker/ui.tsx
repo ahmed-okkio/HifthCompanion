@@ -45,8 +45,7 @@ export function MushafLink({ page, setId, task }: {
   return (
     <Link
       href={`${setId ? `/share/${setId}` : '/reader'}/${page}${query}`}
-      className="inline-flex items-center gap-1 self-start text-xs"
-      style={{ color: 'var(--text-accent)', textDecoration: 'none' }}
+      className="inline-flex items-center gap-1 self-start text-xs text-green-600 no-underline"
     >
       <Icon name="book" size={13} />
       {t('homework.openInMushaf')}
@@ -77,13 +76,12 @@ export function PageHeader({
     <div className="flex items-start justify-between gap-3">
       <div className="flex flex-col gap-1">
         <h1
-          className="font-bold tracking-tight"
-          style={{ color: 'var(--text-primary)', fontSize: 'var(--type-heading-l-size)' }}
+          className="font-bold tracking-tight text-primary text-heading-l"
         >
           {title}
         </h1>
         {subtitle && (
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+          <p className="text-sm text-muted">
             {subtitle}
           </p>
         )}
@@ -104,8 +102,7 @@ export function SectionTitle({
   return (
     <div className="flex items-center gap-2">
       <h2
-        className="text-xs font-semibold uppercase tracking-wider"
-        style={{ color: 'var(--text-muted)' }}
+        className="text-xs font-semibold uppercase tracking-wider text-muted"
       >
         {children}
       </h2>
@@ -118,14 +115,7 @@ export function SectionTitle({
 export function EmptyState({ children }: { children: ReactNode }) {
   return (
     <div
-      className="flex flex-col items-center justify-center text-center gap-1"
-      style={{
-        padding: '28px 20px',
-        border: '1px dashed var(--border-default)',
-        borderRadius: 'var(--radius-lg)',
-        color: 'var(--text-muted)',
-        fontSize: 13,
-      }}
+      className="flex flex-col items-center justify-center text-center gap-1 py-8 px-6 border border-default border-dashed rounded-lg text-muted text-small"
     >
       {children}
     </div>
@@ -143,15 +133,9 @@ export function Avatar({ seed, size = 36 }: { seed: string; size?: number }) {
   return (
     <span
       aria-hidden
-      className="flex items-center justify-center font-semibold shrink-0"
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 'var(--radius-full)',
-        fontSize: size * 0.4,
-        color: `hsl(${hue} 55% 32%)`,
-        background: `hsl(${hue} 70% 92%)`,
-      }}
+      className="flex items-center justify-center font-semibold shrink-0 rounded-full"
+      // eslint-disable-next-line shadcn/no-inline-styles -- size and hue come from props
+      style={{ width: size, height: size, fontSize: size * 0.4, color: `hsl(${hue} 55% 32%)`, background: `hsl(${hue} 70% 92%)` }}
     >
       {initial}
     </span>
@@ -169,30 +153,22 @@ export function StatCard({
   icon?: ReactNode;
 }) {
   return (
-    <div className="card flex items-center gap-3" style={{ padding: '14px 16px' }}>
+    <div className="card flex items-center gap-3 p-4">
       {icon && (
         <span
           aria-hidden
-          className="flex items-center justify-center shrink-0"
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 'var(--radius-md)',
-            background: 'var(--accent-muted)',
-            fontSize: 18,
-          }}
+          className="flex items-center justify-center shrink-0 w-10 h-10 rounded-md bg-accent-muted text-heading-m"
         >
           {icon}
         </span>
       )}
       <div className="flex flex-col min-w-0">
         <span
-          className="font-bold leading-tight truncate"
-          style={{ color: 'var(--text-primary)', fontSize: 22 }}
+          className="font-bold leading-tight truncate text-primary text-heading-l"
         >
           {value}
         </span>
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        <span className="text-xs text-muted">
           {label}
         </span>
       </div>
@@ -206,12 +182,11 @@ export function Ring({ value, max, size = 44 }: { value: number; max: number; si
   const c = 2 * Math.PI * r;
   const pct = max > 0 ? Math.min(1, value / max) : 0;
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0" aria-hidden
-         style={{ transform: 'rotate(-90deg)' }}>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="shrink-0 -rotate-90" aria-hidden>
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--accent-muted)" strokeWidth="4" />
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--accent)" strokeWidth="4"
               strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)}
-              style={{ transition: 'stroke-dashoffset var(--duration-slow, 0.4s) var(--ease-out)' }} />
+              className="transition-[stroke-dashoffset] duration-400 ease-out" />
     </svg>
   );
 }
@@ -222,13 +197,13 @@ export function RingStatCard({ value, max, label, size = 44 }: {
 }) {
   const { fmtNum } = useI18n();
   return (
-    <div className="card flex items-center gap-3" style={{ padding: '14px 16px' }}>
+    <div className="card flex items-center gap-3 p-4">
       <Ring value={value} max={max} size={size} />
       <div className="flex flex-col min-w-0">
-        <span className="font-bold leading-tight truncate" style={{ color: 'var(--text-primary)', fontSize: 22 }}>
+        <span className="font-bold leading-tight truncate text-primary text-heading-l">
           {fmtNum(value)} / {fmtNum(max)}
         </span>
-        <span className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{label}</span>
+        <span className="text-xs truncate text-muted">{label}</span>
       </div>
     </div>
   );
@@ -240,19 +215,12 @@ export function DateChip({ iso, locale }: { iso: string; locale: string }) {
   return (
     <span
       aria-hidden
-      className="flex flex-col items-center justify-center shrink-0"
-      style={{
-        width: 46,
-        height: 46,
-        borderRadius: 'var(--radius-md)',
-        background: 'var(--accent-muted)',
-        color: 'var(--text-accent)',
-      }}
+      className="flex flex-col items-center justify-center shrink-0 w-11.5 h-11.5 rounded-md bg-accent-muted text-green-600"
     >
-      <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.4 }}>
+      <span className="text-micro font-semibold uppercase leading-snug">
         {d.toLocaleDateString(locale, { weekday: 'short' })}
       </span>
-      <span style={{ fontSize: 17, fontWeight: 700, lineHeight: 1.1 }}>{localizeDigits(d.getDate(), isLocale(locale) ? locale : 'en')}</span>
+      <span className="text-heading-m font-bold leading-none">{localizeDigits(d.getDate(), isLocale(locale) ? locale : 'en')}</span>
     </span>
   );
 }
@@ -318,19 +286,10 @@ export function AnchoredPopup({
 
   return createPortal(
     <div
-      className={className}
+      className={`overflow-y-auto ${className}`}
       onMouseDown={(e) => e.stopPropagation()}
-      style={{
-        position: 'fixed',
-        left,
-        width: w,
-        top: flip ? undefined : rect.bottom + GAP,
-        bottom: flip ? window.innerHeight - rect.top + GAP : undefined,
-        maxHeight: height,
-        overflowY: 'auto',
-        zIndex: 9999,
-        ...style,
-      }}
+      // eslint-disable-next-line shadcn/no-inline-styles -- position measured from the anchor at runtime
+      style={{ position: 'fixed', zIndex: 9999, left, width: w, top: flip ? undefined : rect.bottom + GAP, bottom: flip ? window.innerHeight - rect.top + GAP : undefined, maxHeight: height, ...style }}
     >
       {children}
     </div>,
@@ -391,10 +350,9 @@ export function SurahCombobox({
   };
 
   return (
-    <div ref={wrap} style={{ position: 'relative', width: fluid ? '100%' : 200, maxWidth: '100%' }}>
+    <div ref={wrap} className={`relative max-w-full ${fluid ? 'w-full' : 'w-50'}`}>
       <input
-        className="input input-sm"
-        style={{ minHeight: 40, width: '100%', paddingInlineEnd: 32 }}
+        className="input input-sm min-h-10 w-full pe-8"
         value={open ? query : value ? `${fmtNum(value)}. ${getSurahName(value, locale)}` : ''}
         placeholder={placeholder}
         onFocus={() => {
@@ -422,21 +380,14 @@ export function SurahCombobox({
       />
       <span
         aria-hidden
-        style={{
-          position: 'absolute',
-          insetInlineEnd: 10,
-          top: '50%',
-          transform: 'translateY(-50%)',
-          pointerEvents: 'none',
-          display: 'flex',
-        }}
+        className="absolute end-3 top-1/2 -translate-y-1/2 pointer-events-none flex"
       >
         <Chevron open={open} />
       </span>
       <AnchoredPopup open={open && matches.length > 0} anchorRef={wrap}>
         <ul
           role="listbox"
-          style={{ padding: 4, margin: 0, listStyle: 'none' }}
+          className="p-1 m-0 list-none"
         >
           {matches.map((s) => (
             <li key={s}>
@@ -446,15 +397,7 @@ export function SurahCombobox({
                 aria-selected={s === value}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => select(s)}
-                className="btn btn-ghost btn-sm"
-                style={{
-                  width: '100%',
-                  justifyContent: 'flex-start',
-                  textAlign: 'start',
-                  fontWeight: s === value ? 600 : 400,
-                  background: s === value ? 'var(--accent-muted)' : undefined,
-                  color: s === value ? 'var(--text-accent)' : 'var(--text-primary)',
-                }}
+                className={`btn btn-ghost btn-sm w-full justify-start text-start ${s === value ? 'font-semibold bg-accent-muted text-green-600' : 'font-normal text-primary'}`}
               >
                 {fmtNum(s)}. {getSurahName(s, locale)}
               </button>
@@ -502,22 +445,16 @@ export function PagedList<T>({
  *  column; on narrow screens (no gutter) it falls back to an in-flow row above. */
 export function BackButton({ href }: { href: string }) {
   const { t, locale } = useI18n();
-  const box: CSSProperties = {
-    width: 36, height: 36, borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)',
-    background: 'var(--bg-surface)', color: 'var(--text-secondary)',
-    // Back arrow points toward the start edge; mirror the glyph in RTL.
-    transform: locale === 'ar' ? 'scaleX(-1)' : undefined,
-  };
+  // Back arrow points toward the start edge; mirror the glyph in RTL.
+  const box = `size-9 rounded-md border border-default text-secondary items-center justify-center${locale === 'ar' ? ' -scale-x-100' : ''}`;
   return (
     <>
       <a href={href} aria-label={t('common.back')}
-         className="hidden lg:inline-flex items-center justify-center"
-         style={{ ...box, position: 'absolute', top: 0, insetInlineEnd: '100%', marginInlineEnd: 16 }}>
+         className={`hidden lg:inline-flex absolute top-0 end-full me-4 ${box}`}>
         <Icon name="arrow-left" size={18} />
       </a>
       <a href={href} aria-label={t('common.back')}
-         className="inline-flex lg:hidden items-center justify-center"
-         style={{ ...box, marginBottom: 16 }}>
+         className={`inline-flex lg:hidden mb-4 ${box}`}>
         <Icon name="arrow-left" size={18} />
       </a>
     </>
@@ -529,8 +466,9 @@ export function StatusDot({ color }: { color: string }) {
   return (
     <span
       aria-hidden
-      className="shrink-0"
-      style={{ width: 8, height: 8, borderRadius: 'var(--radius-full)', background: color }}
+      className="shrink-0 size-2 rounded-full"
+      // eslint-disable-next-line shadcn/no-inline-styles -- colour comes from props
+      style={{ background: color }}
     />
   );
 }
@@ -548,12 +486,9 @@ export function Chevron({ open, color = 'var(--text-muted)' }: { open?: boolean;
       strokeWidth="2.2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 rtl:-scale-x-100"
-      style={{
-        color,
-        transform: open ? 'rotate(90deg)' : undefined,
-        transition: 'transform var(--duration-fast) var(--ease-out)',
-      }}
+      className={`shrink-0 rtl:-scale-x-100 transition-transform duration-150 ease-out${open ? ' rotate-90' : ''}`}
+      // eslint-disable-next-line shadcn/no-inline-styles -- colour comes from props
+      style={{ color }}
     >
       <path d="m9 18 6-6-6-6" />
     </svg>
@@ -612,28 +547,22 @@ export function TimeSelect({
   }
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', ...style }}>
+    <div ref={wrapRef} className="relative" style={style}>
       <input
-        type="text" value={text} className="input" style={{ width: '100%' }}
+        type="text" value={text} className="input w-full"
         onFocus={() => setOpen(true)}
         onChange={(e) => { setText(e.target.value); const h = from12h(e.target.value); if (h) onChange(h); }}
         onBlur={commit}
         onKeyDown={(e) => { if (e.key === 'Enter') { commit(); setOpen(false); } if (e.key === 'Escape') setOpen(false); }}
       />
       <AnchoredPopup open={open} anchorRef={wrapRef} maxHeight={200} className="card thin-scroll">
-        <ul role="listbox" style={{ padding: 4, margin: 0, listStyle: 'none' }}>
+        <ul role="listbox" className="p-1 m-0 list-none">
           {slots.map((s) => {
             const sel = s === value;
             return (
               <li key={s}>
-                <button type="button" role="option" aria-selected={sel} className="btn btn-ghost btn-sm"
-                  onMouseDown={(e) => { e.preventDefault(); pick(s); }}
-                  style={{
-                    width: '100%', justifyContent: 'flex-start', textAlign: 'start',
-                    fontWeight: sel ? 600 : 400,
-                    background: sel ? 'var(--accent-muted)' : undefined,
-                    color: sel ? 'var(--text-accent)' : 'var(--text-primary)',
-                  }}>
+                <button type="button" role="option" aria-selected={sel} className={`btn btn-ghost btn-sm w-full justify-start text-start ${sel ? 'font-semibold bg-accent-muted text-green-600' : 'font-normal text-primary'}`}
+                  onMouseDown={(e) => { e.preventDefault(); pick(s); }}>
                   {to12h(s)}
                 </button>
               </li>
@@ -777,7 +706,7 @@ export function TabBar({
   onSelect: (key: string) => void;
 }) {
   return (
-    <div className="flex gap-0 overflow-x-auto overflow-y-hidden" role="tablist" style={{ borderBottom: '2px solid var(--border-subtle)' }}>
+    <div className="flex gap-0 overflow-x-auto overflow-y-hidden border-b-2 border-subtle" role="tablist">
       {tabs.map((t) => {
         const isActive = t.key === active;
         return (
@@ -786,18 +715,7 @@ export function TabBar({
             role="tab"
             aria-selected={isActive}
             onClick={() => onSelect(t.key)}
-            className="btn btn-ghost shrink-0"
-            style={{
-              minHeight: 42,
-              fontSize: 14,
-              fontWeight: isActive ? 600 : 400,
-              color: isActive ? 'var(--text-accent)' : 'var(--text-muted)',
-              borderBottom: isActive ? '2px solid var(--accent)' : '2px solid transparent',
-              marginBottom: -2,
-              borderRadius: 0,
-              padding: '8px 20px',
-              whiteSpace: 'nowrap',
-            }}
+            className={`btn btn-ghost shrink-0 min-h-10.5 text-body border-b-2 -mb-0.5 rounded-none py-2 px-5 whitespace-nowrap ${isActive ? 'font-semibold text-green-600 border-accent' : 'font-normal text-muted border-transparent'}`}
           >
             {t.label}
           </button>

@@ -45,11 +45,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 overflow-x-hidden"
-         style={{
-           background:
-             'radial-gradient(120% 80% at 50% -10%, var(--accent-muted), transparent 60%), var(--bg-base)',
-         }}>
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 overflow-x-hidden bg-surface-app bg-[radial-gradient(120%_80%_at_50%_-10%,var(--accent-muted),transparent_60%)]">
       <div className="w-full max-w-sm animate-fade-in-scale">
         <AuthBrand subtitle={t('auth.signUpSubtitle')} />
 
@@ -58,8 +54,7 @@ export default function SignupPage() {
           <div className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold mb-1.5"
-                       style={{ color: 'var(--text-secondary)' }}>
+                <label className="block text-xs font-semibold mb-1.5 text-secondary">
                   {t('auth.firstName')}
                 </label>
                 <input
@@ -74,8 +69,7 @@ export default function SignupPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1.5"
-                       style={{ color: 'var(--text-secondary)' }}>
+                <label className="block text-xs font-semibold mb-1.5 text-secondary">
                   {t('auth.lastName')}
                 </label>
                 <input
@@ -91,8 +85,7 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1.5"
-                     style={{ color: 'var(--text-secondary)' }}>
+              <label className="block text-xs font-semibold mb-1.5 text-secondary">
                 {t('auth.email')}
               </label>
               <input
@@ -108,8 +101,7 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1.5"
-                     style={{ color: 'var(--text-secondary)' }}>
+              <label className="block text-xs font-semibold mb-1.5 text-secondary">
                 {t('auth.password')}
               </label>
               <input
@@ -124,12 +116,7 @@ export default function SignupPage() {
             </div>
 
             {message && (
-              <div className="text-xs font-medium px-3 py-2 rounded-md animate-fade-in"
-                   style={{
-                     background: isError ? 'var(--danger-muted)' : 'var(--accent-muted)',
-                     color: isError ? 'var(--danger)' : 'var(--text-accent)',
-                     border: `1px solid ${isError ? 'rgba(248, 113, 113, 0.2)' : 'var(--border-accent)'}`,
-                   }}>
+              <div className={`text-xs font-medium px-3 py-2 rounded-md animate-fade-in border ${isError ? 'bg-danger-muted text-danger border-danger-muted' : 'bg-accent-muted text-green-600 border-[var(--border-accent)]'}`}>
                 {message}
               </div>
             )}
@@ -137,8 +124,7 @@ export default function SignupPage() {
             <button
               onClick={handleSignup}
               disabled={loading || !ready}
-              className="btn btn-primary w-full min-h-[44px]"
-              style={{ fontSize: '14px', marginTop: '4px' }}
+              className="btn btn-primary w-full min-h-11 text-body mt-1"
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -151,11 +137,10 @@ export default function SignupPage() {
         </div>
 
         {/* Footer link */}
-        <p className="text-center mt-5 text-sm" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-center mt-5 text-sm text-muted">
           {t('auth.haveAccount')}{' '}
           <Link href={`/login${search}`}
-                className="font-semibold hover:underline"
-                style={{ color: 'var(--text-accent)' }}>
+                className="font-semibold hover:underline text-green-600">
             {t('auth.logInLink')}
           </Link>
         </p>

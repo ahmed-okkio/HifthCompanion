@@ -13,25 +13,24 @@ interface Props {
 export default function SetPicker({ user, sets, selectedSetId, saving, onSetChange }: Props) {
   const { t } = useI18n();
   return (
-    <div className="mb-3 flex items-center gap-2 justify-between rounded-2xl border border-subtle bg-white/72 px-3 py-2 shadow-sm backdrop-blur min-h-[52px] lg:min-h-0">
+    <div className="mb-3 flex items-center gap-2 justify-between rounded-2xl border border-subtle bg-white/72 px-3 py-2 shadow-e1 backdrop-blur min-h-13 lg:min-h-0">
       {user ? (
         sets.length > 0 ? (
           <select
             id="set-picker-top"
             value={selectedSetId}
             onChange={e => onSetChange(e.target.value)}
-            className="input input-sm min-h-[44px] lg:min-h-0"
-            style={{ minWidth: '0', maxWidth: '100%', flex: '1 1 0' }}
+            className="input input-sm min-h-11 lg:min-h-0 min-w-0 max-w-full flex-1"
           >
             {sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         ) : (
-          <a href="/sets" className="text-sm" style={{ color: 'var(--text-accent)' }}>{t('sets.createSet')}</a>
+          <a href="/sets" className="text-sm text-green-600">{t('sets.createSet')}</a>
         )
       ) : (
-        <a href="/login" className="text-sm" style={{ color: 'var(--text-accent)' }}>{t('sets.loginToAnnotate')}</a>
+        <a href="/login" className="text-sm text-green-600">{t('sets.loginToAnnotate')}</a>
       )}
-      {saving && <span className="text-sm" style={{ color: 'var(--text-accent)' }}>{t('sets.saving')}</span>}
+      {saving && <span className="text-sm text-green-600">{t('sets.saving')}</span>}
     </div>
   );
 }

@@ -130,8 +130,7 @@ export default function StudentCircle({
     <div className="flex flex-col gap-6">
       {atRisk && (
         <div
-          className="card flex items-center gap-2" role="status"
-          style={{ padding: '10px 14px', background: 'var(--danger-muted)', borderColor: 'var(--danger-muted)', color: 'var(--danger)', fontSize: 13, fontWeight: 600 }}
+          className="card flex items-center gap-2 px-4 py-3 bg-danger-muted border-danger-muted text-danger text-small font-semibold" role="status"
         >
           <Icon name="alert" size={15} /> {t('log.streakAtRisk')}
         </div>
@@ -199,9 +198,9 @@ export default function StudentCircle({
           {tab === 'notes' && <NotesThread membershipId={membership.id} initial={initialNotes} />}
 
           {isMobile && tab === 'annotations' && (
-            <div className="card flex flex-col gap-2" style={{ padding: '16px 0 8px' }}>
+            <div className="card flex flex-col gap-2 pt-4 px-0 pb-2">
               <div className="px-4"><SectionTitle>{t('reader.marked')}</SectionTitle></div>
-              <div className="overflow-y-auto thin-scroll" style={{ maxHeight: 400 }}>
+              <div className="overflow-y-auto thin-scroll max-h-100">
                 {/* hrefFor links single-page; the reader/share auto-redirects to spread per the
                     viewer's own spread preference (C3), so the link isn't hard-coded to a mode. */}
                 <MarkedPagesList
@@ -264,21 +263,20 @@ function UpcomingSessions({ sessions, schedule, coveredBy, hideHeading = false }
         {weekSlots && weekSlots.length > 0 ? weekSlots.map((iso) => {
           const d = new Date(iso);
           return (
-            <div key={iso} className="card flex items-center gap-3" style={{ padding: '10px 14px' }}>
-              <span aria-hidden className="flex flex-col items-center justify-center shrink-0"
-                    style={{ width: 46, height: 46, borderRadius: 'var(--radius-md)', background: 'var(--accent-muted)', color: 'var(--text-accent)' }}>
-                <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', lineHeight: 1.4 }}>
+            <div key={iso} className="card flex items-center gap-3 py-3 px-4">
+              <span aria-hidden className="flex flex-col items-center justify-center shrink-0 w-11.5 h-11.5 rounded-md bg-accent-muted text-green-600">
+                <span className="text-micro font-semibold uppercase leading-snug">
                   {d.toLocaleDateString(locale, { weekday: 'short' })}
                 </span>
-                <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.1 }}>
+                <span className="text-small font-bold leading-none">
                   {d.toLocaleTimeString(locale, { hour: 'numeric', hour12: true }).replace(/\s/g, '')}
                 </span>
               </span>
               <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-sm font-semibold text-primary">
                   {d.toLocaleDateString(locale, { weekday: 'long' })}
                 </span>
-                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                <span className="text-xs text-muted">
                   {d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: true })}
                 </span>
               </div>
@@ -294,17 +292,17 @@ function UpcomingSessions({ sessions, schedule, coveredBy, hideHeading = false }
       {nextAdhoc && (
         <div className="flex flex-col gap-2">
           <SectionTitle>{t('sessions.adhocTitle')}</SectionTitle>
-          <div className="card flex items-center gap-3" style={{ padding: '10px 14px' }}>
+          <div className="card flex items-center gap-3 py-3 px-4">
             <DateChip iso={nextAdhoc.scheduled_at} locale={locale} />
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-              <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <span className="text-sm font-semibold text-primary">
                 {new Date(nextAdhoc.scheduled_at).toLocaleDateString(locale, { weekday: 'long', month: 'short', day: 'numeric' })}
               </span>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-xs text-muted">
                 {fmtTime(nextAdhoc.scheduled_at, locale)}
               </span>
             </div>
-            <span className="badge shrink-0" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>
+            <span className="badge shrink-0 text-micro">{t('sessions.adhoc')}</span>
             {subFor(nextAdhoc.scheduled_at) && <CoveredBy name={subFor(nextAdhoc.scheduled_at)!} />}
           </div>
         </div>
@@ -340,22 +338,21 @@ function CircleMembers({ roster, selfUserId, membershipId }: {
           const isSelf = m.user_id === selfUserId;
           const isTeacher = m.role === 'teacher';
           return (
-            <div key={m.user_id} className="card flex items-center gap-3" style={{ padding: '10px 12px' }}>
+            <div key={m.user_id} className="card flex items-center gap-3 px-4 py-3">
               <Avatar seed={name} size={32} />
               <div className="flex flex-col min-w-0 flex-1">
-                <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                <span className="text-sm font-semibold truncate text-primary">
                   {name}{isSelf ? ` (${t('circle.you')})` : ''}
                 </span>
                 {isTeacher && (
-                  <span className="text-xs" style={{ color: 'var(--text-accent)' }}>{t('circle.roleTeacher')}</span>
+                  <span className="text-xs text-green-600">{t('circle.roleTeacher')}</span>
                 )}
               </div>
             </div>
           );
         })}
       </div>
-      <ActionButton onClick={handleLeave} className="btn btn-outline btn-sm"
-                    style={{ color: 'var(--text-muted)' }}>
+      <ActionButton onClick={handleLeave} className="btn btn-outline btn-sm text-muted">
         {t('tracker.leave')}
       </ActionButton>
     </div>
@@ -417,16 +414,17 @@ function HomeworkCard({
   const first = items[0];
 
   return (
-    <div className="card flex flex-col gap-2" style={{ padding: '12px 16px' }}>
+    <div className="card flex flex-col gap-2 py-3 px-4">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+        <span className="text-sm font-medium text-primary">
           {`${t(first.type === 'memorization' ? 'homework.verbMemorize' : 'homework.verbReview')} ${homeworkTarget(items, locale, t('homework.juz'))}`}
         </span>
-        <span className="badge" style={{ fontSize: 10, ...HOMEWORK_STATUS_STYLE[groupStatus] }}>{t(STATUS_KEY[groupStatus])}</span>
+        {/* eslint-disable-next-line shadcn/no-inline-styles -- status colours from HOMEWORK_STATUS_STYLE map */}
+        <span className="badge text-micro" style={HOMEWORK_STATUS_STYLE[groupStatus]}>{t(STATUS_KEY[groupStatus])}</span>
       </div>
-      {first.instructions && <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{first.instructions}</span>}
+      {first.instructions && <span className="text-xs text-secondary">{first.instructions}</span>}
       {first.deadline && (
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('homework.deadline')}: {first.deadline}</span>
+        <span className="text-xs text-muted">{t('homework.deadline')}: {first.deadline}</span>
       )}
 
       {/* One entry (surah row) per line; linking + status stay per row (H4) */}
@@ -434,9 +432,9 @@ function HomeworkCard({
         const linkedLogs = linked.get(h.id) ?? [];
         const open = homeworkStatus(h, linkedLogs.length, today()) === 'open';
         return (
-          <div key={h.id} style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }} className="flex flex-col gap-1">
+          <div key={h.id} className="flex flex-col gap-1 border-t border-subtle pt-2">
             {items.length > 1 && (
-              <span className="text-sm" style={{ color: 'var(--text-primary)' }}>
+              <span className="text-sm text-primary">
                 {homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${fmtNum(h.page_start)}–${fmtNum(h.page_end)}`}
                 {h.surah && h.ayah_start == null ? ` ${t('homework.whole')}` : ''}
               </span>
@@ -448,7 +446,7 @@ function HomeworkCard({
                       label: homeworkEntryLabel(h, locale, t('homework.juz')) ?? `${t('log.pageRange')} ${fmtNum(h.page_start)}–${fmtNum(h.page_end)}` }}
             />
             {linkedLogs.map((l) => (
-              <div key={l.id} className="text-xs flex items-center gap-1" style={{ color: 'var(--text-secondary)', paddingInlineStart: 8 }}>
+              <div key={l.id} className="text-xs flex items-center gap-1 text-secondary ps-2">
                 <Icon name="check" size={13} /> p{fmtNum(l.page_start)}–{fmtNum(l.page_end)} · {l.log_date}
                 {l.student_status ? ` · ${l.student_status}` : ''}
               </div>
@@ -467,7 +465,7 @@ function HomeworkCard({
                 </button>
               )
             ) : (
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('homework.statusLocked')}</span>
+              <span className="text-xs text-muted">{t('homework.statusLocked')}</span>
             )}
           </div>
         );
@@ -552,33 +550,32 @@ function LogEntryForm({
     );
   }
 
-  const labelCls = 'text-xs font-medium';
-  const labelStyle = { color: 'var(--text-secondary)' };
+  const labelCls = 'text-xs font-medium text-secondary';
 
   return (
-    <div className="card flex flex-col gap-5" style={{ padding: '20px 22px', animation: 'fade-in-scale 0.2s var(--ease-out) both', transformOrigin: 'top' }}>
+    <div className="card flex flex-col gap-5 p-4 animate-[fade-in-scale_0.2s_var(--ease-out)_both] origin-top">
       {/* Type + Date, balanced two-up. */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <label className="flex flex-col gap-1.5">
-          <span className={labelCls} style={labelStyle}>{t('log.type')}</span>
-          <div style={{ position: 'relative' }}>
-            <span aria-hidden style={{ position: 'absolute', insetInlineStart: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)', display: 'flex' }}>
+          <span className={labelCls}>{t('log.type')}</span>
+          <div className="relative">
+            <span aria-hidden className="absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted flex">
               <Icon name="book" size={16} />
             </span>
             <select value={logType} onChange={(e) => setLogType(e.target.value as LogType)}
-                    className="input" style={{ minHeight: 44, width: '100%', paddingInlineStart: 38 }}>
+                    className="input min-h-11 w-full ps-10">
               {LOG_TYPES.map((lt) => <option key={lt} value={lt}>{t(`logType.${lt}`)}</option>)}
             </select>
           </div>
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className={labelCls} style={labelStyle}>{t('log.date')}</span>
-          <div style={{ position: 'relative' }}>
-            <span aria-hidden style={{ position: 'absolute', insetInlineStart: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)', display: 'flex' }}>
+          <span className={labelCls}>{t('log.date')}</span>
+          <div className="relative">
+            <span aria-hidden className="absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted flex">
               <Icon name="calendar" size={16} />
             </span>
             <input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)}
-                   className="input" style={{ minHeight: 44, width: '100%', paddingInlineStart: 38 }} />
+                   className="input min-h-11 w-full ps-10" />
           </div>
         </label>
       </div>
@@ -589,18 +586,18 @@ function LogEntryForm({
 
       {/* Note — textarea with a live character counter. */}
       <label className="flex flex-col gap-1.5">
-        <span className={labelCls} style={labelStyle}>{t('log.note')}</span>
-        <div style={{ position: 'relative' }}>
+        <span className={labelCls}>{t('log.note')}</span>
+        <div className="relative">
           <textarea value={note} maxLength={200} onChange={(e) => setNote(e.target.value)}
                     placeholder={t('log.notePlaceholder')} rows={3}
-                    className="input" style={{ width: '100%', resize: 'vertical', paddingBottom: 24 }} />
-          <span style={{ position: 'absolute', insetInlineEnd: 10, bottom: 8, fontSize: 11, color: 'var(--text-muted)', pointerEvents: 'none' }}>
+                    className="input w-full resize-y pb-6" />
+          <span className="absolute end-3 bottom-2 text-meta text-muted pointer-events-none">
             {fmtNum(note.length)} / {fmtNum(200)}
           </span>
         </div>
       </label>
 
-      {error && <span className="text-xs" style={{ color: 'var(--danger)' }}>{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
 
       <div className="flex justify-end gap-2">
         <button onClick={() => setLogging(false)} className="btn btn-outline btn-lg">
@@ -693,10 +690,10 @@ function LogForm({
       {/* Type — 3 fixed enum only (F3). Hidden when linked (the card already
           names the type); the locked value still flows through via `logType`. */}
       {!lockedType && (
-        <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <label className="flex flex-col gap-1 text-xs text-secondary">
           {t('log.type')}
           <select value={logType} onChange={(e) => setLogType(e.target.value as LogType)}
-                  className="input input-sm" style={{ minHeight: 40 }}>
+                  className="input input-sm min-h-10">
             {LOG_TYPES.map((lt) => <option key={lt} value={lt}>{t(`logType.${lt}`)}</option>)}
           </select>
         </label>
@@ -707,23 +704,23 @@ function LogForm({
           <NumberStepper label={t('log.from')} value={pageStart} min={1} max={604} onChange={setPageStart} />
           <NumberStepper label={t('log.to')} value={pageEnd} min={1} max={604} onChange={setPageEnd} />
         </>)}
-        <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <label className="flex flex-col gap-1 text-xs text-secondary">
           {t('log.date')}
           <input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)}
-                 className="input input-sm" style={{ minHeight: 40 }} />
+                 className="input input-sm min-h-10" />
         </label>
       </div>
 
       {/* Optional ayah refinement — irrelevant for a whole-juz submission. */}
       {!hideRange && (
         <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <label className="flex items-center gap-2 text-xs text-secondary">
             <input type="checkbox" checked={refine} onChange={(e) => setRefine(e.target.checked)} />
             {t('log.refineAyah')}
           </label>
           {refine && ayahOptions.length > 0 && (
             <div className="flex items-end gap-2">
-              <span className="text-xs" style={{ color: 'var(--text-muted)', paddingBottom: 10 }}>
+              <span className="text-xs text-muted pb-3">
                 {t('log.surah')} {fmtNum(refineSurah)}
               </span>
               <AyahSelect label={t('log.ayahFrom')} value={effAyahStart} options={ayahOptions} onChange={setAyahStart} />
@@ -737,7 +734,7 @@ function LogForm({
 
       <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('log.note')} className="input" />
 
-      {error && <span className="text-xs" style={{ color: 'var(--danger)' }}>{error}</span>}
+      {error && <span className="text-xs text-danger">{error}</span>}
 
       <ActionButton onClick={handleSubmit} disabled={busy || pageEnd < pageStart}
               className="btn btn-primary btn-lg">
@@ -752,18 +749,20 @@ function LogForm({
 function LogRow({ log: l, onDelete }: { log: ProgressLog; onDelete: (id: string) => void }) {
   const { t, fmtNum } = useI18n();
   return (
-    <div className="card" style={{ padding: '12px 16px', viewTransitionName: vtName('log', l.id) }}>
+    <div className="card px-4 py-3"
+      // eslint-disable-next-line shadcn/no-inline-styles -- per-log view-transition name
+      style={{ viewTransitionName: vtName('log', l.id) }}>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+        <span className="text-sm font-medium text-primary">
           {t(`logType.${l.log_type}`)} · p{fmtNum(l.page_start)}–{fmtNum(l.page_end)}
           {l.surah && l.ayah_start ? ` · ${fmtNum(l.surah)}:${fmtNum(l.ayah_start)}${l.ayah_end && l.ayah_end !== l.ayah_start ? `–${fmtNum(l.ayah_end)}` : ''}` : ''}
-          {l.homework_id && <span className="badge badge-muted" style={{ fontSize: 10, marginInlineStart: 6 }}>{t('homework.assignedToYou')}</span>}
+          {l.homework_id && <span className="badge badge-muted text-micro ms-2">{t('homework.assignedToYou')}</span>}
         </span>
-        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{l.log_date}</span>
+        <span className="text-xs text-muted">{l.log_date}</span>
       </div>
-      {l.student_status && <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>{l.student_status}</div>}
+      {l.student_status && <div className="text-xs mt-1 text-secondary">{l.student_status}</div>}
       {l.reviewed_at ? (
-        <div className="text-xs mt-1" style={{ color: 'var(--text-accent)' }}>
+        <div className="text-xs mt-1 text-green-600">
           {t('grade.reviewed')}{l.teacher_status ? `: ${l.teacher_status}` : ''}
           {l.teacher_comment ? ` — ${l.teacher_comment}` : ''}
         </div>
@@ -787,7 +786,7 @@ function ChipRow({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{label}</span>
+      <span className="text-xs text-secondary">{label}</span>
       <SegmentedControl options={options.map((o) => ({ key: o, label: o }))} value={value} onChange={onChange} />
     </div>
   );
@@ -800,10 +799,10 @@ function AyahSelect({
 }) {
   const { fmtNum } = useI18n();
   return (
-    <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+    <label className="flex flex-col gap-1 text-xs text-secondary">
       {label}
       <select value={value} onChange={(e) => onChange(Number(e.target.value))}
-              className="input input-sm" style={{ minHeight: 40 }}>
+              className="input input-sm min-h-10">
         {options.map((a) => <option key={a} value={a}>{fmtNum(a)}</option>)}
       </select>
     </label>

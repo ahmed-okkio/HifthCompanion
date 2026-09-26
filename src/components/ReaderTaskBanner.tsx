@@ -83,8 +83,7 @@ export default function ReaderTaskBanner() {
 
   const chip = (key: string, onClick: () => void, active: boolean, text: string) => (
     <ActionButton key={key} onClick={onClick} disabled={busy}
-                  className={active ? 'btn btn-primary' : 'btn btn-outline'}
-                  style={{ minHeight: 34, fontSize: 13 }}>
+                  className={active ? 'btn btn-primary btn-sm' : 'btn btn-outline btn-sm'}>
       {text}
     </ActionButton>
   );
@@ -98,23 +97,23 @@ export default function ReaderTaskBanner() {
       )
     // Already submitted (by either side) → say so instead of offering to submit again.
     : marked || task?.submitted
-      ? <span className="badge" style={{ fontSize: 11 }}>{t('homework.statusCompleted')}</span>
+      ? <span className="badge text-meta">{t('homework.statusCompleted')}</span>
       // A teacher with no configured statuses falls back to the plain mark.
       : task && (canGrade && task.statuses.length
           ? task.statuses.map((s: StatusConfig) => chip(s.label, () => mark(s.label), false, s.label))
           : chip('done', () => mark(null), false, t('homework.markDone')));
 
   return (
-    <div className="card flex flex-wrap items-center gap-x-3 gap-y-2" style={{ padding: '10px 14px' }}>
-      <span style={{ color: 'var(--text-accent)' }}><Icon name={kind === 'exam' ? 'cap' : 'book'} size={16} /></span>
-      <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+    <div className="card flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+      <span className="text-(--text-accent)"><Icon name={kind === 'exam' ? 'cap' : 'book'} size={16} /></span>
+      <span className="text-caption font-semibold uppercase tracking-(--tracking-label) text-muted">
         {t(kind === 'exam' ? 'exam.title' : 'homework.title')}
       </span>
-      <span className="text-sm font-medium min-w-0 truncate" style={{ color: 'var(--text-primary)' }}>{label}</span>
+      <span className="text-body font-medium min-w-0 truncate text-primary">{label}</span>
 
       {controls && (
-        <span className="flex flex-wrap items-center gap-2" style={{ marginInlineStart: 'auto' }}>
-          {failed && <span className="text-xs" style={{ color: 'var(--danger)' }}>{failed}</span>}
+        <span className="flex flex-wrap items-center gap-2 ms-auto">
+          {failed && <span className="text-caption text-danger">{failed}</span>}
           {controls}
         </span>
       )}

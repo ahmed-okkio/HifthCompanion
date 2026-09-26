@@ -22,33 +22,19 @@ export default function PanelCard({
   return (
     <section
       data-testid={testid}
-      style={{
-        background: 'var(--surface-main)',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid var(--neutral-200)',
-        boxShadow: 'var(--shadow-e1)',
-        overflow: 'hidden',
-      }}
+      className="bg-surface-main rounded-lg border border-neutral-200 shadow-e1 overflow-hidden"
     >
       <div
-        className="flex items-center justify-between gap-2"
-        style={{ padding: '12px 16px', borderBottom: '1px solid var(--neutral-200)' }}
+        className="flex items-center justify-between gap-2 px-4 py-3 border-b border-neutral-200"
       >
         <div className="flex items-center gap-2 min-w-0">
           <span
             aria-hidden
-            className="flex items-center justify-center shrink-0"
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--accent-muted)',
-              color: 'var(--green-600)',
-            }}
+            className="flex items-center justify-center shrink-0 size-6 rounded-sm bg-accent-muted text-green-600"
           >
             {icon}
           </span>
-          <h2 className="font-semibold truncate" style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+          <h2 className="font-semibold truncate text-small text-primary">
             {title}
           </h2>
         </div>

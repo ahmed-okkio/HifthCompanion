@@ -116,7 +116,7 @@ export function ScopePicker({
 
   return (
     <div className="flex flex-col gap-3">
-      <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+      <span className="text-xs font-semibold text-secondary">
         {t('wird.formScope')}
       </span>
       <SegmentedControl options={presets} value={preset} onChange={pickPreset} />
@@ -150,7 +150,7 @@ export function ScopePicker({
       )}
 
       {preset === 'memorized' ? (
-        <p className="text-sm" style={{ color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+        <p className="text-sm text-secondary leading-normal">
           {t('wird.memorizedNote')}
         </p>
       ) : (
@@ -173,7 +173,7 @@ export function ScopePicker({
       )}
 
       {!canUseMemorized && preset !== 'memorized' && (
-        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+        <p className="text-xs text-muted">
           {t('wird.memorizedUnavailable')}
         </p>
       )}

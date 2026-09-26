@@ -21,14 +21,7 @@ export function ProfileMenuFallback() {
   return (
     <div
       aria-hidden
-      style={{
-        width: 36,
-        height: 36,
-        borderRadius: '50%',
-        background: 'linear-gradient(90deg, var(--neutral-100), var(--neutral-200), var(--neutral-100))',
-        backgroundSize: '200% 100%',
-        animation: 'shimmer 1.4s linear infinite',
-      }}
+      className="size-9 rounded-full bg-linear-to-r from-neutral-100 via-neutral-200 to-neutral-100 bg-size-[200%_100%] animate-[shimmer_1.4s_linear_infinite]"
     />
   );
 }

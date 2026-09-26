@@ -106,8 +106,8 @@ export default function ReminderSheet({ start, onClose }: { start: ReminderSheet
     onClose();
   }
 
-  const h2: React.CSSProperties = { margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' };
-  const muted: React.CSSProperties = { margin: 0, fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.45 };
+  const h2 = 'm-0 text-heading-m font-bold text-primary';
+  const muted = 'm-0 text-body text-muted leading-normal';
   const closeBtn = (
     <button ref={primaryRef} type="button" className="btn btn-ghost btn-tall" onClick={onClose}>
       {t('wird.reminder.close')}
@@ -118,47 +118,47 @@ export default function ReminderSheet({ start, onClose }: { start: ReminderSheet
   if (phase === 'set') {
     body = (
       <>
-        <span style={{ width: 48, height: 48, borderRadius: 9999, background: 'var(--accent-solid)', color: 'var(--accent-contrast)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span className="size-12 rounded-full bg-(--accent-solid) text-accent-contrast flex items-center justify-center">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12l5 5L20 7" /></svg>
         </span>
-        <h2 id="reminder-sheet-title" style={h2}>{t('wird.reminder.set', { t: shown })}</h2>
-        <p style={muted}>{t('wird.reminder.setSub')}</p>
+        <h2 id="reminder-sheet-title" className={h2}>{t('wird.reminder.set', { t: shown })}</h2>
+        <p className={muted}>{t('wird.reminder.setSub')}</p>
         {closeBtn}
       </>
     );
   } else if (phase === 'denied') {
     body = (
       <>
-        <h2 id="reminder-sheet-title" style={{ ...h2, fontSize: 15, color: 'var(--danger)' }}>{t('push.denied')}</h2>
-        <p style={muted}>{t('wird.reminder.deniedSub', { t: shown })}</p>
+        <h2 id="reminder-sheet-title" className="m-0 text-body font-bold text-danger">{t('push.denied')}</h2>
+        <p className={muted}>{t('wird.reminder.deniedSub', { t: shown })}</p>
         {closeBtn}
       </>
     );
   } else if (phase === 'ios') {
     body = (
       <>
-        <h2 id="reminder-sheet-title" style={h2}>{t('wird.reminder.iosTitle')}</h2>
-        <p style={muted}>{t('push.iosHint')}</p>
-        <p style={{ ...muted, fontWeight: 600, color: 'var(--text-primary)' }}>{t('install.iosSafari')}</p>
+        <h2 id="reminder-sheet-title" className={h2}>{t('wird.reminder.iosTitle')}</h2>
+        <p className={muted}>{t('push.iosHint')}</p>
+        <p className="m-0 text-body leading-normal font-semibold text-primary">{t('install.iosSafari')}</p>
         {closeBtn}
       </>
     );
   } else {
     body = (
       <>
-        <h2 id="reminder-sheet-title" style={h2}>{t('wird.reminder.sheetTitle')}</h2>
-        <p style={{ ...muted, marginTop: -8 }}>{t('wird.reminder.sheetBody', { t: shown })}</p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minHeight: 40 }}>
-          <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>{t('wird.reminder.timeLabel')}</span>
+        <h2 id="reminder-sheet-title" className={h2}>{t('wird.reminder.sheetTitle')}</h2>
+        <p className={`${muted} -mt-2`}>{t('wird.reminder.sheetBody', { t: shown })}</p>
+        <div className="flex items-center gap-2 min-h-10">
+          <span className="flex-1 text-body font-semibold text-secondary">{t('wird.reminder.timeLabel')}</span>
           {timeOpen ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 40, border: '1px solid var(--border-default)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-input)', overflow: 'hidden' }}>
+            <span className="inline-flex items-center h-10 border border-default rounded-sm bg-(--bg-input) overflow-hidden">
               <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => step(-1)} aria-label={t('wird.reminder.earlier')}>−</button>
-              <output aria-live="polite" style={{ minWidth: 72, textAlign: 'center', fontSize: 14, fontWeight: 600 }}>{shown}</output>
+              <output aria-live="polite" className="min-w-18 text-center text-body font-semibold">{shown}</output>
               <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => step(1)} aria-label={t('wird.reminder.later')}>+</button>
             </span>
           ) : (
             <>
-              <span style={{ fontWeight: 700, fontSize: 15 }}>{shown}</span>
+              <span className="font-bold text-body">{shown}</span>
               <button type="button" className="btn btn-ghost" onClick={() => setTimeOpen(true)}>
                 {t('wird.reminder.change')}
               </button>
@@ -170,11 +170,11 @@ export default function ReminderSheet({ start, onClose }: { start: ReminderSheet
           {t('wird.reminder.remindAt', { t: shown })}
         </button>
         {error && (
-          <span role="alert" style={{ color: 'var(--danger)', fontSize: 12, marginTop: -8 }}>
+          <span role="alert" className="text-danger text-caption -mt-2">
             {t('wird.reminder.enableError')}
           </span>
         )}
-        <button type="button" className="btn btn-ghost btn-lg" style={{ marginTop: -8 }} onClick={notNow} disabled={phase === 'busy'}>
+        <button type="button" className="btn btn-ghost btn-lg -mt-2" onClick={notNow} disabled={phase === 'busy'}>
           {t('wird.reminder.notNow')}
         </button>
       </>
@@ -185,10 +185,7 @@ export default function ReminderSheet({ start, onClose }: { start: ReminderSheet
     <div
       onClick={onClose}
       dir={locale === 'ar' ? 'rtl' : 'ltr'}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(15,23,42,0.45)',
-        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-      }}
+      className="fixed inset-0 z-(--z-overlay) bg-overlay flex items-end justify-center"
     >
       <div
         role="dialog"
@@ -196,14 +193,9 @@ export default function ReminderSheet({ start, onClose }: { start: ReminderSheet
         aria-labelledby="reminder-sheet-title"
         data-testid="reminder-sheet"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: 'min(480px, 100%)', background: 'var(--surface-main)',
-          borderRadius: 'var(--radius-xl) var(--radius-xl) 0 0', boxShadow: 'var(--shadow-e3)',
-          padding: '8px 24px calc(24px + env(safe-area-inset-bottom))',
-          display: 'flex', flexDirection: 'column', gap: 16,
-        }}
+        className="w-full max-w-120 bg-surface-main rounded-t-xl shadow-e3 pt-2 px-6 pb-[calc(24px+env(safe-area-inset-bottom))] flex flex-col gap-4"
       >
-        <span aria-hidden style={{ width: 36, height: 4, borderRadius: 9999, background: 'var(--neutral-300)', alignSelf: 'center' }} />
+        <span aria-hidden className="w-9 h-1 rounded-full bg-neutral-300 self-center" />
         {body}
       </div>
     </div>

@@ -151,6 +151,12 @@ Three styling mechanisms, each at its own altitude. Pick by what you're building
 Rules:
 
 - Atoms are global classes — do not re-implement a button as a component.
+- **Button sizes:** `.btn-xs` 28 · `.btn-sm` 32 · default (md) 40 · `.btn-lg` 44 · `.btn-tall` 52 (hero/form CTA).
+  Never override a button's height, padding or font size inline — pick a size class.
+- **Icon-only buttons:** `.btn .btn-ghost .btn-icon` (40px square; add `.btn-sm` for 32px). Hover comes
+  from `.btn-ghost` — no JS hover handlers.
+- **Selected state:** tool toggles (annotation toolbars, mobile bar) use `--accent-muted` bg;
+  selection chips/pills use accent fill (`--accent-solid` bg + `--accent-contrast` text).
 - CSS Module internals must reference `var(--token)` — no bare hex/px inside them either.
 - **Promotion rule:** a tracker primitive moves to a shared `src/components/ui/` **only
   when it is first reused outside tracker** — on demand, not upfront. When it moves,

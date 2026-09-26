@@ -346,7 +346,8 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 16px;
+  min-height: 40px; /* md, the default size */
+  padding: 0 16px;
   font-size: 13px;
   font-weight: 600;
   border-radius: var(--radius-sm);
@@ -594,6 +595,16 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
 
 /* The wird reminder sheet asks the same question as NotifyBanner — show one. */
 html[data-reminder-sheet] .notify-banner { display: none; }
+
+/* Size scale (design-system.md §2): xs 28 · sm 32 · md 40 (default) · lg 44.
+   Pick a size class instead of inline minHeight/fontSize/padding overrides. */
+.btn-xs { min-height: 28px; padding: 0 8px; font-size: 11px; }
+.btn-sm { min-height: 32px; padding: 0 12px; font-size: 12px; }
+.btn-lg { min-height: 44px; padding: 0 20px; }
+
+/* Icon-only: square, no padding. Combine with .btn-ghost; add .btn-sm for 32px. */
+.btn-icon { width: 40px; min-height: 40px; height: 40px; padding: 0; }
+.btn-icon.btn-sm { width: 32px; min-height: 32px; height: 32px; }
 
 /* Tall CTA: a full-height button for the primary action of a form/sheet, where
    the default .btn height reads as too small against stacked inputs. */

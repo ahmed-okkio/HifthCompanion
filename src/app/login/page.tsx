@@ -27,7 +27,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 overflow-x-hidden bg-surface-app bg-[radial-gradient(120%_80%_at_50%_-10%,var(--accent-muted),transparent_60%)]">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 overflow-x-hidden bg-surface-app bg-radial-[120%_80%_at_50%_-10%] from-accent-muted to-transparent to-60%">
       <div className="w-full max-w-sm animate-fade-in-scale">
         <AuthBrand subtitle={t('auth.signInSubtitle')} />
 

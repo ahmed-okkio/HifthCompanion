@@ -105,8 +105,8 @@ export default function ReaderTaskBanner() {
 
   return (
     <div className="card flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-      <span className="text-(--text-accent)"><Icon name={kind === 'exam' ? 'cap' : 'book'} size={16} /></span>
-      <span className="text-caption font-semibold uppercase tracking-(--tracking-label) text-muted">
+      <span className="text-accent"><Icon name={kind === 'exam' ? 'cap' : 'book'} size={16} /></span>
+      <span className="text-caption font-semibold uppercase tracking-label text-muted">
         {t(kind === 'exam' ? 'exam.title' : 'homework.title')}
       </span>
       <span className="text-body font-medium min-w-0 truncate text-primary">{label}</span>

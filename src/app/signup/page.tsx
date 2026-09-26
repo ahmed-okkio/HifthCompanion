@@ -45,7 +45,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 overflow-x-hidden bg-surface-app bg-[radial-gradient(120%_80%_at_50%_-10%,var(--accent-muted),transparent_60%)]">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 overflow-x-hidden bg-surface-app bg-radial-[120%_80%_at_50%_-10%] from-accent-muted to-transparent to-60%">
       <div className="w-full max-w-sm animate-fade-in-scale">
         <AuthBrand subtitle={t('auth.signUpSubtitle')} />
 
@@ -116,7 +116,7 @@ export default function SignupPage() {
             </div>
 
             {message && (
-              <div className={`text-xs font-medium px-3 py-2 rounded-md animate-fade-in border ${isError ? 'bg-danger-muted text-danger border-danger-muted' : 'bg-accent-muted text-green-600 border-[var(--border-accent)]'}`}>
+              <div className={`text-xs font-medium px-3 py-2 rounded-md animate-fade-in border ${isError ? 'bg-danger-muted text-danger border-danger-muted' : 'bg-accent-muted text-green-600 border-accent-border'}`}>
                 {message}
               </div>
             )}

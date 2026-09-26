@@ -150,12 +150,12 @@ export default function MemorizationEditor({
           open combobox dropdown can overflow downward instead of being cut. */}
       <div className="[clip-path:inset(0_0_-1000px_0)]">
         <div
-          className="flex transition-transform duration-(--duration-med,260ms) ease-(--ease-out)"
+          className="flex transition-transform duration-(--duration-med,260ms) ease-out"
           // eslint-disable-next-line shadcn/no-inline-styles -- step slide offset computed at runtime
           style={{ transform: `translateX(${shift}%)` }}
         >
           {/* ── Step 1: fully-memorized juz ──────────────────────────────── */}
-          <div className="flex-[0_0_100%] min-w-0" aria-hidden={step !== 0}>
+          <div className="shrink-0 basis-full min-w-0" aria-hidden={step !== 0}>
             <div className="flex flex-col gap-2">
               <h2 className="text-body font-bold text-primary">
                 {t('memorization.step1Title')}
@@ -175,8 +175,8 @@ export default function MemorizationEditor({
                       onClick={() => toggleJuz(j)}
                       aria-pressed={on}
                       tabIndex={step === 0 ? 0 : -1}
-                      className={`flex items-center justify-center aspect-square rounded-md text-body font-bold cursor-pointer border transition-all duration-(--duration-fast) ease-(--ease-out) ${
-                        on ? 'border-(--accent-solid) bg-(--accent-solid) text-accent-contrast' : 'border-default bg-(--bg-surface) text-muted'
+                      className={`flex items-center justify-center aspect-square rounded-md text-body font-bold cursor-pointer border transition-all duration-(--duration-fast) ease-out ${
+                        on ? 'border-accent bg-accent text-accent-contrast' : 'border-default text-muted'
                       }`}
                     >
                       {fmtNum(j)}
@@ -203,7 +203,7 @@ export default function MemorizationEditor({
                       {[...selected].sort((a, b) => a - b).map((j) => (
                         <div
                           key={j}
-                          className="flex items-center gap-1.5 text-caption bg-(--bg-surface) border border-subtle rounded-md px-2.5 py-1.5 text-secondary"
+                          className="flex items-center gap-1.5 text-caption border border-subtle rounded-md px-2.5 py-1.5 text-secondary"
                         >
                           <span className="font-semibold shrink-0 text-primary">
                             {t('memorization.juzLabel', { n: j })}
@@ -220,7 +220,7 @@ export default function MemorizationEditor({
           </div>
 
           {/* ── Step 2: add extra surah/ayah ranges ──────────────────────── */}
-          <div className="flex-[0_0_100%] min-w-0" aria-hidden={step !== 1}>
+          <div className="shrink-0 basis-full min-w-0" aria-hidden={step !== 1}>
             <div className="flex flex-col gap-2">
               <h2 className="text-body font-bold text-primary">
                 {t('memorization.step2Title')}
@@ -254,14 +254,14 @@ export default function MemorizationEditor({
                   {extras.map((r, i) => (
                     <span
                       key={`${r.surah}-${r.from}-${r.to}`}
-                      className="badge gap-2 pl-3 pr-2 py-1.5 text-small font-medium bg-accent-muted text-(--text-accent)"
+                      className="badge gap-2 pl-3 pr-2 py-1.5 text-small font-medium bg-accent-muted text-accent"
                     >
                       {extraLabel(r)}
                       <button
                         type="button"
                         aria-label={t('memorization.remove')}
                         onClick={() => removeExtra(i)}
-                        className="flex items-center justify-center size-4.5 rounded-full bg-(--bg-surface) text-muted text-caption leading-none"
+                        className="flex items-center justify-center size-4.5 rounded-full text-muted text-caption leading-none"
                       >
                         ×
                       </button>
@@ -273,7 +273,7 @@ export default function MemorizationEditor({
           </div>
 
           {/* ── Step 3: weakest surahs ───────────────────────────────────── */}
-          <div className="flex-[0_0_100%] min-w-0" aria-hidden={step !== 2}>
+          <div className="shrink-0 basis-full min-w-0" aria-hidden={step !== 2}>
             <div className="flex flex-col gap-2">
               <h2 className="text-body font-bold text-primary">
                 {t('memorization.step3Title')}
@@ -309,7 +309,7 @@ export default function MemorizationEditor({
                             type="button"
                             aria-label={t('memorization.remove')}
                             onClick={() => removeWeak(s)}
-                            className="flex items-center justify-center size-4.5 rounded-full bg-(--bg-surface) text-muted text-caption leading-none"
+                            className="flex items-center justify-center size-4.5 rounded-full text-muted text-caption leading-none"
                           >
                             ×
                           </button>
@@ -351,7 +351,7 @@ export default function MemorizationEditor({
             type="button"
             onClick={save}
             disabled={saving || justSaved}
-            className={`btn btn-primary btn-lg ms-auto transition-[background,border-color] duration-(--duration-normal) ease-(--ease-out) ${saving ? 'opacity-60' : 'opacity-100'} ${justSaved ? 'bg-success border-success' : ''}`}
+            className={`btn btn-primary btn-lg ms-auto transition-colors duration-(--duration-normal) ease-out ${saving ? 'opacity-60' : 'opacity-100'} ${justSaved ? 'bg-success border-success' : ''}`}
           >
             {saving ? (
               t('common.loading')

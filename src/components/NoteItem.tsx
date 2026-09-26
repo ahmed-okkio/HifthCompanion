@@ -37,7 +37,7 @@ export default function NoteItem({
     /* V3 Story 13 — Note card: white, radius-lg, neutral-200 border, green left accent bar.
        Category color is presentation-only; green is the default accent (no DB field). */
     <div
-      className={`group flex border-b border-neutral-200 bg-surface-main transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)] -outline-offset-2 hover:bg-neutral-50${highlighted ? ' outline-2 outline-green-600' : ''}`}
+      className={`group flex border-b border-neutral-200 bg-surface-main transition-colors duration-(--duration-fast) ease-out -outline-offset-2 hover:bg-neutral-50${highlighted ? ' outline-2 outline-green-600' : ''}`}
       data-note-object={note.fabric_object_id ?? undefined}
       onClick={onSelect}
     >
@@ -98,7 +98,7 @@ export default function NoteItem({
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 11-5.656-5.656l1.5-1.5m6.656-2.828a4 4 0 00-5.656 0l-.5.5m8.156 6.156l1.5-1.5a4 4 0 000-5.656 4 4 0 00-5.656 0l-3 3a4 4 0 000 5.656" /></svg>
                   </button>
                   <div
-                    className="flex gap-1 opacity-0 transition-opacity duration-[var(--duration-fast)] ease-[var(--ease-out)] group-hover:opacity-100"
+                    className="flex gap-1 opacity-0 transition-opacity duration-(--duration-fast) ease-out group-hover:opacity-100"
                   >
                   <button
                     onClick={() => onEdit(note)}

@@ -23,9 +23,9 @@ interface Props {
 
 type Popover = 'tools' | 'colors' | 'more' | null;
 
-const cardCls = 'absolute bottom-[calc(100%+8px)] z-2 rounded-xl border border-subtle bg-[var(--bg-glass)] p-2 shadow-e3 backdrop-blur-lg';
+const cardCls = 'absolute bottom-[calc(100%+8px)] z-2 rounded-xl border border-subtle bg-glass p-2 shadow-e3 backdrop-blur-lg';
 
-const triggerCls = 'flex h-11.5 shrink-0 items-center justify-center rounded-md transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)]';
+const triggerCls = 'flex h-11.5 shrink-0 items-center justify-center rounded-md transition-colors duration-(--duration-fast) ease-out';
 const disabledCls = 'pointer-events-none opacity-40';
 
 export default function MobileAnnotationBar({
@@ -50,7 +50,7 @@ export default function MobileAnnotationBar({
       className="fixed inset-x-3.5 bottom-[calc(env(safe-area-inset-bottom,0px)+16px)] z-45 lg:hidden"
     >
       {/* V3 Story 16 — glass bar: white-tinted glass + 16px backdrop blur, deep shadow. */}
-      <div className="relative rounded-xl border border-subtle bg-[var(--bg-glass)] shadow-e3 backdrop-blur-lg backdrop-saturate-150">
+      <div className="relative rounded-xl border border-subtle bg-glass shadow-e3 backdrop-blur-lg backdrop-saturate-150">
       {saving && (
         <span
           aria-hidden
@@ -95,7 +95,7 @@ export default function MobileAnnotationBar({
               onClick={() => { onColorChange(c.value); close(); }}
               title={colorLabel(c.name)}
               aria-label={colorLabel(c.name)}
-              className={`h-8.5 w-8.5 shrink-0 rounded-full border-2 ${activeColor === c.value ? 'border-primary shadow-[0_0_0_2px_var(--bg-base)]' : 'border-transparent'}`}
+              className={`h-8.5 w-8.5 shrink-0 rounded-full border-2 ${activeColor === c.value ? 'border-primary ring-2 ring-surface-app' : 'border-transparent'}`}
               // eslint-disable-next-line shadcn/no-inline-styles -- preset swatch colour from data
               style={{ backgroundColor: c.value }}
             >
@@ -126,7 +126,7 @@ export default function MobileAnnotationBar({
 
       {/* The bar row — five evenly-spaced controls, always fits (no horizontal scroll). */}
       {/* eslint-disable-next-line shadcn/no-inline-styles -- e2e selects row via style*="space-around" */}
-      <div className="relative z-2 flex items-center gap-1 px-2 py-[5px]" style={{ justifyContent: 'space-around' }}>
+      <div className="relative z-2 flex items-center gap-1 px-2 py-1.25" style={{ justifyContent: 'space-around' }}>
         {/* Move / Draw toggle — default Move lets a finger scroll the page; tap to draw. */}
         <button
           onClick={() => onModeChange(drawing ? 'move' : 'draw')}

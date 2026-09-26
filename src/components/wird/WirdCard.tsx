@@ -26,7 +26,7 @@ import Progress from './Progress';
 import type { WirdCardData } from './WirdPager';
 
 // Amber derived from --warning via color-mix — no new colour token (M5/I4).
-export const AMBER = 'bg-[color:color-mix(in_srgb,var(--warning)_16%,var(--surface-main))] text-[color:color-mix(in_srgb,var(--warning)_72%,var(--text-primary))]';
+export const AMBER = 'bg-warning-muted text-warning-strong';
 
 function CheckGlyph() {
   return (
@@ -77,7 +77,7 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
 
   return (
     <div
-      className="wird-card h-full flex flex-col bg-(--bg-card) border border-subtle rounded-xl shadow-e2 overflow-hidden"
+      className="wird-card h-full flex flex-col bg-surface-main border border-subtle rounded-xl shadow-e2 overflow-hidden"
     >
       {/* I4/I5: amber stale bar across the top — informational, never blocks the disc. */}
       {stale && (
@@ -98,17 +98,17 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
         {card.doneToday ? (
           /* I2: completed state. No next-portion task shown. */
           <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-4">
-            <span className="wird-fit-done font-extrabold text-(--text-accent) text-center">
+            <span className="wird-fit-done font-extrabold text-accent text-center">
               {t('wird.doneToday')}
             </span>
           </div>
         ) : (
           <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center">
-            <span className="text-caption font-semibold uppercase tracking-(--tracking-label) text-muted">
+            <span className="text-caption font-semibold uppercase tracking-label text-muted">
               {t('wird.startAt')}
             </span>
             {/* Opening reference — the largest element (H7). */}
-            <span className="wird-fit-hero block font-extrabold leading-[1.1] mt-1 truncate max-w-full">
+            <span className="wird-fit-hero block font-extrabold leading-none mt-1 truncate max-w-full">
               {fmtNum(card.opening)}
             </span>
             <span className="block mt-1 text-small font-semibold text-secondary truncate max-w-full">

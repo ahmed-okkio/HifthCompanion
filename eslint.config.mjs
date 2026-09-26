@@ -19,7 +19,12 @@ const eslintConfig = defineConfig([
     rules: {
       "shadcn/no-restyle": ["warn", { allow: ["layout"] }],
       "shadcn/no-raw-colors": "warn",
-      "shadcn/no-arbitrary-values": "warn",
+      // Allowed: layout geometry with no token equivalent (see docs/design-system.md §1).
+      "shadcn/no-arbitrary-values": ["warn", { allow: [
+        "*calc(*", "*clamp(*", "*min(*", "*vh]", "*vw]", "*-[*%]", "max-w-[*ch]",
+        "grid-cols-[*", "grid-rows-[*", "bg-radial-[*", "[--*",
+        "[clip-path:*", "[unicode-bidi:*", "[animation-delay:*",
+      ] }],
       "shadcn/no-inline-styles": "warn",
       "shadcn/no-unknown-classes": "warn",
       "shadcn/require-static-classes": "warn",

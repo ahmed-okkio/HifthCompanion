@@ -186,7 +186,7 @@ export function Ring({ value, max, size = 44 }: { value: number; max: number; si
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--accent-muted)" strokeWidth="4" />
       <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--accent)" strokeWidth="4"
               strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)}
-              className="transition-[stroke-dashoffset] duration-400 ease-out" />
+              className="transition-all duration-400 ease-out" />
     </svg>
   );
 }

@@ -19,7 +19,7 @@ import { useEffect, useState } from 'react';
 import { useI18n } from './I18nProvider';
 import type { Locale } from '@/lib/i18n/config';
 
-const ARABIC = "font-['Noto_Sans_Arabic_Web',serif]";
+const ARABIC = "font-arabic";
 
 type Glyph = { char: string; name: string; nameAr: string; meaning: string; meaningAr: string; standalone?: boolean };
 
@@ -83,7 +83,7 @@ function GlyphRow({ g, locale }: { g: Glyph; locale: Locale }) {
   const ar = locale === 'ar';
   return (
     <div className={rowCls}>
-      <span className={`w-12 shrink-0 text-center text-[26px] leading-none text-primary ${ARABIC}`}>
+      <span className={`w-12 shrink-0 text-center text-2xl leading-none text-primary ${ARABIC}`}>
         {/* combining marks attach to the dotted-circle base so they render centred, not floating */}
         {g.standalone ? g.char : `◌${g.char}`}
       </span>
@@ -123,7 +123,7 @@ const rowCls = 'flex items-center gap-3 px-1 py-2';
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="mx-1 mb-3 mt-6 text-caption font-semibold uppercase tracking-[var(--tracking-label)] text-muted">
+    <h3 className="mx-1 mb-3 mt-6 text-caption font-semibold uppercase tracking-label text-muted">
       {children}
     </h3>
   );

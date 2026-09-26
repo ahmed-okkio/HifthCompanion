@@ -130,7 +130,7 @@ export default function StudentAnalytics({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="card flex flex-col gap-1 py-3 px-4">
-      <span className="text-lg font-bold text-(--text-accent)">{value}</span>
+      <span className="text-lg font-bold text-accent">{value}</span>
       <span className="text-xs text-muted">{label}</span>
     </div>
   );

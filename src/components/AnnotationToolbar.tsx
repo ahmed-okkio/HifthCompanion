@@ -64,7 +64,7 @@ export default function AnnotationToolbar({
   // Every tool/action button is flex:1 and stretches to the full bar height, so they read as a
   // uniform row of equal-sized cells that fills the bar (no clustered groups with empty gaps).
   // Never shrink below a usable touch target; cells grow equally to fill the bar.
-  const cellBase = 'flex min-w-11 flex-1 flex-col items-center justify-center gap-1 self-stretch rounded-md transition-colors duration-[var(--duration-fast,120ms)] ease-[var(--ease-out,ease)]';
+  const cellBase = 'flex min-w-11 flex-1 flex-col items-center justify-center gap-1 self-stretch rounded-md transition-colors duration-(--duration-fast) ease-out';
   const cellDisabled = 'pointer-events-none cursor-not-allowed text-muted opacity-45';
   const labelCls = 'text-meta leading-none';
   const iconBox = 'flex h-6 w-6 items-center justify-center';
@@ -175,7 +175,7 @@ export default function AnnotationToolbar({
               key={c.value}
               onClick={() => onColorChange(c.value)}
               title={colorLabel(c.name)}
-              className={`h-5 w-5 flex-shrink-0 rounded-full border-2 outline-offset-2 transition-shadow duration-[var(--duration-fast,120ms)] ease-[var(--ease-out,ease)] ${activeColor === c.value ? 'border-primary outline-2 outline-primary' : 'border-transparent'}`}
+              className={`h-5 w-5 flex-shrink-0 rounded-full border-2 outline-offset-2 transition-shadow duration-(--duration-fast) ease-out ${activeColor === c.value ? 'border-primary outline-2 outline-primary' : 'border-transparent'}`}
               // eslint-disable-next-line shadcn/no-inline-styles -- preset swatch colour (+ its tinted ring) from data
               style={{ backgroundColor: c.value, boxShadow: activeColor === c.value ? `0 0 0 2px ${c.value}40` : 'none' }}
             />

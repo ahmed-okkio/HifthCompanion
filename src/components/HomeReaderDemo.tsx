@@ -44,7 +44,7 @@ export default async function HomeReaderDemo() {
       <div className="grid items-center grid-cols-[1fr_auto_1fr] px-4 py-2 border-b border-subtle">
         <span className="flex items-center justify-self-start gap-2">
           <Image src="/logo.png" alt="" width={26} height={26} className="h-6.5 w-auto" />
-          <span className="font-bold hidden sm:inline font-[family-name:var(--font-brand),system-ui,sans-serif] text-body tracking-[-0.01em]">Hifth Companion</span>
+          <span className="font-bold hidden sm:inline font-display text-body tracking-normal">Hifth Companion</span>
         </span>
         <span className="inline-flex items-center justify-self-center gap-2 h-8 px-3 rounded-md border border-neutral-200 shadow-e1 text-small text-muted">
           <span className="uppercase tracking-wider text-micro">{dict['home.page']}</span>
@@ -90,7 +90,7 @@ export default async function HomeReaderDemo() {
               );
             })}
             <span aria-hidden className="w-px h-7.5 bg-subtle mx-1 shrink-0" />
-            <span className="flex flex-col items-center justify-center shrink-0 gap-1 w-12.5 h-12 text-[var(--danger-500)]">
+            <span className="flex flex-col items-center justify-center shrink-0 gap-1 w-12.5 h-12 text-danger">
               <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
               <span className="text-micro font-semibold leading-none">{dict['home.clear']}</span>
             </span>
@@ -115,13 +115,13 @@ export default async function HomeReaderDemo() {
             <div className="absolute inset-0 pointer-events-none" aria-hidden>
               {/* Highlighter over a line on the right (Fatihah) page */}
               {/* eslint-disable-next-line shadcn/no-inline-styles -- %-coords on the page spread */}
-              <span className="absolute rounded-sm bg-[rgba(34,197,94,0.32)]" style={{ left: '57%', top: '32.5%', width: '33%', height: '3.2%' }} />
+              <span className="absolute rounded-sm bg-home-note-green/32" style={{ left: '57%', top: '32.5%', width: '33%', height: '3.2%' }} />
               {/* Circle around an ayah marker on the last line of the right page */}
               {/* eslint-disable-next-line shadcn/no-inline-styles -- %-coords on the page spread */}
-              <span className="absolute size-5 rounded-full border-[2.5px] border-[var(--home-marker)]" style={{ left: '80%', top: '58%' }} />
+              <span className="absolute size-5 rounded-full border-3 border-home-marker" style={{ left: '80%', top: '58%' }} />
               {/* Highlighter on the left (Baqarah) page */}
               {/* eslint-disable-next-line shadcn/no-inline-styles -- %-coords on the page spread */}
-              <span className="absolute rounded-sm bg-[rgba(249,115,22,0.30)]" style={{ left: '13%', top: '40%', width: '30%', height: '3.4%' }} />
+              <span className="absolute rounded-sm bg-home-note-orange/30" style={{ left: '13%', top: '40%', width: '30%', height: '3.4%' }} />
               {/* Pen tick on the left page */}
               {/* eslint-disable-next-line shadcn/no-inline-styles -- %-coords on the page spread */}
               <svg className="absolute size-4.5" style={{ left: '8%', top: '38%' }} viewBox="0 0 24 24" fill="none" stroke="var(--home-note-green)" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><path d="M4 12l5 5L20 6" /></svg>
@@ -141,7 +141,7 @@ export default async function HomeReaderDemo() {
                 <span className="flex-shrink-0 size-2 rounded-full mt-1"
                   // eslint-disable-next-line shadcn/no-inline-styles -- note colour from data
                   style={{ background: nt.c }} />
-                <span className="text-small leading-[1.4] text-secondary">{dict[nt.key]}</span>
+                <span className="text-small leading-snug text-secondary">{dict[nt.key]}</span>
               </div>
             ))}
           </div>

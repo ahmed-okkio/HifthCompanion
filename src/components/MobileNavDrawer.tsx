@@ -62,7 +62,7 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label="Navigation"
-        className="lg:hidden flex flex-col fixed inset-y-0 start-0 z-50 w-[78vw] max-w-80 bg-surface-main shadow-e3 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform"
+        className="lg:hidden flex flex-col fixed inset-y-0 start-0 z-50 w-[78vw] max-w-80 bg-surface-main shadow-e3 transition-transform duration-300 ease-sheet will-change-transform"
         // eslint-disable-next-line shadcn/no-inline-styles -- open-state + locale-dependent transform
         style={{ transform: open ? 'translateX(0)' : hiddenTransform }}
       >
@@ -71,7 +71,7 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
           <Link href="/reader" onClick={() => onOpenChange(false)} className="flex items-center gap-2 min-w-0 no-underline">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt={t('nav.logoAlt')} className="h-10 w-auto object-contain" />
-            <span className="text-primary [font-family:var(--font-brand),system-ui,sans-serif] text-[1.1rem] tracking-[0.01em]">Hifth Companion</span>
+            <span className="text-primary font-display text-lg tracking-normal">Hifth Companion</span>
           </Link>
           <button
             type="button"

@@ -20,7 +20,7 @@ export default function Progress({ pct, label }: { pct: number; label: string })
     >
       <span
         aria-hidden
-        className="bg-accent rounded-full transition-all duration-(--duration-normal) ease-(--ease-out)"
+        className="bg-accent rounded-full transition-all duration-(--duration-normal) ease-out"
         // eslint-disable-next-line shadcn/no-inline-styles -- runtime progress %
         style={{ width: `${clamped}%` }}
       />

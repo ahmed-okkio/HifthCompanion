@@ -21,7 +21,7 @@ export function ProfileMenuFallback() {
   return (
     <div
       aria-hidden
-      className="size-9 rounded-full bg-linear-to-r from-neutral-100 via-neutral-200 to-neutral-100 bg-size-[200%_100%] animate-[shimmer_1.4s_linear_infinite]"
+      className="size-9 rounded-full skeleton"
     />
   );
 }

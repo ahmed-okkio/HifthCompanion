@@ -224,7 +224,7 @@ function RailButton({ item, href, isActive, label, onNavigate }: { item: RailIte
   const { t } = useI18n();
   const isInert = !item.href;
 
-  const sharedClass = `relative flex h-15 w-20 flex-col items-center justify-center gap-1 rounded-sm border-none px-1 no-underline transition-[background] duration-150 ${
+  const sharedClass = `relative flex h-15 w-20 flex-col items-center justify-center gap-1 rounded-sm border-none px-1 no-underline transition-colors duration-150 ${
     isInert ? 'cursor-default' : 'cursor-pointer'
   } ${isActive ? 'bg-green-soft text-green-600' : `bg-transparent text-neutral-500${isInert ? '' : ' hover:bg-neutral-100'}`}`;
 
@@ -238,7 +238,7 @@ function RailButton({ item, href, isActive, label, onNavigate }: { item: RailIte
       )}
       <span className="flex shrink-0 items-center justify-center">{item.icon(isActive)}</span>
       <span
-        className={`text-meta leading-[1.1] font-medium tracking-[-0.01em] text-center select-none ${isActive ? 'text-green-600' : isInert ? 'text-neutral-400' : 'text-neutral-500'}`}
+        className={`text-meta leading-none font-medium tracking-normal text-center select-none ${isActive ? 'text-green-600' : isInert ? 'text-neutral-400' : 'text-neutral-500'}`}
       >
         {label}
       </span>

@@ -24,10 +24,10 @@ export default async function Home() {
       {/* Aurora background */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
-          className="home-aurora-a absolute -top-[12%] -left-[8%] size-140 rounded-full bg-[radial-gradient(circle,rgba(15,138,103,0.22),transparent_65%)] blur-[40px] animate-[home-aurora_18s_ease-in-out_infinite]"
+          className="home-aurora-a absolute -top-[12%] -left-[8%] size-140 rounded-full bg-radial from-accent/22 to-transparent to-65% blur-2xl animate-aurora"
         />
         <div
-          className="home-aurora-b absolute top-[8%] -right-[12%] size-155 rounded-full bg-[radial-gradient(circle,rgba(212,175,110,0.20),transparent_65%)] blur-[48px] animate-[home-aurora_22s_ease-in-out_infinite_reverse]"
+          className="home-aurora-b absolute top-[8%] -right-[12%] size-155 rounded-full bg-radial from-home-gold/20 to-transparent to-65% blur-2xl animate-aurora-reverse"
         />
         <div
           className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-subtle to-transparent"
@@ -46,17 +46,17 @@ export default async function Home() {
         </span>
 
         <h1
-          className="home-rise font-bold font-[family-name:var(--font-brand),system-ui,sans-serif] text-[clamp(2.5rem,7vw,4.25rem)] leading-[1.05] tracking-[-0.03em] [animation-delay:0.05s]"
+          className="home-rise font-bold font-display text-[clamp(2.5rem,7vw,4.25rem)] leading-none tracking-tight [animation-delay:0.05s]"
         >
           {dict['home.heroTitlePrefix']}{' '}
-          <span className="bg-linear-120 from-green-600 to-[var(--home-gold)] bg-clip-text text-transparent">
+          <span className="bg-linear-120 from-green-600 to-home-gold bg-clip-text text-transparent">
             {dict['home.heroTitleMushaf']}
           </span>
           <br />{dict['home.heroTitleSuffix']}
         </h1>
 
         <p
-          className="home-rise mt-6 max-w-[34ch] sm:max-w-[50ch] text-secondary text-[clamp(1.05rem,2.4vw,1.3rem)] leading-[1.55] [animation-delay:0.1s]"
+          className="home-rise mt-6 max-w-[34ch] sm:max-w-[50ch] text-secondary text-[clamp(1.05rem,2.4vw,1.3rem)] leading-normal [animation-delay:0.1s]"
         >
           {dict['home.heroSubtitle']}
         </p>

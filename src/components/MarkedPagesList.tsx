@@ -163,7 +163,7 @@ export default function MarkedPagesList({
           <details
             key={group.key}
             open={open}
-            className={`overflow-hidden rounded-md border bg-surface-main ${open ? 'border-(--border-accent)' : 'border-subtle'}`}
+            className={`overflow-hidden rounded-md border bg-surface-main ${open ? 'border-accent-border' : 'border-subtle'}`}
           >
             <summary
               // The open state is React's, so the browser's own toggle has to stand down.
@@ -172,7 +172,7 @@ export default function MarkedPagesList({
             >
               <svg
                 aria-hidden
-                className={`size-3.5 shrink-0 transition-transform duration-200 ${open ? 'rotate-90 text-(--text-accent)' : 'text-muted'}`}
+                className={`size-3.5 shrink-0 transition-transform duration-200 ${open ? 'rotate-90 text-accent' : 'text-muted'}`}
                 viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
               >
                 <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
@@ -194,13 +194,13 @@ export default function MarkedPagesList({
               {/* A collapsed card hides its Needs Focus pill — the dot keeps the L3 signal up here. */}
               {group.hasFocus && (
                 <span
-                  className="shrink-0 ms-auto size-2 rounded-full bg-(--danger-500)"
+                  className="shrink-0 ms-auto size-2 rounded-full bg-danger"
                   title={t('reader.surahNeedsFocus')}
                   aria-label={t('reader.surahNeedsFocus')}
                 />
               )}
             </summary>
-            <ul className="marked-rows border-t border-subtle bg-(--bg-base)">
+            <ul className="marked-rows border-t border-subtle bg-surface-app">
               {group.pages.map(row => pageRow(row))}
             </ul>
           </details>

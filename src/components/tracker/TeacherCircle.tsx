@@ -292,13 +292,13 @@ export default function TeacherCircle({
         <Chevron open={inviteOpen} color="currentColor" />
       </button>
       {/* CSS-only expand: grid-rows 0fr→1fr animates height with no JS measuring. */}
-      <div className={`grid transition-[grid-template-rows] duration-250 ease-in-out ${inviteOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+      <div className={`grid transition-all duration-250 ease-in-out ${inviteOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
         <div className="flex flex-col gap-4 overflow-hidden min-h-0">
           <div className="flex flex-col gap-2 mt-1">
             <span className="text-xs font-semibold uppercase tracking-wider text-muted">
               {t('tracker.inviteLink')}
             </span>
-            <code className="text-xs font-mono break-all text-green-600 bg-accent-muted py-3 px-3 rounded-md border border-dashed border-(--border-accent)">
+            <code className="text-xs font-mono break-all text-green-600 bg-accent-muted py-3 px-3 rounded-md border border-dashed border-accent-border">
               {inviteLink}
             </code>
             <div className="flex gap-2">
@@ -452,17 +452,17 @@ export default function TeacherCircle({
                   animates wide and the email picker cross-fades in where it was. */}
               <div className="flex flex-wrap items-center gap-2">
                 <SectionTitle>{t('subs.manageTitle')}</SectionTitle>
-                <div className={`flex justify-end min-w-0 ms-auto transition-[max-width,flex-basis] duration-480 ease-[cubic-bezier(.22,1,.36,1)] ${pickerOpen ? 'flex-auto max-w-105' : 'flex-none max-w-50'}`}>
+                <div className={`flex justify-end min-w-0 ms-auto transition-all duration-480 ease-out ${pickerOpen ? 'flex-auto max-w-105' : 'flex-none max-w-50'}`}>
                   {!pickerOpen ? (
-                    <button onClick={() => setPickerOpen(true)} className="btn btn-primary btn-sm shrink-0 animate-[fade-in-scale_200ms_ease]">
+                    <button onClick={() => setPickerOpen(true)} className="btn btn-primary btn-sm shrink-0 animate-fade-in-scale">
                       {t('subs.selectMode')}
                     </button>
                   ) : !pendingSub ? (
-                    <div className="w-full animate-[fade-in-scale_420ms_ease]">
+                    <div className="w-full animate-fade-in-scale">
                       <SubAssignForm autoFocus grow onAssign={(userId, name) => setPendingSub({ userId, name })} onCancel={exitSelectMode} />
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 flex-wrap justify-end w-full animate-[fade-in-scale_240ms_ease]">
+                    <div className="flex items-center gap-2 flex-wrap justify-end w-full animate-fade-in-scale">
                       <span className="text-xs truncate text-secondary">
                         {t('subs.coveredBy', { name: pendingSub.name })} · {t('subs.selected', { count: selected.size })}
                       </span>
@@ -529,7 +529,7 @@ export default function TeacherCircle({
                       </div>
                     )}
                     {editing && (
-                      <div className={`flex gap-2 items-end flex-wrap border-t border-subtle animate-[slide-down_0.22s_var(--ease-out)_both] ${reschedOpen ? 'overflow-visible' : 'overflow-hidden'}`} onAnimationEnd={() => setReschedOpen(true)}>
+                      <div className={`flex gap-2 items-end flex-wrap border-t border-subtle animate-slide-down ${reschedOpen ? 'overflow-visible' : 'overflow-hidden'}`} onAnimationEnd={() => setReschedOpen(true)}>
                         <input type="date" value={reschedDate} onChange={(e) => setReschedDate(e.target.value)} className="input min-h-9" />
                         {/* eslint-disable-next-line shadcn/no-inline-styles -- TimeSelect exposes style, not className */}
                         <TimeSelect value={reschedTime} onChange={setReschedTime} style={{ minHeight: 36, width: 130 }} />

@@ -66,7 +66,7 @@ export default async function CirclePage({
     return (
       <main className="px-4 py-6 animate-fade-in w-full overflow-y-auto h-full">
         <MarkCircleReady />
-        <div className="max-w-[96rem] mx-auto w-full relative">
+        <div className="max-w-shell mx-auto w-full relative">
           <TeacherCircle
             circle={circle}
             teacher={members.find((m) => m.role === 'teacher')}
@@ -140,7 +140,7 @@ export default async function CirclePage({
   return (
     <main className="px-4 py-6 animate-fade-in w-full overflow-y-auto h-full">
       <MarkCircleReady />
-      <div className="max-w-[96rem] mx-auto w-full relative">
+      <div className="max-w-shell mx-auto w-full relative">
         <StudentCircle
             circle={circle}
             membership={membership}

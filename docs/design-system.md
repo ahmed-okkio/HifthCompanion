@@ -154,8 +154,18 @@ Semantic aliases: `--shadow-sm` → e1, `--shadow-md` → e2, `--shadow-lg` → 
 | `--radius-{sm,md,lg,xl,full,page,canvas}` | `rounded-md`, `rounded-page` … |
 | `--shadow-{e1,e2,e3,panel,accent}` | `shadow-e2`, `shadow-panel` … (Tailwind `shadow-sm/md/lg` are NOT tokens) |
 | `--type-{micro,meta,caption,small,body,heading-m,heading-l}-size` (+weight) | `text-micro` … `text-heading-l` |
+| `--bg-glass`, `--border-accent`, `--warning-{muted,strong}` | `bg-glass`, `border-accent-border`, `bg-warning-muted`, `text-warning-strong` |
+| `--home-{gold,marker,note-green,note-orange}` (demo only) | `to-home-gold`, `border-home-marker` … |
+| `--shadow-{page,edge}` | `shadow-page` (page image), `shadow-edge` (nav rail) |
+| `--tracking-label`, `--ease-out`, `--ease-sheet` | `tracking-label`, `ease-out`, `ease-sheet`; durations: `duration-(--duration-fast)` |
+| `--font-brand` / Arabic face | `font-display`, `font-arabic` |
+| `--container-shell` (96rem), `--aspect-page` (0.704) | `max-w-shell`, `aspect-page` |
+| animations | `animate-fade-in`, `animate-fade-in-scale`, `animate-slide-down`, `animate-shimmer`, `animate-aurora{,-reverse}` |
+| custom utilities / atoms | `thin-scroll`, `no-scrollbar`, `.skeleton` (shimmer placeholder) |
 
 Color utilities work with any color prefix (`bg-`, `text-`, `border-`, `ring-`, `accent-`, `fill-`). Other tokens: `--z-{sticky,popover,overlay}`, `--tracking-label`, `--skeleton-{base,shine}`.
+
+Arbitrary values are lint-allowed only for layout geometry with no token (calc/clamp/min, vh/vw, % offsets, grid tracks, clip-path, `[--var:…]`, animation-delay stagger); see `eslint.config.mjs`.
 
 ## 2. Component boundary
 

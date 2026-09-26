@@ -716,7 +716,7 @@ function StudentSessions({
           </div>
         )}
         {editing && (
-          <div className={`flex gap-2 items-end flex-wrap border-t border-subtle animate-[slide-down_0.22s_var(--ease-out)_both] ${reschedOpen ? 'overflow-visible' : 'overflow-hidden'}`} onAnimationEnd={() => setReschedOpen(true)}>
+          <div className={`flex gap-2 items-end flex-wrap border-t border-subtle animate-slide-down ${reschedOpen ? 'overflow-visible' : 'overflow-hidden'}`} onAnimationEnd={() => setReschedOpen(true)}>
             <input type="date" value={reschedDate} onChange={(e) => setReschedDate(e.target.value)} className="input min-h-9" />
             {/* eslint-disable-next-line shadcn/no-inline-styles -- TimeSelect takes style, not className */}
             <TimeSelect style={{ minHeight: 36, width: 132 }} value={reschedTime} onChange={setReschedTime} />
@@ -830,7 +830,7 @@ function StudentSessions({
         <div className="flex flex-col gap-2">
           <SectionTitle
             trailing={live ? (
-              <span className="badge flex items-center gap-1.5 text-micro bg-accent-muted text-(--text-accent)">
+              <span className="badge flex items-center gap-1.5 text-micro bg-accent-muted text-accent">
                 <StatusDot color="var(--accent)" />
                 {liveMinutes > 0 ? t('agenda.startsIn', { n: liveMinutes })
                   : liveMinutes < 0 ? t('agenda.startedAgo', { n: -liveMinutes })
@@ -1091,7 +1091,7 @@ export function HomeworkPanel({
         </button>
       )}
       {canPrescribe && prescribing && (
-      <div className="card flex flex-col gap-3 p-4 animate-[fade-in-scale_0.2s_var(--ease-out)_both] origin-top">
+      <div className="card flex flex-col gap-3 p-4 animate-fade-in-scale origin-top">
         <div className="flex flex-wrap gap-2 items-end">
           <label className="flex flex-col gap-1">
             <span className="text-xs text-muted">{t('log.type')}</span>
@@ -1319,7 +1319,7 @@ function TeacherResultForm({
   const chipRow = (opts: StatusConfig[], value: string | null, set: (v: string) => void) => (
     <div className="flex flex-wrap gap-2">
       {opts.map((s) => (
-        <button key={s.label} onClick={() => set(s.label)} className={`badge cursor-pointer ${value === s.label ? 'bg-(--accent-solid) text-accent-contrast' : ''}`}>
+        <button key={s.label} onClick={() => set(s.label)} className={`badge cursor-pointer ${value === s.label ? 'bg-accent text-accent-contrast' : ''}`}>
           {s.label}
         </button>
       ))}
@@ -1497,12 +1497,12 @@ export function SurahPicker({
       {entries.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {entries.map((e, i) => (
-            <span key={i} className="flex items-center gap-2 pt-2 pr-2 pb-2 pl-3 rounded-full bg-accent-muted text-(--text-accent) text-small font-medium">
+            <span key={i} className="flex items-center gap-2 pt-2 pr-2 pb-2 pl-3 rounded-full bg-accent-muted text-accent text-small font-medium">
               {e.kind === 'juz'
                 ? `${t('homework.juz')} ${fmtNum(e.juz)}`
                 : `${getSurahName(e.surah, locale)}${e.ayah_start ? ` ${fmtNum(e.ayah_start)}–${fmtNum(e.ayah_end!)}` : ` ${t('homework.whole')}`}`}
               <button onClick={() => onChange(entries.filter((_, j) => j !== i))} aria-label={t('memorization.remove')}
-                      className="flex items-center justify-center w-4.5 h-4.5 rounded-full bg-(--bg-surface) text-muted text-caption leading-none cursor-pointer">
+                      className="flex items-center justify-center w-4.5 h-4.5 rounded-full text-muted text-caption leading-none cursor-pointer">
                 ×
               </button>
             </span>
@@ -1606,7 +1606,7 @@ function ExamsPanel({
         </button>
       )}
       {scheduling && (
-        <div className="card flex flex-col gap-3 p-4 animate-[fade-in-scale_0.2s_var(--ease-out)_both] origin-top">
+        <div className="card flex flex-col gap-3 p-4 animate-fade-in-scale origin-top">
           <label className="flex flex-col gap-1">
             <span className="text-xs text-muted">{t('exam.date')}</span>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input min-h-10" />
@@ -1934,7 +1934,7 @@ export function GradeableLog({
           {l.surah && l.ayah_start ? ` · ${fmtNum(l.surah)}:${fmtNum(l.ayah_start)}${l.ayah_end && l.ayah_end !== l.ayah_start ? `–${fmtNum(l.ayah_end)}` : ''}` : ''}
         </span>
         <span className="flex items-center gap-2 shrink-0">
-          {!l.reviewed_at && <span className="badge text-micro bg-accent-muted text-(--text-accent)">{t('grade.needsReview')}</span>}
+          {!l.reviewed_at && <span className="badge text-micro bg-accent-muted text-accent">{t('grade.needsReview')}</span>}
           <span className="text-xs text-muted">{fmtNum(l.log_date)}</span>
           <Chevron open={open} />
         </span>
@@ -1947,7 +1947,7 @@ export function GradeableLog({
       {l.reviewed_at ? (
         // Locked/graded — mirrors the student-side treatment (G4).
         <div className="flex flex-col gap-0.5 mt-1">
-          <div className="text-xs text-(--text-accent)">
+          <div className="text-xs text-accent">
             {t('grade.reviewed')}{l.teacher_status ? `: ${l.teacher_status}` : ''}
             {l.teacher_comment ? ` — ${l.teacher_comment}` : ''}
           </div>
@@ -1958,7 +1958,7 @@ export function GradeableLog({
         <div className="flex flex-col gap-2 mt-1">
           <div className="flex flex-wrap gap-2">
             {statuses.map((s) => (
-              <button key={s.label} onClick={() => setStatus(s.label)} className={`badge cursor-pointer ${status === s.label ? 'bg-(--accent-solid) text-accent-contrast' : ''}`}>
+              <button key={s.label} onClick={() => setStatus(s.label)} className={`badge cursor-pointer ${status === s.label ? 'bg-accent text-accent-contrast' : ''}`}>
                 {s.label}
               </button>
             ))}

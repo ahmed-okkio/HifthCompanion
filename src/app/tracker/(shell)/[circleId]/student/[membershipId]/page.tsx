@@ -63,7 +63,7 @@ export default async function StudentDetailPage({
         <MarkCircleReady />
         {/* Same wrapper as the teacher branch below — the sub view is the same
             screen, so it must sit in the same column width. */}
-        <div className="max-w-[96rem] mx-auto w-full relative">
+        <div className="max-w-shell mx-auto w-full relative">
         <SubStudent
           membershipId={membershipId}
           studentName={rows[0].student_name || dict['tracker.roleStudent']}
@@ -132,7 +132,7 @@ export default async function StudentDetailPage({
   return (
     <main className="px-4 py-6 animate-fade-in w-full overflow-y-auto h-full">
       <MarkCircleReady />
-      <div className="max-w-[96rem] mx-auto w-full relative">
+      <div className="max-w-shell mx-auto w-full relative">
         <TeacherStudent
           circle={circle}
           member={member}

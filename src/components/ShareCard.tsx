@@ -211,7 +211,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
               }
               return (
                 <div
-                  className="flex flex-col mt-2 rounded-md border border-[var(--border-accent)] overflow-hidden"
+                  className="flex flex-col mt-2 rounded-md border border-accent-border overflow-hidden"
                 >
                   {candidates.map(a => (
                     <button

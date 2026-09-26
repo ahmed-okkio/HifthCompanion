@@ -24,7 +24,7 @@ import type { MarkColors, MarkedPage } from '@/lib/markedPages';
 const FALLBACK_NAV_HEIGHT = 72; // mirrored by h-18 / [--nav-h:72px] in ReaderShellSkeleton
 
 /** Shared shimmer gradient classes for skeleton blocks. */
-const SHIMMER = 'rounded-md bg-[linear-gradient(90deg,var(--skeleton-base)_0%,var(--skeleton-shine)_50%,var(--skeleton-base)_100%)] bg-size-[200%_100%] animate-[shimmer_1.4s_linear_infinite]';
+const SHIMMER = 'rounded-md skeleton';
 const ROW_WIDTHS = ['w-[85%]', 'w-[75%]', 'w-[65%]'];
 
 /** Full-shell skeleton shown while a redirect is pending.
@@ -60,7 +60,7 @@ function ShellSkeleton() {
             <div className="mx-auto w-fit">
               {/* Quran page ~= 1:1.42 */}
               <div
-                className={`${SHIMMER} w-[clamp(280px,40vw,540px)] aspect-[0.704] rounded-page shadow-[0_6px_16px_rgba(15,23,42,0.10)]`}
+                className={`${SHIMMER} w-[clamp(280px,40vw,540px)] aspect-page rounded-page shadow-page`}
               />
             </div>
           </div>
@@ -90,7 +90,7 @@ function ShellSkeleton() {
  *  entry so there's no blank delay before the reader paints. */
 export function ReaderShellSkeleton() {
   return (
-    <div className="lg:h-[100dvh] lg:flex lg:flex-col lg:overflow-hidden bg-(--bg-base)">
+    <div className="lg:h-dvh lg:flex lg:flex-col lg:overflow-hidden bg-surface-app">
       {/* Top nav bar placeholder — mirrors ReaderNav height/chrome. */}
       <div
         className="lg:flex-shrink-0 flex items-center gap-3 h-18 px-4 bg-surface-main border-b border-subtle shadow-e1"
@@ -278,7 +278,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
 
   return (
     <div
-      className="lg:h-[100dvh] lg:flex lg:flex-col lg:overflow-hidden bg-(--bg-base)"
+      className="lg:h-dvh lg:flex lg:flex-col lg:overflow-hidden bg-surface-app"
     >
       <div ref={navRef} className="lg:flex-shrink-0">
         <ReaderNav
@@ -425,7 +425,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
               <div id="sets-card-portal" className="mb-4 empty:mb-0" />
               {children}
               <footer
-                className="lg:hidden w-full text-center text-caption tracking-wider uppercase border-t mt-6 py-3 text-muted border-subtle bg-(--bg-base)"
+                className="lg:hidden w-full text-center text-caption tracking-wider uppercase border-t mt-6 py-3 text-muted border-subtle bg-surface-app"
               >
                 HifthCompanion © 2026
               </footer>

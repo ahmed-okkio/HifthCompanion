@@ -78,7 +78,7 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
         <div
           role="dialog"
           aria-label={t('share.shareLinkAriaLabel')}
-          className="card fixed z-[9999] p-4 w-70"
+          className="card fixed z-(--z-overlay) p-4 w-70"
           // eslint-disable-next-line shadcn/no-inline-styles -- anchored to measured button position
           style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
         >

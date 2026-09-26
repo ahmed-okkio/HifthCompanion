@@ -33,7 +33,7 @@ export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, 
       <div
         ref={containerRef}
         data-canvas-ready={ready ? 'true' : undefined}
-        className={`page-display-frame relative flex max-w-full items-center justify-center overflow-hidden rounded-page object-contain ${noShadow ? '' : 'shadow-[0_6px_16px_rgba(15,23,42,0.10)]'}`}
+        className={`page-display-frame relative flex max-w-full items-center justify-center overflow-hidden rounded-page object-contain ${noShadow ? '' : 'shadow-page'}`}
         style={{
           // No maxHeight cap: `size` already fits the page to the container per-page (desktop is
           // capped to available height; mobile is full height and scrolls). An inline maxHeight
@@ -51,8 +51,8 @@ export default function PageDisplayFrame({ containerRef, size, maxHeightOffset, 
           aria-hidden
           // Fade OUT smoothly when the page is ready; appear INSTANTLY when a swap starts
           // (ready→false) so a fast/cached page change still flashes the skeleton.
-          className={`pointer-events-none absolute inset-0 rounded-page bg-[linear-gradient(90deg,var(--skeleton-base)_0%,var(--skeleton-shine)_50%,var(--skeleton-base)_100%)] bg-size-[200%_100%] ${
-            ready ? 'opacity-0 transition-opacity duration-250' : 'animate-[shimmer_1.4s_linear_infinite] opacity-100 transition-none'
+          className={`pointer-events-none absolute inset-0 rounded-page skeleton ${
+            ready ? 'animate-none opacity-0 transition-opacity duration-250' : 'opacity-100 transition-none'
           }`}
         />
         {/* Page fades in once the canvas is ready; skeleton (above) fades out. No scale — the

@@ -36,12 +36,12 @@ export function NumberStepper({
     const i = values.indexOf(clamp(value)) + delta;
     onChange(values[Math.max(0, Math.min(values.length - 1, i))]);
   };
-  const btn = 'w-8 self-stretch flex items-center justify-center text-body font-semibold text-muted bg-transparent border-none cursor-pointer transition-all duration-(--duration-fast) ease-(--ease-out)';
+  const btn = 'w-8 self-stretch flex items-center justify-center text-body font-semibold text-muted bg-transparent border-none cursor-pointer transition-all duration-(--duration-fast) ease-out';
   return (
     <label className="flex flex-col gap-1 text-caption text-secondary">
       {label}
       <span
-        className="flex items-center h-10 border border-default rounded-sm bg-(--bg-input) overflow-hidden"
+        className="flex items-center h-10 border border-default rounded-sm bg-surface-main overflow-hidden"
       >
         <button type="button" aria-label={t('common.decrement')} tabIndex={-1} className={btn}
                 onMouseDown={(e) => e.preventDefault()}

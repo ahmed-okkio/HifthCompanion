@@ -553,7 +553,7 @@ function LogEntryForm({
   const labelCls = 'text-xs font-medium text-secondary';
 
   return (
-    <div className="card flex flex-col gap-5 p-4 animate-[fade-in-scale_0.2s_var(--ease-out)_both] origin-top">
+    <div className="card flex flex-col gap-5 p-4 animate-fade-in-scale origin-top">
       {/* Type + Date, balanced two-up. */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <label className="flex flex-col gap-1.5">

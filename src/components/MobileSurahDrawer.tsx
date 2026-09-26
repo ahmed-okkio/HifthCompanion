@@ -109,7 +109,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
         role="dialog"
         aria-modal="true"
         aria-label={t('reader.surahNavigation')}
-        className={`lg:hidden flex fixed bottom-0 left-0 right-0 z-50 h-[85vh] flex-col bg-surface-main rounded-t-xl shadow-e3 transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform`}
+        className={`lg:hidden flex fixed bottom-0 left-0 right-0 z-50 h-[85vh] flex-col bg-surface-main rounded-t-xl shadow-e3 transition-transform duration-300 ease-sheet will-change-transform`}
         // eslint-disable-next-line shadcn/no-inline-styles -- open/closed state; e2e reads style.transform
         style={{ transform: open ? 'translateY(0)' : 'translateY(100%)' }}
       >
@@ -187,20 +187,20 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                     onPointerLeave={cancelLongPress}
                     onPointerCancel={cancelLongPress}
                     onContextMenu={e => e.preventDefault()}
-                    className={`w-full rounded-lg px-3 text-left border cursor-pointer transition-all duration-(--duration-fast) ease-(--ease-out) ${isMultiSurah ? 'py-3.5' : 'py-2.5'} ${
-                      active ? 'border-(--border-accent) bg-accent-muted' : 'border-transparent bg-surface-main'
+                    className={`w-full rounded-lg px-3 text-left border cursor-pointer transition-all duration-(--duration-fast) ease-out ${isMultiSurah ? 'py-3.5' : 'py-2.5'} ${
+                      active ? 'border-accent-border bg-accent-muted' : 'border-transparent bg-surface-main'
                     }`}
                   >
                     <div className={`flex ${isMultiSurah ? 'flex-col gap-2' : 'flex-row gap-0'}`}>
                       {group.surahs.map(n => (
                         <div key={n} className="flex items-center gap-3">
                           <span
-                            className={`inline-flex items-center justify-center min-w-7 h-7 rounded-sm px-1.5 text-caption font-bold tabular-nums shadow-e1 text-green-600 outline outline-(--border-accent) shrink-0 ${active ? 'bg-surface-main' : 'bg-green-soft'}`}
+                            className={`inline-flex items-center justify-center min-w-7 h-7 rounded-sm px-1.5 text-caption font-bold tabular-nums shadow-e1 text-green-600 outline outline-accent-border shrink-0 ${active ? 'bg-surface-main' : 'bg-green-soft'}`}
                           >
                             {fmtNum(n)}
                           </span>
                           <span
-                            className={`text-body font-semibold leading-[1.3] truncate ${active ? 'text-(--text-accent)' : 'text-primary'}`}
+                            className={`text-body font-semibold leading-tight truncate ${active ? 'text-accent' : 'text-primary'}`}
                           >
                             {getSurahName(n, locale)}
                           </span>
@@ -208,7 +208,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                       ))}
                     </div>
                     <div
-                      className={`mt-1 pl-10 text-caption font-medium flex items-center gap-1.5 ${active ? 'text-(--text-accent)' : 'text-muted'}`}
+                      className={`mt-1 pl-10 text-caption font-medium flex items-center gap-1.5 ${active ? 'text-accent' : 'text-muted'}`}
                     >
                       {t('reader.pageNum', { n: group.page })}{group.surahs.length > 1 ? ` · ${t('reader.surahsCount', { count: group.surahs.length })}` : ''}
                       {bookmarkedPage === group.page && (

@@ -375,7 +375,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
           type="button"
           onClick={jumpToActive}
           // Top variant clears the header (title + search); bottom clears the footer.
-          className={`absolute left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 font-semibold animate-fade-in h-10 rounded-full bg-(--accent-solid) text-accent-contrast text-small shadow-e3 whitespace-nowrap max-w-[calc(100%-32px)] cursor-pointer ${
+          className={`absolute left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 font-semibold animate-fade-in h-10 rounded-full bg-accent text-accent-contrast text-small shadow-e3 whitespace-nowrap max-w-[calc(100%-32px)] cursor-pointer ${
             jumpDir === 'up' ? 'top-35' : 'bottom-6'
           }`}
         >

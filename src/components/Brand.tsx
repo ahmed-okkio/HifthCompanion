@@ -22,7 +22,7 @@ export default function Brand() {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo.png" alt={t('nav.logoAlt')} className="h-13 w-auto object-contain" />
       <span
-        className="whitespace-nowrap text-primary font-normal tracking-[0.01em] text-heading-m font-[family-name:var(--font-brand),system-ui,sans-serif]"
+        className="whitespace-nowrap text-primary font-normal tracking-normal text-heading-m font-display"
       >
         Hifth Companion
       </span>

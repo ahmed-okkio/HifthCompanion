@@ -3,7 +3,7 @@
 // <Suspense fallback={ReaderShellSkeleton}> — flashing the ENTIRE shell (nav rail,
 // surah sidebar, canvas). Scoping the boundary here keeps the persistent shell +
 // Fabric canvas mounted; only the right-hand notes column swaps on navigation.
-const SHIMMER = 'w-full rounded-md bg-[linear-gradient(90deg,var(--skeleton-base)_0%,var(--skeleton-shine)_50%,var(--skeleton-base)_100%)] bg-size-[200%_100%] animate-[shimmer_1.4s_linear_infinite]';
+const SHIMMER = 'w-full rounded-md skeleton';
 
 export default function NotesColumnLoading() {
   return (

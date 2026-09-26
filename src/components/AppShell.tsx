@@ -61,7 +61,7 @@ export default function AppShell({
             grows with the page (align-stretch is the flex default). */}
         {/* z above the circle rail (z-20) so the right-edge shadow casts over it,
             reading as a separator between the two rails. */}
-        <div className="hidden lg:block flex-shrink-0 relative w-24 z-30 shadow-[1px_0_3px_-2px_rgba(15,23,42,0.10)]">
+        <div className="hidden lg:block flex-shrink-0 relative w-24 z-30 shadow-edge">
           <NavRail />
         </div>
         {/* Secondary rail: left column on desktop, full-width strip on mobile

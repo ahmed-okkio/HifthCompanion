@@ -75,6 +75,36 @@
   --text-heading-m--font-weight: var(--type-heading-m-weight);
   --text-heading-l: var(--type-heading-l-size);
   --text-heading-l--font-weight: var(--type-heading-l-weight);
+  --color-glass: var(--bg-glass);
+  --color-accent-border: var(--border-accent);
+  --color-warning-muted: var(--warning-muted);
+  --color-warning-strong: var(--warning-strong);
+  --color-home-gold: var(--home-gold);
+  --color-home-marker: var(--home-marker);
+  --color-home-note-green: var(--home-note-green);
+  --color-home-note-orange: var(--home-note-orange);
+  --shadow-page: var(--shadow-page);
+  --shadow-edge: var(--shadow-edge);
+  --tracking-label: var(--tracking-label);
+  --ease-sheet: var(--ease-sheet);
+  --container-shell: 96rem;
+  --aspect-page: 0.704; /* Madinah mushaf page */
+  --font-display: var(--font-brand), system-ui, sans-serif;
+  --font-arabic: "Noto Sans Arabic Web", serif;
+  --animate-fade-in: fade-in var(--duration-normal) var(--ease-out) both;
+  --animate-fade-in-scale: fade-in-scale var(--duration-normal) var(--ease-out) both;
+  --animate-slide-down: slide-down 0.22s var(--ease-out) both;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-aurora: home-aurora 18s ease-in-out infinite;
+  --animate-aurora-reverse: home-aurora 22s ease-in-out infinite reverse;
+}
+
+@utility thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+}
+@utility no-scrollbar {
+  scrollbar-width: none;
 }
 
 /* Arabic face — self-hosted @font-face (not next/font) so we can set size-adjust.
@@ -146,6 +176,8 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   --success: #10B981;
   --danger-500: #EF4444;
   --warning: #F59E0B;
+  --warning-muted: color-mix(in srgb, var(--warning) 16%, var(--surface-main));
+  --warning-strong: color-mix(in srgb, var(--warning) 72%, var(--text-primary));
   --blue-500: #3B82F6;
   --purple-500: #8B5CF6;
 
@@ -209,6 +241,8 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   --shadow-e3: 0 12px 32px rgba(0,0,0,.08);
   /* Reader-canvas hero shadow (PRD 0002 Story 11). */
   --shadow-canvas: 0 8px 24px rgba(0,0,0,.05);
+  --shadow-page: 0 6px 16px rgba(15,23,42,.10);  /* page image lift */
+  --shadow-edge: 1px 0 3px -2px rgba(15,23,42,.10); /* nav rail edge */
 
   /* Spacing scale */
   --space-4: 4px;
@@ -301,6 +335,7 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
 
   /* Transitions */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1); /* drawers / bottom sheets */
   --duration-fast: 150ms;
   --duration-normal: 250ms;
   --duration-slow: 400ms;
@@ -397,6 +432,13 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
 
 /* Atoms live in the components layer so Tailwind utilities (lg:hidden, w-full…) override them. */
 @layer components {
+/* ===== Skeleton shimmer ===== */
+.skeleton {
+  background: linear-gradient(90deg, var(--skeleton-base) 0%, var(--skeleton-shine) 50%, var(--skeleton-base) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
 /* ===== Card ===== */
 .card {
   background: var(--bg-card);

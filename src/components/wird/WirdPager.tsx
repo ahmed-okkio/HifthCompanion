@@ -232,7 +232,7 @@ function Strip({
             <span
               key={c.id}
               aria-hidden
-              className={`h-1.5 rounded-full flex-none transition-all duration-(--duration-fast) ease-(--ease-out) ${
+              className={`h-1.5 rounded-full flex-none transition-all duration-(--duration-fast) ease-out ${
                 i === active
                   ? 'w-5 bg-accent'
                   : c.doneToday
@@ -252,7 +252,7 @@ function Strip({
           // Snap off while a card leaves: snapping would keep re-centring the
           // shrinking slide, dragging the previous card in to collide with
           // the next one. Unsnapped, only the neighbour closing the gap moves.
-          className={`thin-scroll flex-1 min-w-0 max-w-130 flex gap-4 overflow-x-auto overflow-y-hidden [scrollbar-width:none] ${leavingId ? 'snap-none' : 'snap-x snap-mandatory'}`}
+          className={`thin-scroll flex-1 min-w-0 max-w-130 flex gap-4 overflow-x-auto overflow-y-hidden no-scrollbar ${leavingId ? 'snap-none' : 'snap-x snap-mandatory'}`}
         >
           {cards.map((c, i) => (
             <div
@@ -338,7 +338,7 @@ function StatePanel({ title, hint, children, enter, showCreate, showOptions, onN
             onClick={onNew}
             aria-label={t('wird.newWird')}
             title={t('wird.newWird')}
-            className="border-none cursor-pointer mt-2 size-16 rounded-full bg-(--accent-solid) text-accent-contrast shadow-e2 flex items-center justify-center"
+            className="border-none cursor-pointer mt-2 size-16 rounded-full bg-accent text-accent-contrast shadow-e2 flex items-center justify-center"
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden>
               <line x1="12" y1="5" x2="12" y2="19" />

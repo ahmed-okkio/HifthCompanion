@@ -31,7 +31,7 @@ export default function SpreadToggle({ page, active, basePath }: { page: number;
       data-testid="spread-toggle"
       aria-pressed={active}
       onClick={toggle}
-      className="hidden lg:flex items-center gap-2 bg-surface-main hover:bg-neutral-100 mt-3 h-13 px-4 rounded-lg border border-[rgba(15,23,42,0.05)] shadow-e2 cursor-pointer text-small font-medium text-neutral-600 whitespace-nowrap select-none"
+      className="hidden lg:flex items-center gap-2 bg-surface-main hover:bg-neutral-100 mt-3 h-13 px-4 rounded-lg border border-neutral-950/5 shadow-e2 cursor-pointer text-small font-medium text-neutral-600 whitespace-nowrap select-none"
     >
       <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
         <rect x="3" y="4" width="8" height="16" rx="1" strokeWidth={2} />

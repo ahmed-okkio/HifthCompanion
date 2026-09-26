@@ -118,7 +118,7 @@ export default function ReminderSheet({ start, onClose }: { start: ReminderSheet
   if (phase === 'set') {
     body = (
       <>
-        <span className="size-12 rounded-full bg-(--accent-solid) text-accent-contrast flex items-center justify-center">
+        <span className="size-12 rounded-full bg-accent text-accent-contrast flex items-center justify-center">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M5 12l5 5L20 7" /></svg>
         </span>
         <h2 id="reminder-sheet-title" className={h2}>{t('wird.reminder.set', { t: shown })}</h2>
@@ -151,7 +151,7 @@ export default function ReminderSheet({ start, onClose }: { start: ReminderSheet
         <div className="flex items-center gap-2 min-h-10">
           <span className="flex-1 text-body font-semibold text-secondary">{t('wird.reminder.timeLabel')}</span>
           {timeOpen ? (
-            <span className="inline-flex items-center h-10 border border-default rounded-sm bg-(--bg-input) overflow-hidden">
+            <span className="inline-flex items-center h-10 border border-default rounded-sm bg-surface-main overflow-hidden">
               <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => step(-1)} aria-label={t('wird.reminder.earlier')}>−</button>
               <output aria-live="polite" className="min-w-18 text-center text-body font-semibold">{shown}</output>
               <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => step(1)} aria-label={t('wird.reminder.later')}>+</button>

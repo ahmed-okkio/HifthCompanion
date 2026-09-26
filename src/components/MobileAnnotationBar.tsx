@@ -125,8 +125,7 @@ export default function MobileAnnotationBar({
       )}
 
       {/* The bar row — five evenly-spaced controls, always fits (no horizontal scroll). */}
-      {/* eslint-disable-next-line shadcn/no-inline-styles -- e2e selects row via style*="space-around" */}
-      <div className="relative z-2 flex items-center gap-1 px-2 py-1.25" style={{ justifyContent: 'space-around' }}>
+      <div data-testid="mobile-annotation-row" className="relative z-2 flex items-center justify-around gap-1 px-2 py-1.25">
         {/* Move / Draw toggle — default Move lets a finger scroll the page; tap to draw. */}
         <button
           onClick={() => onModeChange(drawing ? 'move' : 'draw')}

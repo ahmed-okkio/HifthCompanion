@@ -109,9 +109,8 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
         role="dialog"
         aria-modal="true"
         aria-label={t('reader.surahNavigation')}
-        className={`lg:hidden flex fixed bottom-0 left-0 right-0 z-50 h-[85vh] flex-col bg-surface-main rounded-t-xl shadow-e3 transition-transform duration-300 ease-sheet will-change-transform`}
-        // eslint-disable-next-line shadcn/no-inline-styles -- open/closed state; e2e reads style.transform
-        style={{ transform: open ? 'translateY(0)' : 'translateY(100%)' }}
+        data-testid="mobile-surah-sheet"
+        className={`lg:hidden flex fixed bottom-0 left-0 right-0 z-50 h-[85vh] flex-col bg-surface-main rounded-t-xl shadow-e3 transition-transform duration-300 ease-sheet will-change-transform ${open ? 'translate-y-0' : 'translate-y-full'}`}
       >
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">

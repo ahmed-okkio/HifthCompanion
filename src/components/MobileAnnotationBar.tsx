@@ -25,7 +25,7 @@ type Popover = 'tools' | 'colors' | 'more' | null;
 
 const cardCls = 'absolute bottom-[calc(100%+8px)] z-2 rounded-xl border border-subtle bg-glass p-2 shadow-e3 backdrop-blur-lg';
 
-const triggerCls = 'flex h-11.5 shrink-0 items-center justify-center rounded-md transition-colors duration-(--duration-fast) ease-out';
+const triggerCls = 'flex h-11.5 items-center justify-center rounded-md transition-colors duration-(--duration-fast) ease-out';
 const disabledCls = 'pointer-events-none opacity-40';
 
 export default function MobileAnnotationBar({
@@ -45,12 +45,12 @@ export default function MobileAnnotationBar({
       data-testid="mobile-annotation-bar"
       /* Floating: lifted off the bottom edge and inset from the sides so all four rounded
          corners are visible. iOS Safari bug: position:fixed + backdrop-filter on the SAME
-         element drops the fixed behaviour on scroll — keep this fixed layer plain; the
-         glass/blur lives on the inner wrapper. */
+         element drops the fixed behaviour on scroll — keep this fixed layer plain; any
+         surface/blur lives on the inner wrapper. */
       className="fixed inset-x-3.5 bottom-[calc(env(safe-area-inset-bottom,0px)+16px)] z-45 lg:hidden"
     >
-      {/* V3 Story 16 — glass bar: white-tinted glass + 16px backdrop blur, deep shadow. */}
-      <div className="relative rounded-xl border border-subtle bg-glass shadow-float backdrop-blur-lg backdrop-saturate-150">
+      {/* Opaque surface: translucent glass let page content (e.g. the Sets card) read through the controls. */}
+      <div className="relative rounded-xl border border-subtle bg-surface-main shadow-float">
       {saving && (
         <span
           aria-hidden

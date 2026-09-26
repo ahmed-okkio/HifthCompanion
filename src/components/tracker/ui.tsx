@@ -706,7 +706,7 @@ export function TabBar({
   onSelect: (key: string) => void;
 }) {
   return (
-    <div className="flex gap-0 overflow-x-auto overflow-y-hidden border-b-2 border-subtle" role="tablist">
+    <div className="flex gap-0 overflow-x-auto overflow-y-hidden shadow-tab-rail" role="tablist">
       {tabs.map((t) => {
         const isActive = t.key === active;
         return (
@@ -715,7 +715,7 @@ export function TabBar({
             role="tab"
             aria-selected={isActive}
             onClick={() => onSelect(t.key)}
-            className={`btn btn-ghost shrink-0 min-h-10.5 text-body border-b-2 -mb-0.5 rounded-none py-2 px-5 whitespace-nowrap ${isActive ? 'font-semibold text-green-600 border-b-accent' : 'font-normal text-muted border-b-transparent'}`}
+            className={`btn btn-ghost shrink-0 min-h-10.5 text-body border-b-2 rounded-none py-2 px-5 whitespace-nowrap ${isActive ? 'font-semibold text-green-600 border-b-accent' : 'font-normal text-muted border-b-transparent'}`}
           >
             {t.label}
           </button>

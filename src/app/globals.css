@@ -86,6 +86,7 @@
   --shadow-page: var(--shadow-page);
   --shadow-float: var(--shadow-float);
   --shadow-edge: var(--shadow-edge);
+  --shadow-tab-rail: var(--shadow-tab-rail);
   --tracking-label: var(--tracking-label);
   --ease-sheet: var(--ease-sheet);
   --container-shell: 96rem;
@@ -244,6 +245,7 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   --shadow-canvas: 0 8px 24px rgba(0,0,0,.05);
   --shadow-page: 0 6px 16px rgba(15,23,42,.10);  /* page image lift */
   --shadow-edge: 1px 0 3px -2px rgba(15,23,42,.10); /* nav rail edge */
+  --shadow-tab-rail: inset 0 -2px 0 var(--border-subtle); /* tab strip baseline; inset so overflow-y-hidden never clips the active underline */
   --shadow-float: 0 14px 36px rgba(15,23,42,.22); /* mobile annotation bar hovering over the page */
 
   /* Spacing scale */

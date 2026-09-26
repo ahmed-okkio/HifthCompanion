@@ -105,6 +105,13 @@ test.describe('Progression Tracker (Two-actor)', () => {
     await student.getByRole('button', { name: 'Accept & join' }).click();
     await student.getByRole('tab', { name: 'Log' }).click();
     await expect(student.getByRole('button', { name: 'Log today' })).toBeVisible();
+    // The active tab's 2px underline is painted, not clipped by the strip's overflow.
+    const underline = await student.getByRole('tab', { name: 'Log' }).evaluate((tab) => {
+      const r = tab.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.bottom - 1);
+      return { hitsTab: hit === tab || tab.contains(hit), width: getComputedStyle(tab).borderBottomWidth };
+    });
+    expect(underline).toEqual({ hitsTab: true, width: '2px' });
 
     // 4) After accept, the student appears ACTIVE in the teacher roster (C5) and is
     //    clickable into their profile.

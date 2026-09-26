@@ -62,6 +62,28 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
     expect(m.contentTop, 'first content must start at/below the fixed nav').toBeGreaterThanOrEqual(m.navBottom - 2);
   });
 
+  // Bar controls never overlap each other or spill out of the bar, and the bar is
+  // opaque so page text (e.g. the Sets card) can't read through behind them.
+  for (const width of [393, 360]) {
+    test(`bar controls fit without overlap at ${width}px`, async ({ page }) => {
+      listenForErrors(page);
+      await page.setViewportSize({ width, height: 851 });
+      const bar = page.getByTestId('mobile-annotation-bar');
+      await expect(bar).toBeVisible({ timeout: 10000 });
+      const m = await bar.evaluate((el) => {
+        const row = el.querySelector('[style*="space-around"]')!;
+        const box = row.getBoundingClientRect();
+        const btns = [...row.children].map((c) => c.getBoundingClientRect());
+        const overlap = btns.some((a, i) => btns.slice(i + 1).some((b) => a.right > b.left + 0.5));
+        const inside = btns.every((b) => b.left >= box.left - 0.5 && b.right <= box.right + 0.5);
+        return { overlap, inside, bg: getComputedStyle(el.firstElementChild!).backgroundColor };
+      });
+      expect(m.overlap).toBe(false);
+      expect(m.inside).toBe(true);
+      expect(m.bg).toMatch(/^rgb\(/); // opaque, not rgba(...)
+    });
+  }
+
   // (a) Tapping surah button opens bottom-sheet
   test('(a) tapping surah button opens the bottom-sheet', async ({ page }) => {
     listenForErrors(page);

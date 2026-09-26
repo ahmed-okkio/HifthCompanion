@@ -698,6 +698,35 @@ html[data-reminder-sheet] .notify-banner { display: none; }
   border-radius: var(--radius-md);
 }
 
+/* Empty-slot affordance ("+ add"): dashed outline, accent text. */
+.btn-dashed {
+  min-height: 44px;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--accent-solid);
+  font-size: 14px;
+}
+.btn-dashed:hover:not(:disabled) { border-color: var(--accent-solid); background: var(--accent-muted); }
+
+/* Menu / dropdown row. Add .menu-item-danger for destructive rows. */
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.menu-item:hover { background: var(--accent-muted); color: var(--text-primary); }
+.menu-item-danger { color: var(--danger); }
+.menu-item-danger:hover { background: var(--danger-muted); color: var(--danger); }
+
 /* ===== Inputs ===== */
 .input {
   width: 100%;

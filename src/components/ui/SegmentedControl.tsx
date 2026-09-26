@@ -9,14 +9,18 @@ export function SegmentedControl({
   options,
   value,
   onChange,
+  tabs,
 }: {
   options: { key: string; label: string; icon?: ReactNode }[];
   value: string;
   onChange: (key: string) => void;
+  /** Render as an ARIA tablist (tab/aria-selected) instead of toggle buttons. */
+  tabs?: boolean;
 }) {
   const n = options.length;
   return (
     <div
+      role={tabs ? 'tablist' : undefined}
       // inset ring instead of a border: with a real border, overflow:hidden
       // clips children to the OUTER radius and the active segment's fill bleeds
       // past the rounded corner. An inset shadow has no box offset, so the
@@ -38,7 +42,9 @@ export function SegmentedControl({
             key={o.key}
             type="button"
             onClick={() => onChange(o.key)}
-            aria-pressed={on}
+            role={tabs ? 'tab' : undefined}
+            aria-pressed={tabs ? undefined : on}
+            aria-selected={tabs ? on : undefined}
             className={`min-h-11 px-3 py-1.5 cursor-pointer text-body font-semibold leading-tight transition-colors duration-(--duration-fast) ease-out ${i > 0 ? 'border-s border-solid border-s-default' : ''} ${on ? 'bg-accent text-accent-contrast' : 'bg-transparent text-secondary'}`}
           >
             <span className="flex items-center justify-center gap-2">

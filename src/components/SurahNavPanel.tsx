@@ -7,6 +7,7 @@ import { useI18n } from '@/components/I18nProvider';
 import { sortMarked, type MarkedPage } from '@/lib/markedPages';
 import MarkedPagesList from '@/components/MarkedPagesList';
 import { useGoToPage } from '@/hooks/useGoToPage';
+import { SegmentedControl } from '@/components/ui';
 
 interface Props {
   onSelect?: (surahNumber: number) => void;
@@ -228,34 +229,17 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
             {t('reader.surahs')}
           </h2>
         ) : (
-          // R1: two-tab header — Surahs (default) | Annotations. Segmented control with a
-          // sliding thumb: an absolute pill translates between the two equal segments.
-          <div
-            role="tablist"
-            className="relative flex items-center isolate p-0.75 mb-3 rounded-full bg-neutral-100"
-          >
-            <span
-              aria-hidden
-              // RTL flips the inline axis, so the thumb must slide the other way.
-              className={`absolute top-0.75 bottom-0.75 z-0 w-[calc(50%-3px)] start-0.75 rounded-full bg-surface-main shadow-e1 transition-transform duration-200 ease-out ${
-                tab === 'marked' ? (locale === 'ar' ? '-translate-x-full' : 'translate-x-full') : 'translate-x-0'
-              }`}
+          // R1: two-tab header — Surahs (default) | Annotations.
+          <div className="mb-3">
+            <SegmentedControl
+              tabs
+              options={[
+                { key: 'surahs', label: t('reader.surahs') },
+                { key: 'marked', label: t('reader.marked') },
+              ]}
+              value={tab}
+              onChange={k => setTab(k as 'surahs' | 'marked')}
             />
-            {(['surahs', 'marked'] as const).map(key => {
-              const active = tab === key;
-              return (
-                <button
-                  key={key}
-                  role="tab"
-                  type="button"
-                  aria-selected={active}
-                  onClick={() => setTab(key)}
-                  className={`relative z-1 flex-1 px-3 py-1.75 rounded-full bg-transparent text-small font-semibold transition-colors duration-150 ${active ? 'text-green-600' : 'text-muted'}`}
-                >
-                  {t(key === 'surahs' ? 'reader.surahs' : 'reader.marked')}
-                </button>
-              );
-            })}
           </div>
         )}
         {tab === 'surahs' && activeSurahName && (

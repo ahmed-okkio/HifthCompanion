@@ -15,7 +15,7 @@
  * helper (`isRailItemActive`) are exported so the mobile drawer
  * (`MobileNavDrawer`) renders the exact same set — one source of truth.
  *
- * Tokens consumed: --green-600, --green-soft, --neutral-100, --neutral-400,
+ * Tokens consumed: --green-600, --neutral-100, --neutral-400,
  *   --neutral-500, --surface-main, --shadow-e2, --radius-sm, --radius-md,
  *   --space-4, --space-16. No bare hex / hard-coded radius / shadow.
  */
@@ -226,7 +226,7 @@ function RailButton({ item, href, isActive, label, onNavigate }: { item: RailIte
 
   const sharedClass = `relative flex h-15 w-20 flex-col items-center justify-center gap-1 rounded-sm border-none px-1 no-underline transition-colors duration-150 ${
     isInert ? 'cursor-default' : 'cursor-pointer'
-  } ${isActive ? 'bg-green-soft text-green-600' : `bg-transparent text-neutral-500${isInert ? '' : ' hover:bg-neutral-100'}`}`;
+  } ${isActive ? 'bg-accent-muted text-green-600' : `bg-transparent text-neutral-500${isInert ? '' : ' hover:bg-neutral-100'}`}`;
 
   const inner = (
     <>

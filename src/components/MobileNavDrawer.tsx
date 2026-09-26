@@ -110,7 +110,7 @@ function Row({ item, href, label, active, onNavigate, comingSoon }: { item: Rail
   const isInert = !item.href;
 
   const cls = `flex w-full min-h-12 items-center gap-3 rounded-md border-none px-3 text-left text-body no-underline ${
-    active ? 'bg-green-soft text-green-600 font-bold' : `bg-transparent font-medium ${isInert ? 'text-neutral-400' : 'text-primary'}`
+    active ? 'bg-accent-muted text-green-600 font-bold' : `bg-transparent font-medium ${isInert ? 'text-neutral-400' : 'text-primary'}`
   } ${isInert ? 'cursor-default' : 'cursor-pointer'}`;
 
   const inner = (

@@ -116,8 +116,7 @@ excluded from git through `.git/info/exclude`.
 
 ## Open questions and deferred issues
 
-- **Active nav rows:** should the NavRail and MobileNavDrawer active rows move from green-soft to
-  accent-muted? I kept green-soft because these are navigation, not tool toggles.
+- **Active nav rows (resolved):** NavRail and MobileNavDrawer now use accent-muted as well, so every active state in the app shares one token.
 - **Tracker tab underline:** the active tab's underline is invisible on both master and this branch. This is
   a pre-existing bug.
 - **Mobile overlaps:** the settings gear overlaps the New wird modal, and the "Sets" text shows through the

@@ -116,7 +116,7 @@ export async function acceptMembership(membershipId: string): Promise<void> {
     .select('circle:circle_id(teacher_id)')
     .eq('id', membershipId)
     .maybeSingle();
-  const teacherId = (membership?.circle as { teacher_id: string } | null)?.teacher_id;
+  const teacherId = (membership?.circle as unknown as { teacher_id: string } | null)?.teacher_id;
   if (!user || !teacherId || teacherId === user.id) return;
 
   const { data: set } = await supabase

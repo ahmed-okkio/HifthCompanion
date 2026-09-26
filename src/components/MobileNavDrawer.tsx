@@ -7,7 +7,8 @@
  * ReaderShell and AppShell so every page has the cross-app nav on mobile.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useClientValue } from '@/hooks/useClientValue';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { RAIL_ITEMS, LABEL_KEYS, isRailItemActive, type RailItemDef } from './NavRail';
@@ -36,12 +37,9 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
   const items = RAIL_ITEMS;
 
   // Circles → last-viewed circle, My Mushaf → last-viewed page (one hop). See NavRail.
-  const [lastCircle, setLastCircle] = useState<string | null>(null);
-  const [lastReaderPage, setLastReaderPage] = useState<string | null>(null);
-  useEffect(() => {
-    setLastCircle(localStorage.getItem(LAST_CIRCLE_KEY));
-    setLastReaderPage(localStorage.getItem(LAST_READER_PAGE_KEY));
-  }, [open, pathname]);
+  // Re-read every render, so each open / pathname change sees the latest value.
+  const lastCircle = useClientValue(() => localStorage.getItem(LAST_CIRCLE_KEY), null);
+  const lastReaderPage = useClientValue(() => localStorage.getItem(LAST_READER_PAGE_KEY), null);
   const hrefFor = (item: RailItemDef) => {
     if (item.id === 'circles' && lastCircle) return `/tracker/${lastCircle}`;
     if (item.id === 'surahs' && lastReaderPage) return `/reader/${lastReaderPage}`;
@@ -54,8 +52,7 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
         <div
           onClick={() => onOpenChange(false)}
           aria-hidden
-          className="lg:hidden"
-          style={{ position: 'fixed', inset: 0, zIndex: 49, background: 'rgba(0,0,0,0.4)' }}
+          className="lg:hidden fixed inset-0 z-(--z-sticky) bg-overlay"
         />
       )}
 
@@ -63,35 +60,22 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
         role="dialog"
         aria-modal="true"
         aria-label="Navigation"
-        className="lg:hidden flex flex-col"
-        style={{
-          position: 'fixed',
-          top: 0,
-          bottom: 0,
-          insetInlineStart: 0,
-          zIndex: 50,
-          width: '78vw',
-          maxWidth: 320,
-          background: 'var(--surface-main)',
-          boxShadow: 'var(--shadow-e3)',
-          transform: open ? 'translateX(0)' : hiddenTransform,
-          transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
-          willChange: 'transform',
-        }}
+        className="lg:hidden flex flex-col fixed inset-y-0 start-0 z-50 w-[78vw] max-w-80 bg-surface-main shadow-e3 transition-transform duration-300 ease-sheet will-change-transform"
+        // eslint-disable-next-line shadcn/no-inline-styles -- open-state + locale-dependent transform
+        style={{ transform: open ? 'translateX(0)' : hiddenTransform }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between" style={{ padding: 'var(--space-16)', borderBottom: '1px solid var(--border-subtle)' }}>
-          <Link href="/reader" onClick={() => onOpenChange(false)} className="flex items-center gap-2 min-w-0" style={{ textDecoration: 'none' }}>
+        <div className="flex items-center justify-between p-4 border-b border-subtle">
+          <Link href="/reader" onClick={() => onOpenChange(false)} className="flex items-center gap-2 min-w-0 no-underline">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt={t('nav.logoAlt')} style={{ height: 40, width: 'auto', objectFit: 'contain' }} />
-            <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-brand), system-ui, sans-serif', fontSize: '1.1rem', letterSpacing: '0.01em' }}>Hifth Companion</span>
+            <img src="/logo.png" alt={t('nav.logoAlt')} className="h-10 w-auto object-contain" />
+            <span className="text-primary font-display text-lg tracking-normal">Hifth Companion</span>
           </Link>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
             aria-label={t('nav.closeNavigation')}
-            className="flex items-center justify-center"
-            style={{ width: 32, height: 32, borderRadius: 'var(--radius-sm)', background: 'var(--surface-app)', border: '1px solid var(--border-subtle)', cursor: 'pointer', color: 'var(--text-muted)' }}
+            className="btn btn-ghost btn-icon btn-sm"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" aria-hidden>
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -101,7 +85,7 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
         </div>
 
         {/* Items */}
-        <ul role="list" className="thin-scroll" style={{ listStyle: 'none', margin: 0, padding: 'var(--space-8)', display: 'flex', flexDirection: 'column', gap: '2px', overflowY: 'auto' }}>
+        <ul role="list" className="thin-scroll m-0 flex list-none flex-col gap-0.5 overflow-y-auto p-2">
           {items.map((item) => (
             <li key={item.id}>
               <Row
@@ -123,42 +107,28 @@ export default function MobileNavDrawer({ open, onOpenChange }: Props) {
 function Row({ item, href, label, active, onNavigate, comingSoon }: { item: RailItemDef; href?: string; label: string; active: boolean; onNavigate: () => void; comingSoon: string }) {
   const isInert = !item.href;
 
-  const style: React.CSSProperties = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 'var(--space-12)',
-    width: '100%',
-    minHeight: 48,
-    padding: '0 var(--space-12)',
-    borderRadius: 'var(--radius-md)',
-    border: 'none',
-    background: active ? 'var(--green-soft)' : 'transparent',
-    color: active ? 'var(--green-600)' : isInert ? 'var(--neutral-400)' : 'var(--text-primary)',
-    textDecoration: 'none',
-    fontSize: '0.9375rem',
-    fontWeight: active ? 700 : 500,
-    cursor: isInert ? 'default' : 'pointer',
-    textAlign: 'left',
-  };
+  const cls = `flex w-full min-h-12 items-center gap-3 rounded-md border-none px-3 text-left text-body no-underline ${
+    active ? 'bg-accent-muted text-green-600 font-bold' : `bg-transparent font-medium ${isInert ? 'text-neutral-400' : 'text-primary'}`
+  } ${isInert ? 'cursor-default' : 'cursor-pointer'}`;
 
   const inner = (
     <>
       <span className="flex items-center justify-center shrink-0">{item.icon(active)}</span>
       <span>{label}</span>
-      {isInert && <span className="ml-auto text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>soon</span>}
+      {isInert && <span className="ml-auto text-micro uppercase tracking-wide text-muted">soon</span>}
     </>
   );
 
   if (isInert) {
     return (
-      <button type="button" aria-disabled title={comingSoon} style={style}>
+      <button type="button" aria-disabled title={comingSoon} className={cls}>
         {inner}
       </button>
     );
   }
 
   return (
-    <Link href={href ?? item.href!} onClick={onNavigate} aria-current={active ? 'page' : undefined} style={style}>
+    <Link href={href ?? item.href!} onClick={onNavigate} aria-current={active ? 'page' : undefined} className={cls}>
       {inner}
     </Link>
   );

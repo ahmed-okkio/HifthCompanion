@@ -5,11 +5,12 @@ import PageDisplayFrame from '@/components/PageDisplayFrame';
 import { calculatePageCanvasSize, type PageCanvasSize } from '@/lib/pageCanvas';
 import NoteBadgeLayer from '@/components/NoteBadgeLayer';
 import type { Note } from '@/types';
+import type { CanvasJson } from '@/lib/annotationStore';
 
 interface Props {
   pageNum: number;
   imageUrl: string;
-  canvasJson: any | null;
+  canvasJson: CanvasJson | null;
   /** Share view only: notes already fetched server-side (no client fetch, F5). */
   setId?: string;
   notes?: Note[];
@@ -126,7 +127,8 @@ export default function ReadOnlyCanvas({ pageNum, imageUrl, canvasJson, setId, n
 
   return (
     <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={24} ready={ready}>
-      <div style={{ position: 'relative', display: 'inline-block' }}>
+      <div className="relative inline-block">
+        {/* eslint-disable-next-line shadcn/no-inline-styles -- Fabric rewrites this element's inline style; keep ours inline alongside */}
         <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
         {/* Read-only: badges only. No note tool, no compose bus — a guest gets no write path (F3). */}
         {setId && <NoteBadgeLayer fabricRef={fabricRef} setId={setId} pageNum={pageNum} canvasReady={ready} notes={notes ?? []} />}

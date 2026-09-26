@@ -19,90 +19,54 @@ export default async function Home() {
   if (user) redirect('/wird');
   return (
     <main
-      className="relative min-h-[100dvh] flex flex-col items-center overflow-hidden"
-      style={{ background: 'var(--surface-app)', color: 'var(--text-primary)' }}
+      className="relative min-h-dvh flex flex-col items-center overflow-hidden bg-surface-app text-primary"
     >
       {/* Aurora background */}
       <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
         <div
-          className="home-aurora-a absolute"
-          style={{
-            top: '-12%', left: '-8%', width: 560, height: 560, borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(15,138,103,0.22), transparent 65%)',
-            filter: 'blur(40px)', animation: 'home-aurora 18s ease-in-out infinite',
-          }}
+          className="home-aurora-a absolute -top-[12%] -left-[8%] size-140 rounded-full bg-radial from-accent/22 to-transparent to-65% blur-2xl animate-aurora"
         />
         <div
-          className="home-aurora-b absolute"
-          style={{
-            top: '8%', right: '-12%', width: 620, height: 620, borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(212,175,110,0.20), transparent 65%)',
-            filter: 'blur(48px)', animation: 'home-aurora 22s ease-in-out infinite reverse',
-          }}
+          className="home-aurora-b absolute top-[8%] -right-[12%] size-155 rounded-full bg-radial from-home-gold/20 to-transparent to-65% blur-2xl animate-aurora-reverse"
         />
         <div
-          className="absolute inset-x-0 top-0 h-px"
-          style={{ background: 'linear-gradient(90deg, transparent, var(--border-subtle), transparent)' }}
+          className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-subtle to-transparent"
         />
       </div>
 
       {/* Hero */}
-      <section className="relative w-full max-w-[1120px] px-6 pt-16 pb-12 sm:pt-24 flex flex-col items-center text-center">
+      <section className="relative w-full max-w-280 px-6 pt-16 pb-12 sm:pt-24 flex flex-col items-center text-center">
         {/* Logo — the high-res mark, crisp, no backdrop. */}
-        <Image src="/logo.png" alt="HifthCompanion" width={112} height={112} priority className="home-rise" style={{ width: 'clamp(84px, 16vw, 112px)', height: 'auto', marginBottom: 14 }} />
+        <Image src="/logo.png" alt="HifthCompanion" width={112} height={112} priority className="home-rise w-[clamp(84px,16vw,112px)] h-auto mb-4" />
 
         <span
-          className="home-rise inline-flex items-center gap-2 mb-6"
-          style={{
-            padding: '6px 14px', borderRadius: 'var(--radius-full)',
-            background: 'var(--surface-main)', border: '1px solid var(--border-subtle)',
-            boxShadow: 'var(--shadow-e1)', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)',
-            letterSpacing: '0.04em', textTransform: 'uppercase',
-          }}
+          className="home-rise inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full bg-surface-main border border-subtle shadow-e1 text-small font-semibold text-secondary tracking-wider uppercase"
         >
           {dict['home.tagline']}
         </span>
 
         <h1
-          className="home-rise font-bold"
-          style={{
-            fontFamily: 'var(--font-brand), system-ui, sans-serif',
-            fontSize: 'clamp(2.5rem, 7vw, 4.25rem)', lineHeight: 1.05, letterSpacing: '-0.03em',
-            animationDelay: '0.05s',
-          }}
+          className="home-rise font-bold font-display text-[clamp(2.5rem,7vw,4.25rem)] leading-none tracking-tight [animation-delay:0.05s]"
         >
           {dict['home.heroTitlePrefix']}{' '}
-          <span
-            style={{
-              background: 'linear-gradient(120deg, var(--green-600), var(--home-gold))',
-              WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent',
-            }}
-          >
+          <span className="bg-linear-120 from-green-600 to-home-gold bg-clip-text text-transparent">
             {dict['home.heroTitleMushaf']}
           </span>
           <br />{dict['home.heroTitleSuffix']}
         </h1>
 
         <p
-          className="home-rise mt-6 max-w-[34ch] sm:max-w-[50ch]"
-          style={{ color: 'var(--text-secondary)', fontSize: 'clamp(1.05rem, 2.4vw, 1.3rem)', lineHeight: 1.55, animationDelay: '0.1s' }}
+          className="home-rise mt-6 max-w-[34ch] sm:max-w-[50ch] text-secondary text-[clamp(1.05rem,2.4vw,1.3rem)] leading-normal [animation-delay:0.1s]"
         >
           {dict['home.heroSubtitle']}
         </p>
 
         <div
-          className="home-rise mt-9 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto"
-          style={{ animationDelay: '0.15s' }}
+          className="home-rise mt-9 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto [animation-delay:0.15s]"
         >
           <Link
             href="/login"
-            className="inline-flex items-center justify-center gap-2 font-bold transition-transform hover:-translate-y-0.5"
-            style={{
-              height: 54, padding: '0 var(--space-32)', borderRadius: 'var(--radius-md)',
-              background: 'linear-gradient(180deg, var(--green-600), var(--green-700))',
-              color: 'var(--accent-contrast)', fontSize: '1.02rem', textDecoration: 'none',
-              boxShadow: '0 10px 24px rgba(15,138,103,0.28)',
-            }}
+            className="inline-flex items-center justify-center gap-2 font-bold transition-transform hover:-translate-y-0.5 h-14 px-8 rounded-md bg-linear-to-b from-green-600 to-green-700 text-accent-contrast text-base no-underline shadow-accent"
           >
             {dict['home.logIn']}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -113,14 +77,13 @@ export default async function Home() {
 
         {/* Interactive showcase — the real annotator: two flush Mushaf pages with the
             reader's toolbar on top. Visitors can draw on it. */}
-        <div className="home-rise relative mt-20 sm:mt-24 w-full" style={{ animationDelay: '0.2s' }}>
+        <div className="home-rise relative mt-20 sm:mt-24 w-full [animation-delay:0.2s]">
           <HomeReaderDemo />
         </div>
       </section>
 
       <footer
-        className="relative w-full text-center text-xs tracking-wider uppercase border-t"
-        style={{ padding: '18px 0', color: 'var(--text-muted)', borderColor: 'var(--border-subtle)' }}
+        className="relative w-full text-center text-xs tracking-wider uppercase border-t py-4 text-muted border-subtle"
       >
         {dict['home.footer']}
       </footer>

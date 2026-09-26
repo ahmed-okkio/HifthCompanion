@@ -6,12 +6,13 @@ import { Sk } from '@/components/Skeleton';
 // scrolled after a pull-to-refresh.
 export default function Loading() {
   return (
-    <main className="fit-screen w-full flex-1 min-h-0 flex flex-col items-center" style={{ overflow: 'hidden' }}>
-      <div className="w-full flex-1 min-h-0 flex flex-col items-center px-4 pt-8 pb-4" style={{ maxWidth: 520 }}>
+    <main className="fit-screen w-full flex-1 min-h-0 flex flex-col items-center overflow-hidden">
+      <div className="w-full flex-1 min-h-0 flex flex-col items-center px-4 pt-8 pb-4 max-w-130">
         <div className="w-full flex flex-col gap-2 mb-6">
           <Sk w={120} h={24} />
           <Sk w={160} h={13} />
         </div>
+        {/* eslint-disable-next-line shadcn/no-inline-styles -- Sk takes style, not className */}
         <Sk w="100%" h="100%" r={20} style={{ flex: '1 1 0', minHeight: 0, maxHeight: 360 }} />
         <div className="flex gap-2 mt-4">
           {[0, 1, 2].map((i) => <Sk key={i} w={8} h={8} r={999} />)}

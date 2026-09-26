@@ -91,7 +91,7 @@ test.describe('Surah panel and toolbar layout', () => {
     await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible({ timeout: 10000 });
 
     await page.evaluate(() => {
-      const canvas = (window as any).fabricCanvas;
+      const canvas = window.fabricCanvas as (typeof window.fabricCanvas & { __surahPanelSentinel?: string });
       if (!canvas) {
         throw new Error('Fabric canvas was not exposed');
       }
@@ -103,7 +103,7 @@ test.describe('Surah panel and toolbar layout', () => {
 
     await expect(page).toHaveURL(/\/reader\/1$/);
     await expect.poll(async () => page.evaluate(() => {
-      return (window as any).fabricCanvas?.__surahPanelSentinel;
+      return (window.fabricCanvas as { __surahPanelSentinel?: string } | undefined)?.__surahPanelSentinel;
     })).toBe('preserve-current-page-canvas');
   });
 
@@ -112,14 +112,14 @@ test.describe('Surah panel and toolbar layout', () => {
 
     // Wait for the first canvas to be created + ready, then snapshot the create count.
     await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible({ timeout: 10000 });
-    const createdAfterFirst = await page.evaluate(() => (window as any).__hifthFabricCreatedCount);
+    const createdAfterFirst = await page.evaluate(() => window.__hifthFabricCreatedCount);
     expect(createdAfterFirst).toBe(1);
 
     // Helper: assert the page changed (image swapped) but the Fabric instance was reused.
     const expectSoftSwap = async (expectUrl: RegExp) => {
       await expect(page).toHaveURL(expectUrl);
       await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible({ timeout: 10000 });
-      const created = await page.evaluate(() => (window as any).__hifthFabricCreatedCount);
+      const created = await page.evaluate(() => window.__hifthFabricCreatedCount);
       expect(created, 'Fabric instance must be reused, not recreated').toBe(createdAfterFirst);
     };
 

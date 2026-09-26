@@ -115,7 +115,7 @@ export default function SubStudent({
         />
 
         {err && (
-          <div className="card" role="alert" style={{ padding: '10px 14px', color: 'var(--danger)', background: 'var(--danger-muted)', borderColor: 'var(--danger-muted)', fontSize: 13 }}>
+          <div className="card py-3 px-4 text-danger bg-danger-muted border-danger-muted text-small" role="alert">
             {err}
           </div>
         )}
@@ -123,23 +123,22 @@ export default function SubStudent({
         {tab === 'sessions' && (<>
           {/* Covered instants — the only attendance-writable slots (C2/D1). */}
           <div className="flex flex-col gap-2">
-            <SectionTitle trailing={<span className="badge" style={{ fontSize: 10 }}>{t('subs.badge')}</span>}>
+            <SectionTitle trailing={<span className="badge text-micro">{t('subs.badge')}</span>}>
               {t('subs.covering')}
             </SectionTitle>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('subs.scopedNote')}</span>
+            <span className="text-xs text-muted">{t('subs.scopedNote')}</span>
             {coveredInstants.map((iso) => {
               const s = rowFor(iso);
               return (
-                <div key={iso} className="card flex flex-col gap-2" style={{ padding: '12px 14px' }}>
+                <div key={iso} className="card flex flex-col gap-2 py-3 px-4">
                   <div className="flex items-center gap-3">
                     <DateChip iso={iso} locale={locale} />
-                    <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{dateLine(iso)}</span>
+                    <span className="text-sm font-semibold text-primary">{dateLine(iso)}</span>
                   </div>
                   <div className="flex flex-wrap gap-1">
                     {ATT_STATUSES.map((st) => (
                       <button key={st} onClick={() => mark(iso, st)}
-                              className={s?.attendance_status === st ? 'btn btn-primary' : 'btn btn-ghost'}
-                              style={{ minHeight: 30, fontSize: 11, padding: '0 12px' }}>
+                              className={s?.attendance_status === st ? 'btn btn-primary btn-xs' : 'btn btn-ghost btn-xs'}>
                         {t(`att.${st}`)}
                       </button>
                     ))}
@@ -155,12 +154,12 @@ export default function SubStudent({
             <div className="flex flex-col gap-2">
               <SectionTitle>{t('sessions.history')}</SectionTitle>
               {others.slice(0, 10).map((s) => (
-                <div key={s.id} className="card flex items-center gap-3" style={{ padding: '10px 14px', opacity: s.canceled ? 0.5 : 1 }}>
+                <div key={s.id} className={`card flex items-center gap-3 py-3 px-4 ${s.canceled ? 'opacity-50' : ''}`}>
                   <DateChip iso={s.scheduled_at} locale={locale} />
-                  <span className="text-sm" style={{ color: 'var(--text-primary)' }}>{dateLine(s.scheduled_at)}</span>
-                  {s.canceled && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.canceled')}</span>}
+                  <span className="text-sm text-primary">{dateLine(s.scheduled_at)}</span>
+                  {s.canceled && <span className="badge badge-muted text-micro">{t('sessions.canceled')}</span>}
                   {!s.canceled && s.attendance_status && (
-                    <span className="badge" style={{ fontSize: 10 }}>{t(`att.${s.attendance_status}`)}</span>
+                    <span className="badge text-micro">{t(`att.${s.attendance_status}`)}</span>
                   )}
                   <Attribution actorId={s.marked_by} />
                 </div>
@@ -189,7 +188,7 @@ export default function SubStudent({
               // C4 — the same inline grader the teacher gets: grade + comment only
               // (D2: no page/surah/ayah/student-field editing anywhere in it).
               logRows.slice(0, 10).map((l) => (
-                <div key={l.id} className="card" style={{ padding: '10px 14px' }}>
+                <div key={l.id} className="card py-3 px-4">
                   <GradeableLog log={l} statuses={teacherStatuses} onGraded={onGraded} />
                 </div>
               ))

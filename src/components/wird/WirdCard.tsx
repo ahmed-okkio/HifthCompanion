@@ -26,15 +26,7 @@ import Progress from './Progress';
 import type { WirdCardData } from './WirdPager';
 
 // Amber derived from --warning via color-mix — no new colour token (M5/I4).
-export const AMBER_BG = 'color-mix(in srgb, var(--warning) 16%, var(--surface-main))';
-export const AMBER_FG = 'color-mix(in srgb, var(--warning) 72%, var(--text-primary))';
-
-const ellipsis: React.CSSProperties = {
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-  maxWidth: '100%',
-};
+export const AMBER = 'bg-warning-muted text-warning-strong';
 
 function CheckGlyph() {
   return (
@@ -85,64 +77,44 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
 
   return (
     <div
-      className="wird-card"
-      style={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: 'var(--radius-xl)',
-        boxShadow: 'var(--shadow-e2)',
-        overflow: 'hidden',
-      }}
+      className="wird-card h-full flex flex-col bg-surface-main border border-subtle rounded-xl shadow-e2 overflow-hidden"
     >
       {/* I4/I5: amber stale bar across the top — informational, never blocks the disc. */}
       {stale && (
-        <div
-          style={{
-            flex: '0 0 auto',
-            padding: '8px var(--space-20)',
-            background: AMBER_BG,
-            color: AMBER_FG,
-            fontSize: 'var(--type-caption-size)',
-            fontWeight: 600,
-            textAlign: 'center',
-          }}
-        >
+        <div className={`flex-none py-2 px-5 text-caption font-semibold text-center ${AMBER}`}>
           {staleText}
         </div>
       )}
 
-      <div className="wird-fit-body" style={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+      <div className="wird-fit-body flex-1 min-h-0 flex flex-col">
         {/* Header: name + scope */}
-        <div style={{ flex: '0 0 auto' }}>
-          <div className="wird-fit-name" style={{ fontWeight: 700, ...ellipsis }}>{card.name}</div>
-          <div style={{ marginTop: 'var(--space-4)', fontSize: 'var(--type-small-size)', fontWeight: 500, color: 'var(--text-muted)', ...ellipsis }}>
+        <div className="flex-none">
+          <div className="wird-fit-name font-bold truncate max-w-full">{card.name}</div>
+          <div className="mt-1 text-small font-medium text-muted truncate max-w-full">
             {scopeText}
           </div>
         </div>
 
         {card.doneToday ? (
           /* I2: completed state. No next-portion task shown. */
-          <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--space-16)' }}>
-            <span className="wird-fit-done" style={{ fontWeight: 800, color: 'var(--text-accent)', textAlign: 'center' }}>
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-4">
+            <span className="wird-fit-done font-extrabold text-accent text-center">
               {t('wird.doneToday')}
             </span>
           </div>
         ) : (
-          <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-            <span style={{ fontSize: 'var(--type-caption-size)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--text-muted)' }}>
+          <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center">
+            <span className="text-caption font-semibold uppercase tracking-label text-muted">
               {t('wird.startAt')}
             </span>
             {/* Opening reference — the largest element (H7). */}
-            <span className="wird-fit-hero" style={{ display: 'block', fontWeight: 800, lineHeight: 1.1, marginTop: 'var(--space-4)', ...ellipsis }}>
+            <span className="wird-fit-hero block font-extrabold leading-none mt-1 truncate max-w-full">
               {fmtNum(card.opening)}
             </span>
-            <span style={{ display: 'block', marginTop: 'var(--space-4)', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)', ...ellipsis }}>
+            <span className="block mt-1 text-small font-semibold text-secondary truncate max-w-full">
               {t('wird.readTo', { ref: card.closing })}
             </span>
-            <span style={{ display: 'block', marginTop: 2, fontSize: 'var(--type-caption-size)', fontWeight: 500, color: 'var(--text-muted)', ...ellipsis }}>
+            <span className="block mt-1 text-caption font-medium text-muted truncate max-w-full">
               {card.portionSinglePage
                 ? t('wird.pageRangeOne', { range: card.portionRange })
                 : t('wird.pageRange', { range: card.portionRange })}
@@ -151,11 +123,11 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
         )}
 
         {/* Footer: progress + pages-to-go, then the disc in the thumb zone (H7/I8). */}
-        <div className="wird-fit-footer" style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column' }}>
+        <div className="wird-fit-footer flex-none flex flex-col">
           {!card.doneToday && (
             <>
               <Progress pct={card.pct} label={t('wird.progressLabel')} />
-              <span style={{ fontSize: 'var(--type-small-size)', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'center' }}>
+              <span className="text-small font-bold text-secondary text-center">
                 {card.pagesToGo === 1 ? t('wird.pagesToGoOne') : t('wird.pagesToGo', { n: card.pagesToGo })}
               </span>
             </>
@@ -164,28 +136,20 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
           {error && (
             <div
               role="alert"
-              style={{
-                background: 'var(--danger-muted)',
-                color: 'var(--danger)',
-                borderRadius: 'var(--radius-md)',
-                padding: '10px var(--space-12)',
-                fontSize: 'var(--type-small-size)',
-                fontWeight: 600,
-                lineHeight: 1.35,
-                textAlign: 'center',
-              }}
+              className="bg-danger-muted text-danger rounded-md py-2 px-3 text-small font-semibold leading-snug text-center"
             >
               {t('wird.completeFailed')}
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <div style={{ position: 'relative', display: 'inline-flex' }}>
+          <div className="flex justify-center">
+            <div className="relative inline-flex">
             {/* Radial burst lines, mounted only during the tap bounce so the
                 animation replays on every completion. */}
             {bouncing && (
               <span className="wird-rays" aria-hidden>
                 {Array.from({ length: 8 }, (_, i) => (
+                  // eslint-disable-next-line shadcn/no-inline-styles -- per-ray angle
                   <span key={i} style={{ ['--a' as string]: `${i * 45}deg` }} />
                 ))}
               </span>

@@ -46,38 +46,29 @@ export default function AcceptInvite({
 
       {error && (
         <div
-          className="card"
+          className="card py-3 px-4 text-danger bg-danger-muted border-danger-muted text-small"
           role="alert"
-          style={{
-            padding: '10px 14px',
-            color: 'var(--danger)',
-            background: 'var(--danger-muted)',
-            borderColor: 'var(--danger-muted)',
-            fontSize: 13,
-          }}
         >
           {error}
         </div>
       )}
 
-      <div className="card flex flex-col gap-5" style={{ padding: '20px 18px' }}>
-        <p className="text-sm" style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+      <div className="card flex flex-col gap-5 py-5 px-4">
+        <p className="text-sm text-secondary leading-relaxed">
           {t('accept.body', { teacher: teacherName })}
         </p>
         <div className="flex gap-2 flex-wrap">
           <ActionButton
             onClick={handleAccept}
             disabled={busy}
-            className="btn btn-primary"
-            style={{ minHeight: 44 }}
+            className="btn btn-primary btn-lg"
           >
             {t('accept.accept')}
           </ActionButton>
           <button
             onClick={() => router.push('/tracker')}
             disabled={busy}
-            className="btn btn-outline"
-            style={{ minHeight: 44 }}
+            className="btn btn-outline btn-lg"
           >
             {t('accept.decline')}
           </button>

@@ -133,7 +133,7 @@ describe('objectCount (L1)', () => {
     expect(objectCount({ objects: [{ type: 'path' }, { type: 'circle' }] })).toBe(2);
     expect(objectCount({ objects: [] })).toBe(0);
     expect(objectCount(null)).toBe(0);
-    expect(objectCount({} as any)).toBe(0);
+    expect(objectCount({})).toBe(0);
   });
 });
 

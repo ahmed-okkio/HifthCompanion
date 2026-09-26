@@ -18,8 +18,6 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
   const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  if (sets.length === 0) return null;
-
   const shareUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/share/${userId}/${pageNum}?set=${selectedSetId}`;
 
   const handleCopy = async () => {
@@ -33,10 +31,7 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
   };
 
   useLayoutEffect(() => {
-    if (!open || !buttonRef.current || typeof window === 'undefined') {
-      if (!open) setMenuPosition(null);
-      return;
-    }
+    if (!open || !buttonRef.current || typeof window === 'undefined') return;
 
     const updatePosition = () => {
       const rect = buttonRef.current?.getBoundingClientRect();
@@ -58,16 +53,18 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
     return () => {
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
+      setMenuPosition(null);
     };
   }, [open]);
+
+  if (sets.length === 0) return null;
 
   return (
     <div className="relative">
       <button
         ref={buttonRef}
         onClick={() => setOpen(o => !o)}
-        className="btn btn-outline"
-        style={{ fontSize: '12px', padding: '6px 14px' }}
+        className="btn btn-outline btn-sm"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -79,24 +76,23 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
         <div
           role="dialog"
           aria-label={t('share.shareLinkAriaLabel')}
-          className="card fixed z-[9999]"
-          style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px`, padding: '16px', width: '280px' }}
+          className="card fixed z-(--z-overlay) p-4 w-70"
+          // eslint-disable-next-line shadcn/no-inline-styles -- anchored to measured button position
+          style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
         >
-          <p className="text-xs font-semibold mb-3" style={{ color: 'var(--text-primary)' }}>
+          <p className="text-xs font-semibold mb-3 text-primary">
             {t('share.sharePage', { page: pageNum })}
           </p>
 
           {sets.length > 1 && (
             <div className="mb-3">
-              <label className="text-[10px] font-semibold mb-1 block"
-                     style={{ color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <label className="text-micro font-semibold mb-1 block text-muted uppercase tracking-wider">
                 {t('share.annotationSet')}
               </label>
               <select
                 value={selectedSetId}
                 onChange={e => setSelectedSetId(e.target.value)}
-                className="input input-sm w-full"
-                style={{ cursor: 'pointer' }}
+                className="input input-sm w-full cursor-pointer"
               >
                 {sets.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
@@ -107,19 +103,17 @@ export default function ShareButton({ userId, pageNum, sets }: Props) {
             <input
               readOnly
               value={shareUrl}
-              className="input input-sm flex-1 font-mono truncate"
-              style={{ fontSize: '10px' }}
+              className="input input-sm flex-1 font-mono truncate text-micro"
             />
             <button
               onClick={handleCopy}
-              className="btn btn-primary"
-              style={{ fontSize: '12px', padding: '6px 14px', flexShrink: 0 }}
+              className="btn btn-primary btn-sm shrink-0"
             >
               {copied ? <span className="flex items-center gap-1"><Icon name="check" size={13} /> {t('common.copied')}</span> : t('common.copy')}
             </button>
           </div>
 
-          <p className="mt-2.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+          <p className="mt-3 text-micro text-muted">
             {t('share.viewOnlyHint')}
           </p>
         </div>,

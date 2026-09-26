@@ -9,29 +9,30 @@ export function SegmentedControl({
   options,
   value,
   onChange,
+  tabs,
 }: {
   options: { key: string; label: string; icon?: ReactNode }[];
   value: string;
   onChange: (key: string) => void;
+  /** Render as an ARIA tablist (tab/aria-selected) instead of toggle buttons. */
+  tabs?: boolean;
 }) {
   const n = options.length;
   return (
     <div
+      role={tabs ? 'tablist' : undefined}
+      // inset ring instead of a border: with a real border, overflow:hidden
+      // clips children to the OUTER radius and the active segment's fill bleeds
+      // past the rounded corner. An inset shadow has no box offset, so the
+      // fill clips cleanly to the frame.
+      className="grid bg-surface-main inset-ring inset-ring-default rounded-md overflow-hidden"
       style={{
-        display: 'grid',
         // minmax(0,1fr) not 1fr: a bare 1fr keeps each cell at least its label's
         // min-content width, so a long label (e.g. "What I've memorized") widens
         // its column and overflows the frame's inline-end. minmax(0,…) lets cells
         // stay equal within the frame; long labels wrap instead of pushing out.
+        // eslint-disable-next-line shadcn/no-inline-styles -- column count from options
         gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))`,
-        background: 'var(--bg-input)',
-        // inset ring instead of a border: with a real border, overflow:hidden
-        // clips children to the OUTER radius and the active segment's fill bleeds
-        // past the rounded corner. An inset shadow has no box offset, so the
-        // fill clips cleanly to the frame.
-        boxShadow: 'inset 0 0 0 1px var(--border-default)',
-        borderRadius: 'var(--radius-md)',
-        overflow: 'hidden',
       }}
     >
       {options.map((o, i) => {
@@ -41,20 +42,10 @@ export function SegmentedControl({
             key={o.key}
             type="button"
             onClick={() => onChange(o.key)}
-            aria-pressed={on}
-            style={{
-              minHeight: 44,
-              padding: '6px 12px',
-              border: 'none',
-              borderInlineStart: i > 0 ? '1px solid var(--border-default)' : 'none',
-              cursor: 'pointer',
-              fontSize: 14,
-              fontWeight: 600,
-              lineHeight: 1.2,
-              background: on ? 'var(--accent)' : 'transparent',
-              color: on ? 'var(--accent-contrast)' : 'var(--text-secondary)',
-              transition: 'background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out)',
-            }}
+            role={tabs ? 'tab' : undefined}
+            aria-pressed={tabs ? undefined : on}
+            aria-selected={tabs ? on : undefined}
+            className={`min-h-11 px-3 py-1.5 cursor-pointer text-body font-semibold leading-tight transition-colors duration-(--duration-fast) ease-out ${i > 0 ? 'border-s border-solid border-s-default' : ''} ${on ? 'bg-accent text-accent-contrast' : 'bg-transparent text-secondary'}`}
           >
             <span className="flex items-center justify-center gap-2">
               {o.icon}

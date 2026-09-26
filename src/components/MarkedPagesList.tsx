@@ -36,28 +36,20 @@ function ColorChips({ colors }: { colors?: MarkColors }) {
   if (entries.length === 0) return null;
   // One line while they fit, wrapping to a second rather than shrinking or clipping.
   return (
-    <span className="flex min-w-0 flex-1 flex-wrap items-center" style={{ gap: '4px' }}>
+    <span className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
       {entries.map(([hex, n]) => {
         const name = PRESET_NAMES[hex.toLowerCase()];
         return (
           <span
             key={hex}
             aria-label={t('reader.markCountColor', { n, color: name ? t(`color.${name}` as MessageKey) : hex })}
-            className="inline-flex shrink-0 items-center tabular-nums"
-            style={{
-              gap: '3px',
-              padding: '1px 6px 1px 4px',
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--neutral-100)',
-              fontSize: 'var(--type-meta-size)',
-              fontWeight: 700,
-              color: 'var(--text-secondary)',
-            }}
+            className="inline-flex shrink-0 items-center gap-0.75 rounded-full bg-neutral-100 py-px ps-1 pe-1.5 text-meta font-bold text-secondary tabular-nums"
           >
             <span
               aria-hidden
-              className="shrink-0"
-              style={{ width: '7px', height: '7px', borderRadius: 'var(--radius-full)', background: hex }}
+              className="size-1.75 shrink-0 rounded-full"
+              // eslint-disable-next-line shadcn/no-inline-styles -- colour comes from data
+              style={{ background: hex }}
             />
             {fmtNum(n)}
           </span>
@@ -112,7 +104,7 @@ export default function MarkedPagesList({
 
   if (rows.length === 0) {
     return (
-      <p className="px-4 py-6 text-center" style={{ color: 'var(--text-muted)', fontSize: 'var(--type-small-size)' }}>
+      <p className="px-4 py-6 text-center text-small text-muted">
         {t('reader.noMarkedPages')}
       </p>
     );
@@ -123,54 +115,39 @@ export default function MarkedPagesList({
     const inner = (
       <>
         <span
-          className="shrink-0 truncate"
-          style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-primary)' }}
+          className="shrink-0 truncate text-small font-semibold text-primary"
         >
           {t('reader.pageNum', { n: row.page })}
         </span>
         <ColorChips colors={row.colors} />
         <span
-          className="shrink-0 inline-flex items-center justify-center tabular-nums"
+          className="shrink-0 inline-flex items-center justify-center tabular-nums ms-auto h-7 min-w-7 px-2 rounded-full text-meta font-bold"
           aria-label={marksLabel(row.count)}
-          style={{
-            marginInlineStart: 'auto',
-            height: '28px',
-            minWidth: '28px',
-            padding: '0 8px',
-            borderRadius: 'var(--radius-full)',
-            fontSize: 'var(--type-meta-size)',
-            fontWeight: 700,
-            background: badge.bg,
-            color: badge.fg,
-          }}
+          // eslint-disable-next-line shadcn/no-inline-styles -- badge colour from mark count (BADGE_COLORS, exported)
+          style={{ background: badge.bg, color: badge.fg }}
         >
           {fmtNum(row.count)}
         </span>
       </>
     );
     // Rows sit inside a surah card, so they run short and indent past its caret.
-    // No `background` here: an inline style outranks any stylesheet rule, so setting it
-    // would silently kill the hover / pressed states .marked-row defines in globals.css.
-    const box: React.CSSProperties = {
-      minHeight: '44px',
-      paddingBlock: '8px',
-      paddingInlineStart: '30px',
-    };
+    // No bg class here: .marked-row in globals.css owns the hover / pressed states.
+    const box = 'min-h-11 py-2 ps-7.5';
     // marked-row carries hover / pressed / focus — see globals.css.
-    const cls = 'marked-row flex w-full items-center gap-2 px-4 text-start';
+    const cls = `marked-row flex w-full items-center gap-2 px-4 text-start ${box}`;
     return (
       <li key={row.page}>
         {hrefFor ? (
-          <a href={hrefFor(row.page)} className={cls} style={box}>
+          <a href={hrefFor(row.page)} className={cls}>
             {inner}
           </a>
         ) : onJump ? (
-          <button type="button" onClick={() => onJump(row.page)} className={cls} style={box}>
+          <button type="button" onClick={() => onJump(row.page)} className={cls}>
             {inner}
           </button>
         ) : (
           // C2: read-only surface — static row, no jump/press affordance.
-          <div className="flex w-full items-center gap-2 px-4" style={box}>
+          <div className={`flex w-full items-center gap-2 px-4 ${box}`}>
             {inner}
           </div>
         )}
@@ -186,29 +163,16 @@ export default function MarkedPagesList({
           <details
             key={group.key}
             open={open}
-            className="overflow-hidden"
-            style={{
-              border: '1px solid var(--border-subtle)',
-              borderColor: open ? 'var(--border-accent)' : 'var(--border-subtle)',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--surface-main)',
-            }}
+            className={`overflow-hidden rounded-md border bg-surface-main ${open ? 'border-accent-border' : 'border-subtle'}`}
           >
             <summary
               // The open state is React's, so the browser's own toggle has to stand down.
               onClick={e => { e.preventDefault(); toggleSurah(group.key); }}
-              className="marked-summary flex items-center gap-2 px-3"
-              style={{ minHeight: '48px', paddingBlock: '8px' }}
+              className="marked-summary flex items-center gap-2 px-3 min-h-12 py-2"
             >
               <svg
                 aria-hidden
-                className="shrink-0 transition-transform duration-200"
-                style={{
-                  width: '14px',
-                  height: '14px',
-                  color: open ? 'var(--text-accent)' : 'var(--text-muted)',
-                  transform: open ? 'rotate(90deg)' : undefined,
-                }}
+                className={`size-3.5 shrink-0 transition-transform duration-200 ${open ? 'rotate-90 text-accent' : 'text-muted'}`}
                 viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}
               >
                 <path d="M9 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
@@ -218,33 +182,25 @@ export default function MarkedPagesList({
                     a boundary page names two, and pairing each with its Arabic would not
                     fit the 300px header. */}
                 <span
-                  className="truncate"
                   title={groupName(group.surahs)}
-                  style={{ fontSize: 'var(--type-small-size)', fontWeight: 700, color: 'var(--text-primary)' }}
+                  className="truncate text-small font-bold text-primary"
                 >
                   {groupName(group.surahs)}
                 </span>
-                <span className="tabular-nums" style={{ fontSize: 'var(--type-meta-size)', fontWeight: 600, color: 'var(--text-muted)' }}>
+                <span className="tabular-nums text-meta font-semibold text-muted">
                   {pagesLabel(group.pages.length)} · {marksLabel(group.count)}
                 </span>
               </span>
               {/* A collapsed card hides its Needs Focus pill — the dot keeps the L3 signal up here. */}
               {group.hasFocus && (
                 <span
-                  className="shrink-0"
+                  className="shrink-0 ms-auto size-2 rounded-full bg-danger"
                   title={t('reader.surahNeedsFocus')}
                   aria-label={t('reader.surahNeedsFocus')}
-                  style={{
-                    marginInlineStart: 'auto',
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: 'var(--radius-full)',
-                    background: 'var(--danger-500)',
-                  }}
                 />
               )}
             </summary>
-            <ul className="marked-rows" style={{ borderTop: '1px solid var(--border-subtle)', background: 'var(--bg-base)' }}>
+            <ul className="marked-rows border-t border-subtle bg-surface-app">
               {group.pages.map(row => pageRow(row))}
             </ul>
           </details>

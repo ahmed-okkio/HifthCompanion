@@ -9,11 +9,11 @@ import { Sk } from '@/components/Skeleton';
  */
 export default function CircleSkeleton() {
   return (
-    <main className="px-4 py-6 w-full" style={{ overflowY: 'auto', height: '100%' }}>
-      <div className="max-w-[96rem] mx-auto w-full grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)_300px] items-start">
+    <main className="px-4 py-6 w-full overflow-y-auto h-full">
+      <div className="max-w-384 mx-auto w-full grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)_300px] items-start">
         {/* Left: profile card + panel */}
         <div className="flex flex-col gap-3">
-          <div className="card flex flex-col items-center gap-3" style={{ padding: 22 }}>
+          <div className="card flex flex-col items-center gap-3 p-4">
             <Sk w={64} h={64} r={32} />
             <Sk w={140} h={20} />
             <Sk w={100} h={14} />

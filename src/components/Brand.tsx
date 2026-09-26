@@ -18,18 +18,11 @@ import { useI18n } from './I18nProvider';
 export default function Brand() {
   const { t } = useI18n();
   return (
-    <Link href="/reader" className="flex items-center gap-3 min-w-0" style={{ textDecoration: 'none', flexShrink: 0 }}>
+    <Link href="/reader" className="flex items-center gap-3 min-w-0 no-underline shrink-0">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.png" alt={t('nav.logoAlt')} style={{ height: 52, width: 'auto', objectFit: 'contain' }} />
+      <img src="/logo.png" alt={t('nav.logoAlt')} className="h-13 w-auto object-contain" />
       <span
-        className="whitespace-nowrap"
-        style={{
-          color: 'var(--text-primary)',
-          fontFamily: 'var(--font-brand), system-ui, sans-serif',
-          fontSize: '1.2rem',
-          fontWeight: 400,
-          letterSpacing: '0.01em',
-        }}
+        className="whitespace-nowrap text-primary font-normal tracking-normal text-heading-m font-display"
       >
         Hifth Companion
       </span>

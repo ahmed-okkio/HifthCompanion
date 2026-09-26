@@ -19,13 +19,13 @@ export default async function SetsPage() {
 
   return (
     <>
-      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full overflow-y-auto h-full">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            <h1 className="text-xl font-bold text-primary">
               {dict['sets.pageTitle']}
             </h1>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs mt-1 text-muted">
               {dict['sets.pageSubtitle']}
             </p>
           </div>
@@ -34,8 +34,7 @@ export default async function SetsPage() {
         <SetsList initialSets={sets} />
       </main>
       <footer
-        className="w-full text-center text-xs tracking-wider uppercase border-t"
-        style={{ padding: '10px 0', color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
+        className="w-full text-center text-xs tracking-wider uppercase border-t py-2 text-muted border-subtle bg-surface-app"
       >
         {dict['home.footer']}
       </footer>

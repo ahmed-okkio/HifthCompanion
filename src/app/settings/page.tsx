@@ -27,9 +27,8 @@ export default async function SettingsPage() {
 
   return (
     <AppShell profile={<ProfileMenu name={account.name} email={account.email} />}>
-      <main className="max-w-2xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full"
-            style={{ overflowY: 'auto', height: '100%' }}>
-        <div className="flex flex-col" style={{ gap: 'var(--space-32)' }}>
+      <main className="max-w-2xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full overflow-y-auto h-full">
+        <div className="flex flex-col gap-8">
           <SettingsHeader />
 
           <SettingsSection labelKey="settings.sectionHifth">

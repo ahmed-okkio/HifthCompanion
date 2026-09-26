@@ -4,7 +4,7 @@ import { Sk } from '@/components/Skeleton';
 // and the SetsList rows.
 export default function Loading() {
   return (
-    <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 w-full" style={{ overflowY: 'auto', height: '100%' }}>
+    <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 w-full overflow-y-auto h-full">
       <div className="flex items-center justify-between mb-6">
         <div className="flex flex-col gap-2">
           <Sk w={160} h={22} />

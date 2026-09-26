@@ -36,20 +36,20 @@ export default function ManageList({ rows, memorizedPages }: { rows: ManageRow[]
   const [editing, setEditing] = useState<WirdEdit | null>(null);
 
   return (
-    <main className="w-full" style={{ maxWidth: 560, margin: '0 auto', padding: 'var(--space-20) var(--space-16) var(--space-32)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-20)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--type-heading-m-size)', fontWeight: 700, color: 'var(--text-primary)' }}>
+    <main className="w-full max-w-140 mx-auto pt-5 px-4 pb-8">
+      <div className="flex items-center justify-between mb-5">
+        <h1 className="m-0 text-heading-m font-bold text-primary">
           {t('wird.manageTitle')}
         </h1>
-        <Link href="/wird" className="btn btn-ghost" style={{ minHeight: 40 }}>
+        <Link href="/wird" className="btn btn-ghost">
           {t('wird.back')}
         </Link>
       </div>
 
       {rows.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)', fontSize: 'var(--type-small-size)' }}>{t('wird.manageEmpty')}</p>
+        <p className="text-muted text-small">{t('wird.manageEmpty')}</p>
       ) : (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-12)' }}>
+        <ul className="list-none m-0 p-0 flex flex-col gap-3">
           {rows.map((r) => (
             <Row key={r.id} row={r} onEdit={() => setEditing(r)} onChanged={() => router.refresh()} />
           ))}
@@ -121,23 +121,23 @@ function Row({ row, onEdit, onChanged }: { row: ManageRow; onEdit: () => void; o
       : new Date(iso).toLocaleDateString(locale === 'ar' ? 'ar' : 'en', { month: 'short', day: 'numeric' });
 
   return (
-    <li style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-16)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-12)' }}>
-        <div style={{ flex: '1 1 0', minWidth: 0 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+    <li className="card p-4">
+      <div className="flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="text-body font-bold text-primary truncate">
             {row.name}
           </div>
-          <div style={{ marginTop: 'var(--space-4)', fontSize: 'var(--type-small-size)', color: 'var(--text-muted)' }}>
+          <div className="mt-1 text-small text-muted">
             {scopeText} · {rateText}
           </div>
         </div>
-        <button type="button" className="btn btn-ghost" style={{ minHeight: 40 }} onClick={onEdit}>{t('wird.editAction')}</button>
-        <button type="button" className="btn btn-ghost" style={{ minHeight: 40, color: 'var(--danger)' }} disabled={busy} onClick={onDelete}>
+        <button type="button" className="btn btn-ghost" onClick={onEdit}>{t('wird.editAction')}</button>
+        <button type="button" className="btn btn-danger-ghost" disabled={busy} onClick={onDelete}>
           {t('wird.deleteAction')}
         </button>
       </div>
 
-      <div style={{ marginTop: 'var(--space-12)' }}>
+      <div className="mt-3">
         <WirdHeatmap doneDates={row.doneDates} />
       </div>
 
@@ -145,27 +145,27 @@ function Row({ row, onEdit, onChanged }: { row: ManageRow; onEdit: () => void; o
         type="button"
         onClick={toggleHistory}
         aria-expanded={open}
-        style={{ marginTop: 'var(--space-8)', border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)' }}
+        className="mt-2 border-none bg-transparent cursor-pointer p-0 text-small font-semibold text-secondary"
       >
         {open ? '▾ ' : '▸ '}{t('wird.history')}
       </button>
 
-      {error && <p role="alert" className="text-sm" style={{ color: 'var(--danger)', marginTop: 'var(--space-8)' }}>{error}</p>}
+      {error && <p role="alert" className="text-sm text-danger mt-2">{error}</p>}
 
       {open && (
         entries === null ? (
-          <p style={{ marginTop: 'var(--space-8)', fontSize: 'var(--type-small-size)', color: 'var(--text-muted)' }}>{t('common.loading')}</p>
+          <p className="mt-2 text-small text-muted">{t('common.loading')}</p>
         ) : entries.length === 0 ? (
-          <p style={{ marginTop: 'var(--space-8)', fontSize: 'var(--type-small-size)', color: 'var(--text-muted)' }}>{t('wird.historyEmpty')}</p>
+          <p className="mt-2 text-small text-muted">{t('wird.historyEmpty')}</p>
         ) : (
-          <ul style={{ listStyle: 'none', margin: 'var(--space-8) 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+          <ul className="list-none mt-2 mb-0 mx-0 p-0 flex flex-col gap-1">
             {entries.map((e) => (
-              <li key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-12)', padding: 'var(--space-8) 0', borderTop: '1px solid var(--border-subtle)' }}>
-                <span style={{ flex: '0 0 auto', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)', minWidth: 56 }}>{fmtDate(e.entry_date)}</span>
-                <span style={{ flex: '1 1 0', fontSize: 'var(--type-small-size)', color: 'var(--text-muted)' }}>
+              <li key={e.id} className="flex items-center gap-3 py-2 border-t border-subtle">
+                <span className="flex-none text-small font-semibold text-secondary min-w-14">{fmtDate(e.entry_date)}</span>
+                <span className="flex-1 text-small text-muted">
                   {t('wird.scopePages', { range: e.page_start === e.page_end ? `${fmtNum(e.page_start)}` : `${fmtNum(e.page_start)}–${fmtNum(e.page_end)}` })}
                 </span>
-                <button type="button" className="btn btn-ghost" style={{ minHeight: 36, color: 'var(--danger)' }} disabled={busy} onClick={() => onUndo(e)}>
+                <button type="button" className="btn btn-danger-ghost btn-sm" disabled={busy} onClick={() => onUndo(e)}>
                   {t('wird.undo')}
                 </button>
               </li>

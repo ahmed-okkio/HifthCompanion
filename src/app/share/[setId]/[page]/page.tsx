@@ -60,12 +60,11 @@ export default async function SharePage({ params, searchParams }: Props) {
     const { data: { user } } = await (await createClient()).auth.getUser();
 
     return (
-      <div className="animate-fade-in-scale flex flex-col gap-3" style={{ animationDelay: '100ms' }}>
+      <div className="animate-fade-in-scale flex flex-col gap-3 [animation-delay:100ms]">
         {cap.studentPath && (
           <a
             href={cap.studentPath}
-            className="btn btn-primary w-full transition-transform duration-150 hover:-translate-y-0.5"
-            style={{ fontSize: '13px' }}
+            className="btn btn-primary w-full transition-transform duration-150 hover:-translate-y-0.5 text-small"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -98,7 +97,7 @@ export default async function SharePage({ params, searchParams }: Props) {
   return (
     <ShareShell basePath={`/share/${setId}`} pageNum={pageNum} setName={setName} ownerName={cap.ownerName} account={cap.account}>
       <main className="w-full flex-grow px-4 pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-8 sm:pb-8 animate-fade-in lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:pb-8">
-        <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-6 items-start lg:h-full lg:min-h-0 lg:items-start lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] lg:justify-center">
+        <div className="mx-auto grid w-full max-w-330 grid-cols-1 gap-6 items-start lg:h-full lg:min-h-0 lg:items-start lg:grid-cols-[minmax(0,1fr)_minmax(240px,280px)] lg:justify-center">
 
           <div className="flex min-w-0 flex-col gap-4">
             {/* Opened from a homework/exam card — say what the page is for. The
@@ -107,9 +106,8 @@ export default async function SharePage({ params, searchParams }: Props) {
             <ReaderTaskBanner />
 
             {/* Read-only badge */}
-            <div className="mx-auto flex w-fit items-center gap-2 rounded-lg px-3 py-2"
-                 style={{ background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', color: 'var(--text-muted)', fontSize: '12px' }}>
-              <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <div className="mx-auto flex w-fit items-center gap-2 rounded-lg px-3 py-2 bg-surface-main border border-subtle text-muted text-caption">
+              <svg className="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
               <span>Shared annotation — read-only</span>

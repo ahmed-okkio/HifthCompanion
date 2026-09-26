@@ -20,32 +20,19 @@ export default function ZoomControl({
     <div
       data-testid="zoom-control"
       aria-label={t('reader.zoomControls')}
-      className="hidden lg:flex items-center justify-center"
-      style={{
-        marginTop: 'var(--space-12)',
-        height: '52px',
-        background: 'var(--surface-main)',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid rgba(15, 23, 42, 0.05)',
-        boxShadow: 'var(--shadow-e2)',
-        padding: '0 var(--space-8)',
-        userSelect: 'none',
-      }}
+      className="mt-3 hidden h-13 select-none items-center justify-center rounded-lg border border-subtle bg-surface-main px-2 shadow-e2 lg:flex"
     >
       <button
         type="button"
         aria-label={t('reader.zoomOut')}
         onClick={onZoomOut}
         disabled={zoom <= 50}
-        className="flex items-center justify-center"
-        style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: zoom <= 50 ? 'default' : 'pointer', color: 'var(--neutral-600)', fontSize: '20px', fontWeight: 500, opacity: zoom <= 50 ? 0.4 : 1 }}
-        onMouseEnter={e => { if (zoom > 50) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+        className="btn btn-ghost btn-icon text-heading-m"
       >
         −
       </button>
 
-      <span style={{ minWidth: '52px', textAlign: 'center', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+      <span className="min-w-13 text-center text-small font-semibold tabular-nums text-primary">
         {zoom}%
       </span>
 
@@ -54,24 +41,18 @@ export default function ZoomControl({
         aria-label={t('reader.zoomIn')}
         onClick={onZoomIn}
         disabled={zoom >= 200}
-        className="flex items-center justify-center"
-        style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: zoom >= 200 ? 'default' : 'pointer', color: 'var(--neutral-600)', fontSize: '20px', fontWeight: 500, opacity: zoom >= 200 ? 0.4 : 1 }}
-        onMouseEnter={e => { if (zoom < 200) (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+        className="btn btn-ghost btn-icon text-heading-m"
       >
         +
       </button>
 
-      <div aria-hidden="true" style={{ width: '1px', height: '24px', background: 'var(--border-subtle)', margin: '0 var(--space-8)' }} />
+      <div aria-hidden="true" className="mx-2 h-6 w-px bg-subtle" />
 
       <button
         type="button"
         aria-label={t('reader.resetZoom')}
         onClick={onReset}
-        className="flex items-center gap-2"
-        style={{ height: '38px', padding: '0 var(--space-12)', borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '13px', fontWeight: 500, color: 'var(--neutral-600)', whiteSpace: 'nowrap' }}
-        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+        className="btn btn-ghost"
       >
         <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M20 9a8 8 0 00-14.9-3M4 15a8 8 0 0014.9 3" />

@@ -62,6 +62,7 @@ export default function WirdForm({
   const editing = wird != null;
 
   const [name, setName] = useState(wird?.name ?? '');
+  const [openedAt] = useState(() => Date.now());
   const [preset, setPreset] = useState<Preset>(
     wird ? (wird.scope_source === 'memorized' ? 'memorized' : '') : 'whole',
   );
@@ -126,7 +127,7 @@ export default function WirdForm({
     : scope.page_end - firstPage + 1;
 
   const finishDays = passPages > 0 ? projectedFinishDays(passPages, rate) : 0;
-  const finishDate = new Date(Date.now() + finishDays * 86_400_000).toLocaleDateString(
+  const finishDate = new Date(openedAt + finishDays * 86_400_000).toLocaleDateString(
     locale === 'ar' ? 'ar' : 'en',
     { year: 'numeric', month: 'long', day: 'numeric' },
   );
@@ -166,35 +167,21 @@ export default function WirdForm({
       aria-label={t(editing ? 'wird.editWird' : 'wird.newWird')}
       dir={locale === 'ar' ? 'rtl' : 'ltr'}
       onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 100,
-        background: 'rgba(15,23,42,0.45)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 'var(--space-16)',
-      }}
+      className="fixed inset-0 z-(--z-overlay) bg-overlay flex items-center justify-center p-4"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          background: 'var(--surface-main)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-e3)',
-          width: 'min(480px, 100%)',
-          maxHeight: '88vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
+        className="bg-surface-main rounded-xl shadow-e3 w-full max-w-120 max-h-[88vh] flex flex-col overflow-hidden"
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--space-20) var(--space-24) var(--space-12)', flexShrink: 0 }}>
-          <h2 style={{ fontSize: 'var(--type-heading-m-size)', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+        <div className="flex items-center justify-between pt-5 px-6 pb-3 shrink-0">
+          <h2 className="text-heading-m font-bold text-primary m-0">
             {t(editing ? 'wird.editWird' : 'wird.newWird')}
           </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label={t('wird.cancel')}
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, lineHeight: 0 }}
+            className="btn btn-ghost btn-icon btn-sm"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -203,16 +190,15 @@ export default function WirdForm({
           </button>
         </div>
 
-        <div className="thin-scroll" style={{ overflowY: 'auto', padding: '0 var(--space-24) var(--space-24)', display: 'flex', flexDirection: 'column', gap: 'var(--space-20)' }}>
+        <div className="thin-scroll overflow-y-auto px-6 pb-6 flex flex-col gap-5">
           {/* Name */}
-          <label className="flex flex-col gap-1 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+          <label className="flex flex-col gap-1 text-xs font-semibold text-secondary">
             {t('wird.formName')}
             <input
-              className="input"
+              className="input font-normal"
               value={name}
               placeholder={t('wird.formNamePlaceholder')}
               onChange={(e) => setName(e.target.value)}
-              style={{ fontWeight: 400 }}
             />
           </label>
 
@@ -235,16 +221,16 @@ export default function WirdForm({
                 values={memorized ? memorizedPages : undefined}
                 onChange={setStartPage}
               />
-              <span data-testid="start-page-content" className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <span data-testid="start-page-content" className="text-sm font-semibold text-primary">
                 {pageContent}
               </span>
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('wird.startFromHint')}</span>
+              <span className="text-xs text-muted">{t('wird.startFromHint')}</span>
             </div>
           )}
 
           {/* Rate (K7) */}
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+            <span className="text-xs font-semibold text-secondary">
               {t('wird.formRate')}
             </span>
             <div className="flex flex-wrap items-end gap-3">
@@ -258,10 +244,10 @@ export default function WirdForm({
                 max={TOTAL_PAGES}
                 onChange={setPagesPerPeriod}
               />
-              <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+              <label className="flex flex-col gap-1 text-xs text-secondary">
                 {t('wird.ratePeriod')}
                 <select
-                  className="input"
+                  className="input h-10 w-auto"
                   value={periodDays}
                   onChange={(e) => {
                     const d = Number(e.target.value);
@@ -269,7 +255,6 @@ export default function WirdForm({
                     // keep rate ≥ 1 page/day (never a 0-page portion)
                     if (pagesPerPeriod < d) setPagesPerPeriod(d);
                   }}
-                  style={{ height: 40, width: 'auto' }}
                 >
                   {PERIODS.map((p) => (
                     <option key={p} value={p}>{t(`wird.period${p}`)}</option>
@@ -277,32 +262,31 @@ export default function WirdForm({
                 </select>
               </label>
             </div>
-            <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{dailyLabel}</p>
+            <p className="text-sm font-semibold text-primary">{dailyLabel}</p>
           </div>
 
           {/* Projected finish + slow-rate consequence (K1/K9) */}
           {projectionLabel && (
-            <p className="text-sm" style={{ color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+            <p className="text-sm text-secondary leading-normal">
               {projectionLabel}
             </p>
           )}
 
           {error && (
-            <p className="text-sm" role="alert" style={{ color: 'var(--danger)', lineHeight: 1.45 }}>
+            <p className="text-sm text-danger leading-normal" role="alert">
               {error}
             </p>
           )}
 
           <div className="flex items-center justify-end gap-2">
-            <button type="button" onClick={onClose} className="btn btn-ghost" style={{ minHeight: 44 }}>
+            <button type="button" onClick={onClose} className="btn btn-ghost btn-lg">
               {t('wird.cancel')}
             </button>
             <button
               type="button"
               onClick={submit}
               disabled={endBeforeStart}
-              className="btn btn-primary"
-              style={{ minHeight: 44, opacity: endBeforeStart ? 0.6 : 1 }}
+              className={`btn btn-primary btn-lg ${endBeforeStart ? 'opacity-60' : ''}`}
             >
               {t(editing ? 'wird.saveChanges' : 'wird.create')}
             </button>

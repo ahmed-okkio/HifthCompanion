@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import type { CSSProperties } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 
 /** Labeled −/+ stepper for bounded numbers (page ranges). Replaces bare
@@ -37,34 +36,14 @@ export function NumberStepper({
     const i = values.indexOf(clamp(value)) + delta;
     onChange(values[Math.max(0, Math.min(values.length - 1, i))]);
   };
-  const btn: CSSProperties = {
-    width: 34,
-    alignSelf: 'stretch',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 16,
-    fontWeight: 600,
-    color: 'var(--text-muted)',
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    transition: 'all var(--duration-fast) var(--ease-out)',
-  };
+  const btn = 'w-8 self-stretch flex items-center justify-center text-body font-semibold text-muted bg-transparent border-none cursor-pointer transition-all duration-(--duration-fast) ease-out';
   return (
-    <label className="flex flex-col gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+    <label className="flex flex-col gap-1 text-caption text-secondary">
       {label}
       <span
-        className="flex items-center"
-        style={{
-          height: 40,
-          border: '1px solid var(--border-default)',
-          borderRadius: 'var(--radius-sm)',
-          background: 'var(--bg-input)',
-          overflow: 'hidden',
-        }}
+        className="flex items-center h-10 border border-default rounded-sm bg-surface-main overflow-hidden"
       >
-        <button type="button" aria-label={t('common.decrement')} tabIndex={-1} style={btn}
+        <button type="button" aria-label={t('common.decrement')} tabIndex={-1} className={btn}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => step(-1)}>
           −
@@ -86,18 +65,9 @@ export function NumberStepper({
             setDraft(null);
           }}
           onFocus={(e) => e.target.select()}
-          style={{
-            width: 46,
-            textAlign: 'center',
-            border: 'none',
-            outline: 'none',
-            background: 'transparent',
-            fontSize: 14,
-            fontWeight: 600,
-            color: 'var(--text-primary)',
-          }}
+          className="w-12 text-center border-none outline-none bg-transparent text-body font-semibold text-primary"
         />
-        <button type="button" aria-label={t('common.increment')} tabIndex={-1} style={btn}
+        <button type="button" aria-label={t('common.increment')} tabIndex={-1} className={btn}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => step(1)}>
           +

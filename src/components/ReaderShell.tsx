@@ -21,15 +21,11 @@ import { createClient } from '@/lib/supabase/client';
 import { markedPages as fetchMarkedPages } from '@/lib/services/markedPages';
 import type { MarkColors, MarkedPage } from '@/lib/markedPages';
 
-const FALLBACK_NAV_HEIGHT = 72;
+const FALLBACK_NAV_HEIGHT = 72; // mirrored by h-18 / [--nav-h:72px] in ReaderShellSkeleton
 
-/** Shared shimmer gradient style for skeleton blocks. */
-const SHIMMER: React.CSSProperties = {
-  background: 'linear-gradient(90deg, rgba(15,23,42,0.04) 0%, rgba(15,23,42,0.08) 50%, rgba(15,23,42,0.04) 100%)',
-  backgroundSize: '200% 100%',
-  animation: 'shimmer 1.4s linear infinite',
-  borderRadius: 'var(--radius-md, 8px)',
-};
+/** Shared shimmer gradient classes for skeleton blocks. */
+const SHIMMER = 'rounded-md skeleton';
+const ROW_WIDTHS = ['w-[85%]', 'w-[75%]', 'w-[65%]'];
 
 /** Full-shell skeleton shown while a redirect is pending.
  *  Mirrors all three regions so the entire page appears at once after the redirect. */
@@ -37,45 +33,34 @@ function ShellSkeleton() {
   return (
     <>
       {/* REGION 1 skeleton — nav rail + surah sidebar (desktop only) */}
-      <div className="hidden lg:flex flex-shrink-0" style={{ height: '100%', overflow: 'hidden', zIndex: 1 }}>
+      <div className="hidden lg:flex flex-shrink-0 h-full overflow-hidden z-1">
         {/* Nav rail slot */}
-        <div className="flex-shrink-0" style={{ width: '96px', height: '100%' }}>
+        <div className="flex-shrink-0 w-24 h-full">
           <NavRail />
         </div>
         {/* Surah sidebar skeleton */}
         <div
-          className="flex flex-col flex-shrink-0 gap-3"
-          style={{
-            width: '300px', height: '100%', overflow: 'hidden',
-            background: 'var(--surface-main)', boxShadow: 'var(--shadow-e2)',
-            padding: '16px 12px',
-          }}
+          className="flex flex-col flex-shrink-0 gap-3 w-75 h-full overflow-hidden bg-surface-main shadow-e2 px-3 py-4"
         >
           {/* Search bar skeleton */}
-          <div style={{ ...SHIMMER, height: '40px', width: '100%' }} />
+          <div className={`${SHIMMER} h-10 w-full`} />
           {/* Surah list item skeletons */}
           {Array.from({ length: 12 }, (_, i) => (
-            <div key={i} style={{ ...SHIMMER, height: '36px', width: `${85 - (i % 3) * 10}%` }} />
+            <div key={i} className={`${SHIMMER} h-9 ${ROW_WIDTHS[i % 3]}`} />
           ))}
         </div>
       </div>
 
       {/* REGION 2 skeleton — canvas workspace */}
       <div
-        className="lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col lg:flex-1 lg:min-w-0"
-        style={{ flex: 1, minWidth: 0, background: 'var(--surface-app)' }}
+        className="flex-1 min-w-0 bg-surface-app lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col lg:flex-1 lg:min-w-0"
       >
         <main className="w-full flex-grow px-4 pt-6 pb-2 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:py-0">
-          <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
+          <div className="mx-auto flex w-full max-w-330 flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
             <div className="mx-auto w-fit">
+              {/* Quran page ~= 1:1.42 */}
               <div
-                style={{
-                  width: 'clamp(280px, 40vw, 540px)',
-                  aspectRatio: '0.704', /* Quran page ~= 1:1.42 */
-                  borderRadius: 'var(--radius-page, 12px)',
-                  ...SHIMMER,
-                  boxShadow: '0 6px 16px rgba(15, 23, 42, 0.10)',
-                }}
+                className={`${SHIMMER} w-[clamp(280px,40vw,540px)] aspect-page rounded-page shadow-page`}
               />
             </div>
           </div>
@@ -84,15 +69,14 @@ function ShellSkeleton() {
 
       {/* REGION 3 skeleton — context panel */}
       <div
-        className="w-full px-4 sm:px-6 lg:flex lg:flex-col lg:flex-shrink-0 lg:w-[320px] lg:px-0 lg:h-full lg:min-h-0"
-        style={{ paddingTop: 'var(--space-24)' }}
+        className="w-full px-4 pt-6 sm:px-6 lg:flex lg:flex-col lg:flex-shrink-0 lg:w-80 lg:px-0 lg:h-full lg:min-h-0"
       >
         <div className="flex flex-col gap-4">
           {/* Sets card skeleton */}
-          <div style={{ ...SHIMMER, height: '52px', width: '100%' }} />
+          <div className={`${SHIMMER} h-13 w-full`} />
           {/* Notes / share panel skeleton */}
-          <div style={{ ...SHIMMER, height: '160px', width: '100%' }} />
-          <div style={{ ...SHIMMER, height: '100px', width: '80%' }} />
+          <div className={`${SHIMMER} h-40 w-full`} />
+          <div className={`${SHIMMER} h-25 w-4/5`} />
         </div>
       </div>
     </>
@@ -106,20 +90,18 @@ function ShellSkeleton() {
  *  entry so there's no blank delay before the reader paints. */
 export function ReaderShellSkeleton() {
   return (
-    <div className="lg:h-[100dvh] lg:flex lg:flex-col lg:overflow-hidden" style={{ background: 'var(--bg-base)' }}>
+    <div className="lg:h-dvh lg:flex lg:flex-col lg:overflow-hidden bg-surface-app">
       {/* Top nav bar placeholder — mirrors ReaderNav height/chrome. */}
       <div
-        className="lg:flex-shrink-0 flex items-center gap-3"
-        style={{ height: FALLBACK_NAV_HEIGHT, padding: '0 var(--space-16)', background: 'var(--surface-main)', borderBottom: '1px solid var(--border-subtle)', boxShadow: 'var(--shadow-e1)' }}
+        className="lg:flex-shrink-0 flex items-center gap-3 h-18 px-4 bg-surface-main border-b border-subtle shadow-e1"
       >
         {/* Brand is static — render it for real (only the page navigator + profile shimmer). */}
         <span className="hidden lg:flex min-w-0"><Brand /></span>
-        <div style={{ ...SHIMMER, width: 180, height: 40, borderRadius: 'var(--radius-md)', margin: '0 auto' }} />
-        <div style={{ ...SHIMMER, width: 36, height: 36, borderRadius: '50%' }} />
+        <div className={`${SHIMMER} w-45 h-10 mx-auto`} />
+        <div className={`${SHIMMER} size-9 !rounded-full`} />
       </div>
       <div
-        className="flex flex-col mobile-nav-offset lg:flex-1 lg:min-h-0 lg:flex-row lg:items-stretch lg:gap-6 lg:pr-6"
-        style={{ ['--nav-h' as string]: `${FALLBACK_NAV_HEIGHT}px`, background: 'var(--surface-app)' } as React.CSSProperties}
+        className="[--nav-h:72px] flex flex-col mobile-nav-offset bg-surface-app lg:flex-1 lg:min-h-0 lg:flex-row lg:items-stretch lg:gap-6 lg:pr-6"
       >
         <ShellSkeleton />
       </div>
@@ -148,6 +130,8 @@ interface ReaderShellProps {
   /** When set (e.g. `/share/{setId}`), nav + surah links target the share route instead of /reader. */
   sharePageBasePath?: string;
 }
+
+const NO_MARKED: MarkedPage[] = [];
 
 export default function ReaderShell({ children, user, sets, account = null, lockedSet = false, banner, sharePageBasePath }: ReaderShellProps) {
   const pathname = usePathname();
@@ -230,6 +214,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   const [pendingRedirect, setPendingRedirect] = useState(true);
   useEffect(() => {
     const isIndex = pathname === spreadBase || pathname === `${spreadBase}/`;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- post-hydration read of window/localStorage, recomputed only on route change (see above)
     if (isIndex) { setPendingRedirect(true); return; }
 
     const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
@@ -248,9 +233,10 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   // load + set-switch); page navigation never refetches (this shell is persistent). Draw-saves
   // patch a single page's count in place via patchMarked (wired to the canvas onSaved callback).
   const activeSetId = searchParams.get('set') ?? sets[0]?.id ?? '';
-  const [markedRows, setMarkedRows] = useState<MarkedPage[]>([]);
+  const [fetchedMarked, setMarkedRows] = useState<MarkedPage[]>([]);
+  const markedRows = user && activeSetId ? fetchedMarked : NO_MARKED;
   useEffect(() => {
-    if (!user || !activeSetId) { setMarkedRows([]); return; }
+    if (!user || !activeSetId) return;
     let cancelled = false;
     fetchMarkedPages(createClient(), activeSetId)
       .then(rows => { if (!cancelled) setMarkedRows(rows); })
@@ -296,8 +282,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
 
   return (
     <div
-      className="lg:h-[100dvh] lg:flex lg:flex-col lg:overflow-hidden"
-      style={{ background: 'var(--bg-base)' }}
+      className="lg:h-dvh lg:flex lg:flex-col lg:overflow-hidden bg-surface-app"
     >
       <div ref={navRef} className="lg:flex-shrink-0">
         <ReaderNav
@@ -332,8 +317,9 @@ export default function ReaderShell({ children, user, sets, account = null, lock
           (lg:overflow-hidden preserves the no-document-scroll behavior). Mobile is unchanged:
           everything collapses to the single stacked column it was before. */}
       <div
-        className="flex flex-col mobile-nav-offset lg:flex-1 lg:min-h-0 lg:flex-row lg:items-stretch lg:gap-6 lg:pr-6"
-        style={{ ['--nav-h' as string]: `${navHeight}px`, background: 'var(--surface-app)' } as React.CSSProperties}
+        className="flex flex-col mobile-nav-offset bg-surface-app lg:flex-1 lg:min-h-0 lg:flex-row lg:items-stretch lg:gap-6 lg:pr-6"
+        // eslint-disable-next-line shadcn/no-inline-styles -- measured nav height
+        style={{ ['--nav-h' as string]: `${navHeight}px` } as React.CSSProperties}
         suppressHydrationWarning
       >
         {/* Mobile copy — inside the nav offset so it clears the fixed ReaderNav. */}
@@ -348,7 +334,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
             <ShellSkeleton />
             {/* Children must stay mounted (hidden) so page-level effects (e.g. the index
                 redirect in ReaderIndexPage) still fire and resolve the pending redirect. */}
-            <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }} aria-hidden>
+            <div className="absolute size-0 overflow-hidden pointer-events-none" aria-hidden>
               {children}
             </div>
           </>
@@ -358,26 +344,17 @@ export default function ReaderShell({ children, user, sets, account = null, lock
                 Icon rail (72px) is an empty placeholder column for now (Story 4 fills it); the
                 surah sidebar (260px) carries the existing SurahNavPanel and its scroll logic. */}
             <div
-              className="hidden lg:flex flex-shrink-0"
-              style={{ height: '100%', overflow: 'hidden', zIndex: 1 }}
+              className="hidden lg:flex flex-shrink-0 h-full overflow-hidden z-1"
             >
               <div
                 data-testid="nav-rail-slot"
-                className="flex-shrink-0"
-                style={{ width: '96px', height: '100%' }}
+                className="flex-shrink-0 w-24 h-full"
               >
                 <NavRail />
               </div>
               {/* Surah sidebar — 260px. */}
               <div
-                className="flex flex-col flex-shrink-0"
-                style={{
-                  width: '300px',
-                  height: '100%',
-                  overflow: 'hidden',
-                  background: 'var(--surface-main)',
-                  boxShadow: 'var(--shadow-e2)',
-                }}
+                className="flex flex-col flex-shrink-0 w-75 h-full overflow-hidden bg-surface-main shadow-e2"
               >
                 <SurahNavPanel currentPage={pageNum} topOffset={navHeight} basePath={sharePageBasePath} isSpread={!!spread} markedPages={markedRows} />
               </div>
@@ -385,15 +362,14 @@ export default function ReaderShell({ children, user, sets, account = null, lock
 
             {/* REGION 2 — centered Quran workspace. Does not scroll on desktop. */}
             <div
-              className="lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col lg:flex-1 lg:min-w-0"
-              style={{ flex: 1, minWidth: 0, background: 'var(--surface-app)' }}
+              className="flex-1 min-w-0 bg-surface-app lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col lg:flex-1 lg:min-w-0"
             >
               {/* No transform-based animation here: the mobile annotation bar inside this
                   subtree is position:fixed and a transformed ancestor (e.g. animate-fade-in,
                   which keeps a computed matrix via animation-fill-mode: both) would make it the
                   containing block, pinning the fixed bar to <main> instead of the viewport. */}
               <main className="w-full flex-grow px-4 pt-6 pb-2 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:py-0">
-                <div data-canvas-centered className="mx-auto flex w-full max-w-[1320px] flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
+                <div data-canvas-centered className="mx-auto flex w-full max-w-330 flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
 
                   {banner}
                   {/* Opened from a homework/exam card → say what the page is for. */}
@@ -446,16 +422,14 @@ export default function ReaderShell({ children, user, sets, account = null, lock
             <div
               data-testid="context-panel"
               data-mobile-testid="mobile-context-panel"
-              className="w-full px-4 pb-[calc(88px+env(safe-area-inset-bottom,0px))] sm:px-6 lg:flex lg:flex-col lg:flex-shrink-0 lg:w-[320px] lg:px-0 lg:pb-0 lg:h-full lg:min-h-0 lg:overflow-y-auto thin-scroll"
-              style={{ paddingTop: 'var(--space-24)' }}
+              className="w-full px-4 pb-[calc(88px+env(safe-area-inset-bottom,0px))] sm:px-6 lg:flex lg:flex-col lg:flex-shrink-0 lg:w-80 lg:px-0 lg:pb-0 lg:h-full lg:min-h-0 lg:overflow-y-auto thin-scroll pt-6"
             >
               {/* Sets card portal target — AnnotationCanvas renders the SetsCard here (top of the
                   right panel) so the set selector + "New set" share the canvas state. */}
               <div id="sets-card-portal" className="mb-4 empty:mb-0" />
               {children}
               <footer
-                className="lg:hidden w-full text-center text-xs tracking-wider uppercase border-t mt-6"
-                style={{ padding: '10px 0', color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
+                className="lg:hidden w-full text-center text-caption tracking-wider uppercase border-t mt-6 py-3 text-muted border-subtle bg-surface-app"
               >
                 HifthCompanion © 2026
               </footer>

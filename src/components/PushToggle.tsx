@@ -48,7 +48,7 @@ export default function PushToggle() {
 
   if (showIosHint) {
     return (
-      <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+      <span className="text-muted text-small">
         {t('push.iosHint')}
       </span>
     );
@@ -101,13 +101,12 @@ export default function PushToggle() {
       <button
         onClick={enabled ? disable : enable}
         disabled={busy}
-        className="btn btn-ghost"
-        style={{ minHeight: 44, alignSelf: 'flex-start' }}
+        className="btn btn-ghost btn-lg self-start"
       >
         {enabled ? t('push.disable') : t('push.enable')}
       </button>
       {error && (
-        <span style={{ color: 'var(--danger)', fontSize: 12 }}>{error}</span>
+        <span className="text-danger text-caption">{error}</span>
       )}
     </div>
   );

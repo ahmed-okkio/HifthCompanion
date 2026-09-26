@@ -1,5 +1,5 @@
 'use client';
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type CSSProperties } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type CSSProperties, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import type { AnnotationSet } from '@/types';
@@ -73,7 +73,7 @@ function AnnotationCanvasInner(
   const { t } = useI18n();
 
   const onMarksChangeRef = useRef(onMarksChange);
-  onMarksChangeRef.current = onMarksChange;
+  useLayoutEffect(() => { onMarksChangeRef.current = onMarksChange; });
   useEffect(() => { onMarksChangeRef.current?.(hasMarks); }, [hasMarks]);
 
   // Spread shell drives undo/redo/clear through this handle (F4). clear skips the per-canvas
@@ -111,6 +111,7 @@ function AnnotationCanvasInner(
   // not above the page. Portal it there once that slot is in the DOM so it shares canvas state.
   const [setsSlot, setSetsSlot] = useState<HTMLElement | null>(null);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the slot is ReaderShell's DOM node; it only exists after commit
     setSetsSlot(document.getElementById('sets-card-portal'));
   }, []);
 
@@ -164,21 +165,7 @@ function AnnotationCanvasInner(
       {accessRevoked && (
         <div
           role="alert"
-          style={{
-            position: 'fixed',
-            top: 'var(--space-16, 16px)',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 1000,
-            background: 'var(--surface-main)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-e2)',
-            padding: 'var(--space-12) var(--space-16)',
-            color: 'var(--text-primary)',
-            fontSize: '13px',
-            fontWeight: 500,
-          }}
+          className="fixed left-1/2 top-4 z-1000 -translate-x-1/2 rounded-lg border border-subtle bg-surface-main px-4 py-3 text-small font-medium text-primary shadow-e2"
         >
           {t('annot.accessRevoked')}
         </div>
@@ -277,23 +264,25 @@ function AnnotationCanvasInner(
             {controlled ? (
             // Spread zoom scales about the gutter edge (not each page's own center) so both pages
             // zoom as one book image instead of growing toward the gutter and clipping each other.
-            <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch' }}>
+            <div className="flex flex-row items-stretch">
               {flush === 'end' && (
               <PageNavArrow
                 direction="left"
                 onClick={() => goSpread(pageNum + 2)}
                 disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
                 aria-label={t('reader.nextPage')}
-                style={{ width: 'clamp(50px, 4vw, 120px)', minWidth: 50, flexShrink: 0 }}
+                className="w-[clamp(50px,4vw,120px)] min-w-12.5 shrink-0"
               />
               )}
             {/* Spread: no per-slot clip. The shared parent row (SpreadAnnotation) owns the single
                 overflow:hidden so a panned/zoomed page can slide across the gutter as ONE image
                 instead of each slot clipping its neighbor at the center line. */}
-            <div data-page-slot style={{ position: 'relative', overflow: 'visible', borderRadius: 'var(--radius-page)', flex: 1, minWidth: 0 }}>
+            <div data-page-slot className="relative min-w-0 flex-1 overflow-visible rounded-page">
+              {/* eslint-disable-next-line shadcn/no-inline-styles -- runtime zoom/pan transform */}
               <div style={innerZoomStyle(flush === 'start' ? 'left center' : flush === 'end' ? 'right center' : 'center center')}>
                 <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush} noShadow>
-                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <div className="relative inline-block">
+                    {/* eslint-disable-next-line shadcn/no-inline-styles -- Fabric rewrites this element's inline style; keep ours inline alongside */}
                     <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
                     <NoteBadgeLayer fabricRef={fabricRef} setId={selectedSetId} pageNum={pageNum} canvasReady={canvasReady} />
                   </div>
@@ -308,24 +297,25 @@ function AnnotationCanvasInner(
                 onClick={() => goSpread(pageNum - 2)}
                 disabled={pageNum <= 1}
                 aria-label={t('reader.prevPage')}
-                style={{ width: 'clamp(50px, 4vw, 120px)', minWidth: 50, flexShrink: 0 }}
+                className="w-[clamp(50px,4vw,120px)] min-w-12.5 shrink-0"
               />
               )}
             </div>
             ) : (
-            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+            <div className="relative inline-flex items-center">
               <PageNavArrow
                 direction="left"
                 onClick={() => go(pageNum + (controlled ? 2 : 1))}
                 disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
                 aria-label={t('reader.nextPage')}
-                className="hidden lg:flex"
-                style={{ position: 'absolute', right: 'calc(100% + 20px)', top: 0, bottom: 0, width: '16vw', zIndex: 4 }}
+                className="absolute inset-y-0 right-[calc(100%+20px)] z-4 hidden w-[16vw] lg:flex"
               />
-            <div {...swipeProps} style={{ position: 'relative', overflow: 'hidden', borderRadius: 'var(--radius-page)' }}>
+            <div {...swipeProps} className="relative overflow-hidden rounded-page">
+              {/* eslint-disable-next-line shadcn/no-inline-styles -- runtime zoom/pan transform */}
               <div style={innerZoomStyle('center center')}>
                 <PageDisplayFrame containerRef={containerRef} size={canvasSize} maxHeightOffset={pageMaxHeightOffset} ready={canvasReady} align={flush}>
-                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <div className="relative inline-block">
+                    {/* eslint-disable-next-line shadcn/no-inline-styles -- Fabric rewrites this element's inline style; keep ours inline alongside */}
                     <canvas ref={canvasRef} style={{ display: 'block', maxWidth: '100%', maxHeight: '100%' }} />
                     <NoteBadgeLayer fabricRef={fabricRef} setId={selectedSetId} pageNum={pageNum} canvasReady={canvasReady} />
                   </div>
@@ -341,7 +331,7 @@ function AnnotationCanvasInner(
                   onMouseMove={eff.onPanMove}
                   onMouseUp={eff.endPan}
                   onMouseLeave={eff.endPan}
-                  style={{ position: 'absolute', inset: 0, zIndex: 3, cursor: eff.dragging ? 'grabbing' : 'grab' }}
+                  className={`absolute inset-0 z-3 ${eff.dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
                 />
               )}
             </div>
@@ -350,8 +340,7 @@ function AnnotationCanvasInner(
                 onClick={() => go(pageNum - (controlled ? 2 : 1))}
                 disabled={pageNum <= 1}
                 aria-label={t('reader.prevPage')}
-                className="hidden lg:flex"
-                style={{ position: 'absolute', left: 'calc(100% + 20px)', top: 0, bottom: 0, width: '16vw', zIndex: 4 }}
+                className="absolute inset-y-0 left-[calc(100%+20px)] z-4 hidden w-[16vw] lg:flex"
               />
             </div>
             )}
@@ -359,20 +348,20 @@ function AnnotationCanvasInner(
             {/* Mobile page nav: the big side arrows are off-canvas on a phone, so small
                 buttons sit under the page (dir:ltr keeps next/left physically on the left). */}
             {!controlled && (
-              <div className="flex lg:hidden items-center justify-center gap-8 pt-2" style={{ direction: 'ltr' }}>
+              <div className="flex lg:hidden items-center justify-center gap-8 pt-2" dir="ltr">
                 <PageNavArrow
                   direction="left"
                   onClick={() => go(pageNum + 1)}
                   disabled={pageNum >= TOTAL_PAGES}
                   aria-label={t('reader.nextPage')}
-                  style={{ width: 44, height: 44, background: 'var(--surface-main)', boxShadow: 'var(--shadow-e1)' }}
+                  className="h-11 w-11 bg-surface-main! shadow-e1!"
                 />
                 <PageNavArrow
                   direction="right"
                   onClick={() => go(pageNum - 1)}
                   disabled={pageNum <= 1}
                   aria-label={t('reader.prevPage')}
-                  style={{ width: 44, height: 44, background: 'var(--surface-main)', boxShadow: 'var(--shadow-e1)' }}
+                  className="h-11 w-11 bg-surface-main! shadow-e1!"
                 />
               </div>
             )}

@@ -31,24 +31,7 @@ export default function SpreadToggle({ page, active, basePath }: { page: number;
       data-testid="spread-toggle"
       aria-pressed={active}
       onClick={toggle}
-      className="hidden lg:flex items-center gap-2"
-      style={{
-        marginTop: 'var(--space-12)',
-        height: '52px',
-        padding: '0 var(--space-16)',
-        background: 'var(--surface-main)',
-        borderRadius: 'var(--radius-lg)',
-        border: '1px solid rgba(15, 23, 42, 0.05)',
-        boxShadow: 'var(--shadow-e2)',
-        cursor: 'pointer',
-        fontSize: '13px',
-        fontWeight: 500,
-        color: 'var(--neutral-600)',
-        whiteSpace: 'nowrap',
-        userSelect: 'none',
-      }}
-      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--neutral-100)'; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--surface-main)'; }}
+      className="hidden lg:flex items-center gap-2 bg-surface-main hover:bg-neutral-100 mt-3 h-13 px-4 rounded-lg border border-neutral-950/5 shadow-e2 cursor-pointer text-small font-medium text-neutral-600 whitespace-nowrap select-none"
     >
       <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
         <rect x="3" y="4" width="8" height="16" rx="1" strokeWidth={2} />

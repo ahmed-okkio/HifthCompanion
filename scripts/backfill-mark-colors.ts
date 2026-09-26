@@ -27,7 +27,7 @@ type Row = {
   id: string;
   page_number: number;
   mark_count: number | null;
-  canvas_json: { objects?: unknown[]; width?: number } | null;
+  canvas_json: { objects?: Parameters<typeof clusterColors>[0]; width?: number } | null;
 };
 
 async function main() {
@@ -50,12 +50,12 @@ async function main() {
 
     for (const row of rows) {
       scanned++;
-      const objects = pruneDegenerate((row.canvas_json?.objects ?? []) as any[]);
+      const objects = pruneDegenerate(row.canvas_json?.objects ?? []);
       if (objects.length === 0) continue;
       // Same gap the canvas uses on save: 3% of the canvas width, floor 16px.
       const gap = Math.max(16, Math.round((row.canvas_json?.width ?? 0) * 0.03));
-      const colors = clusterColors(objects as any, gap);
-      const count = clusterCount(objects as any, gap);
+      const colors = clusterColors(objects, gap);
+      const count = clusterCount(objects, gap);
       if (Object.keys(colors).length === 0) continue;
       if (count !== row.mark_count) countFixed++;
       changed++;

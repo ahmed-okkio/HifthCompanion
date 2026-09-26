@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useLayoutEffect } from 'react';
 import { fabric } from 'fabric';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { AnnotationSet } from '@/types';
@@ -49,8 +49,8 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
 
   const pageNumRef = useRef(pageNum);
   const imageUrlRef = useRef(imageUrl);
-  pageNumRef.current = pageNum;
-  imageUrlRef.current = imageUrl;
+  useLayoutEffect(() => { pageNumRef.current = pageNum; });
+  useLayoutEffect(() => { imageUrlRef.current = imageUrl; });
 
   const [selectedSetId, setSelectedSetId] = useState<string>(() => searchParams.get('set') ?? sets[0]?.id ?? '');
   const [canvasReady, setCanvasReady] = useState(false);
@@ -59,16 +59,10 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   const resolvedTools = tools ?? internalTools;
   const { activeTool, setActiveTool, activeColor, setActiveColor, opacity, setOpacity, penWidth, setPenWidth, eraserSize, setEraserSize } = resolvedTools;
 
-  useEffect(() => {
-    const setFromUrl = searchParams.get('set');
-    if (setFromUrl && setFromUrl !== selectedSetId) {
-      setSelectedSetId(setFromUrl);
-      return;
-    }
-    if (!setFromUrl && !selectedSetId && sets[0]?.id) {
-      setSelectedSetId(sets[0].id);
-    }
-  }, [searchParams, selectedSetId, sets]);
+  // The URL's ?set= wins; with none, fall back to the first set. Adjusted during render.
+  const setFromUrl = searchParams.get('set');
+  if (setFromUrl && setFromUrl !== selectedSetId) setSelectedSetId(setFromUrl);
+  else if (!setFromUrl && !selectedSetId && sets[0]?.id) setSelectedSetId(sets[0].id);
 
   const viewport = useCanvasViewport({ containerRef, wrapperRef, canvasRef, fabricRef, naturalSizeRef });
   
@@ -86,7 +80,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
   });
 
   const activeToolRef = useRef(activeTool);
-  activeToolRef.current = activeTool;
+  useLayoutEffect(() => { activeToolRef.current = activeTool; });
 
   const updateSelectedSetInUrl = useCallback((setId: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -141,10 +135,9 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
       fabricRef.current = canvas;
       historyRef.current = new CanvasHistory(canvas);
       
-      // @ts-ignore
       window.fabricCanvas = canvas;
-      ((window as any).__hifthCanvasByPage ??= {})[pageNumRef.current] = canvas;
-      (window as any).__hifthFabricCreatedCount = ((window as any).__hifthFabricCreatedCount ?? 0) + 1;
+      (window.__hifthCanvasByPage ??= {})[pageNumRef.current] = canvas;
+      window.__hifthFabricCreatedCount = (window.__hifthFabricCreatedCount ?? 0) + 1;
 
       canvas.on('before:render', () => {
         if (!canvas) return;
@@ -164,10 +157,10 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
       }
 
       const handleCompletedDraw = (e: fabric.IEvent) => {
-        const path = (e as any).path as fabric.Object | undefined;
+        const path = (e as fabric.IEvent & { path?: fabric.Object }).path;
         if (path && activeToolRef.current === 'highlighter') {
           path.set({ strokeLineCap: 'round', strokeLineJoin: 'round' });
-          (path as any).globalCompositeOperation = 'multiply';
+          path.globalCompositeOperation = 'multiply';
         }
         persistence.commitRef.current();
         void persistence.saveNowRef.current();
@@ -194,7 +187,7 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
     return () => {
       isMounted = false;
       ro.disconnect();
-      if ((window as any).fabricCanvas === fabricRef.current) delete (window as any).fabricCanvas;
+      if (window.fabricCanvas === fabricRef.current) delete window.fabricCanvas;
       if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

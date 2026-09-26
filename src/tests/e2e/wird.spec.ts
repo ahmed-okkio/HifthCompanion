@@ -195,6 +195,10 @@ test.describe('Wird daily screen', () => {
       await page.getByRole('button', { name: 'Options' }).click();
       await page.getByRole('menuitem', { name: 'New wird' }).click();
       await expect(dialog.getByLabel('Name')).toHaveValue(''); // not the last create's name
+      // The modal scrim covers the Options gear: a tap there hits the dialog, not the gear.
+      const gear = await page.getByRole('button', { name: 'Options' }).boundingBox();
+      expect(await page.evaluate(([x, y]) => !!document.elementFromPoint(x, y)?.closest('[role=dialog]'),
+        [gear!.x + gear!.width / 2, gear!.y + gear!.height / 2])).toBe(true);
       await dialog.getByLabel('Name').fill(name);
       await dialog.getByRole('spinbutton', { name: 'Last page' }).fill('20');
       await dialog.getByRole('button', { name: 'Create' }).click();

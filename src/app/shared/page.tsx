@@ -21,13 +21,13 @@ export default async function SharedPage() {
 
   return (
     <>
-      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full overflow-y-auto h-full">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+            <h1 className="text-xl font-bold text-primary">
               {dict['nav.sharedMushafs']}
             </h1>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
+            <p className="text-xs mt-1 text-muted">
               {dict['shared.pageSubtitle']}
             </p>
           </div>
@@ -35,7 +35,7 @@ export default async function SharedPage() {
         </div>
 
         {shared.length === 0 ? (
-          <div className="card text-center" style={{ padding: '32px 18px', color: 'var(--text-muted)' }}>
+          <div className="card text-center px-6 py-8 text-muted">
             <p className="text-sm">{dict['shared.emptyState']}</p>
           </div>
         ) : (
@@ -45,13 +45,12 @@ export default async function SharedPage() {
               const owner = displayName({ user_id: set.user_id, first_name: p?.first_name, last_name: p?.last_name });
               return (
                 <a key={set.id} href={`/share/${set.id}`}
-                   className="card flex items-center gap-3"
-                   style={{ padding: '14px 18px' }}>
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />
-                  <span className="font-medium text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                   className="card flex items-center gap-3 px-4 py-3">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0 bg-accent" />
+                  <span className="font-medium text-sm truncate text-primary">
                     {owner}
                   </span>
-                  <span className="text-xs ml-auto flex-shrink-0" style={{ color: 'var(--text-muted)' }}>
+                  <span className="text-xs ml-auto flex-shrink-0 text-muted">
                     {set.name}
                   </span>
                 </a>
@@ -61,8 +60,7 @@ export default async function SharedPage() {
         )}
       </main>
       <footer
-        className="w-full text-center text-xs tracking-wider uppercase border-t"
-        style={{ padding: '10px 0', color: 'var(--text-muted)', borderColor: 'var(--border-subtle)', background: 'var(--bg-base)' }}
+        className="w-full text-center text-xs tracking-wider uppercase border-t py-2 text-muted border-subtle bg-surface-app"
       >
         {dict['home.footer']}
       </footer>

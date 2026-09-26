@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useClientValue } from '@/hooks/useClientValue';
+import { useNow } from '@/hooks/useNow';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
@@ -55,17 +57,10 @@ export default function TeacherCircle({
   const [copied, setCopied] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   // Origin resolved after mount to avoid an SSR/hydration mismatch on location.
-  const [origin, setOrigin] = useState('');
-  useEffect(() => setOrigin(process.env.NEXT_PUBLIC_SITE_URL || location.origin), []);
+  const origin = useClientValue(() => process.env.NEXT_PUBLIC_SITE_URL || location.origin, '');
   // 0014 G1: live is purely presentational and client-side — null until mounted
   // so the first render matches the server's.
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => {
-    const tick = () => setNow(new Date());
-    tick();
-    const id = setInterval(tick, 30_000);
-    return () => clearInterval(id);
-  }, []);
+  const now = useNow(30_000);
   const inviteLink = `${origin}/tracker/join/${code}`;
   const [students, setStudents] = useState(initialStudents);
   const [email, setEmail] = useState('');
@@ -97,12 +92,15 @@ export default function TeacherCircle({
   const [manageWeek, setManageWeek] = useState(0);
   const [manageRows, setManageRows] = useState<AgendaItem[]>([]);
   const [hasNextWeek, setHasNextWeek] = useState(false);
-  const [loadingWeek, setLoadingWeek] = useState(false);
+  // Loading until the fetch for this week lands; leaving the tab forgets it (refetch on return).
+  const weekKey = `${circle.id}:${manageWeek}`;
+  const [loadedWeekKey, setLoadedWeekKey] = useState<string | null>(null);
+  if (tab !== 'manage' && loadedWeekKey !== null) setLoadedWeekKey(null);
+  const loadingWeek = loadedWeekKey !== weekKey;
 
   useEffect(() => {
     if (tab !== 'manage') return;
     let alive = true;
-    setLoadingWeek(true);
     getManageSlots(circle.id, (manageWeek + 2) * 7)
       .then((rows) => {
         if (!alive) return;
@@ -114,9 +112,9 @@ export default function TeacherCircle({
         setHasNextWeek(rows.some((r) => at(r) >= end));
       })
       .catch((e) => alive && setError((e as Error).message))
-      .finally(() => alive && setLoadingWeek(false));
+      .finally(() => alive && setLoadedWeekKey(weekKey));
     return () => { alive = false; };
-  }, [tab, manageWeek, circle.id, weekAnchor, DAY_MS]);
+  }, [tab, manageWeek, circle.id, weekAnchor, DAY_MS, weekKey]);
 
   const weekLabel = new Date(weekAnchor + manageWeek * 7 * DAY_MS)
     .toLocaleDateString(locale, { month: 'short', day: 'numeric' });
@@ -283,43 +281,42 @@ export default function TeacherCircle({
 
   // Invite panel — rendered in the left column on desktop, inside Settings on mobile.
   const invitePanel = (
-    <div className="card flex flex-col gap-4" style={{ padding: '18px' }}>
+    <div className="card flex flex-col gap-4 p-4">
       {/* One green CTA for the whole invite component — expands link + email. */}
       <button onClick={() => setInviteOpen((o) => !o)}
-              className="btn btn-primary flex items-center justify-center gap-2"
-              style={{ minHeight: 44 }} aria-expanded={inviteOpen}>
+              className="btn btn-primary btn-lg flex items-center justify-center gap-2"
+              aria-expanded={inviteOpen}>
         {t('tracker.invite')}
         <Chevron open={inviteOpen} color="currentColor" />
       </button>
       {/* CSS-only expand: grid-rows 0fr→1fr animates height with no JS measuring. */}
-      <div style={{ display: 'grid', gridTemplateRows: inviteOpen ? '1fr' : '0fr', transition: 'grid-template-rows 0.25s ease' }}>
-        <div className="flex flex-col gap-4" style={{ overflow: 'hidden', minHeight: 0 }}>
-          <div className="flex flex-col gap-2" style={{ marginTop: 4 }}>
-            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+      <div className={`grid transition-all duration-250 ease-in-out ${inviteOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+        <div className="flex flex-col gap-4 overflow-hidden min-h-0">
+          <div className="flex flex-col gap-2 mt-1">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted">
               {t('tracker.inviteLink')}
             </span>
-            <code className="text-xs font-mono break-all"
-                  style={{ color: 'var(--text-accent)', background: 'var(--accent-muted)', padding: '12px 10px', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-accent)' }}>
+            <code className="text-xs font-mono break-all text-green-600 bg-accent-muted py-3 px-3 rounded-md border border-dashed border-accent-border">
               {inviteLink}
             </code>
             <div className="flex gap-2">
-              <ActionButton onClick={handleCopy} className="btn btn-outline flex-1" style={{ minHeight: 38, fontSize: 13 }}>
+              <ActionButton onClick={handleCopy} className="btn btn-outline flex-1">
                 {t(copied ? 'common.copied' : 'common.copy')}
               </ActionButton>
-              <ActionButton onClick={handleRotate} className="btn btn-ghost flex-1" style={{ minHeight: 38, fontSize: 13 }}>
+              <ActionButton onClick={handleRotate} className="btn btn-ghost flex-1">
                 {t('tracker.rotateCode')}
               </ActionButton>
             </div>
           </div>
-          <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+          <div className="h-px bg-subtle" />
           <div className="flex flex-col gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted">
               {t('tracker.inviteByEmail')}
             </span>
             <input value={email} onChange={(e) => setEmail(e.target.value)} type="email"
                    onKeyDown={(e) => e.key === 'Enter' && handleInvite()}
                    placeholder={t('tracker.inviteByEmail')} className="input" />
-            <ActionButton onClick={handleInvite} disabled={!email.trim()} className="btn btn-outline" style={{ minHeight: 40 }}>
+            <ActionButton onClick={handleInvite} disabled={!email.trim()} className="btn btn-outline">
               {t('common.create')}
             </ActionButton>
           </div>
@@ -331,8 +328,7 @@ export default function TeacherCircle({
   return (
     <div className="flex flex-col gap-6">
       {error && (
-        <div className="card" role="alert"
-             style={{ padding: '10px 14px', color: 'var(--danger)', background: 'var(--danger-muted)', borderColor: 'var(--danger-muted)', fontSize: 13 }}>
+        <div className="card px-4 py-3 text-danger bg-danger-muted border-danger-muted text-small" role="alert">
           {error}
         </div>
       )}
@@ -340,14 +336,13 @@ export default function TeacherCircle({
       <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)_280px] items-start">
         {/* Left: circle identity + KPIs (mirrors the student profile column) */}
         <aside className="flex flex-col gap-3 self-start">
-          <div className="card flex flex-col items-center text-center gap-2" style={{ padding: '22px' }}>
+          <div className="card flex flex-col items-center text-center gap-2 p-4">
             <Avatar seed={circle.name} size={64} />
-            <h1 className="font-bold tracking-tight truncate max-w-full"
-                style={{ color: 'var(--text-primary)', fontSize: 'var(--type-heading-m-size)' }}>
+            <h1 className="font-bold tracking-tight truncate max-w-full text-primary text-heading-m">
               {circle.name}
             </h1>
             {teacher && (
-              <span className="text-xs truncate max-w-full" style={{ color: 'var(--text-muted)' }}>
+              <span className="text-xs truncate max-w-full text-muted">
                 {t('tracker.roleTeacher')} · {displayName(teacher)}
               </span>
             )}
@@ -389,22 +384,22 @@ export default function TeacherCircle({
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <Avatar seed={displayName(m)} size={40} />
                     <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                      <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
+                      <span className="text-sm font-semibold truncate text-primary">
                         {displayName(m)}
                       </span>
                       {/* Active is the default/expected state — no dot needed. Only flag
                           pending/blocked, which need teacher attention. */}
                       {live && (
-                        <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-accent)' }}>
+                        <span className="flex items-center gap-1.5 text-xs text-green-600">
                           <StatusDot color="var(--accent)" />
                           {t('agenda.live')}
-                          <span style={{ color: 'var(--text-muted)' }}>
+                          <span className="text-muted">
                             {fmtTime(live.scheduled_at, locale)}
                           </span>
                         </span>
                       )}
                       {m.status !== 'active' && (
-                        <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                        <span className="flex items-center gap-1.5 text-xs text-muted">
                           <StatusDot color={m.status === 'pending' ? 'var(--warning)' : 'var(--text-muted)'} />
                           {t(`tracker.${m.status}`)}
                         </span>
@@ -413,8 +408,9 @@ export default function TeacherCircle({
                   </div>
                 );
                 return (
-                  <div key={m.id} className="card flex flex-col gap-3"
-                       style={{ padding: '14px 16px', opacity: active ? 1 : 0.75, viewTransitionName: vtName('member', m.id) }}>
+                  <div key={m.id} className={`card flex flex-col gap-3 p-4${active ? '' : ' opacity-75'}`}
+                       // eslint-disable-next-line shadcn/no-inline-styles -- per-member view-transition name
+                       style={{ viewTransitionName: vtName('member', m.id) }}>
                     {active ? (
                       <Link href={`/tracker/${circle.id}/student/${m.id}`} className="flex items-center gap-2 min-w-0">
                         {header}
@@ -428,9 +424,9 @@ export default function TeacherCircle({
                         to avoid accidental clicks. Roster only offers reactivate for blocked. */}
                     {m.status === 'blocked' && (
                       <>
-                        <div style={{ height: 1, background: 'var(--border-subtle)' }} />
+                        <div className="h-px bg-subtle" />
                         <div className="flex gap-1">
-                          <ActionButton onClick={() => handleStatus(m.id, 'active')} className="btn btn-outline" style={{ minHeight: 32, fontSize: 12, padding: '4px 10px' }}>
+                          <ActionButton onClick={() => handleStatus(m.id, 'active')} className="btn btn-outline btn-sm">
                             {t('tracker.reactivate')}
                           </ActionButton>
                         </div>
@@ -454,27 +450,25 @@ export default function TeacherCircle({
                   animates wide and the email picker cross-fades in where it was. */}
               <div className="flex flex-wrap items-center gap-2">
                 <SectionTitle>{t('subs.manageTitle')}</SectionTitle>
-                <div className="flex justify-end min-w-0"
-                     style={{ marginInlineStart: 'auto', flex: pickerOpen ? '1 1 auto' : '0 0 auto', maxWidth: pickerOpen ? 420 : 200, transition: 'max-width 480ms cubic-bezier(.22,1,.36,1), flex-basis 480ms cubic-bezier(.22,1,.36,1)' }}>
+                <div className={`flex justify-end min-w-0 ms-auto transition-all duration-480 ease-out ${pickerOpen ? 'flex-auto max-w-105' : 'flex-none max-w-50'}`}>
                   {!pickerOpen ? (
-                    <button onClick={() => setPickerOpen(true)} className="btn btn-primary shrink-0"
-                            style={{ minHeight: 34, fontSize: 12, padding: '0 14px', animation: 'fade-in-scale 200ms ease' }}>
+                    <button onClick={() => setPickerOpen(true)} className="btn btn-primary btn-sm shrink-0 animate-fade-in-scale">
                       {t('subs.selectMode')}
                     </button>
                   ) : !pendingSub ? (
-                    <div className="w-full" style={{ animation: 'fade-in-scale 420ms ease' }}>
+                    <div className="w-full animate-fade-in-scale">
                       <SubAssignForm autoFocus grow onAssign={(userId, name) => setPendingSub({ userId, name })} onCancel={exitSelectMode} />
                     </div>
                   ) : (
-                    <div className="flex items-center gap-2 flex-wrap justify-end w-full" style={{ animation: 'fade-in-scale 240ms ease' }}>
-                      <span className="text-xs truncate" style={{ color: 'var(--text-secondary)' }}>
+                    <div className="flex items-center gap-2 flex-wrap justify-end w-full animate-fade-in-scale">
+                      <span className="text-xs truncate text-secondary">
                         {t('subs.coveredBy', { name: pendingSub.name })} · {t('subs.selected', { count: selected.size })}
                       </span>
                       <ActionButton onClick={handleBulkAssign} disabled={selected.size === 0}
-                              className="btn btn-primary shrink-0" style={{ minHeight: 32, fontSize: 12, padding: '0 14px' }}>
+                              className="btn btn-primary btn-sm shrink-0">
                         {t('subs.confirmAssign')}
                       </ActionButton>
-                      <button onClick={exitSelectMode} className="btn btn-ghost shrink-0" style={{ minHeight: 32, fontSize: 12 }}>
+                      <button onClick={exitSelectMode} className="btn btn-ghost btn-sm shrink-0">
                         {t('common.cancel')}
                       </button>
                     </div>
@@ -487,60 +481,60 @@ export default function TeacherCircle({
                 {manageRows.map((item) => {
                   const editing = reschedKey === item.key;
                   return (
-                  <div key={item.key} className="card flex flex-col gap-2" style={{ padding: '10px 14px', opacity: item.canceled ? 0.5 : 1 }}>
+                  <div key={item.key} className={`card flex flex-col gap-2 px-4 py-3${item.canceled ? ' opacity-50' : ''}`}>
                     {/* Wraps on narrow screens: the action group drops to its own
                         line instead of overflowing the card. */}
                     <div className="flex flex-wrap items-center gap-2">
                       {selectMode && !item.canceled && (
                         <input type="checkbox" checked={selected.has(item.key)} onChange={() => toggleSelected(item.key)}
-                               aria-label={t('subs.assign')} style={{ width: 16, height: 16, accentColor: 'var(--accent)' }} />
+                               aria-label={t('subs.assign')} className="size-4 accent-accent" />
                       )}
                       <DateChip iso={item.scheduled_at} locale={locale} />
-                      <div className="flex flex-col gap-0.5 min-w-0 flex-1" style={{ minWidth: 140 }}>
-                        <span className="flex flex-wrap items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      <div className="flex flex-col gap-0.5 flex-1 min-w-35">
+                        <span className="flex flex-wrap items-center gap-2 text-sm font-semibold text-primary">
                           {item.student}
-                          {item.movedFrom && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.rescheduled')}</span>}
-                          {item.canceled && <span className="badge badge-muted" style={{ fontSize: 10 }}>{t('sessions.canceled')}</span>}
+                          {item.movedFrom && <span className="badge badge-muted text-micro">{t('sessions.rescheduled')}</span>}
+                          {item.canceled && <span className="badge badge-muted text-micro">{t('sessions.canceled')}</span>}
                         </span>
-                        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{fmtTime(item.scheduled_at, locale)}</span>
+                        <span className="text-xs text-muted">{fmtTime(item.scheduled_at, locale)}</span>
                       </div>
                       <div className="flex flex-wrap items-center gap-2 ms-auto">
-                      {item.isAdhoc && <span className="badge shrink-0" style={{ fontSize: 10 }}>{t('sessions.adhoc')}</span>}
+                      {item.isAdhoc && <span className="badge shrink-0 text-micro">{t('sessions.adhoc')}</span>}
                       {/* One sub per instant: the chip IS the control — ✕ clears
                           it (the reclaim), and an empty row offers assign. */}
                       {!item.canceled && (subName(item) ? (
                         <CoveredBy name={subName(item)!} onRemove={() => handleReclaim(item)} />
                       ) : (
-                        <button onClick={() => setManageKey(manageKey === item.key ? null : item.key)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <button onClick={() => setManageKey(manageKey === item.key ? null : item.key)} className="btn btn-ghost btn-xs shrink-0">
                           {t('subs.assign')}
                           <Chevron open={manageKey === item.key} />
                         </button>
                       ))}
                       {!item.canceled && (
-                        <button onClick={() => (editing ? setReschedKey(null) : openReschedule(item))} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                        <button onClick={() => (editing ? setReschedKey(null) : openReschedule(item))} className="btn btn-ghost btn-xs shrink-0">
                           {t('sessions.reschedule')}
                           <Chevron open={editing} />
                         </button>
                       )}
-                      <ActionButton onClick={() => handleCancelAgenda(item)} className="btn btn-ghost shrink-0" style={{ minHeight: 30, fontSize: 11 }}>
+                      <ActionButton onClick={() => handleCancelAgenda(item)} className="btn btn-ghost btn-xs shrink-0">
                         {item.canceled ? t('sessions.reinstate') : t('sessions.cancel')}
                       </ActionButton>
                       </div>
                     </div>
                     {manageKey === item.key && !item.canceled && !subName(item) && (
-                      <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: 8 }}>
+                      <div className="border-t border-subtle pt-2">
                         <SubAssignForm autoFocus onAssign={(uid, name) => handleAssignOne(item, uid, name)} onCancel={() => setManageKey(null)} />
                       </div>
                     )}
                     {editing && (
-                      <div className="flex gap-2 items-end flex-wrap" onAnimationEnd={() => setReschedOpen(true)}
-                           style={{ borderTop: '1px solid var(--border-subtle)', overflow: reschedOpen ? 'visible' : 'hidden', animation: 'slide-down 0.22s var(--ease-out) both' }}>
-                        <input type="date" value={reschedDate} onChange={(e) => setReschedDate(e.target.value)} className="input" style={{ minHeight: 36 }} />
+                      <div className={`flex gap-2 items-end flex-wrap border-t border-subtle animate-slide-down ${reschedOpen ? 'overflow-visible' : 'overflow-hidden'}`} onAnimationEnd={() => setReschedOpen(true)}>
+                        <input type="date" value={reschedDate} onChange={(e) => setReschedDate(e.target.value)} className="input min-h-9" />
+                        {/* eslint-disable-next-line shadcn/no-inline-styles -- TimeSelect exposes style, not className */}
                         <TimeSelect value={reschedTime} onChange={setReschedTime} style={{ minHeight: 36, width: 130 }} />
-                        <ActionButton onClick={() => handleRescheduleAgenda(item)} className="btn btn-primary" style={{ minHeight: 36, fontSize: 12, padding: '0 14px' }}>
+                        <ActionButton onClick={() => handleRescheduleAgenda(item)} className="btn btn-primary btn-sm">
                           {t('common.save')}
                         </ActionButton>
-                        <button onClick={() => setReschedKey(null)} className="btn btn-ghost" style={{ minHeight: 36, fontSize: 12 }}>
+                        <button onClick={() => setReschedKey(null)} className="btn btn-ghost btn-sm">
                           {t('common.cancel')}
                         </button>
                       </div>
@@ -552,20 +546,18 @@ export default function TeacherCircle({
 
               {/* Week pager. Chevrons already mirror themselves in RTL, so prev
                   is always the leading arrow whichever way the page reads. */}
-              <div className="flex items-center justify-center gap-3" style={{ marginTop: 4 }}>
+              <div className="flex items-center justify-center gap-3 mt-1">
                 <button onClick={() => setManageWeek((w) => Math.max(0, w - 1))}
                         disabled={manageWeek === 0 || loadingWeek}
-                        aria-label={t('subs.prevWeek')} className="btn btn-ghost"
-                        style={{ minHeight: 34, padding: '0 12px' }}>
+                        aria-label={t('subs.prevWeek')} className="btn btn-ghost btn-icon btn-sm">
                   <span className="flex rotate-180"><Chevron /></span>
                 </button>
-                <span className="text-xs" style={{ color: 'var(--text-muted)', minWidth: 90, textAlign: 'center' }}>
+                <span className="text-xs text-muted min-w-24 text-center">
                   {loadingWeek ? t('common.loading') : t('subs.weekOf', { date: weekLabel })}
                 </span>
                 <button onClick={() => setManageWeek((w) => w + 1)}
                         disabled={!hasNextWeek || loadingWeek}
-                        aria-label={t('subs.nextWeek')} className="btn btn-ghost"
-                        style={{ minHeight: 34, padding: '0 12px' }}>
+                        aria-label={t('subs.nextWeek')} className="btn btn-ghost btn-icon btn-sm">
                   <Chevron />
                 </button>
               </div>
@@ -575,18 +567,18 @@ export default function TeacherCircle({
           {tab === 'settings' && (<>
             {/* Mobile: invite panel joins Settings (it lives in the left column on desktop). */}
             {isMobile && invitePanel}
-            <div className="card flex flex-col gap-3" style={{ padding: '18px 20px' }}>
+            <div className="card flex flex-col gap-3 p-4">
               <SectionTitle>{t('common.settings')}</SectionTitle>
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex flex-col gap-0.5 min-w-0">
-                  <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  <span className="text-sm font-semibold text-primary">
                     {t('tracker.deleteCircle')}
                   </span>
-                  <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  <span className="text-xs text-muted">
                     {t('tracker.deleteCircleConfirm')}
                   </span>
                 </div>
-                <ActionButton onClick={handleDelete} className="btn btn-danger-ghost shrink-0" style={{ minHeight: 34, fontSize: 13 }}>
+                <ActionButton onClick={handleDelete} className="btn btn-danger-ghost btn-sm shrink-0">
                   {t('tracker.deleteCircle')}
                 </ActionButton>
               </div>

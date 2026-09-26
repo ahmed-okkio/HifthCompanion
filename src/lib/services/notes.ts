@@ -34,8 +34,8 @@ export async function createNote(
       .single();
     if (error) return { data: null, error: error.message };
     return { data, error: null };
-  } catch (err: any) {
-    return { data: null, error: err?.message || 'Failed to create note' };
+  } catch (err) {
+    return { data: null, error: (err as Error)?.message || 'Failed to create note' };
   }
 }
 
@@ -75,8 +75,8 @@ export async function reconcileNoteBindings(
     const results = await Promise.all(writes);
     const failed = results.find(r => r.error);
     return { error: failed?.error?.message ?? null };
-  } catch (err: any) {
-    return { error: err?.message || 'Failed to reconcile notes' };
+  } catch (err) {
+    return { error: (err as Error)?.message || 'Failed to reconcile notes' };
   }
 }
 
@@ -89,8 +89,8 @@ export async function updateNote(id: string, body: string): Promise<{ error: str
       .eq('id', id);
     if (error) return { error: error.message };
     return { error: null };
-  } catch (err: any) {
-    return { error: err?.message || 'Failed to update note' };
+  } catch (err) {
+    return { error: (err as Error)?.message || 'Failed to update note' };
   }
 }
 
@@ -104,8 +104,8 @@ export async function linkNote(id: string, fabricObjectId: string | null): Promi
       .eq('id', id);
     if (error) return { error: error.message };
     return { error: null };
-  } catch (err: any) {
-    return { error: err?.message || 'Failed to link note' };
+  } catch (err) {
+    return { error: (err as Error)?.message || 'Failed to link note' };
   }
 }
 
@@ -118,7 +118,7 @@ export async function deleteNote(id: string): Promise<{ error: string | null }> 
       .eq('id', id);
     if (error) return { error: error.message };
     return { error: null };
-  } catch (err: any) {
-    return { error: err?.message || 'Failed to delete note' };
+  } catch (err) {
+    return { error: (err as Error)?.message || 'Failed to delete note' };
   }
 }

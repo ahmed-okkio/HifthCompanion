@@ -47,15 +47,14 @@ export default function ProfileMenu({ name, email }: { name: string; email: stri
   }
 
   return (
-    <div ref={rootRef} style={{ position: 'relative' }}>
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t('menu.account')}
-        className="flex items-center justify-center rounded-full"
-        style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 0, minHeight: 44, minWidth: 44 }}
+        className="flex items-center justify-center rounded-full border-none bg-transparent cursor-pointer p-0 min-h-11 min-w-11"
       >
         <Avatar seed={name} size={36} />
       </button>
@@ -65,30 +64,24 @@ export default function ProfileMenu({ name, email }: { name: string; email: stri
       <AnchoredPopup
         open={open}
         anchorRef={rootRef}
-        className="thin-scroll"
+        className="thin-scroll bg-surface-main border border-subtle rounded-lg shadow-e3"
         width={248}
         align="end"
         maxHeight={Math.min(520, typeof window === 'undefined' ? 520 : window.innerHeight - 24)}
-        style={{
-          background: 'var(--surface-main)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-e3)',
-        }}
       >
         <div role="menu" aria-label={t('menu.account')}>
           {/* Header — name + email */}
-          <div className="flex items-center gap-3" style={{ padding: 'var(--space-12)', borderBottom: '1px solid var(--border-subtle)' }}>
+          <div className="flex items-center gap-3 p-3 border-b border-subtle">
             <Avatar seed={name} size={40} />
             <div className="flex flex-col min-w-0">
-              <span className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>{name}</span>
-              {email && <span className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{email}</span>}
+              <span className="text-sm font-bold truncate text-primary">{name}</span>
+              {email && <span className="text-xs truncate text-muted">{email}</span>}
             </div>
           </div>
 
           {/* Language switcher */}
-          <div className="flex items-center justify-between" style={{ padding: '10px var(--space-12)' }}>
-            <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{t('lang.label')}</span>
+          <div className="flex items-center justify-between px-3 py-2">
+            <span className="text-xs font-medium text-secondary">{t('lang.label')}</span>
             <LanguageSwitcher />
           </div>
 
@@ -97,10 +90,7 @@ export default function ProfileMenu({ name, email }: { name: string; email: stri
             type="button"
             role="menuitem"
             onClick={() => { setOpen(false); router.push('/settings'); }}
-            className="flex items-center gap-2 w-full text-left"
-            style={{ padding: '10px var(--space-12)', background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.8125rem' }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--surface-hover, var(--accent-muted))'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+            className="menu-item rounded-none"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <circle cx="12" cy="12" r="3" />
@@ -114,10 +104,7 @@ export default function ProfileMenu({ name, email }: { name: string; email: stri
             type="button"
             role="menuitem"
             onClick={logout}
-            className="flex items-center gap-2 w-full text-left"
-            style={{ padding: '10px var(--space-12)', background: 'transparent', border: 'none', borderTop: '1px solid var(--border-subtle)', cursor: 'pointer', color: 'var(--danger)', fontSize: '0.8125rem', fontWeight: 600 }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--danger-muted)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+            className="menu-item menu-item-danger rounded-none font-semibold border-t border-subtle"
           >
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

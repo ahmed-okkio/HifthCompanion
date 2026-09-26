@@ -12,7 +12,7 @@ import { useI18n } from '@/components/I18nProvider';
 import { saveWirdReminderTime } from '@/lib/services/profile';
 import { PUSH_CHANGED, readPushStatus, type PushStatus } from '@/lib/push/client';
 import { REMINDER_TIMES, formatReminderTime } from '@/lib/wirdReminder';
-import { AMBER_BG, AMBER_FG } from '@/components/wird/WirdCard';
+import { AMBER } from '@/components/wird/WirdCard';
 import type { MessageKey } from '@/lib/i18n/dictionaries';
 
 const BAR: Record<Exclude<PushStatus, 'on'>, MessageKey> = {
@@ -66,28 +66,25 @@ export default function WirdReminderRow({ initial, hasWirds }: {
   return (
     <div
       data-testid="wird-reminder-row"
-      className="flex flex-col"
-      style={{ padding: 'var(--space-12) 0', borderTop: '1px solid var(--border-subtle)', marginTop: 'var(--space-12)' }}
+      className="flex flex-col py-3 border-t border-subtle mt-3"
     >
       <div
-        className="flex items-center justify-between gap-4"
-        style={{ opacity: hasWirds ? 1 : 0.35 }}
+        className={`flex items-center justify-between gap-4 ${hasWirds ? '' : 'opacity-35'}`}
       >
         <div className="flex flex-col gap-1 min-w-0">
-          <label htmlFor="wird-reminder" className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+          <label htmlFor="wird-reminder" className="text-sm font-medium text-primary">
             {t('wird.reminder.label')}
           </label>
-          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+          <span className="text-xs text-muted">
             {t('wird.reminder.desc')}
           </span>
         </div>
         <select
           id="wird-reminder"
-          className="input"
+          className="input w-auto shrink-0"
           value={value}
           disabled={!hasWirds}
           onChange={(e) => change(e.target.value)}
-          style={{ width: 'auto', flexShrink: 0 }}
         >
           <option value="">{t('wird.reminder.off')}</option>
           {REMINDER_TIMES.map((time) => (
@@ -97,29 +94,26 @@ export default function WirdReminderRow({ initial, hasWirds }: {
       </div>
 
       {!hasWirds && (
-        <span className="text-xs" style={{ color: 'var(--text-muted)', marginTop: 'var(--space-8)' }}>
+        <span className="text-xs text-muted mt-2">
           {t('wird.reminder.noWirds')}
         </span>
       )}
       {showBar && (
         <span
           role="status"
-          style={{
-            marginTop: 'var(--space-8)', padding: '8px 12px', borderRadius: 8,
-            background: AMBER_BG, color: AMBER_FG, fontSize: 12, fontWeight: 500,
-          }}
+          className={`mt-2 px-3 py-2 rounded-sm text-caption font-medium ${AMBER}`}
         >
           {t(BAR[push])}
         </span>
       )}
       {saving && (
-        <span className="text-xs flex items-center gap-2" style={{ color: 'var(--text-muted)', marginTop: 'var(--space-8)' }}>
+        <span className="text-xs flex items-center gap-2 text-muted mt-2">
           <span className="spinner" aria-hidden />
           {t('wird.reminder.saving')}
         </span>
       )}
       {error && (
-        <span role="alert" style={{ color: 'var(--danger)', fontSize: 12, marginTop: 'var(--space-8)' }}>
+        <span role="alert" className="text-danger text-caption mt-2">
           {t('wird.reminder.saveError')}
         </span>
       )}

@@ -28,7 +28,7 @@ export function useNoteFocus(setId: string, pages: number[], onReveal?: () => vo
   const key = pages.join(',');
   // Ref so a fresh callback each render doesn't re-subscribe the listener.
   const onRevealRef = useRef(onReveal);
-  onRevealRef.current = onReveal;
+  useEffect(() => { onRevealRef.current = onReveal; });
 
   useEffect(() => {
     const onFocus = (e: Event) => {
@@ -111,8 +111,7 @@ export default function NotesPanel({ setId, pageNum, initialNotes, readOnly = fa
           {readOnly && <span className="badge badge-muted">{t('notes.readOnly')}</span>}
           <button
             onClick={() => setCollapsed(c => !c)}
-            className="btn btn-ghost flex items-center gap-1"
-            style={{ padding: '2px 8px', fontSize: '11px' }}
+            className="btn btn-ghost btn-xs flex items-center gap-1"
           >
             {collapsed ? (
               <><svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>{t('notes.show')}</>
@@ -141,14 +140,7 @@ export default function NotesPanel({ setId, pageNum, initialNotes, readOnly = fa
           {/* Note list */}
           <div ref={listRef}>
             {notes.length === 0 && (
-              <p
-                style={{
-                  padding: 'var(--space-24) var(--space-16)',
-                  textAlign: 'center',
-                  fontSize: 'var(--type-caption-size)',
-                  color: 'var(--text-muted)',
-                }}
-              >
+              <p className="px-6 py-8 text-center text-small text-muted">
                 {t('notes.empty')}
               </p>
             )}

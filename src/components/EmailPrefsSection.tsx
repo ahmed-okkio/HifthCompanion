@@ -19,12 +19,7 @@ function Switch({ checked, onChange, labelledBy }: {
 }) {
   return (
     <span
-      style={{
-        position: 'relative', display: 'inline-flex', flexShrink: 0,
-        width: 40, height: 24, borderRadius: 999,
-        background: checked ? 'var(--green-600)' : 'var(--border-default)',
-        transition: 'background var(--duration-normal) var(--ease-out)',
-      }}
+      className={`relative inline-flex shrink-0 w-10 h-6 rounded-full transition-colors ${checked ? 'bg-green-600' : 'bg-default'}`}
     >
       <input
         type="checkbox"
@@ -32,16 +27,11 @@ function Switch({ checked, onChange, labelledBy }: {
         aria-labelledby={labelledBy}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', margin: 0, opacity: 0, cursor: 'pointer' }}
+        className="absolute inset-0 w-full h-full m-0 opacity-0 cursor-pointer"
       />
       <span
         aria-hidden
-        style={{
-          position: 'absolute', top: 3, insetInlineStart: checked ? 19 : 3,
-          width: 18, height: 18, borderRadius: '50%', background: '#fff',
-          boxShadow: 'var(--shadow-e1)',
-          transition: 'inset-inline-start var(--duration-normal) var(--ease-out)',
-        }}
+        className={`absolute top-0.75 size-4.5 rounded-full bg-white shadow-e1 transition-all ${checked ? 'start-4.75' : 'start-0.75'}`}
       />
     </span>
   );
@@ -59,23 +49,19 @@ export default function EmailPrefsSection({ initial }: { initial: EmailPrefs }) 
 
   return (
     <div className="flex flex-col">
-      <p className="text-sm" style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-16)' }}>
+      <p className="text-sm text-muted mb-4">
         {t('profile.emailPrefs.help')}
       </p>
       {KEYS.map((key, i) => (
         <div
           key={key}
-          className="flex items-center justify-between gap-4"
-          style={{
-            padding: 'var(--space-12) 0',
-            borderTop: i === 0 ? 'none' : '1px solid var(--border-subtle)',
-          }}
+          className={`flex items-center justify-between gap-4 py-3 ${i === 0 ? '' : 'border-t border-subtle'}`}
         >
           <div className="flex flex-col gap-1 min-w-0">
-            <span id={`pref-${key}`} className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+            <span id={`pref-${key}`} className="text-sm font-medium text-primary">
               {t(`profile.emailPrefs.${key}`)}
             </span>
-            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            <span className="text-xs text-muted">
               {t(`profile.emailPrefs.${key}.desc`)}
             </span>
           </div>

@@ -138,6 +138,35 @@ Semantic aliases: `--shadow-sm` → e1, `--shadow-md` → e2, `--shadow-lg` → 
 
 ---
 
+### Utilities (Tailwind bridge)
+
+`@theme inline` in `globals.css` exposes tokens as utilities. Use these, not `bg-[var(--x)]`.
+
+| Token | Utility |
+|---|---|
+| `--surface-{app,main,workspace,canvas}` | `bg-surface-main` … |
+| `--bg-card-hover`, `--overlay` | `bg-card-hover`, `bg-overlay` |
+| `--text-{primary,secondary,muted}` | `text-primary`, `text-secondary`, `text-muted` |
+| `--border-{subtle,default,strong}` | `border-subtle`, `border-default`, `border-strong` |
+| `--accent{,-hover,-muted,-glow,-contrast}` | `bg-accent`, `bg-accent-muted`, `text-accent-contrast` … |
+| `--green-{600,700,800,soft}`, `--neutral-{50..950}`, `--neutral-hover` | `bg-green-soft`, `ring-green-600`, `hover:bg-neutral-100` … |
+| `--danger{,-hover,-muted}`, `--success{,-muted}`, `--warning` | `text-danger`, `bg-success-muted` … |
+| `--radius-{sm,md,lg,xl,full,page,canvas}` | `rounded-md`, `rounded-page` … |
+| `--shadow-{e1,e2,e3,panel,accent}` | `shadow-e2`, `shadow-panel` … (Tailwind `shadow-sm/md/lg` are NOT tokens) |
+| `--type-{micro,meta,caption,small,body,heading-m,heading-l}-size` (+weight) | `text-micro` … `text-heading-l` |
+| `--bg-glass`, `--border-accent`, `--warning-{muted,strong}` | `bg-glass`, `border-accent-border`, `bg-warning-muted`, `text-warning-strong` |
+| `--home-{gold,marker,note-green,note-orange}` (demo only) | `to-home-gold`, `border-home-marker` … |
+| `--shadow-{page,edge}` | `shadow-page` (page image), `shadow-edge` (nav rail) |
+| `--tracking-label`, `--ease-out`, `--ease-sheet` | `tracking-label`, `ease-out`, `ease-sheet`; durations: `duration-(--duration-fast)` |
+| `--font-brand` / Arabic face | `font-display`, `font-arabic` |
+| `--container-shell` (96rem), `--aspect-page` (0.704) | `max-w-shell`, `aspect-page` |
+| animations | `animate-fade-in`, `animate-fade-in-scale`, `animate-slide-down`, `animate-shimmer`, `animate-aurora{,-reverse}` |
+| custom utilities / atoms | `thin-scroll`, `no-scrollbar`, `.skeleton` (shimmer placeholder) |
+
+Color utilities work with any color prefix (`bg-`, `text-`, `border-`, `ring-`, `accent-`, `fill-`). Other tokens: `--z-{sticky,popover,overlay}`, `--tracking-label`, `--skeleton-{base,shine}`.
+
+Arbitrary values are lint-allowed only for layout geometry with no token (calc/clamp/min, vh/vw, % offsets, grid tracks, clip-path, `[--var:…]`, animation-delay stagger); see `eslint.config.mjs`.
+
 ## 2. Component boundary
 
 Three styling mechanisms, each at its own altitude. Pick by what you're building:
@@ -151,6 +180,12 @@ Three styling mechanisms, each at its own altitude. Pick by what you're building
 Rules:
 
 - Atoms are global classes — do not re-implement a button as a component.
+- **Button sizes:** `.btn-xs` 28 · `.btn-sm` 32 · default (md) 40 · `.btn-lg` 44 · `.btn-tall` 52 (hero/form CTA).
+  Never override a button's height, padding or font size inline — pick a size class.
+- **Icon-only buttons:** `.btn .btn-ghost .btn-icon` (40px square; add `.btn-sm` for 32px). Hover comes
+  from `.btn-ghost` — no JS hover handlers.
+- **Selected state:** tool toggles (annotation toolbars, mobile bar) use `--accent-muted` bg;
+  selection chips/pills use accent fill (`--accent-solid` bg + `--accent-contrast` text).
 - CSS Module internals must reference `var(--token)` — no bare hex/px inside them either.
 - **Promotion rule:** a tracker primitive moves to a shared `src/components/ui/` **only
   when it is first reused outside tracker** — on demand, not upfront. When it moves,

@@ -35,16 +35,10 @@ export default function AppHeader({
   const hidden = useHideOnScrollDown();
   return (
     <header
-      className={`sticky top-0 z-50 w-full border-b transition-transform duration-200 lg:!translate-y-0 ${hidden ? '-translate-y-full' : 'translate-y-0'}`}
-      style={{
-        background: 'var(--surface-main)',
-        borderColor: 'var(--border-subtle)',
-        boxShadow: 'var(--shadow-e1)',
-      }}
+      className={`sticky top-0 z-50 w-full border-b bg-surface-main border-subtle shadow-e1 transition-transform duration-200 lg:!translate-y-0 ${hidden ? '-translate-y-full' : 'translate-y-0'}`}
     >
       <div
-        className="flex items-center justify-between gap-4 w-full"
-        style={{ height: 72, padding: '0 var(--space-16)' }}
+        className="flex items-center justify-between gap-4 w-full h-18 px-4"
       >
         <div className="flex items-center gap-3 min-w-0">
           {onOpenNav && (
@@ -52,8 +46,7 @@ export default function AppHeader({
               type="button"
               onClick={onOpenNav}
               aria-label={t('nav.openNavigation')}
-              className="lg:hidden flex items-center justify-center shrink-0"
-              style={{ width: 40, height: 40, marginInlineStart: -8, borderRadius: 'var(--radius-sm)', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}
+              className="btn btn-ghost btn-icon shrink-0 -ms-2 lg:hidden"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
                 <line x1="3" y1="6" x2="21" y2="6" />
@@ -70,21 +63,21 @@ export default function AppHeader({
             const sep = (
               <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                    strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
-                   style={{ color: 'var(--text-muted)' }} className="shrink-0 rtl:-scale-x-100">
+                   className="shrink-0 rtl:-scale-x-100 text-muted">
                 <path d="m9 18 6-6-6-6" />
               </svg>
             );
             return (
               // Extra left margin = the SPACE between the brand and the path.
-              <span className="flex items-center gap-2 min-w-0" style={{ marginInlineStart: 'var(--space-8)' }}>
+              <span className="flex items-center gap-2 min-w-0 ms-2">
                 {crumbs.map((c, i) => {
                   const last = i === crumbs.length - 1;
                   return (
                     <span key={i} className="flex items-center gap-2 min-w-0">
                       {c.href && !last ? (
-                        <Link href={c.href} className="text-sm font-semibold truncate" style={{ color: 'var(--text-muted)' }}>{c.label}</Link>
+                        <Link href={c.href} className="text-sm font-semibold truncate text-muted">{c.label}</Link>
                       ) : (
-                        <span className="text-sm font-semibold truncate" style={{ color: 'var(--text-secondary)' }}>{c.label}</span>
+                        <span className="text-sm font-semibold truncate text-secondary">{c.label}</span>
                       )}
                       {!last && sep}
                     </span>

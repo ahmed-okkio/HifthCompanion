@@ -35,11 +35,11 @@ async function setupAuthenticatedReader(page: Page, setName: string) {
     });
   }, { timeout: 15000, message: 'data-canvas-ready="true" not found after set selection' }).toBeTruthy();
   await expect.poll(async () => {
-    return await page.evaluate(() => Boolean((window as any).fabricCanvas));
+    return await page.evaluate(() => Boolean(window.fabricCanvas));
   }, { timeout: 10000 }).toBeTruthy();
   await page.click('button[title="Pen"]', { force: true });
   await expect.poll(async () => {
-    return await page.evaluate(() => Boolean((window as any).fabricCanvas?.isDrawingMode));
+    return await page.evaluate(() => Boolean(window.fabricCanvas?.isDrawingMode));
   }, { timeout: 10000 }).toBeTruthy();
 }
 
@@ -60,7 +60,7 @@ async function drawOnCanvas(page: Page, dx = 150, dy = 100, maxAttempts = 3) {
     if (!box) throw new Error('Canvas not found');
 
     const countBefore: number = await page.evaluate(() => {
-      const c = (window as any).fabricCanvas;
+      const c = window.fabricCanvas;
       return c ? c.getObjects().length : 0;
     });
 
@@ -76,7 +76,7 @@ async function drawOnCanvas(page: Page, dx = 150, dy = 100, maxAttempts = 3) {
     let grew = false;
     try {
       await expect.poll(async () => {
-        const c = (window as any).fabricCanvas;
+        const c = window.fabricCanvas;
         return c ? c.getObjects().length > countBefore : false;
       }, { timeout: 3000 }).toBeTruthy();
       grew = true;
@@ -117,9 +117,8 @@ test.describe('Toolbar tools', () => {
     await drawOnCanvas(page, 120, 80);
 
     const objCount = await page.evaluate(() => {
-      // @ts-ignore
       const c = window.fabricCanvas;
-      return c ? c.getObjects().filter((o: any) => o.type === 'path').length : 0;
+      return c ? c.getObjects().filter((o) => o.type === 'path').length : 0;
     });
     expect(objCount).toBeGreaterThan(0);
   });
@@ -136,13 +135,12 @@ test.describe('Toolbar tools', () => {
     await drawOnCanvas(page, 160, 80);
 
     const result = await page.evaluate(() => {
-      // @ts-ignore
       const c = window.fabricCanvas;
       if (!c) return null;
       // The highlighter is a free-drawing brush: a path whose opacity lives in an rgba() stroke.
-      const paths = c.getObjects().filter((o: any) => o.type === 'path');
+      const paths = c.getObjects().filter((o) => o.type === 'path');
       if (!paths.length) return null;
-      const alpha = Number(/rgba\([^)]*,\s*([\d.]+)\)/.exec(paths[0].stroke)?.[1]);
+      const alpha = Number(/rgba\([^)]*,\s*([\d.]+)\)/.exec(paths[0].stroke ?? '')?.[1]);
       return { count: paths.length, alpha, blend: paths[0].globalCompositeOperation };
     });
     expect(result).not.toBeNull();
@@ -159,15 +157,14 @@ test.describe('Toolbar tools', () => {
 
     await page.click('button[title="Circle"]', { force: true });
     await expect.poll(async () => page.evaluate(() => {
-      const c = (window as any).fabricCanvas;
+      const c = window.fabricCanvas;
       return c != null && c.isDrawingMode === false;
     }), { timeout: 10000 }).toBeTruthy();
     await drawOnCanvas(page, 100, 80);
 
     const count = await page.evaluate(() => {
-      // @ts-ignore
       const c = window.fabricCanvas;
-      return c ? c.getObjects().filter((o: any) => o.type === 'ellipse').length : 0;
+      return c ? c.getObjects().filter((o) => o.type === 'ellipse').length : 0;
     });
     expect(count).toBeGreaterThan(0);
   });
@@ -179,15 +176,14 @@ test.describe('Toolbar tools', () => {
 
     await page.click('button[title="Underline"]', { force: true });
     await expect.poll(async () => page.evaluate(() => {
-      const c = (window as any).fabricCanvas;
+      const c = window.fabricCanvas;
       return c != null && c.isDrawingMode === false;
     }), { timeout: 10000 }).toBeTruthy();
     await drawOnCanvas(page, 120, 5); // nearly horizontal
 
     const count = await page.evaluate(() => {
-      // @ts-ignore
       const c = window.fabricCanvas;
-      return c ? c.getObjects().filter((o: any) => o.type === 'line').length : 0;
+      return c ? c.getObjects().filter((o) => o.type === 'line').length : 0;
     });
     expect(count).toBeGreaterThan(0);
   });
@@ -210,9 +206,8 @@ test.describe('Toolbar tools', () => {
     await page.mouse.click(textBox.x + 200, textBox.y + 200);
 
     const count = await page.evaluate(() => {
-      // @ts-ignore
       const c = window.fabricCanvas;
-      return c ? c.getObjects().filter((o: any) => o.type === 'i-text').length : 0;
+      return c ? c.getObjects().filter((o) => o.type === 'i-text').length : 0;
     });
     expect(count).toBeGreaterThan(0);
   });
@@ -240,7 +235,6 @@ test.describe('Toolbar UX', () => {
     await drawOnCanvas(page, 120, 80);
 
     const before = await page.evaluate(() => {
-      // @ts-ignore
       return window.fabricCanvas?.getObjects().length ?? 0;
     });
     expect(before).toBeGreaterThan(0);
@@ -250,7 +244,6 @@ test.describe('Toolbar UX', () => {
 
     await expect.poll(async () => {
       return await page.evaluate(() => {
-        // @ts-ignore
         return window.fabricCanvas?.getObjects().length ?? 0;
       });
     }, { timeout: 5000 }).toBeLessThan(before);
@@ -264,7 +257,6 @@ test.describe('Toolbar UX', () => {
     await drawOnCanvas(page, 120, 80);
     
     const before = await page.evaluate(() => {
-      // @ts-ignore
       return window.fabricCanvas?.getObjects().length ?? 0;
     });
 
@@ -273,7 +265,6 @@ test.describe('Toolbar UX', () => {
     let afterUndo = before;
     await expect.poll(async () => {
       afterUndo = await page.evaluate(() => {
-        // @ts-ignore
         return window.fabricCanvas?.getObjects().length ?? 0;
       });
       return afterUndo;
@@ -283,7 +274,6 @@ test.describe('Toolbar UX', () => {
 
     await expect.poll(async () => {
       return await page.evaluate(() => {
-        // @ts-ignore
         return window.fabricCanvas?.getObjects().length ?? 0;
       });
     }, { timeout: 5000 }).toBeGreaterThan(afterUndo);
@@ -301,7 +291,6 @@ test.describe('Toolbar UX', () => {
     await page.click('button:has-text("Clear")');
 
     const count = await page.evaluate(() => {
-      // @ts-ignore
       return window.fabricCanvas?.getObjects().length ?? 0;
     });
     expect(count).toBe(0);

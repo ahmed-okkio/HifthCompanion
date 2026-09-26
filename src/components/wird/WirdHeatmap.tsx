@@ -30,10 +30,6 @@ export default function WirdHeatmap({ doneDates, weeks = 16 }: { doneDates: stri
   const dayLabel = (row: number) =>
     row % 2 === 0 ? nf.format(new Date(thisMonday.getTime() + row * DAY_MS)) : '';
 
-  const cellBase: React.CSSProperties = {
-    aspectRatio: '1', minWidth: 0, borderRadius: 3,
-  };
-
   // Row-major fill: [label, cell×weeks] per day-row.
   const items: React.ReactNode[] = [];
   for (let row = 0; row < 7; row += 1) {
@@ -41,7 +37,7 @@ export default function WirdHeatmap({ doneDates, weeks = 16 }: { doneDates: stri
       <span
         key={`l${row}`}
         aria-hidden
-        style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textAlign: 'end', alignSelf: 'center', lineHeight: 1 }}
+        className="text-micro font-semibold text-muted text-end self-center leading-none"
       >
         {dayLabel(row)}
       </span>,
@@ -56,11 +52,8 @@ export default function WirdHeatmap({ doneDates, weeks = 16 }: { doneDates: stri
           key={`${row}-${col}`}
           title={iso}
           data-done={filled || undefined}
-          style={{
-            ...cellBase,
-            background: filled ? 'var(--green-600)' : 'var(--neutral-200)',
-            opacity: future ? 0 : 1, // out-of-range future days: hold the slot, draw nothing
-          }}
+          // out-of-range future days: hold the slot, draw nothing
+          className={`aspect-square min-w-0 rounded-xs ${filled ? 'bg-green-600' : 'bg-neutral-200'} ${future ? 'opacity-0' : ''}`}
         />,
       );
     }
@@ -69,13 +62,9 @@ export default function WirdHeatmap({ doneDates, weeks = 16 }: { doneDates: stri
   return (
     <div aria-label={t('wird.history')}>
       <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: `14px repeat(${weeks}, 1fr)`,
-          gridAutoRows: '1fr',
-          gap: 3,
-          alignItems: 'stretch',
-        }}
+        className="grid auto-rows-fr gap-1 items-stretch"
+        // eslint-disable-next-line shadcn/no-inline-styles -- column count from weeks prop
+        style={{ gridTemplateColumns: `14px repeat(${weeks}, 1fr)` }}
       >
         {items}
       </div>

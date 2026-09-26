@@ -150,9 +150,8 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
           in both locales. Pin dir=ltr so the flush/arrow logic (authored physical) isn't
           logical-flipped under ar's dir=rtl (which double-flipped the pages). */}
       <div
-        className="relative flex flex-row-reverse items-start overflow-hidden"
+        className="relative flex flex-row-reverse items-start overflow-hidden rounded-page shadow-e2"
         dir="ltr"
-        style={{ borderRadius: 'var(--radius-page)', boxShadow: '0 6px 16px rgba(15, 23, 42, 0.10)' }}
       >
         {/* ONE pan overlay across both pages (move tool) so a drag crossing the gutter doesn't
             stall on a per-slot mouseleave. Only mounted while zoomed-in + move tool active. */}
@@ -160,7 +159,7 @@ export default function SpreadAnnotation({ pages, sets, user, lockedSet = false,
           <div
             aria-label={t('annot.dragToMove')}
             onMouseDown={onPanDown}
-            style={{ position: 'absolute', inset: 0, zIndex: 3, cursor: dragging ? 'grabbing' : 'grab' }}
+            className={`absolute inset-0 z-3 ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
           />
         )}
         <div className="flex-1 min-w-0">

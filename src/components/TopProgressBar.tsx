@@ -36,10 +36,11 @@ export function TopProgressBar() {
   }, []);
 
   // End when the route resolves. Brief delay so the fill animation reads.
-  useEffect(() => {
+  const [route, setRoute] = useState({ pathname, searchParams });
+  if (route.pathname !== pathname || route.searchParams !== searchParams) {
+    setRoute({ pathname, searchParams });
     setActive(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, searchParams]);
+  }
 
   return (
     <div aria-hidden className={`top-progress ${active ? "top-progress--active" : ""}`} />

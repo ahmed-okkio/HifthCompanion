@@ -26,10 +26,10 @@ export default async function TrackerPage() {
   const dict = getDictionary(await getLocale());
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full" style={{ overflowY: 'auto', height: '100%' }}>
+    <main className="max-w-5xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full overflow-y-auto h-full">
       <MarkCircleReady />
       <EmptyState>
-        <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{dict['tracker.emptyTitle']}</span>
+        <span className="text-secondary font-semibold">{dict['tracker.emptyTitle']}</span>
         <span>{dict['tracker.emptyHint']}</span>
       </EmptyState>
     </main>

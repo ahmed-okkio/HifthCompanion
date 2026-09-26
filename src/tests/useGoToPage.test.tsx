@@ -9,16 +9,16 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(() => new URLSearchParams('')),
 }));
 
-const w = window as any;
+const w = window;
 
 describe('useGoToPage', () => {
   let push: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     push = vi.fn();
-    (useRouter as any).mockReturnValue({ push });
-    (usePathname as any).mockReturnValue('/reader/1');
-    (useSearchParams as any).mockReturnValue(new URLSearchParams(''));
+    vi.mocked(useRouter).mockReturnValue({ push } as unknown as ReturnType<typeof useRouter>);
+    vi.mocked(usePathname).mockReturnValue('/reader/1');
+    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams('') as unknown as ReturnType<typeof useSearchParams>);
     delete w.__hifthCanvasSkeletons;
     delete w.__hifthFlushReaderCanvas;
   });
@@ -43,14 +43,14 @@ describe('useGoToPage', () => {
   });
 
   it('builds spread segments, keeps the query, and drops a stale ?page=', async () => {
-    (useSearchParams as any).mockReturnValue(new URLSearchParams('set=abc&page=9'));
+    vi.mocked(useSearchParams).mockReturnValue(new URLSearchParams('set=abc&page=9') as unknown as ReturnType<typeof useSearchParams>);
     const { result } = renderHook(() => useGoToPage({ isSpread: true }));
     await act(async () => { await result.current.goToPage(50); });
     expect(push).toHaveBeenCalledWith('/reader/49-50?set=abc', { scroll: false });
   });
 
   it('does not navigate to the page already open', async () => {
-    (usePathname as any).mockReturnValue('/reader/50');
+    vi.mocked(usePathname).mockReturnValue('/reader/50');
     const { result } = renderHook(() => useGoToPage());
     let navigated: boolean | undefined;
     await act(async () => { navigated = await result.current.goToPage(50); });

@@ -62,6 +62,28 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
     expect(m.contentTop, 'first content must start at/below the fixed nav').toBeGreaterThanOrEqual(m.navBottom - 2);
   });
 
+  // Bar controls never overlap each other or spill out of the bar, and the bar is
+  // opaque so page text (e.g. the Sets card) can't read through behind them.
+  for (const width of [393, 360]) {
+    test(`bar controls fit without overlap at ${width}px`, async ({ page }) => {
+      listenForErrors(page);
+      await page.setViewportSize({ width, height: 851 });
+      const bar = page.getByTestId('mobile-annotation-bar');
+      await expect(bar).toBeVisible({ timeout: 10000 });
+      const m = await bar.evaluate((el) => {
+        const row = el.querySelector('[data-testid="mobile-annotation-row"]')!;
+        const box = row.getBoundingClientRect();
+        const btns = [...row.children].map((c) => c.getBoundingClientRect());
+        const overlap = btns.some((a, i) => btns.slice(i + 1).some((b) => a.right > b.left + 0.5));
+        const inside = btns.every((b) => b.left >= box.left - 0.5 && b.right <= box.right + 0.5);
+        return { overlap, inside, bg: getComputedStyle(el.firstElementChild!).backgroundColor };
+      });
+      expect(m.overlap).toBe(false);
+      expect(m.inside).toBe(true);
+      expect(m.bg).toMatch(/^rgb\(/); // opaque, not rgba(...)
+    });
+  }
+
   // (a) Tapping surah button opens bottom-sheet
   test('(a) tapping surah button opens the bottom-sheet', async ({ page }) => {
     listenForErrors(page);
@@ -95,10 +117,11 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
     // After selection, URL should navigate to page 2 (may have query params for set)
     await expect(page).toHaveURL(/\/reader\/2/, { timeout: 10000 });
     // Sheet should slide away (transform: translateY(100%)) — dialog role becomes hidden
-    const sheet = page.locator('[role="dialog"][aria-label="Surah navigation"]');
+    const sheet = page.getByTestId('mobile-surah-sheet');
+    // Outcome: sheet top sits at/below the viewport bottom (fully off-screen).
     await expect
-      .poll(async () => sheet.evaluate(el => (el as HTMLElement).style.transform), { timeout: 5000 })
-      .toContain('translateY(100%)');
+      .poll(async () => (await sheet.boundingBox())?.y ?? 0, { timeout: 5000 })
+      .toBeGreaterThanOrEqual(page.viewportSize()!.height - 1);
   });
 
   // (b) Floating pill absent
@@ -236,7 +259,7 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
     // The control row must fit the viewport — no horizontal scroll/clip.
     const rowFits = await page.evaluate(() => {
       const bar = document.querySelector('[data-testid="mobile-annotation-bar"]');
-      const row = bar?.querySelector('div[style*="space-around"]') as HTMLElement | null;
+      const row = bar?.querySelector('[data-testid="mobile-annotation-row"]') as HTMLElement | null;
       return row ? row.scrollWidth <= row.clientWidth + 1 : false;
     });
     expect(rowFits, 'toolbar row must not overflow horizontally').toBe(true);
@@ -306,10 +329,11 @@ test.describe('Mobile share view (Pixel 5)', () => {
     // Close drawer via the "Close surah list" button inside the sheet header
     await page.getByRole('button', { name: 'Close surah list' }).click();
     // Sheet slides away via transform: translateY(100%) — check transform style rather than visibility
-    const sheet = page.locator('[role="dialog"][aria-label="Surah navigation"]');
+    const sheet = page.getByTestId('mobile-surah-sheet');
+    // Outcome: sheet top sits at/below the viewport bottom (fully off-screen).
     await expect
-      .poll(async () => sheet.evaluate(el => (el as HTMLElement).style.transform), { timeout: 5000 })
-      .toContain('translateY(100%)');
+      .poll(async () => (await sheet.boundingBox())?.y ?? 0, { timeout: 5000 })
+      .toBeGreaterThanOrEqual(page.viewportSize()!.height - 1);
   });
 
   test('(e) share view has no horizontal overflow at mobile width', async ({ page }) => {

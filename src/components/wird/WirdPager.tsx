@@ -22,6 +22,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
+import { Sk } from '@/components/Skeleton';
 import WirdCard from './WirdCard';
 import WirdForm from './WirdForm';
 import ReminderSheet, { reminderSheetStart, type ReminderSheetStart } from './ReminderSheet';
@@ -81,9 +82,9 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
       <StatePanel title={t('wird.allDoneTitle')} hint={t('wird.allDoneHint')} enter showOptions onNew={openNew}>
         {/* nextRef is where the NEXT portion begins, resolved server-side before
             Done is tapped, so it's right immediately — no wait on the refresh. */}
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-8)', width: '100%' }}>
+        <ul className="list-none m-0 p-0 flex flex-col gap-2 w-full">
           {cards.map((c) => (
-            <li key={c.id} style={{ fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-secondary)', textAlign: 'center' }}>
+            <li key={c.id} className="text-small font-semibold text-secondary text-center">
               {t('wird.nextBegins', { name: c.name, ref: c.nextRef })}
             </li>
           ))}
@@ -214,17 +215,16 @@ function Strip({
 
   return (
     <main
-      className="fit-screen w-full flex-1 min-h-0 flex flex-col"
-      style={{ overflow: 'hidden' }}
+      className="fit-screen w-full flex-1 min-h-0 flex flex-col overflow-hidden"
       tabIndex={0}
       onKeyDown={onKeyDown}
       aria-roledescription="carousel"
       aria-label={t('wird.pageTitle')}
     >
       {/* Index: dots (≤5) or a count (≥6), one line at any number (H5). */}
-      <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 40, paddingTop: 'var(--space-12)' }}>
+      <div className="flex-none flex items-center justify-center gap-1.5 min-h-10 pt-3">
         {useCount ? (
-          <span style={{ fontSize: 'var(--type-small-size)', fontWeight: 700, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+          <span className="text-small font-bold text-secondary whitespace-nowrap">
             {t('wird.cardCount', { current: active + 1, total: cards.length })}
           </span>
         ) : (
@@ -232,55 +232,37 @@ function Strip({
             <span
               key={c.id}
               aria-hidden
-              style={{
-                width: i === active ? 20 : 6,
-                height: 6,
-                borderRadius: 'var(--radius-full)',
-                background: i === active
-                  ? 'var(--accent)'
+              className={`h-1.5 rounded-full flex-none transition-all duration-(--duration-fast) ease-out ${
+                i === active
+                  ? 'w-5 bg-accent'
                   : c.doneToday
-                    ? 'var(--accent-muted)' // completed marked distinctly (H5)
-                    : 'var(--border-strong)',
-                border: c.doneToday && i !== active ? '1px solid var(--accent)' : 'none',
-                transition: 'width var(--duration-fast) var(--ease-out)',
-                flex: '0 0 auto',
-              }}
+                    ? 'w-1.5 bg-accent-muted border border-accent' // completed marked distinctly (H5)
+                    : 'w-1.5 bg-strong'
+              }`}
             />
           ))
         )}
       </div>
 
-      <div style={{ flex: '1 1 0', minHeight: 0, display: 'flex', alignItems: 'stretch', justifyContent: 'center', gap: 'var(--space-16)', padding: '0 var(--space-16) var(--space-16)' }}>
+      <div className="flex-1 min-h-0 flex items-stretch justify-center gap-4 px-4 pb-4">
         <ArrowButton dir="prev" label={t('wird.prevCard')} disabled={active === 0} onClick={() => goTo(active - 1)} />
 
         <div
           ref={scrollerRef}
-          className="thin-scroll"
-          style={{
-            flex: '1 1 0',
-            minWidth: 0,
-            maxWidth: 520,
-            display: 'flex',
-            gap: 'var(--space-16)',
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            // Off while a card leaves: snapping would keep re-centring the
-            // shrinking slide, dragging the previous card in to collide with
-            // the next one. Unsnapped, only the neighbour closing the gap moves.
-            scrollSnapType: leavingId ? 'none' : 'x mandatory',
-            scrollbarWidth: 'none',
-          }}
+          // Snap off while a card leaves: snapping would keep re-centring the
+          // shrinking slide, dragging the previous card in to collide with
+          // the next one. Unsnapped, only the neighbour closing the gap moves.
+          className={`thin-scroll flex-1 min-w-0 max-w-130 flex gap-4 overflow-x-auto overflow-y-hidden no-scrollbar ${leavingId ? 'snap-none' : 'snap-x snap-mandatory'}`}
         >
           {cards.map((c, i) => (
             <div
               key={c.id}
               ref={(el) => { itemRefs.current[i] = el; }}
-              className={`wird-slide${leavingId === c.id ? ' is-leaving' : ''}`}
-              style={{ flex: '0 0 100%', minWidth: 0, scrollSnapAlign: 'center', display: 'flex' }}
+              className={`wird-slide basis-full shrink-0 grow-0 min-w-0 snap-center flex${leavingId === c.id ? ' is-leaving' : ''}`}
             >
               {/* height: 100% so the card sizes to the strip, not its content
                   (content-sized cards grow the page into a scroll). */}
-              <div style={{ width: '100%', height: '100%' }}>
+              <div className="w-full h-full">
                 <WirdCard card={c} onExit={onExit} />
               </div>
             </div>
@@ -293,7 +275,7 @@ function Strip({
       {/* Bottom bar: the options menu (New / Manage) sits in the thumb zone,
           not at the top corner. The card floats above it (H10 — the card face
           still holds only the Done disc). */}
-      <div style={{ flex: '0 0 auto', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minHeight: 48, padding: '0 var(--space-16) var(--space-12)' }}>
+      <div className="flex-none flex justify-end items-center min-h-12 px-4 pb-3">
         <OptionsMenu t={t} openUp onNew={onNew} />
       </div>
     </main>
@@ -309,29 +291,13 @@ function CreatingOverlay({ t }: { t: ReturnType<typeof useI18n>['t'] }) {
   return (
     <div
       aria-live="polite"
-      style={{
-        position: 'fixed', inset: 0, zIndex: 90, pointerEvents: 'none',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-16)',
-      }}
+      className="fixed inset-0 z-90 pointer-events-none flex items-center justify-center p-4"
     >
-      <div
-        style={{
-          width: 'min(360px, 100%)', display: 'flex', flexDirection: 'column', gap: 'var(--space-12)',
-          background: 'var(--surface-main)', border: '1px solid var(--border-subtle)',
-          borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-e3)', padding: 'var(--space-24)',
-        }}
-      >
+      <div className="w-full max-w-90 flex flex-col gap-3 bg-surface-main border border-subtle rounded-xl shadow-e3 p-6">
         {[70, 40, 90].map((w, i) => (
-          <div
-            key={i}
-            style={{
-              height: i === 1 ? 28 : 14, width: `${w}%`, borderRadius: 'var(--radius-sm)',
-              background: 'linear-gradient(90deg, var(--neutral-100), var(--neutral-200), var(--neutral-100))',
-              backgroundSize: '200% 100%', animation: 'shimmer 1.4s linear infinite',
-            }}
-          />
+          <Sk key={i} w={`${w}%`} h={i === 1 ? 28 : 14} r={8} />
         ))}
-        <span style={{ marginTop: 'var(--space-4)', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-muted)', textAlign: 'center' }}>
+        <span className="mt-1 text-small font-semibold text-muted text-center">
           {t('common.loading')}
         </span>
       </div>
@@ -348,23 +314,9 @@ function ArrowButton({ dir, label, disabled, onClick }: { dir: 'prev' | 'next'; 
       aria-label={label}
       // ‹ › are a desktop affordance (H6): hidden below lg, where the snap strip
       // is the whole interaction.
-      className="hidden lg:flex"
-      style={{
-        alignSelf: 'center',
-        flex: '0 0 44px',
-        width: 44,
-        height: 44,
-        borderRadius: 'var(--radius-full)',
-        border: '1px solid var(--border-default)',
-        background: 'var(--surface-main)',
-        color: 'var(--text-secondary)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.4 : 1,
-      }}
+      className={`hidden lg:flex self-center flex-none size-11 rounded-full border border-default bg-surface-main text-secondary items-center justify-center ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer'}`}
     >
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden style={dir === 'next' ? { transform: 'scaleX(-1)' } : undefined}>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden className={dir === 'next' ? '-scale-x-100' : undefined}>
         <path d="M15 6l-6 6 6 6" />
       </svg>
     </button>
@@ -374,25 +326,11 @@ function ArrowButton({ dir, label, disabled, onClick }: { dir: 'prev' | 'next'; 
 function StatePanel({ title, hint, children, enter, showCreate, showOptions, onNew }: { title: string; hint: string; children?: React.ReactNode; enter?: boolean; showCreate?: boolean; showOptions?: boolean; onNew: () => void }) {
   const { t } = useI18n();
   return (
-    <main className="fit-screen w-full flex-1 min-h-0 flex flex-col" style={{ overflow: 'hidden' }}>
-      <div className="flex-1 min-h-0 flex items-center justify-center" style={{ padding: 'var(--space-16)' }}>
-      <div
-        className={enter ? 'wird-alldone-enter' : undefined}
-        style={{
-          width: '100%',
-          maxWidth: 520,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 'var(--space-12)',
-          textAlign: 'center',
-          border: '1px dashed var(--border-default)',
-          borderRadius: 'var(--radius-xl)',
-          padding: 'var(--space-32) var(--space-24)',
-        }}
-      >
-        <h1 style={{ margin: 0, fontSize: 'var(--type-heading-m-size)', fontWeight: 600 }}>{title}</h1>
-        <p style={{ margin: 0, fontSize: 'var(--type-small-size)', color: 'var(--text-muted)', lineHeight: 1.45 }}>{hint}</p>
+    <main className="fit-screen w-full flex-1 min-h-0 flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 flex items-center justify-center p-4">
+      <div className={`w-full max-w-130 flex flex-col items-center gap-3 text-center border border-dashed border-default rounded-xl py-8 px-6${enter ? ' wird-alldone-enter' : ''}`}>
+        <h1 className="m-0 text-heading-m font-semibold">{title}</h1>
+        <p className="m-0 text-small text-muted leading-normal">{hint}</p>
         {children}
         {showCreate && (
           <button
@@ -400,20 +338,7 @@ function StatePanel({ title, hint, children, enter, showCreate, showOptions, onN
             onClick={onNew}
             aria-label={t('wird.newWird')}
             title={t('wird.newWird')}
-            style={{
-              border: 'none',
-              cursor: 'pointer',
-              marginTop: 'var(--space-8)',
-              width: 64,
-              height: 64,
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--accent-solid)',
-              color: 'var(--accent-contrast)',
-              boxShadow: 'var(--shadow-e2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            className="border-none cursor-pointer mt-2 size-16 rounded-full bg-accent text-accent-contrast shadow-e2 flex items-center justify-center"
           >
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" aria-hidden>
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -424,7 +349,7 @@ function StatePanel({ title, hint, children, enter, showCreate, showOptions, onN
       </div>
       </div>
       {showOptions && (
-        <div style={{ flex: '0 0 auto', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minHeight: 48, padding: '0 var(--space-16) var(--space-12)' }}>
+        <div className="flex-none flex justify-end items-center min-h-12 px-4 pb-3">
           <OptionsMenu t={t} openUp onNew={onNew} />
         </div>
       )}
@@ -449,28 +374,17 @@ function OptionsMenu({ t, openUp, onNew }: { t: ReturnType<typeof useI18n>['t'];
     return () => { document.removeEventListener('mousedown', onDoc); window.removeEventListener('keydown', onKey); };
   }, [open]);
 
-  const item: React.CSSProperties = {
-    display: 'block',
-    padding: 'var(--space-8) var(--space-16)',
-    fontSize: 'var(--type-small-size)',
-    fontWeight: 600,
-    color: 'var(--text-primary)',
-    whiteSpace: 'nowrap',
-  };
+  const item = 'menu-item rounded-none px-4 py-2 font-semibold text-primary whitespace-nowrap';
 
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
+    <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t('wird.options')}
-        style={{
-          width: 40, height: 40, borderRadius: 'var(--radius-full)', border: 'none',
-          background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}
+        className="btn btn-ghost btn-icon"
       >
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <circle cx="12" cy="12" r="3" />
@@ -480,18 +394,10 @@ function OptionsMenu({ t, openUp, onNew }: { t: ReturnType<typeof useI18n>['t'];
       {open && (
         <div
           role="menu"
-          style={{
-            position: 'absolute',
-            insetInlineEnd: 0,
-            ...(openUp
-              ? { insetBlockEnd: 'calc(100% + 4px)' }
-              : { insetBlockStart: 'calc(100% + 4px)' }),
-            minWidth: 160, background: 'var(--surface-main)', border: '1px solid var(--border-default)',
-            borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-e3)', overflow: 'hidden', zIndex: 60,
-          }}
+          className={`absolute end-0 ${openUp ? 'bottom-full mb-1' : 'top-full mt-1'} min-w-40 bg-surface-main border border-default rounded-md shadow-e3 overflow-hidden z-(--z-popover)`}
         >
-          <button type="button" role="menuitem" style={{ ...item, width: '100%', textAlign: 'start', border: 'none', background: 'transparent', cursor: 'pointer' }} onClick={() => { setOpen(false); onNew(); }}>{t('wird.newWird')}</button>
-          <Link href="/wird/manage" role="menuitem" style={{ ...item, borderTop: '1px solid var(--border-subtle)' }} onClick={() => setOpen(false)}>{t('wird.manage')}</Link>
+          <button type="button" role="menuitem" className={item} onClick={() => { setOpen(false); onNew(); }}>{t('wird.newWird')}</button>
+          <Link href="/wird/manage" role="menuitem" className={`${item} border-t border-subtle`} onClick={() => setOpen(false)}>{t('wird.manage')}</Link>
         </div>
       )}
     </div>

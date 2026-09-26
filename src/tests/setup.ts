@@ -8,7 +8,7 @@ vi.mock('@/components/I18nProvider', async (importOriginal) => {
     ...actual,
     useI18n: () => ({
       locale: 'en',
-      t: (key: string, vars?: any) => {
+      t: (key: string, vars?: Record<string, string | number>) => {
         let str = dict[key as keyof typeof dict] ?? key;
         if (vars) {
           for (const [k, v] of Object.entries(vars)) {

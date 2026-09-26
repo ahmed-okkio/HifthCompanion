@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { fabric } from 'fabric';
 import { CanvasHistory } from '../lib/canvasHistory';
 
 function makeMockCanvas(initialObjects: string[] = []) {
@@ -10,7 +11,7 @@ function makeMockCanvas(initialObjects: string[] = []) {
     remove: vi.fn((o: string) => { objects = objects.filter(x => x !== o); }),
     add: vi.fn((o: string) => { objects.push(o); }),
     // Fabric 5's canvas.enlivenObjects — sync wrapper for tests
-    enlivenObjects: vi.fn((objs: any[], cb: (enlivened: any[]) => void) => { cb([...objs]); }),
+    enlivenObjects: vi.fn((objs: string[], cb: (enlivened: string[]) => void) => { cb([...objs]); }),
     renderAll: vi.fn(),
     getWidth: vi.fn(() => 800),
     getHeight: vi.fn(() => 600),
@@ -26,7 +27,7 @@ describe('CanvasHistory', () => {
 
   beforeEach(() => {
     canvas = makeMockCanvas();
-    history = new CanvasHistory(canvas as any);
+    history = new CanvasHistory(canvas as unknown as fabric.Canvas);
   });
 
   it('starts with no undo/redo available', () => {

@@ -57,7 +57,11 @@ export default function NoteBadgeLayer({ fabricRef, setId, pageNum, canvasReady,
   // so no ancestor's overflow clip can cut it off.
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
 
-  useEffect(() => { if (notesProp) setNotes(notesProp); }, [notesProp]);
+  const [prevNotesProp, setPrevNotesProp] = useState(notesProp);
+  if (notesProp !== prevNotesProp) {
+    setPrevNotesProp(notesProp);
+    if (notesProp) setNotes(notesProp);
+  }
 
   useEffect(() => {
     if (notesProp) return;
@@ -138,37 +142,21 @@ export default function NoteBadgeLayer({ fabricRef, setId, pageNum, canvasReady,
     : [];
 
   return (
-    <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 5 }}>
+    <div className="pointer-events-none absolute inset-0 z-5">
       {placed.map(b => (
         <button
           key={b.objectId}
           type="button"
           data-note-badge={b.objectId}
-          className={flashing === b.objectId ? 'animate-note-flash' : undefined}
+          className={`pointer-events-auto absolute h-3.5 min-w-3.5 cursor-pointer rounded-full border border-subtle px-1 text-micro font-semibold leading-3 shadow-e1 ${openId === b.objectId ? 'bg-accent text-accent-contrast' : 'bg-surface-main text-primary'}${flashing === b.objectId ? ' animate-note-flash' : ''}`}
           aria-label={t(b.count > 1 ? 'notes.badgeMulti' : 'notes.badge', { index: b.index, count: b.count })}
           onClick={e => {
             const rect = e.currentTarget.getBoundingClientRect();
             setOpenId(prev => (prev === b.objectId ? null : b.objectId));
             setAnchor(rect);
           }}
-          style={{
-            position: 'absolute',
-            left: b.left,
-            top: b.top,
-            minWidth: 14,
-            height: 14,
-            padding: '0 3px',
-            borderRadius: 999,
-            border: '1px solid var(--border-subtle)',
-            background: openId === b.objectId ? 'var(--accent)' : 'var(--surface-main)',
-            color: openId === b.objectId ? 'var(--accent-contrast)' : 'var(--text-primary)',
-            boxShadow: 'var(--shadow-e1)',
-            fontSize: '9px',
-            fontWeight: 600,
-            lineHeight: '12px',
-            pointerEvents: 'auto',
-            cursor: 'pointer',
-          }}
+          // eslint-disable-next-line shadcn/no-inline-styles -- badge anchored to canvas object coords
+          style={{ left: b.left, top: b.top }}
         >
           {fmtNum(b.index)}{b.count > 1 ? `·${fmtNum(b.count)}` : ''}
         </button>
@@ -190,18 +178,15 @@ export default function NoteBadgeLayer({ fabricRef, setId, pageNum, canvasReady,
           return (
             <>
               {/* Backdrop catches an outside click to close. */}
-              <div style={{ position: 'fixed', inset: 0, zIndex: 60 }} onClick={() => setOpenId(null)} />
+              <div className="fixed inset-0 z-60" onClick={() => setOpenId(null)} />
               <div
                 role="dialog"
-                style={{
-                  position: 'fixed', left, top, width: PW, maxHeight: PH, overflowY: 'auto', zIndex: 61,
-                  background: 'var(--surface-main)', border: '1px solid var(--border-subtle)',
-                  borderRadius: 8, boxShadow: 'var(--shadow-e2)', padding: '8px 10px',
-                  display: 'flex', flexDirection: 'column', gap: 8,
-                }}
+                className="fixed z-61 flex w-55 max-h-65 flex-col gap-2 overflow-y-auto rounded-md border border-subtle bg-surface-main px-3 py-2 shadow-e2"
+                // eslint-disable-next-line shadcn/no-inline-styles -- viewport-clamped position computed from badge rect
+                style={{ left, top }}
               >
                 {openNotes.map(n => (
-                  <div key={n.id} dir="auto" style={{ fontSize: '12px', color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  <div key={n.id} dir="auto" className="whitespace-pre-wrap break-words text-caption text-primary">
                     {n.body}
                   </div>
                 ))}

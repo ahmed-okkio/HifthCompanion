@@ -11,6 +11,102 @@
      lets Arabic glyphs fall through to "Noto Sans Arabic Web". */
   --font-sans: "Plus Jakarta Sans", "Noto Sans Arabic Web", ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Token bridge → Tailwind utilities (see docs/design-system.md §1 Utilities).
+     Values point at the :root tokens below; self-named vars (--radius-*,
+     --shadow-e*) resolve to the unlayered :root value. */
+  --color-surface-app: var(--surface-app);
+  --color-surface-main: var(--surface-main);
+  --color-surface-workspace: var(--surface-workspace);
+  --color-surface-canvas: var(--surface-canvas);
+  --color-card-hover: var(--bg-card-hover);
+  --color-overlay: var(--overlay);
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+  --color-subtle: var(--border-subtle);
+  --color-default: var(--border-default);
+  --color-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-muted: var(--accent-muted);
+  --color-accent-glow: var(--accent-glow);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-green-600: var(--green-600);
+  --color-green-700: var(--green-700);
+  --color-green-800: var(--green-800);
+  --color-green-soft: var(--green-soft);
+  --color-neutral-50: var(--neutral-50);
+  --color-neutral-100: var(--neutral-100);
+  --color-neutral-200: var(--neutral-200);
+  --color-neutral-300: var(--neutral-300);
+  --color-neutral-400: var(--neutral-400);
+  --color-neutral-500: var(--neutral-500);
+  --color-neutral-600: var(--neutral-600);
+  --color-neutral-700: var(--neutral-700);
+  --color-neutral-800: var(--neutral-800);
+  --color-neutral-900: var(--neutral-900);
+  --color-neutral-950: var(--neutral-950);
+  --color-neutral-hover: var(--neutral-hover);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-muted: var(--danger-muted);
+  --color-success: var(--success);
+  --color-success-muted: var(--success-muted);
+  --color-warning: var(--warning);
+  /* rounded-sm/md/lg/xl/full already read var(--radius-*) from :root. */
+  --radius-page: var(--radius-page);
+  --radius-canvas: var(--radius-canvas);
+  --shadow-e1: var(--shadow-e1);
+  --shadow-e2: var(--shadow-e2);
+  --shadow-e3: var(--shadow-e3);
+  --shadow-panel: var(--shadow-panel);
+  --shadow-accent: var(--shadow-accent);
+  --text-micro: var(--type-micro-size);
+  --text-meta: var(--type-meta-size);
+  --text-meta--font-weight: var(--type-meta-weight);
+  --text-caption: var(--type-caption-size);
+  --text-caption--font-weight: var(--type-caption-weight);
+  --text-small: var(--type-small-size);
+  --text-small--font-weight: var(--type-small-weight);
+  --text-body: var(--type-body-size);
+  --text-body--font-weight: var(--type-body-weight);
+  --text-heading-m: var(--type-heading-m-size);
+  --text-heading-m--font-weight: var(--type-heading-m-weight);
+  --text-heading-l: var(--type-heading-l-size);
+  --text-heading-l--font-weight: var(--type-heading-l-weight);
+  --color-glass: var(--bg-glass);
+  --color-accent-border: var(--border-accent);
+  --color-warning-muted: var(--warning-muted);
+  --color-warning-strong: var(--warning-strong);
+  --color-home-gold: var(--home-gold);
+  --color-home-marker: var(--home-marker);
+  --color-home-note-green: var(--home-note-green);
+  --color-home-note-orange: var(--home-note-orange);
+  --shadow-page: var(--shadow-page);
+  --shadow-float: var(--shadow-float);
+  --shadow-edge: var(--shadow-edge);
+  --shadow-tab-rail: var(--shadow-tab-rail);
+  --tracking-label: var(--tracking-label);
+  --ease-sheet: var(--ease-sheet);
+  --container-shell: 96rem;
+  --aspect-page: 0.704; /* Madinah mushaf page */
+  --font-display: var(--font-brand), system-ui, sans-serif;
+  --font-arabic: "Noto Sans Arabic Web", serif;
+  --animate-fade-in: fade-in var(--duration-normal) var(--ease-out) both;
+  --animate-fade-in-scale: fade-in-scale var(--duration-normal) var(--ease-out) both;
+  --animate-slide-down: slide-down 0.22s var(--ease-out) both;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-aurora: home-aurora 18s ease-in-out infinite;
+  --animate-aurora-reverse: home-aurora 22s ease-in-out infinite reverse;
+}
+
+@utility thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+}
+@utility no-scrollbar {
+  scrollbar-width: none;
 }
 
 /* Arabic face — self-hosted @font-face (not next/font) so we can set size-adjust.
@@ -82,6 +178,8 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   --success: #10B981;
   --danger-500: #EF4444;
   --warning: #F59E0B;
+  --warning-muted: color-mix(in srgb, var(--warning) 16%, var(--surface-main));
+  --warning-strong: color-mix(in srgb, var(--warning) 72%, var(--text-primary));
   --blue-500: #3B82F6;
   --purple-500: #8B5CF6;
 
@@ -145,6 +243,10 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   --shadow-e3: 0 12px 32px rgba(0,0,0,.08);
   /* Reader-canvas hero shadow (PRD 0002 Story 11). */
   --shadow-canvas: 0 8px 24px rgba(0,0,0,.05);
+  --shadow-page: 0 6px 16px rgba(15,23,42,.10);  /* page image lift */
+  --shadow-edge: 1px 0 3px -2px rgba(15,23,42,.10); /* nav rail edge */
+  --shadow-tab-rail: inset 0 -2px 0 var(--border-subtle); /* tab strip baseline; inset so overflow-y-hidden never clips the active underline */
+  --shadow-float: 0 14px 36px rgba(15,23,42,.22); /* mobile annotation bar hovering over the page */
 
   /* Spacing scale */
   --space-4: 4px;
@@ -166,6 +268,13 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   --type-small-size: 13px;    --type-small-weight: 500;
   --type-caption-size: 12px;  --type-caption-weight: 500;
   --type-meta-size: 11px;     --type-meta-weight: 500;
+  --type-micro-size: 10px;    /* dense chips/meta only; snap 9/9.5 → micro */
+  --tracking-label: 0.05em;   /* eyebrow: caption + 600 + uppercase */
+
+  /* Stacking */
+  --z-sticky: 49;
+  --z-popover: 60;
+  --z-overlay: 100;
 
   /* ---- B. SEMANTIC ALIASES (re-pointed at the raw scale) ---- */
 
@@ -201,11 +310,19 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   --danger: var(--danger-500);
   --danger-hover: #f87171;
   --danger-muted: rgba(239,68,68,0.08);
+  --success-muted: rgba(16,185,129,0.12);
+
+  /* Neutral wash (ghost hover, muted badge), scrim, skeleton */
+  --neutral-hover: rgba(2,6,23,0.045);
+  --overlay: rgba(15,23,42,0.45);
+  --skeleton-base: rgba(15,23,42,0.04);
+  --skeleton-shine: rgba(15,23,42,0.08);
 
   /* Shadows (mapped to the e1/e2/e3 elevation scale) */
   --shadow-sm: var(--shadow-e1);
   --shadow-md: var(--shadow-e2);
   --shadow-lg: var(--shadow-e3);
+  --shadow-accent: 0 10px 24px rgba(15,138,103,.28);
   --shadow-glow: 0 0 18px rgba(15,138,103,0.06);
 
   /* Symmetric "floating panel" shadow for fixed/sticky surfaces (surah nav
@@ -222,6 +339,7 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
 
   /* Transitions */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1); /* drawers / bottom sheets */
   --duration-fast: 150ms;
   --duration-normal: 250ms;
   --duration-slow: 400ms;
@@ -316,6 +434,15 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   border: 1px solid var(--border-subtle);
 }
 
+/* Atoms live in the components layer so Tailwind utilities (lg:hidden, w-full…) override them. */
+@layer components {
+/* ===== Skeleton shimmer ===== */
+.skeleton {
+  background: linear-gradient(90deg, var(--skeleton-base) 0%, var(--skeleton-shine) 50%, var(--skeleton-base) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
 /* ===== Card ===== */
 .card {
   background: var(--bg-card);
@@ -346,7 +473,8 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 16px;
+  min-height: 40px; /* md, the default size */
+  padding: 0 16px;
   font-size: 13px;
   font-weight: 600;
   border-radius: var(--radius-sm);
@@ -416,7 +544,7 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
 
 .btn-ghost:hover:not(:disabled) {
   /* Was rgba(255,255,255,0.06) — invisible on a light surface. */
-  background: rgba(2, 6, 23, 0.045);
+  background: var(--neutral-hover);
   color: var(--text-primary);
 }
 
@@ -469,6 +597,7 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   opacity: 1;
 }
 
+}
 /* ===== Wird motion (M6, contract §J) =====
    Layered onto the plain M5 state changes: the tap bounce, the completed
    card's exit, and the all-done arrival. Exit direction is one property that
@@ -595,6 +724,17 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
 /* The wird reminder sheet asks the same question as NotifyBanner — show one. */
 html[data-reminder-sheet] .notify-banner { display: none; }
 
+@layer components {
+/* Size scale (design-system.md §2): xs 28 · sm 32 · md 40 (default) · lg 44.
+   Pick a size class instead of inline minHeight/fontSize/padding overrides. */
+.btn-xs { min-height: 28px; padding: 0 8px; font-size: 11px; }
+.btn-sm { min-height: 32px; padding: 0 12px; font-size: 12px; }
+.btn-lg { min-height: 44px; padding: 0 20px; }
+
+/* Icon-only: square, no padding. Combine with .btn-ghost; add .btn-sm for 32px. */
+.btn-icon { width: 40px; min-height: 40px; height: 40px; padding: 0; }
+.btn-icon.btn-sm { width: 32px; min-height: 32px; height: 32px; }
+
 /* Tall CTA: a full-height button for the primary action of a form/sheet, where
    the default .btn height reads as too small against stacked inputs. */
 .btn-tall {
@@ -603,6 +743,35 @@ html[data-reminder-sheet] .notify-banner { display: none; }
   font-size: 15px;
   border-radius: var(--radius-md);
 }
+
+/* Empty-slot affordance ("+ add"): dashed outline, accent text. */
+.btn-dashed {
+  min-height: 44px;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--accent-solid);
+  font-size: 14px;
+}
+.btn-dashed:hover:not(:disabled) { border-color: var(--accent-solid); background: var(--accent-muted); }
+
+/* Menu / dropdown row. Add .menu-item-danger for destructive rows. */
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: start;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.menu-item:hover { background: var(--accent-muted); color: var(--text-primary); }
+.menu-item-danger { color: var(--danger); }
+.menu-item-danger:hover { background: var(--danger-muted); color: var(--danger); }
 
 /* ===== Inputs ===== */
 .input {
@@ -685,8 +854,9 @@ input[type="number"] {
 }
 
 .badge-muted {
-  background: rgba(2, 6, 23, 0.045);
+  background: var(--neutral-hover);
   color: var(--text-muted);
+}
 }
 
 /* ===== Responsive helpers ===== */

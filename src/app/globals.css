@@ -11,6 +11,70 @@
      lets Arabic glyphs fall through to "Noto Sans Arabic Web". */
   --font-sans: "Plus Jakarta Sans", "Noto Sans Arabic Web", ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Token bridge → Tailwind utilities (see docs/design-system.md §1 Utilities).
+     Values point at the :root tokens below; self-named vars (--radius-*,
+     --shadow-e*) resolve to the unlayered :root value. */
+  --color-surface-app: var(--surface-app);
+  --color-surface-main: var(--surface-main);
+  --color-surface-workspace: var(--surface-workspace);
+  --color-surface-canvas: var(--surface-canvas);
+  --color-card-hover: var(--bg-card-hover);
+  --color-overlay: var(--overlay);
+  --color-primary: var(--text-primary);
+  --color-secondary: var(--text-secondary);
+  --color-muted: var(--text-muted);
+  --color-subtle: var(--border-subtle);
+  --color-default: var(--border-default);
+  --color-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-muted: var(--accent-muted);
+  --color-accent-glow: var(--accent-glow);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-green-600: var(--green-600);
+  --color-green-700: var(--green-700);
+  --color-green-800: var(--green-800);
+  --color-green-soft: var(--green-soft);
+  --color-neutral-50: var(--neutral-50);
+  --color-neutral-100: var(--neutral-100);
+  --color-neutral-200: var(--neutral-200);
+  --color-neutral-300: var(--neutral-300);
+  --color-neutral-400: var(--neutral-400);
+  --color-neutral-500: var(--neutral-500);
+  --color-neutral-600: var(--neutral-600);
+  --color-neutral-700: var(--neutral-700);
+  --color-neutral-800: var(--neutral-800);
+  --color-neutral-900: var(--neutral-900);
+  --color-neutral-950: var(--neutral-950);
+  --color-neutral-hover: var(--neutral-hover);
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-danger-muted: var(--danger-muted);
+  --color-success: var(--success);
+  --color-success-muted: var(--success-muted);
+  --color-warning: var(--warning);
+  /* rounded-sm/md/lg/xl/full already read var(--radius-*) from :root. */
+  --radius-page: var(--radius-page);
+  --radius-canvas: var(--radius-canvas);
+  --shadow-e1: var(--shadow-e1);
+  --shadow-e2: var(--shadow-e2);
+  --shadow-e3: var(--shadow-e3);
+  --shadow-panel: var(--shadow-panel);
+  --shadow-accent: var(--shadow-accent);
+  --text-micro: var(--type-micro-size);
+  --text-meta: var(--type-meta-size);
+  --text-meta--font-weight: var(--type-meta-weight);
+  --text-caption: var(--type-caption-size);
+  --text-caption--font-weight: var(--type-caption-weight);
+  --text-small: var(--type-small-size);
+  --text-small--font-weight: var(--type-small-weight);
+  --text-body: var(--type-body-size);
+  --text-body--font-weight: var(--type-body-weight);
+  --text-heading-m: var(--type-heading-m-size);
+  --text-heading-m--font-weight: var(--type-heading-m-weight);
+  --text-heading-l: var(--type-heading-l-size);
+  --text-heading-l--font-weight: var(--type-heading-l-weight);
 }
 
 /* Arabic face — self-hosted @font-face (not next/font) so we can set size-adjust.
@@ -166,6 +230,13 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   --type-small-size: 13px;    --type-small-weight: 500;
   --type-caption-size: 12px;  --type-caption-weight: 500;
   --type-meta-size: 11px;     --type-meta-weight: 500;
+  --type-micro-size: 10px;    /* dense chips/meta only; snap 9/9.5 → micro */
+  --tracking-label: 0.05em;   /* eyebrow: caption + 600 + uppercase */
+
+  /* Stacking */
+  --z-sticky: 49;
+  --z-popover: 60;
+  --z-overlay: 100;
 
   /* ---- B. SEMANTIC ALIASES (re-pointed at the raw scale) ---- */
 
@@ -201,11 +272,19 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
   --danger: var(--danger-500);
   --danger-hover: #f87171;
   --danger-muted: rgba(239,68,68,0.08);
+  --success-muted: rgba(16,185,129,0.12);
+
+  /* Neutral wash (ghost hover, muted badge), scrim, skeleton */
+  --neutral-hover: rgba(2,6,23,0.045);
+  --overlay: rgba(15,23,42,0.45);
+  --skeleton-base: rgba(15,23,42,0.04);
+  --skeleton-shine: rgba(15,23,42,0.08);
 
   /* Shadows (mapped to the e1/e2/e3 elevation scale) */
   --shadow-sm: var(--shadow-e1);
   --shadow-md: var(--shadow-e2);
   --shadow-lg: var(--shadow-e3);
+  --shadow-accent: 0 10px 24px rgba(15,138,103,.28);
   --shadow-glow: 0 0 18px rgba(15,138,103,0.06);
 
   /* Symmetric "floating panel" shadow for fixed/sticky surfaces (surah nav
@@ -419,7 +498,7 @@ html[lang="ar"] [style*="font-weight:600"] { font-weight: 500 !important; }
 
 .btn-ghost:hover:not(:disabled) {
   /* Was rgba(255,255,255,0.06) — invisible on a light surface. */
-  background: rgba(2, 6, 23, 0.045);
+  background: var(--neutral-hover);
   color: var(--text-primary);
 }
 
@@ -700,7 +779,7 @@ input[type="number"] {
 }
 
 .badge-muted {
-  background: rgba(2, 6, 23, 0.045);
+  background: var(--neutral-hover);
   color: var(--text-muted);
 }
 }

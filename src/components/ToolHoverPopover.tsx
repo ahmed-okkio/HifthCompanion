@@ -46,7 +46,7 @@ export default function ToolHoverPopover({
             <input
               type="range" min="1" max="40" step="1" value={penWidth}
               onChange={e => onPenWidthChange(Number(e.target.value))}
-              className="w-full cursor-pointer accent-[var(--green-600)]"
+              className="w-full cursor-pointer accent-green-600"
               style={{ height: '4px' }}
             />
             <span style={{ minWidth: '36px', textAlign: 'right', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{penWidth}</span>
@@ -58,7 +58,7 @@ export default function ToolHoverPopover({
             <input
               type="range" min="8" max="60" step="1" value={eraserSize}
               onChange={e => onEraserSizeChange(Number(e.target.value))}
-              className="w-full cursor-pointer accent-[var(--green-600)]"
+              className="w-full cursor-pointer accent-green-600"
               style={{ height: '4px' }}
             />
             <span style={{ minWidth: '36px', textAlign: 'right', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{eraserSize}</span>
@@ -70,7 +70,7 @@ export default function ToolHoverPopover({
             <input
               type="range" min="0.1" max="0.9" step="0.05" value={opacity}
               onChange={e => onOpacityChange(parseFloat(e.target.value))}
-              className="w-full cursor-pointer accent-[var(--green-600)]"
+              className="w-full cursor-pointer accent-green-600"
               style={{ height: '4px' }}
             />
             <span style={{ minWidth: '36px', textAlign: 'right', fontSize: 'var(--type-small-size)', fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{Math.round(opacity * 100)}%</span>

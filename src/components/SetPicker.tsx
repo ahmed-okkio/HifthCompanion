@@ -13,7 +13,7 @@ interface Props {
 export default function SetPicker({ user, sets, selectedSetId, saving, onSetChange }: Props) {
   const { t } = useI18n();
   return (
-    <div className="mb-3 flex items-center gap-2 justify-between rounded-2xl border border-[var(--border-subtle)] bg-white/72 px-3 py-2 shadow-sm backdrop-blur min-h-[52px] lg:min-h-0">
+    <div className="mb-3 flex items-center gap-2 justify-between rounded-2xl border border-subtle bg-white/72 px-3 py-2 shadow-sm backdrop-blur min-h-[52px] lg:min-h-0">
       {user ? (
         sets.length > 0 ? (
           <select

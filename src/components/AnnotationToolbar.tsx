@@ -108,7 +108,7 @@ export default function AnnotationToolbar({
           type="button"
           onClick={onMoveToggle}
           title={t('annot.move')}
-          className={`flex flex-col items-center justify-center gap-1 ${moveActive ? 'bg-[var(--accent-muted)]' : 'hover:bg-[var(--neutral-100)]'}`}
+          className={`flex flex-col items-center justify-center gap-1 ${moveActive ? 'bg-accent-muted' : 'hover:bg-neutral-100'}`}
           style={{
             ...cellBase,
             color: moveActive ? 'var(--text-accent)' : 'var(--text-muted)',
@@ -129,7 +129,7 @@ export default function AnnotationToolbar({
             ref={el => { buttonRefs.current[t] = el; }}
             onClick={() => onToolClick(t)}
             title={toolLabel(t)}
-            className={`flex flex-col items-center justify-center gap-1 ${(activeTool === t && !moveActive) ? 'bg-[var(--accent-muted)]' : 'hover:bg-[var(--neutral-100)]'}`}
+            className={`flex flex-col items-center justify-center gap-1 ${(activeTool === t && !moveActive) ? 'bg-accent-muted' : 'hover:bg-neutral-100'}`}
             style={{
               ...cellBase,
               color: (activeTool === t && !moveActive) ? 'var(--text-accent)' : 'var(--text-muted)',
@@ -155,7 +155,7 @@ export default function AnnotationToolbar({
           suppressHydrationWarning
           title={t('annot.undo')}
           aria-disabled={!canUndo}
-          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6 hover:bg-[var(--neutral-100)]"
+          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6 hover:bg-neutral-100"
           style={{
             ...cellBase,
             ...(!canUndo ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none' } : { color: 'var(--text-secondary)' }),
@@ -173,7 +173,7 @@ export default function AnnotationToolbar({
           suppressHydrationWarning
           title={t('annot.redo')}
           aria-disabled={!canRedo}
-          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6 hover:bg-[var(--neutral-100)]"
+          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6 hover:bg-neutral-100"
           style={{
             ...cellBase,
             ...(!canRedo ? { opacity: 0.45, cursor: 'not-allowed', color: 'var(--text-muted)', pointerEvents: 'none' } : { color: 'var(--text-secondary)' }),
@@ -191,7 +191,7 @@ export default function AnnotationToolbar({
           title={t('annot.clearAll')}
           aria-label={t('annot.clearAll')}
           aria-disabled={!canClear}
-          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6 hover:bg-[var(--neutral-100)]"
+          className="flex flex-col items-center justify-center gap-1 [&>svg]:h-6 [&>svg]:w-6 hover:bg-neutral-100"
           style={{
             ...cellBase,
             // Same disabled treatment as undo/redo above, but keeps the danger hue when live.

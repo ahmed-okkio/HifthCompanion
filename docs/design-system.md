@@ -138,6 +138,25 @@ Semantic aliases: `--shadow-sm` → e1, `--shadow-md` → e2, `--shadow-lg` → 
 
 ---
 
+### Utilities (Tailwind bridge)
+
+`@theme inline` in `globals.css` exposes tokens as utilities. Use these, not `bg-[var(--x)]`.
+
+| Token | Utility |
+|---|---|
+| `--surface-{app,main,workspace,canvas}` | `bg-surface-main` … |
+| `--bg-card-hover`, `--overlay` | `bg-card-hover`, `bg-overlay` |
+| `--text-{primary,secondary,muted}` | `text-primary`, `text-secondary`, `text-muted` |
+| `--border-{subtle,default,strong}` | `border-subtle`, `border-default`, `border-strong` |
+| `--accent{,-hover,-muted,-glow,-contrast}` | `bg-accent`, `bg-accent-muted`, `text-accent-contrast` … |
+| `--green-{600,700,800,soft}`, `--neutral-{50..950}`, `--neutral-hover` | `bg-green-soft`, `ring-green-600`, `hover:bg-neutral-100` … |
+| `--danger{,-hover,-muted}`, `--success{,-muted}`, `--warning` | `text-danger`, `bg-success-muted` … |
+| `--radius-{sm,md,lg,xl,full,page,canvas}` | `rounded-md`, `rounded-page` … |
+| `--shadow-{e1,e2,e3,panel,accent}` | `shadow-e2`, `shadow-panel` … (Tailwind `shadow-sm/md/lg` are NOT tokens) |
+| `--type-{micro,meta,caption,small,body,heading-m,heading-l}-size` (+weight) | `text-micro` … `text-heading-l` |
+
+Color utilities work with any color prefix (`bg-`, `text-`, `border-`, `ring-`, `accent-`, `fill-`). Other tokens: `--z-{sticky,popover,overlay}`, `--tracking-label`, `--skeleton-{base,shine}`.
+
 ## 2. Component boundary
 
 Three styling mechanisms, each at its own altitude. Pick by what you're building:

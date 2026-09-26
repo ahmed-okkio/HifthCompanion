@@ -31,11 +31,11 @@ export default function SpreadToggle({ page, active, basePath }: { page: number;
       data-testid="spread-toggle"
       aria-pressed={active}
       onClick={toggle}
-      className="hidden lg:flex items-center gap-2 bg-[var(--surface-main)] hover:bg-[var(--neutral-100)]"
+      className="hidden lg:flex items-center gap-2 bg-surface-main hover:bg-neutral-100"
       style={{
         marginTop: 'var(--space-12)',
         height: '52px',
-        padding: '0 var(--space-16)',
+        padding: '0 var(--space-16)',
         borderRadius: 'var(--radius-lg)',
         border: '1px solid rgba(15, 23, 42, 0.05)',
         boxShadow: 'var(--shadow-e2)',
@@ -45,7 +45,7 @@ export default function SpreadToggle({ page, active, basePath }: { page: number;
         color: 'var(--neutral-600)',
         whiteSpace: 'nowrap',
         userSelect: 'none',
-      }}
+      }}
     >
       <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
         <rect x="3" y="4" width="8" height="16" rx="1" strokeWidth={2} />

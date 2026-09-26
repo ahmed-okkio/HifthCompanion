@@ -314,7 +314,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
         {tab === 'surahs' && (
         <div className="mt-3">
           <div className="relative">
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)] pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted pointer-events-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35" />
               <circle cx="11" cy="11" r="6" strokeWidth={2} />
             </svg>
@@ -397,7 +397,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
                   ref={group.page === activePage ? activeButtonRef : undefined}
                   type="button"
                   onClick={() => { void handleSelect(group); }}
-                  className={`group flex w-full items-center gap-3 px-4 text-start transition-colors duration-150 ${active ? 'bg-[var(--accent-muted)]' : 'hover:bg-[var(--neutral-50)]'}`}
+                  className={`group flex w-full items-center gap-3 px-4 text-start transition-colors duration-150 ${active ? 'bg-accent-muted' : 'hover:bg-neutral-50'}`}
                   style={{
                     minHeight: '72px',
                     paddingBlock: '20px',

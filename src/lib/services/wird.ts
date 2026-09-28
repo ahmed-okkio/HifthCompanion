@@ -52,6 +52,18 @@ export interface WirdView extends Wird {
 async function todayLocal(): Promise<string> {
   return localDate((await getMyProfile())?.timezone);
 }
+
+type Supa = Awaited<ReturnType<typeof createClient>>;
+/**
+ * The caller's id. The teacher-read RLS policy (B3) also exposes students' rows
+ * to the caller, so "my wirds" reads must filter by owner explicitly — RLS alone
+ * is not a self-scope.
+ */
+async function me(supabase: Supa): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not signed in');
+  return user.id;
+}
 const dayNumber = (isoDate: string) => Math.floor(Date.parse(isoDate) / 86_400_000);
 
 /**
@@ -106,6 +118,7 @@ export async function listWirds(): Promise<WirdView[]> {
   const { data: wirds, error } = await supabase
     .from('wird')
     .select('*')
+    .eq('user_id', await me(supabase))
     .is('deleted_at', null)
     .order('created_at', { ascending: true });
   if (error) throw error;
@@ -235,7 +248,8 @@ export async function deleteWird(id: string): Promise<void> {
   const { error } = await supabase
     .from('wird')
     .update({ deleted_at: new Date().toISOString() })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', await me(supabase));
   if (error) throw error;
 }
 
@@ -258,6 +272,7 @@ export async function listCycleEntries(wirdId: string): Promise<WirdEntryRow[]> 
     .from('wird')
     .select('cycle_seq')
     .eq('id', wirdId)
+    .eq('user_id', await me(supabase))
     .single();
   if (wErr) throw wErr;
   const { data, error } = await supabase
@@ -316,7 +331,12 @@ export async function updateWird(
   }
 
   const supabase = await createClientAction();
-  const { data, error } = await supabase.from('wird').select('*').eq('id', id).single();
+  const { data, error } = await supabase
+    .from('wird')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', await me(supabase))
+    .single();
   if (error) throw error;
   const cur = data as Wird;
 
@@ -353,7 +373,12 @@ export async function updateWird(
  */
 export async function completeWird(id: string): Promise<void> {
   const supabase = await createClientAction();
-  const { data, error } = await supabase.from('wird').select('*').eq('id', id).single();
+  const { data, error } = await supabase
+    .from('wird')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', await me(supabase))
+    .single();
   if (error) throw error;
   const wird = data as Wird;
 
@@ -475,7 +500,10 @@ export async function getStudentWirdSummary(userId: string): Promise<StudentWird
  */
 export async function listEntryDatesByWird(): Promise<Record<string, string[]>> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('wird_entry').select('wird_id, entry_date');
+  const { data, error } = await supabase
+    .from('wird_entry')
+    .select('wird_id, entry_date, wird!inner(user_id)')
+    .eq('wird.user_id', await me(supabase));
   if (error) throw error;
   const byWird: Record<string, string[]> = {};
   for (const e of (data ?? []) as { wird_id: string; entry_date: string }[]) {
@@ -491,7 +519,10 @@ export async function listEntryDatesByWird(): Promise<Record<string, string[]>> 
  */
 export async function listWirdEntryDates(): Promise<string[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('wird_entry').select('entry_date');
+  const { data, error } = await supabase
+    .from('wird_entry')
+    .select('entry_date, wird!inner(user_id)')
+    .eq('wird.user_id', await me(supabase));
   if (error) throw error;
   return (data ?? []).map((e: { entry_date: string }) => e.entry_date);
 }
@@ -499,7 +530,11 @@ export async function listWirdEntryDates(): Promise<string[]> {
 /** Whether the caller keeps any live wird — gates the Settings reminder row (0016). RLS scopes to the caller. */
 export async function hasWirds(): Promise<boolean> {
   const supabase = await createClient();
-  const { data, error } = await supabase.from('wird').select('id').is('deleted_at', null);
+  const { data, error } = await supabase
+    .from('wird')
+    .select('id')
+    .eq('user_id', await me(supabase))
+    .is('deleted_at', null);
   if (error) throw error;
   return (data ?? []).length > 0;
 }

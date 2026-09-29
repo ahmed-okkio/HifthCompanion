@@ -11,7 +11,7 @@ import {
 } from '@/lib/wirdRate';
 import { getPageForAyah } from '@/lib/quran';
 import { getMyMemorization, getMyProfile } from '@/lib/services/profile';
-import { localDate } from '@/lib/localDate';
+import { addDays, localDate } from '@/lib/localDate';
 import type { Wird, WirdEntry, WirdScopeSource, MemorizedRange } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -444,18 +444,16 @@ export async function completeWird(id: string): Promise<void> {
   if (insErr) throw insErr;
 }
 
-/** A teacher-facing merged summary of one student's wird practice (L1/D17). */
+/** A teacher-facing summary of one student's wird practice (L1/D17). */
 export interface StudentWirdSummary {
-  /** How many active (non-deleted) wirds the student keeps. */
-  wird_count: number;
-  /** Distinct days the student logged any wird portion. */
-  active_days: number;
+  /** Each active wird with its last 7 days (oldest → today); true = completed that day. */
+  wirds: { id: string; name: string; week: boolean[] }[];
   /** Whole days since the most recent entry across all wirds; null if never. */
   days_since_last: number | null;
 }
 
 /**
- * A read-only, merged summary of one student's wird practice for their teacher
+ * A read-only summary of one student's wird practice for their teacher
  * (L1/D17). Scoped to the given studentId — which student to show — NOT a
  * permission check: RLS policy B3 (`public.teaches_user`) is the gate, so this
  * read returns rows only when the caller actually teaches that student. No
@@ -466,29 +464,33 @@ export async function getStudentWirdSummary(userId: string): Promise<StudentWird
   const supabase = await createClient();
   const { data: wirds, error } = await supabase
     .from('wird')
-    .select('id')
+    .select('id, name')
     .eq('user_id', userId)
-    .is('deleted_at', null);
+    .is('deleted_at', null)
+    .order('created_at', { ascending: true });
   if (error) throw error;
-  const ids = (wirds ?? []).map((w: { id: string }) => w.id);
-  if (ids.length === 0) return null;
+  const list = (wirds ?? []) as { id: string; name: string }[];
+  if (list.length === 0) return null;
 
   const { data: entryData, error: entryErr } = await supabase
     .from('wird_entry')
-    .select('entry_date')
-    .in('wird_id', ids);
+    .select('wird_id, entry_date')
+    .in('wird_id', list.map((w) => w.id));
   if (entryErr) throw entryErr;
-  const dates: string[] = (entryData ?? []).map((e: { entry_date: string }) => e.entry_date);
+  const entries = (entryData ?? []) as { wird_id: string; entry_date: string }[];
 
-  const uniqueDays = new Set(dates);
-  const lastDone = dates.reduce<string | null>(
-    (max, d) => (max === null || d > max ? d : max),
+  const today = await todayLocal();
+  const days = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
+  const lastDone = entries.reduce<string | null>(
+    (max, e) => (max === null || e.entry_date > max ? e.entry_date : max),
     null,
   );
   return {
-    wird_count: ids.length,
-    active_days: uniqueDays.size,
-    days_since_last: lastDone === null ? null : dayNumber(await todayLocal()) - dayNumber(lastDone),
+    wirds: list.map((w) => {
+      const done = new Set(entries.filter((e) => e.wird_id === w.id).map((e) => e.entry_date));
+      return { id: w.id, name: w.name, week: days.map((d) => done.has(d)) };
+    }),
+    days_since_last: lastDone === null ? null : dayNumber(today) - dayNumber(lastDone),
   };
 }
 

@@ -594,8 +594,6 @@ const en = {
   'wird.options': 'Options',
   // — Teacher summary (L)
   'wird.summaryTitle': 'Wird',
-  'wird.summaryWirds': 'Wirds',
-  'wird.summaryActiveDays': 'Days practised',
   'wird.summaryLastActive': 'Last active',
   'wird.summaryNever': 'Not yet',
   'wird.summaryToday': 'Today',
@@ -1222,8 +1220,6 @@ const ar: Record<MessageKey, string> = {
   'wird.options': 'خيارات',
   // — Teacher summary (L)
   'wird.summaryTitle': 'الورد',
-  'wird.summaryWirds': 'الأوراد',
-  'wird.summaryActiveDays': 'أيام المواظبة',
   'wird.summaryLastActive': 'آخر نشاط',
   'wird.summaryNever': 'لا يوجد بعد',
   'wird.summaryToday': 'اليوم',

@@ -323,14 +323,20 @@ export function StudentProfileCard({
       {wirdSummary && (
         <div className="card flex flex-col gap-3 p-4">
           <SectionTitle>{t('wird.summaryTitle')}</SectionTitle>
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-secondary">{t('wird.summaryWirds')}</span>
-            <span className="font-semibold text-primary">{fmtNum(wirdSummary.wird_count)}</span>
-          </div>
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-secondary">{t('wird.summaryActiveDays')}</span>
-            <span className="font-semibold text-primary">{fmtNum(wirdSummary.active_days)}</span>
-          </div>
+          {wirdSummary.wirds.map((w) => (
+            <div key={w.id} className="flex items-center gap-3">
+              <span className="flex-1 min-w-0 truncate text-xs font-semibold text-secondary">{w.name}</span>
+              <div className="flex gap-1">
+                {w.week.map((done, i) => (
+                  <span
+                    key={i}
+                    data-done={done || undefined}
+                    className={`size-4 rounded-xs ${done ? 'bg-green-600' : 'bg-neutral-200'}`}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-secondary">{t('wird.summaryLastActive')}</span>
             <span className="text-muted">

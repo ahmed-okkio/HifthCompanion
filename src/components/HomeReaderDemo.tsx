@@ -107,8 +107,8 @@ export default async function HomeReaderDemo() {
           {/* Two flush pages + pre-drawn annotation overlay (percentage-positioned). */}
           <div className="relative mt-4 w-fit max-w-full rounded-page overflow-hidden shadow-e2">
             <div className="flex items-stretch gap-0">
-              <Image src={getPageImageUrl(2)} alt="" width={300} height={470} priority draggable={false} className="block h-auto w-[clamp(140px,30vw,280px)]" />
-              <Image src={getPageImageUrl(1)} alt="" width={300} height={470} priority draggable={false} className="block h-auto w-[clamp(140px,30vw,280px)]" />
+              <Image src={getPageImageUrl(2)} crossOrigin="anonymous" alt="" width={300} height={470} priority draggable={false} className="block h-auto w-[clamp(140px,30vw,280px)]" />
+              <Image src={getPageImageUrl(1)} crossOrigin="anonymous" alt="" width={300} height={470} priority draggable={false} className="block h-auto w-[clamp(140px,30vw,280px)]" />
             </div>
 
             {/* Annotations — decorative, pointer-events:none. Coords are % of the spread. */}

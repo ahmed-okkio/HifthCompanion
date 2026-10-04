@@ -18,6 +18,10 @@ export function ServiceWorkerRegister() {
       return;
     }
 
+    // Ask for persistent storage so the browser never evicts the cached Mushaf pages under
+    // storage pressure (or Safari's 7-day rule). Best-effort: a denial just keeps eviction possible.
+    navigator.storage?.persist?.().catch(() => {});
+
     navigator.serviceWorker.register("/sw.js").catch(() => {
       // Registration failure must never break the app — swallow silently.
     });

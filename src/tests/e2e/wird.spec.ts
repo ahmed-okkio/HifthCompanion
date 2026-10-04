@@ -392,10 +392,9 @@ test.describe('Wird reminder', () => {
 
     const sheet = page.getByTestId('reminder-sheet');
     await expect(sheet.getByRole('heading', { name: 'Remind you each evening?' })).toBeVisible({ timeout: 15000 });
-    // The time can be moved on the spot, in 15-minute steps.
+    // The time is a native time field; off-grid picks floor to the 15-minute slot.
     await expect(sheet.getByRole('button', { name: /^Remind me at 6:00\s?PM$/ })).toBeVisible();
-    await sheet.getByRole('button', { name: 'Change' }).click();
-    await sheet.getByRole('button', { name: 'Later' }).click();
+    await sheet.getByLabel('Reminder time').fill('18:22');
     await expect(sheet.getByRole('button', { name: /^Remind me at 6:15\s?PM$/ })).toBeVisible();
 
     const saved = page.waitForResponse((r) => r.request().method() === 'POST');

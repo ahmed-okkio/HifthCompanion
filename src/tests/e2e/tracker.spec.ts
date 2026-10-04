@@ -38,6 +38,42 @@ test.describe('Progression Tracker (Authenticated)', () => {
     await expect(page.getByText('No students yet')).toBeVisible();
   });
 
+  test('programmatic navigation (circle rail router.push) drives the top progress bar', async ({ page }) => {
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') throw new Error(`console error: ${msg.text()}`);
+    });
+
+    await page.goto('/tracker');
+    const create = async (name: string) => {
+      await page.getByRole('button', { name: 'Create Hifth Circle' }).click();
+      await page.getByPlaceholder('Name your Hifth Circle…').fill(name);
+      // The circle page has its own (disabled) "Create" button; target the dialog's.
+      await page.getByRole('button', { name: 'Create', exact: true }).and(page.locator(':enabled')).click();
+      await expect(page).toHaveURL(/\/tracker\/[^/]+$/);
+    };
+    const stamp = Date.now();
+    await create(`Rail A ${stamp}`);
+    const urlA = page.url();
+    await create(`Rail B ${stamp}`);
+    await expect(page).not.toHaveURL(urlA);
+
+    // Hold the RSC navigation response so the slow-server window is observable.
+    let release!: () => void;
+    const held = new Promise<void>((r) => { release = r; });
+    await page.route(/\/tracker\//, async (route) => {
+      const h = route.request().headers();
+      if (h['rsc'] && !h['next-router-prefetch']) await held;
+      await route.continue();
+    });
+
+    const bar = page.locator('.top-progress');
+    await page.getByRole('button', { name: new RegExp(`^Rail A ${stamp}`) }).click();
+    await expect(bar).toHaveClass(/top-progress--active/);
+    release();
+    await expect(page).toHaveURL(urlA);
+    await expect(bar).not.toHaveClass(/top-progress--active/);
+  });
+
   test('language switcher flips to Arabic + RTL', async ({ page }) => {
     await page.goto('/tracker');
     // The switcher now lives inside the account menu dropdown — open it first.

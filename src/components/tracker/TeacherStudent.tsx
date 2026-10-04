@@ -785,7 +785,7 @@ function StudentSessions({
         <div className="flex gap-2 items-end flex-wrap">
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted">{t('sessions.time')}</span>
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="input min-h-10 w-35" />
+            <TimeSelect value={time} onChange={setTime} className="min-h-10 w-35" />
           </label>
           <label className="flex flex-col gap-1">
             <span className="text-xs font-medium text-muted">{t('sessions.length')}</span>
@@ -808,7 +808,7 @@ function StudentSessions({
           </label>
           <label className="flex flex-col gap-1 flex-1 min-w-22.5">
             <span className="text-xs text-muted">{t('sessions.time')}</span>
-            <input type="time" value={adhocTime} onChange={(e) => setAdhocTime(e.target.value)} className="input min-h-10" />
+            <TimeSelect value={adhocTime} onChange={setAdhocTime} className="min-h-10" />
           </label>
           <ActionButton onClick={handleAdhoc} disabled={!adhocDate} className="btn btn-outline">
             {t('sessions.addAdhoc')}

@@ -497,105 +497,31 @@ export function Chevron({ open, color = 'var(--text-muted)' }: { open?: boolean;
 }
 
 /**
- * Time combobox (Google-Calendar style): a text field you can TYPE into
- * ("5:45 PM", "17:30", "5p") plus a clickable dropdown of 30-min AM/PM slots.
- * Displays 12h; `value`/`onChange` stay 24h "HH:mm" so callers keep parsing with
- * new Date(). Free-typed text propagates once it parses; junk snaps back on blur.
+ * Native time field: tapping/clicking anywhere on it opens the platform picker
+ * (iOS/Android wheel, desktop Chrome/Edge dropdown). `value`/`onChange` are
+ * 24h "HH:mm". `step` is seconds (900 = 15-min); mobile pickers ignore it, so
+ * callers that need a grid snap in onChange.
  */
 export function TimeSelect({
-  value, onChange, style,
+  value, onChange, style, className = '', step, id, 'aria-label': ariaLabel,
 }: {
   value: string;
   onChange: (v: string) => void;
   style?: React.CSSProperties;
+  className?: string;
+  step?: number;
+  id?: string;
+  'aria-label'?: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const [text, setText] = useState(to12h(value));
-  const [lastValue, setLastValue] = useState(value);
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  // Follow external value changes (e.g. reopening the editor on another slot).
-  if (value !== lastValue) {
-    setLastValue(value);
-    setText(to12h(value));
-  }
-
-  // Close on outside click.
-  useEffect(() => {
-    if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [open]);
-
-  const slots: string[] = [];
-  for (let mm = 0; mm < 24 * 60; mm += 30) {
-    slots.push(`${String(Math.floor(mm / 60)).padStart(2, '0')}:${String(mm % 60).padStart(2, '0')}`);
-  }
-
-  function pick(hhmm: string) {
-    onChange(hhmm);
-    setText(to12h(hhmm));
-    setOpen(false);
-  }
-
-  function commit() {
-    const hhmm = from12h(text);
-    if (hhmm) { onChange(hhmm); setText(to12h(hhmm)); }
-    else setText(to12h(value)); // unparseable → snap back
-  }
-
   return (
-    <div ref={wrapRef} className="relative" style={style}>
-      <input
-        type="text" value={text} className="input w-full"
-        onFocus={() => setOpen(true)}
-        onChange={(e) => { setText(e.target.value); const h = from12h(e.target.value); if (h) onChange(h); }}
-        onBlur={commit}
-        onKeyDown={(e) => { if (e.key === 'Enter') { commit(); setOpen(false); } if (e.key === 'Escape') setOpen(false); }}
-      />
-      <AnchoredPopup open={open} anchorRef={wrapRef} maxHeight={200} className="card thin-scroll">
-        <ul role="listbox" className="p-1 m-0 list-none">
-          {slots.map((s) => {
-            const sel = s === value;
-            return (
-              <li key={s}>
-                <button type="button" role="option" aria-selected={sel} className={`btn btn-ghost btn-sm w-full justify-start text-start ${sel ? 'font-semibold bg-accent-muted text-green-600' : 'font-normal text-primary'}`}
-                  onMouseDown={(e) => { e.preventDefault(); pick(s); }}>
-                  {to12h(s)}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </AnchoredPopup>
-    </div>
+    <input
+      type="time" id={id} aria-label={ariaLabel} value={value} step={step}
+      className={`input ${className}`} style={style}
+      onChange={(e) => { if (e.target.value) onChange(e.target.value); }}
+      // showPicker throws without a user gesture / in cross-origin iframes; the field still works by typing.
+      onClick={(e) => { try { e.currentTarget.showPicker?.(); } catch { /* typing still works */ } }}
+    />
   );
-}
-
-/** "17:30" -> "5:30 PM". */
-function to12h(hhmm: string): string {
-  const [h, m] = hhmm.split(':').map(Number);
-  if (Number.isNaN(h)) return '';
-  const period = h < 12 ? 'AM' : 'PM';
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${period}`;
-}
-
-/** "5:30 PM" / "17:30" / "5 pm" -> "17:30"; null if unparseable. */
-function from12h(raw: string): string | null {
-  const m = /^\s*(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m?\.?\s*$/i.exec(raw)
-    || /^\s*(\d{1,2}):(\d{2})\s*$/.exec(raw);
-  if (!m) return null;
-  let h = Number(m[1]);
-  const min = m[2] ? Number(m[2]) : 0;
-  const period = m[3]?.toLowerCase();
-  if (h > 23 || min > 59) return null;
-  if (period === 'p' && h < 12) h += 12;
-  if (period === 'a' && h === 12) h = 0;
-  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
 }
 
 /** Inline stroke icons (feather/lucide geometry) replacing emoji so glyphs stay

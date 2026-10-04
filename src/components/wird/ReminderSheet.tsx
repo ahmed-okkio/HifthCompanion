@@ -14,7 +14,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import { saveWirdReminderTime } from '@/lib/services/profile';
 import { PUSH_CHANGED, readPushStatus, subscribeToPush } from '@/lib/push/client';
-import { DEFAULT_REMINDER, REMINDER_TIMES, formatReminderTime } from '@/lib/wirdReminder';
+import { DEFAULT_REMINDER, SLOT_MINUTES, formatReminderTime } from '@/lib/wirdReminder';
+import { TimeSelect } from '@/components/tracker/ui';
 
 const ASKED_KEY = 'hifth:wirdReminderAsked';
 
@@ -55,7 +56,6 @@ export default function ReminderSheet({ start, onClose }: { start: ReminderSheet
   const { t, locale } = useI18n();
   const [phase, setPhase] = useState<Phase>(start);
   const [time, setTime] = useState(DEFAULT_REMINDER);
-  const [timeOpen, setTimeOpen] = useState(false);
   const [error, setError] = useState(false);
   const primaryRef = useRef<HTMLButtonElement>(null);
   const shown = formatReminderTime(time, locale);
@@ -72,9 +72,10 @@ export default function ReminderSheet({ start, onClose }: { start: ReminderSheet
     };
   }, [onClose]);
 
-  function step(dir: 1 | -1) {
-    const i = REMINDER_TIMES.indexOf(time);
-    setTime(REMINDER_TIMES[(i + dir + REMINDER_TIMES.length) % REMINDER_TIMES.length]);
+  // Mobile pickers ignore `step`; floor to the cron's 15-min slot (DB constraint).
+  function pickTime(hhmm: string) {
+    const [h, m] = hhmm.split(':');
+    setTime(`${h}:${String(Math.floor(Number(m) / SLOT_MINUTES) * SLOT_MINUTES).padStart(2, '0')}`);
   }
 
   function enable() {
@@ -150,20 +151,10 @@ export default function ReminderSheet({ start, onClose }: { start: ReminderSheet
         <p className={`${muted} -mt-2`}>{t('wird.reminder.sheetBody', { t: shown })}</p>
         <div className="flex items-center gap-2 min-h-10">
           <span className="flex-1 text-body font-semibold text-secondary">{t('wird.reminder.timeLabel')}</span>
-          {timeOpen ? (
-            <span className="inline-flex items-center h-10 border border-default rounded-sm bg-surface-main overflow-hidden">
-              <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => step(-1)} aria-label={t('wird.reminder.earlier')}>−</button>
-              <output aria-live="polite" className="min-w-18 text-center text-body font-semibold">{shown}</output>
-              <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => step(1)} aria-label={t('wird.reminder.later')}>+</button>
-            </span>
-          ) : (
-            <>
-              <span className="font-bold text-body">{shown}</span>
-              <button type="button" className="btn btn-ghost" onClick={() => setTimeOpen(true)}>
-                {t('wird.reminder.change')}
-              </button>
-            </>
-          )}
+          <TimeSelect
+            value={time} onChange={pickTime} step={SLOT_MINUTES * 60}
+            aria-label={t('wird.reminder.timeLabel')} className="w-auto min-h-10"
+          />
         </div>
         <button ref={primaryRef} type="button" className="btn btn-primary btn-tall" onClick={enable} disabled={phase === 'busy'}>
           {phase === 'busy' ? <span className="spinner" aria-hidden /> : null}

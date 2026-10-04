@@ -22,6 +22,30 @@ export function isLive(scheduledAt: string | Date, now: Date, canceled: boolean)
   return Math.abs(now.getTime() - at.getTime()) <= LIVE_WINDOW_MINUTES * MINUTE;
 }
 
+/** Roster session cue: "Now" inside a block, "in N min" within the hour before it. */
+export type SessionCue = { kind: 'now' } | { kind: 'soon'; minutes: number };
+
+/**
+ * The first slot whose block hasn't ended (canceled ones skipped) decides the
+ * cue. Inside the block → now; starting in under an hour → minutes to go,
+ * floored (an hour out reads 59), never 0. Pure: `now` passed in.
+ */
+export function sessionCue(
+  slots: { scheduled_at: string; canceled: boolean }[],
+  lengthMinutes: number,
+  now: Date,
+): SessionCue | null {
+  const t = now.getTime();
+  const slot = slots
+    .filter((s) => !s.canceled && new Date(s.scheduled_at).getTime() + lengthMinutes * MINUTE > t)
+    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime())[0];
+  if (!slot) return null;
+  const until = new Date(slot.scheduled_at).getTime() - t;
+  if (until <= 0) return { kind: 'now' };
+  if (until < LIVE_WINDOW_MINUTES * MINUTE) return { kind: 'soon', minutes: Math.max(1, Math.floor(until / MINUTE)) };
+  return null;
+}
+
 /** True once an item has been open for more than 14 days (E7). */
 export function isStale(createdAt: string | Date, now: Date): boolean {
   const at = createdAt instanceof Date ? createdAt : new Date(createdAt);

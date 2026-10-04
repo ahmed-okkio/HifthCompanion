@@ -14,7 +14,7 @@ import { materializeSession, setSessionCanceled, rescheduleSession } from '@/lib
 import { assignSubstitutes, removeSubstitution, getManageSlots } from '@/lib/services/substitution';
 import { ActionButton, SectionTitle, EmptyState, Avatar, Chevron, DateChip, StatusDot, TabBar, TimeSelect, vt, vtName } from './ui';
 import { SubAssignForm, CoveredBy } from './subs';
-import { isLive } from '@/lib/agenda';
+import { sessionCue } from '@/lib/agenda';
 
 // Stdlib formatter — time-of-day only; the DateChip carries the date.
 function fmtTime(iso: string, locale: string) {
@@ -49,7 +49,7 @@ export default function TeacherCircle({
   teacher?: MemberWithProfile;
   initialStudents: MemberWithProfile[];
   /** 0014 G1: each active student's next instant, computed server-side in one query (G3). */
-  nextSlots?: Record<string, { scheduled_at: string; canceled: boolean }>;
+  nextSlots?: Record<string, { slots: { scheduled_at: string; canceled: boolean }[]; minutes: number }>;
 }) {
   const { t, locale, fmtNum } = useI18n();
   const router = useRouter();
@@ -374,12 +374,10 @@ export default function TeacherCircle({
             <div className="grid gap-3 sm:grid-cols-2">
               {students.map((m) => {
                 const active = m.status === 'active';
-                // G1/G2: the indicator shows only inside the ±60min window, and only
-                // for active students — the non-active status line below is the other
-                // branch of the same slot, so the two treatments never both render.
-                const slot = nextSlots?.[m.id];
-                const live = active && slot && now && isLive(slot.scheduled_at, now, slot.canceled)
-                  ? slot : null;
+                // Active students only: "in N min" the hour before, "Now" during the
+                // block, then it moves on to their next slot.
+                const next = nextSlots?.[m.id];
+                const cue = active && next && now ? sessionCue(next.slots, next.minutes, now) : null;
                 const header = (
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     <Avatar seed={displayName(m)} size={40} />
@@ -389,13 +387,10 @@ export default function TeacherCircle({
                       </span>
                       {/* Active is the default/expected state — no dot needed. Only flag
                           pending/blocked, which need teacher attention. */}
-                      {live && (
+                      {cue && (
                         <span className="flex items-center gap-1.5 text-xs text-green-600">
                           <StatusDot color="var(--accent)" />
-                          {t('agenda.live')}
-                          <span className="text-muted">
-                            {fmtTime(live.scheduled_at, locale)}
-                          </span>
+                          {cue.kind === 'now' ? t('agenda.now') : t('agenda.inMinutes', { n: fmtNum(cue.minutes) })}
                         </span>
                       )}
                       {m.status !== 'active' && (

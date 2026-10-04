@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isLive, isStale, normalizeBody, sectionAgenda, waitingOnYou } from '../lib/agenda';
+import { isLive, isStale, normalizeBody, sectionAgenda, sessionCue, waitingOnYou } from '../lib/agenda';
 import type { AgendaTask, Exam, Homework, ProgressLog, Session } from '../types';
 
 const NOW = new Date('2026-07-24T12:00:00.000Z');
@@ -199,5 +199,27 @@ describe('waitingOnYou (F1-F7)', () => {
     const near = exam({ scheduled_date: date(2) });
     const w = waitingOnYou({ ...EMPTY, exams: [exam({ scheduled_date: date(10) }), near] }, NOW)!;
     expect(w.exam?.id).toBe(near.id);
+  });
+});
+
+describe('sessionCue', () => {
+  const slot = (n: number, canceled = false) => ({ scheduled_at: minutes(n), canceled });
+
+  it('counts down from 59 within the hour before, never 0', () => {
+    expect(sessionCue([slot(60)], 60, NOW)).toBeNull();
+    expect(sessionCue([slot(59.99)], 60, NOW)).toEqual({ kind: 'soon', minutes: 59 });
+    expect(sessionCue([slot(0.5)], 60, NOW)).toEqual({ kind: 'soon', minutes: 1 });
+  });
+
+  it('reads now for the whole block, then moves to the next slot', () => {
+    expect(sessionCue([slot(0)], 60, NOW)).toEqual({ kind: 'now' });
+    expect(sessionCue([slot(-59)], 60, NOW)).toEqual({ kind: 'now' });
+    // 30-min block ended 5 min ago; next one in 20 → counts down to it.
+    expect(sessionCue([slot(-35), slot(20)], 30, NOW)).toEqual({ kind: 'soon', minutes: 20 });
+    expect(sessionCue([slot(-60)], 60, NOW)).toBeNull();
+  });
+
+  it('skips canceled slots', () => {
+    expect(sessionCue([slot(-10, true), slot(45)], 60, NOW)).toEqual({ kind: 'soon', minutes: 45 });
   });
 });

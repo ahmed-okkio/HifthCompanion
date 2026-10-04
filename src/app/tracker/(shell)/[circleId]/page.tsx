@@ -53,15 +53,19 @@ export default async function CirclePage({
     const activeStudents = students.filter((m) => m.status === 'active');
     const rosterSessions = await getSessionsForMemberships(activeStudents.map((m) => m.id));
     const nowDate = floatingNow();
-    const nextSlots: Record<string, { scheduled_at: string; canceled: boolean }> = {};
+    // Next slot plus a few upcoming, so the roster cue rolls on to the next
+    // block on its own once the current one ends (no reload needed).
+    const nextSlots: Record<string, { slots: { scheduled_at: string; canceled: boolean }[]; minutes: number }> = {};
     for (const m of activeStudents) {
-      const { next } = sectionSessions(
+      const { next, upcoming } = sectionSessions(
         m.schedule,
         rosterSessions.filter((s) => s.membership_id === m.id),
         nowDate,
       );
       // G4: no schedule and no rows → no entry, the row renders as it does today.
-      if (next) nextSlots[m.id] = { scheduled_at: next.scheduled_at, canceled: next.session?.canceled ?? false };
+      const slots = [next, ...upcoming.slice(0, 3)].filter((x) => x !== null)
+        .map((x) => ({ scheduled_at: x.scheduled_at, canceled: x.session?.canceled ?? false }));
+      if (slots.length) nextSlots[m.id] = { slots, minutes: m.schedule?.minutes ?? 60 };
     }
     return (
       <main className="px-4 py-6 animate-fade-in w-full overflow-y-auto h-full">

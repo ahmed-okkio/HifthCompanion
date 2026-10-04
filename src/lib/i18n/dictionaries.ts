@@ -221,6 +221,8 @@ const en = {
   'agenda.startedAgo': '{n} min ago',
   'agenda.startingNow': 'Now',
   'agenda.live': 'Live',
+  'agenda.now': 'Now',
+  'agenda.inMinutes': 'In {n} min',
   'agenda.noSchedule': 'No sessions scheduled — set a weekly schedule',
 
   'waiting.title': 'Waiting on you',
@@ -847,6 +849,8 @@ const ar: Record<MessageKey, string> = {
   'agenda.startedAgo': 'منذ {n} دقيقة',
   'agenda.startingNow': 'الآن',
   'agenda.live': 'جارية الآن',
+  'agenda.now': 'الآن',
+  'agenda.inMinutes': 'بعد {n} د',
   'agenda.noSchedule': 'لا توجد جلسات مجدولة — حدّد جدولاً أسبوعياً',
 
   'waiting.title': 'بانتظارك',

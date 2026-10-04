@@ -4,16 +4,17 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { useI18n } from '@/components/I18nProvider';
-import { ActionButton, Icon } from '@/components/tracker/ui';
+import { ActionButton, GradeButtons, Icon } from '@/components/tracker/ui';
 import { gradeExam } from '@/lib/services/exam';
 import { getHomeworkForBanner } from '@/lib/services/homework';
 import { createLog, logAndReview } from '@/lib/services/progressLog';
-import type { ExamStatus, StatusConfig } from '@/types';
+import type { ExamStatus } from '@/types';
 
 type HomeworkTask = Awaited<ReturnType<typeof getHomeworkForBanner>>;
 
 /**
- * "Why you're here" strip above the mushaf, shown when the reader was opened
+ * "Why you're here" card at the top of the right panel (never above the mushaf,
+ * which must keep its full height), shown when the reader was opened
  * from a homework or exam card (`?task=exam&id=…&t=<label>`, built by MushafLink).
  * The label rides in the URL because the card that linked here already rendered
  * it — the reader needs no fetch to SAY what the task is.
@@ -100,23 +101,20 @@ export default function ReaderTaskBanner() {
       ? <span className="badge text-meta">{t('homework.statusCompleted')}</span>
       // A teacher with no configured statuses falls back to the plain mark.
       : task && (canGrade && task.statuses.length
-          ? task.statuses.map((s: StatusConfig) => chip(s.label, () => mark(s.label), false, s.label))
+          ? <GradeButtons statuses={task.statuses} value={null} onPick={(l) => void mark(l)} disabled={busy} />
           : chip('done', () => mark(null), false, t('homework.markDone')));
 
   return (
-    <div className="card flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
-      <span className="text-accent"><Icon name={kind === 'exam' ? 'cap' : 'book'} size={16} /></span>
-      <span className="text-caption font-semibold uppercase tracking-label text-muted">
-        {t(kind === 'exam' ? 'exam.title' : 'homework.title')}
-      </span>
-      <span className="text-body font-medium min-w-0 truncate text-primary">{label}</span>
-
-      {controls && (
-        <span className="flex flex-wrap items-center gap-2 ms-auto">
-          {failed && <span className="text-caption text-danger">{failed}</span>}
-          {controls}
+    <div data-testid="reader-task" className="card flex flex-col gap-2 px-4 py-3 mb-4">
+      <span className="flex items-center gap-2">
+        <span className="text-accent"><Icon name={kind === 'exam' ? 'cap' : 'book'} size={16} /></span>
+        <span className="text-caption font-semibold uppercase tracking-label text-muted">
+          {t(kind === 'exam' ? 'exam.title' : 'homework.title')}
         </span>
-      )}
+      </span>
+      <span className="text-body font-medium text-primary">{label}</span>
+      {controls && <span className="flex flex-wrap items-center gap-2">{controls}</span>}
+      {failed && <span className="text-caption text-danger">{failed}</span>}
     </div>
   );
 }

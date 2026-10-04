@@ -28,7 +28,7 @@ import {
 import { AYAH_COUNTS, TOTAL_JUZ, TOTAL_SURAHS, getSurahName, getSurahForPage, spreadUrl } from '@/lib/quran';
 import {
   SectionTitle, EmptyState, Avatar, StatCard, Ring, StatusDot, DateChip, TabBar,
-  SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, MushafLink, Chevron, Icon, TimeSelect,
+  SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, MushafLink, Chevron, Icon, TimeSelect, GradeButtons, GradeMark,
   ActionButton, isPending, vt, vtName,
 } from './ui';
 import { attendanceStats } from '@/lib/analytics';
@@ -1317,16 +1317,6 @@ function TeacherResultForm({
     );
   }
 
-  const chipRow = (opts: StatusConfig[], value: string | null, set: (v: string) => void) => (
-    <div className="flex flex-wrap gap-2">
-      {opts.map((s) => (
-        <button key={s.label} onClick={() => set(s.label)} className={`badge cursor-pointer ${value === s.label ? 'bg-accent text-accent-contrast' : ''}`}>
-          {s.label}
-        </button>
-      ))}
-    </div>
-  );
-
   return (
     <div className="flex flex-col gap-2 mt-1">
       <label className="flex flex-col gap-1 text-xs text-secondary">
@@ -1336,7 +1326,7 @@ function TeacherResultForm({
       </label>
       <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('log.note')} className="input input-sm min-h-8" />
       <span className="text-xs text-muted">{t('grade.teacherStatus')}</span>
-      {chipRow(teacherStatuses, teacherStatus, setTeacherStatus)}
+      <GradeButtons statuses={teacherStatuses} value={teacherStatus} onPick={setTeacherStatus} />
       <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('grade.comment')} className="input input-sm min-h-8" />
       {error && <span className="text-xs text-danger">{error}</span>}
       <div className="flex gap-2">
@@ -1949,7 +1939,7 @@ export function GradeableLog({
         // Locked/graded — mirrors the student-side treatment (G4).
         <div className="flex flex-col gap-0.5 mt-1">
           <div className="text-xs text-accent">
-            {t('grade.reviewed')}{l.teacher_status ? `: ${l.teacher_status}` : ''}
+            {t('grade.reviewed')}{l.teacher_status && <>: <GradeMark label={l.teacher_status} statuses={statuses} /></>}
             {l.teacher_comment ? ` — ${l.teacher_comment}` : ''}
           </div>
           {/* E4/E5: who graded — teacher vs "· sub". */}
@@ -1957,13 +1947,7 @@ export function GradeableLog({
         </div>
       ) : (
         <div className="flex flex-col gap-2 mt-1">
-          <div className="flex flex-wrap gap-2">
-            {statuses.map((s) => (
-              <button key={s.label} onClick={() => setStatus(s.label)} className={`badge cursor-pointer ${status === s.label ? 'bg-accent text-accent-contrast' : ''}`}>
-                {s.label}
-              </button>
-            ))}
-          </div>
+          <GradeButtons statuses={statuses} value={status} onPick={setStatus} disabled={busy} />
           <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('grade.comment')} className="input input-sm min-h-8" />
           <ActionButton onClick={handleGrade} disabled={busy || !status} className="btn btn-primary btn-sm self-start">
             {t('grade.markReviewed')}

@@ -16,7 +16,7 @@ import { isStreakAtRisk, mergeActivity } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
 import MarkedPagesList from '@/components/MarkedPagesList';
 import { wholeSurahPages } from '@/lib/homework';
-import { ActionButton, SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, MushafLink, Icon, Avatar, Chevron, vt, vtName } from './ui';
+import { ActionButton, SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, MushafLink, Icon, Avatar, GradeMark, Chevron, vt, vtName } from './ui';
 import { SurahPicker, ExamCard, StudentProfileCard, type Entry } from './TeacherStudent';
 import type { RosterMember } from '@/lib/services/membership';
 import type { MarkedPage } from '@/lib/markedPages';
@@ -190,7 +190,7 @@ export default function StudentCircle({
               </SectionTitle>
               {logs.length === 0 && <EmptyState>{t('log.empty')}</EmptyState>}
               <PagedList items={logs} loadMoreLabel={t('grade.loadMore')}
-                render={(l) => <LogRow key={l.id} log={l} onDelete={handleDelete} />} />
+                render={(l) => <LogRow key={l.id} log={l} teacherStatuses={circle.teacher_statuses} onDelete={handleDelete} />} />
             </div>
           </>)}
 
@@ -746,7 +746,7 @@ function LogForm({
 
 // --- My-logs row -------------------------------------------------------------
 
-function LogRow({ log: l, onDelete }: { log: ProgressLog; onDelete: (id: string) => void }) {
+function LogRow({ log: l, teacherStatuses, onDelete }: { log: ProgressLog; teacherStatuses: StatusConfig[]; onDelete: (id: string) => void }) {
   const { t, fmtNum } = useI18n();
   return (
     <div className="card px-4 py-3"
@@ -763,7 +763,7 @@ function LogRow({ log: l, onDelete }: { log: ProgressLog; onDelete: (id: string)
       {l.student_status && <div className="text-xs mt-1 text-secondary">{l.student_status}</div>}
       {l.reviewed_at ? (
         <div className="text-xs mt-1 text-green-600">
-          {t('grade.reviewed')}{l.teacher_status ? `: ${l.teacher_status}` : ''}
+          {t('grade.reviewed')}{l.teacher_status && <>: <GradeMark label={l.teacher_status} statuses={teacherStatuses} /></>}
           {l.teacher_comment ? ` — ${l.teacher_comment}` : ''}
         </div>
       ) : (

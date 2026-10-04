@@ -372,8 +372,6 @@ export default function ReaderShell({ children, user, sets, account = null, lock
                 <div data-canvas-centered className="mx-auto flex w-full max-w-330 flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
 
                   {banner}
-                  {/* Opened from a homework/exam card → say what the page is for. */}
-                  <ReaderTaskBanner />
 
                   <div className="flex min-w-0 flex-col gap-4">
                     <div className="mx-auto w-full">
@@ -426,6 +424,9 @@ export default function ReaderShell({ children, user, sets, account = null, lock
             >
               {/* Sets card portal target — AnnotationCanvas renders the SetsCard here (top of the
                   right panel) so the set selector + "New set" share the canvas state. */}
+              {/* Opened from a homework/exam card → what the page is for, plus marking.
+                  Lives here, not above the mushaf, so the page never shrinks for it. */}
+              <ReaderTaskBanner />
               <div id="sets-card-portal" className="mb-4 empty:mb-0" />
               {children}
               <footer

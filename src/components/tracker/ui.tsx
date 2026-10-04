@@ -10,6 +10,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { createPortal, flushSync } from 'react-dom';
 import type { CSSProperties, ReactNode } from 'react';
 import type { HomeworkStatus } from '@/lib/homework';
+import type { StatusConfig } from '@/types';
 import { TOTAL_SURAHS, getSurahName } from '@/lib/quran';
 import { useI18n } from '@/components/I18nProvider';
 import { localizeDigits, isLocale } from '@/lib/i18n/config';
@@ -565,6 +566,7 @@ const ICON_PATHS: Record<string, ReactNode> = {
     </>
   ),
   check: <path d="M20 6 9 17l-5-5" />,
+  x: <path d="M18 6 6 18M6 6l12 12" />,
   list: (
     <>
       <path d="M8 6h13M8 12h13M8 18h13" />
@@ -795,4 +797,49 @@ export function vt(update: () => void) {
   });
   if (!doc?.startViewTransition) return update();
   doc.startViewTransition(() => flushSync(update));
+}
+
+/**
+ * Two-way grading. Circles still store their labelled teacher_statuses (old
+ * grades and analytics resolve through them), but the teacher only picks
+ * pass (the first positive label) or fail (the first negative one).
+ */
+export function gradePair(statuses: StatusConfig[]) {
+  return {
+    pass: statuses.find((s) => s.polarity === 'positive')?.label ?? null,
+    fail: statuses.find((s) => s.polarity === 'negative')?.label ?? null,
+  };
+}
+
+/** A stored teacher_status as a check / cross by its polarity; anything else shows its label. */
+export function GradeMark({ label, statuses }: { label: string; statuses: StatusConfig[] }) {
+  const { t } = useI18n();
+  const p = statuses.find((s) => s.label === label)?.polarity;
+  if (p === 'positive') return <span role="img" aria-label={t('grade.pass')} className="inline-flex align-middle text-green-600"><Icon name="check" size={14} /></span>;
+  if (p === 'negative') return <span role="img" aria-label={t('grade.fail')} className="inline-flex align-middle text-danger"><Icon name="x" size={14} /></span>;
+  return <>{label}</>;
+}
+
+/** ✓ / ✗ pick buttons. `value` is the selected label (or null). */
+export function GradeButtons({ statuses, value, onPick, disabled }: {
+  statuses: StatusConfig[];
+  value: string | null;
+  onPick: (label: string) => void;
+  disabled?: boolean;
+}) {
+  const { t } = useI18n();
+  const { pass, fail } = gradePair(statuses);
+  const btn = (label: string | null, icon: 'check' | 'x', name: string, on: string) => label && (
+    <button type="button" aria-label={name} aria-pressed={value === label} disabled={disabled}
+            onClick={() => onPick(label)}
+            className={`btn btn-icon ${value === label ? on : 'btn-outline'}`}>
+      <Icon name={icon} size={18} />
+    </button>
+  );
+  return (
+    <div className="flex gap-2">
+      {btn(pass, 'check', t('grade.pass'), 'btn-primary')}
+      {btn(fail, 'x', t('grade.fail'), 'btn-outline border-danger bg-danger-muted text-danger')}
+    </div>
+  );
 }

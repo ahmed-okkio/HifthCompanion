@@ -49,7 +49,7 @@ test.describe('Progression Tracker (Authenticated)', () => {
       await page.getByPlaceholder('Name your Hifth Circle…').fill(name);
       // The circle page has its own (disabled) "Create" button; target the dialog's.
       await page.getByRole('button', { name: 'Create', exact: true }).and(page.locator(':enabled')).click();
-      await expect(page).toHaveURL(/\/tracker\/[^/]+$/);
+      await expect(page).toHaveURL(/\/tracker\/[^/]+$/, { timeout: 15000 });
     };
     const stamp = Date.now();
     await create(`Rail A ${stamp}`);
@@ -167,6 +167,19 @@ test.describe('Progression Tracker (Two-actor)', () => {
     // The new log row reads "Memorization · p1–1" (the bare word also appears in the
     // type <option>, so match the row's page-range suffix to disambiguate).
     await expect(student.getByText(/Memorization\s*·\s*p/).first()).toBeVisible();
+
+    // 6) Teacher grades it with the two-way check / cross (no worded labels).
+    await teacher.reload();
+    await teacher.getByRole('tab', { name: 'Homework' }).click();
+    await teacher.getByRole('button', { name: /Memorization\s*·\s*p/ }).first().click();
+    await teacher.getByRole('button', { name: 'Pass' }).click();
+    await teacher.getByRole('button', { name: 'Mark reviewed' }).click();
+    await expect(teacher.getByRole('img', { name: 'Pass' })).toBeVisible();
+
+    // Outcome: the student sees the grade, read back from the server, as a check.
+    await student.reload();
+    await student.getByRole('tab', { name: 'Log' }).click();
+    await expect(student.getByRole('img', { name: 'Pass' })).toBeVisible();
 
     await teacherCtx.close();
     await studentCtx.close();

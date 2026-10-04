@@ -11,6 +11,7 @@ export default function LoginPage() {
   const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   // Resolved after mount to keep the ?next= carry-over out of SSR (hydration).
@@ -55,15 +56,25 @@ export default function LoginPage() {
               <label className="block text-xs font-semibold mb-1.5 text-secondary">
                 {t('auth.password')}
               </label>
-              <input
-                type="password"
-                autoComplete="current-password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                placeholder="••••••••"
-                className="input"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                  placeholder="••••••••"
+                  className="input pe-16"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(s => !s)}
+                  aria-pressed={showPassword}
+                  className="absolute inset-y-0 end-0 px-3 text-xs font-semibold text-secondary hover:underline"
+                >
+                  {showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
+                </button>
+              </div>
             </div>
 
             {error && (

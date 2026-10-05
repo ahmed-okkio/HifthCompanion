@@ -8,6 +8,10 @@ import { usePathname, useSearchParams } from "next/navigation";
 // and end when the pathname/search actually change. Programmatic navs (router.push/
 // replace) are caught by watching Next's RSC fetches for a different route. Server
 // actions and same-route router.refresh() are skipped: their buttons show their own spinner.
+// Mushaf page flips have their own skeleton (loading.tsx), so the strip would double up.
+const mushafPrefix = (path: string) => path.match(/^\/(?:reader|share\/[^/]+)\/[^/]+$/) && path.slice(0, path.lastIndexOf("/"));
+const isPageFlip = (from: string, to: string) => { const a = mushafPrefix(from); return !!a && a === mushafPrefix(to); };
+
 export function TopProgressBar() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -21,7 +25,8 @@ export function TopProgressBar() {
       const h = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
       const raw = input instanceof Request ? input.url : String(input);
       const tracked = h.has("RSC") && !h.has("Next-Router-Prefetch")
-        && new URL(raw, location.href).pathname !== location.pathname;
+        && new URL(raw, location.href).pathname !== location.pathname
+        && !isPageFlip(location.pathname, new URL(raw, location.href).pathname);
       if (!tracked) return orig(input, init);
       setInflight((n) => n + 1);
       return orig(input, init).finally(() => setInflight((n) => n - 1));
@@ -41,6 +46,7 @@ export function TopProgressBar() {
       const url = new URL(a.href, location.href);
       if (url.origin !== location.origin) return;
       if (url.pathname === location.pathname && url.search === location.search) return;
+      if (isPageFlip(location.pathname, url.pathname)) return;
       start();
     };
     document.addEventListener("click", onClick, true);

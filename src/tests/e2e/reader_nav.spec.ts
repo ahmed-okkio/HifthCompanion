@@ -20,6 +20,29 @@ test('next button increments page', async ({ page }) => {
   await expect(page).toHaveURL(/\/reader\/4(\?|$)/);
 });
 
+test('mushaf page flip does not drive the top progress bar (skeleton covers it)', async ({ page }) => {
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') throw new Error(`console error: ${msg.text()}`);
+  });
+  await page.goto('/reader/3');
+  await expect(page.locator('.upper-canvas')).toBeVisible();
+  // Hold the RSC response so a bar, if started, would still be showing.
+  let release!: () => void;
+  const held = new Promise<void>((r) => { release = r; });
+  await page.route(/\/reader\/4/, async (route) => {
+    const h = route.request().headers();
+    if (h['rsc'] && !h['next-router-prefetch']) await held;
+    await route.continue();
+  });
+  const next = page.locator('button[aria-label="Next page"]:visible');
+  const nextBox = (await next.boundingBox())!;
+  await next.click({ position: { x: nextBox.width - 10, y: nextBox.height / 2 } });
+  await page.waitForTimeout(300); // give a (wrong) bar time to appear
+  await expect(page.locator('.top-progress')).not.toHaveClass(/top-progress--active/);
+  release();
+  await expect(page).toHaveURL(/\/reader\/4(\?|$)/);
+});
+
 test('desktop: mobile surah burger button is hidden', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/reader/1');

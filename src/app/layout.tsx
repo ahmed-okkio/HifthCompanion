@@ -5,6 +5,7 @@ import "./globals.css";
 import { I18nProvider } from "@/components/I18nProvider";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { TopProgressBar } from "@/components/TopProgressBar";
+import { SplashIntro } from "@/components/SplashIntro";
 import { dirFor } from "@/lib/i18n/config";
 import { getLocale } from "@/lib/i18n/server";
 import { getDictionary } from "@/lib/i18n/dictionaries";
@@ -62,6 +63,7 @@ export default async function RootLayout({
   return (
     <html lang={locale} dir={dirFor(locale)} className={`${sans.variable} ${geistMono.variable} ${brand.variable}`}>
       <body className="font-sans">
+        <SplashIntro />
         <Suspense fallback={null}>
           <TopProgressBar />
         </Suspense>

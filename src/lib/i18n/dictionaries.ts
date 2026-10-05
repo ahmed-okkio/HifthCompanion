@@ -76,7 +76,7 @@ const en = {
 
   // Homework prescription (D6/D9/D10).
   'homework.title': 'Homework',
-  'todo.title': 'To do',
+  'todo.title': 'To Do',
   'todo.empty': 'Nothing needs your attention',
   'todo.newNotes': 'New notes from your teacher',
   'todo.sessionToday': 'Session today',

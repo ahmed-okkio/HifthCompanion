@@ -196,7 +196,7 @@ test.describe('Progression Tracker (Two-actor)', () => {
         body: 'Revise juz amma', created_at: now }],
     } } });
     await student.reload();
-    await expect(student.getByRole('tab', { name: 'To do' })).toHaveAttribute('aria-selected', 'true');
+    await expect(student.getByRole('tab', { name: 'To Do' })).toHaveAttribute('aria-selected', 'true');
     await expect(student.getByText('Exams', { exact: true })).toHaveCount(0);
     const todo = student.locator('.card').filter({ hasText: /New notes from your teacher|Scheduled|Due/ });
     await expect(todo).toHaveCount(3);
@@ -206,7 +206,7 @@ test.describe('Progression Tracker (Two-actor)', () => {
     // Opening Notes marks them seen → the item drops off the To do list.
     await todo.nth(0).click();
     await expect(student.getByText('Revise juz amma')).toBeVisible();
-    await student.getByRole('tab', { name: 'To do' }).click();
+    await student.getByRole('tab', { name: 'To Do' }).click();
     await expect(student.getByText('New notes from your teacher')).toHaveCount(0);
 
     await teacherCtx.close();

@@ -1141,12 +1141,14 @@ textarea,
   position: fixed; inset: 0; z-index: 9999; pointer-events: none;
   display: flex; align-items: center; justify-content: center;
   background: var(--surface-main);
-  --logo: 132px;
+  /* ponytail: --logo matches Android's PWA launch icon (~192dp drawn, logo.png has ~13%
+     padding) so the hand-off doesn't jump; measured on one Android 12+ phone, tune here. */
+  --logo: 221px; --star: 383px;
   animation: splash-failsafe 0.2s 8s forwards;
 }
-@media (min-width: 768px) { .splash { --logo: 168px; } }
+@media (min-width: 768px) { .splash { --logo: 168px; --star: 487px; } }
 .splash-star {
-  position: absolute; width: calc(var(--logo) * 2.9); height: calc(var(--logo) * 2.9);
+  position: absolute; width: var(--star); height: var(--star);
   fill: none; stroke: var(--green-600); stroke-width: 2.5; opacity: 0.14;
 }
 .splash-wait .splash-star, .splash-wait .splash-wordmark { opacity: 0; }

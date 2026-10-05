@@ -52,6 +52,9 @@ export async function generateMetadata(): Promise<Metadata> {
 // (the top nav bar background) so the installed-PWA status bar blends with it.
 export const viewport: Viewport = {
   themeColor: "#FFFFFF",
+  // Edge-to-edge on Android Chrome: paint behind the gesture bar instead of a black strip.
+  // Bottom-fixed UI already pads with env(safe-area-inset-bottom).
+  viewportFit: "cover",
 };
 
 export default async function RootLayout({

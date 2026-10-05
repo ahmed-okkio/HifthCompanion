@@ -1135,7 +1135,7 @@ textarea,
 }
 
 /* Launch intro (SplashIntro.tsx): static logo until window load (Android's PWA launch
-   screen covers the page until then), then star turns in + logo/wordmark rise (600ms),
+   screen covers the page until then), then star turns in, logo lifts 10px, wordmark rises (600ms),
    then star turns out and all fades (400ms). Failsafe hides it at 8s if JS never runs. */
 .splash {
   position: fixed; inset: 0; z-index: 9999; pointer-events: none;
@@ -1155,8 +1155,9 @@ textarea,
 .splash-intro { animation: none; }
 .splash-intro .splash-star { animation: splash-star-in 0.6s cubic-bezier(.2,.8,.2,1) both; }
 .splash-logo { display: block; width: var(--logo); height: var(--logo); object-fit: contain; }
-.splash-intro .splash-rise { animation: splash-rise 0.45s cubic-bezier(.2,.8,.2,1) both; }
-.splash-intro .splash-wordmark { animation-name: splash-rise-fade; }
+.splash-intro .splash-lift { animation: splash-lift 0.45s cubic-bezier(.2,.8,.2,1) forwards; }
+.splash-exit .splash-lift { transform: translateY(-10px); }
+.splash-intro .splash-wordmark { animation: splash-rise-fade 0.45s cubic-bezier(.2,.8,.2,1) both; }
 .splash-wordmark {
   position: absolute; bottom: calc(env(safe-area-inset-bottom) + 58px); left: 0; right: 0;
   text-align: center; font-family: var(--font-brand), system-ui, sans-serif; font-weight: 400; font-size: 15px;
@@ -1166,13 +1167,14 @@ textarea,
 .splash-exit { animation: splash-fade 0.4s ease-out forwards; }
 .splash-exit .splash-star { animation: splash-star-out 0.4s ease-in forwards; }
 @keyframes splash-star-in { from { transform: rotate(-90deg); opacity: 0; } }
-@keyframes splash-rise { from { transform: translateY(10px); } }
+@keyframes splash-lift { to { transform: translateY(-10px); } }
 @keyframes splash-rise-fade { from { transform: translateY(10px); opacity: 0; } }
 @keyframes splash-star-out { to { transform: rotate(60deg) scale(1.25); opacity: 0; } }
 @keyframes splash-fade { to { opacity: 0; transform: scale(1.03); } }
 @keyframes splash-failsafe { to { opacity: 0; visibility: hidden; } }
 @media (prefers-reduced-motion: reduce) {
-  .splash-intro .splash-star, .splash-intro .splash-rise { animation: none; }
+  .splash-intro .splash-star, .splash-intro .splash-lift, .splash-intro .splash-wordmark { animation: none; }
   .splash-exit, .splash-exit .splash-star { animation-duration: 0.15s; }
   .splash-exit .splash-star { animation-name: splash-fade; }
+  .splash-exit .splash-lift { transform: none; }
 }

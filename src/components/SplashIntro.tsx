@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 
 // ~1s launch intro: static logo until window load, then the girih star turns in behind it
-// while logo + wordmark rise (600ms), then the star turns out and everything fades (400ms)
+// while the wordmark rises and the logo lifts 10px from where Android's launch icon sat
+// (600ms), then the star turns out and everything fades (400ms)
 // and the overlay unmounts. Only on full page loads — client
 // navigations don't remount the root layout. pointer-events:none so it never blocks input.
 // English-only by design (no RTL variant).
@@ -35,11 +36,11 @@ export function SplashIntro() {
           <rect key={i} x="130" y="130" width="300" height="300" transform={`rotate(${i * 11.25} 280 280)`} />
         ))}
       </svg>
-      <div className="splash-rise">
+      <div className="splash-lift">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="" className="splash-logo" />
       </div>
-      <div className="splash-rise splash-wordmark">Hifth Companion</div>
+      <div className="splash-wordmark">Hifth Companion</div>
     </div>
   );
 }

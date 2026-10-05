@@ -76,6 +76,10 @@ const en = {
 
   // Homework prescription (D6/D9/D10).
   'homework.title': 'Homework',
+  'todo.title': 'To do',
+  'todo.empty': 'Nothing needs your attention',
+  'todo.newNotes': 'New notes from your teacher',
+  'todo.sessionToday': 'Session today',
   'homework.prescribe': 'Prescribe homework',
   'homework.submitForStudent': 'Submit for student',
   'homework.delete': 'Delete homework',
@@ -706,6 +710,10 @@ const ar: Record<MessageKey, string> = {
 
   // وصف الواجب (D6/D9/D10).
   'homework.title': 'الواجبات',
+  'todo.title': 'المهام',
+  'todo.empty': 'لا شيء يحتاج انتباهك',
+  'todo.newNotes': 'ملاحظات جديدة من معلمك',
+  'todo.sessionToday': 'جلسة اليوم',
   'homework.prescribe': 'تكليف بواجب',
   'homework.submitForStudent': 'تسجيل نيابة عن الطالب',
   'homework.delete': 'حذف الواجب',

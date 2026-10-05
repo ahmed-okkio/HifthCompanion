@@ -181,6 +181,34 @@ test.describe('Progression Tracker (Two-actor)', () => {
     await student.getByRole('tab', { name: 'Log' }).click();
     await expect(student.getByRole('img', { name: 'Pass' })).toBeVisible();
 
+    // 7) To do tab merges exams, homework and new teacher notes, nearest date first;
+    //    exams no longer live in the sidebar.
+    const membershipId = teacher.url().split('/').pop()!;
+    const day = (offset: number) => new Date(Date.now() + offset * 864e5).toLocaleDateString('en-CA');
+    const now = new Date().toISOString();
+    await teacherCtx.request.post('/api/test/tracker', { data: { seed: {
+      homework: [{ id: 'hw-todo', membership_id: membershipId, prescribed_by: TEACHER_ID, group_id: null,
+        type: 'memorization', deadline: day(5), page_start: 1, page_end: 1, surah: 1,
+        ayah_start: null, ayah_end: null, instructions: null, created_at: now }],
+      exam: [{ id: 'ex-todo', membership_id: membershipId, scheduled_date: day(1), page_start: 2, page_end: 2,
+        surah: 2, ayah_start: 1, ayah_end: 5, entries: [], status: 'scheduled', teacher_notes: null, created_at: now }],
+      membership_note: [{ id: 'note-todo', membership_id: membershipId, author_id: TEACHER_ID,
+        body: 'Revise juz amma', created_at: now }],
+    } } });
+    await student.reload();
+    await expect(student.getByRole('tab', { name: 'To do' })).toHaveAttribute('aria-selected', 'true');
+    await expect(student.getByText('Exams', { exact: true })).toHaveCount(0);
+    const todo = student.locator('.card').filter({ hasText: /New notes from your teacher|Scheduled|Due/ });
+    await expect(todo).toHaveCount(3);
+    await expect(todo.nth(0)).toContainText('New notes from your teacher');
+    await expect(todo.nth(1)).toContainText('Scheduled');
+    await expect(todo.nth(2)).toContainText('Due');
+    // Opening Notes marks them seen → the item drops off the To do list.
+    await todo.nth(0).click();
+    await expect(student.getByText('Revise juz amma')).toBeVisible();
+    await student.getByRole('tab', { name: 'To do' }).click();
+    await expect(student.getByText('New notes from your teacher')).toHaveCount(0);
+
     await teacherCtx.close();
     await studentCtx.close();
   });

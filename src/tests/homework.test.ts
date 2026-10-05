@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { homeworkStatus, wholeSurahPages, aggregateStatus, focusExamId, groupHomework, homeworkTarget } from '../lib/homework';
+import { homeworkStatus, wholeSurahPages, aggregateStatus, focusExamId, groupHomework, homeworkTarget, nearestFirst } from '../lib/homework';
 import { SURAH_FIRST_PAGES, TOTAL_PAGES, JUZ_START_PAGES, juzPageBounds } from '../lib/quran';
 import type { Homework } from '../types';
 
@@ -100,5 +100,14 @@ describe('focusExamId (which exam card starts expanded)', () => {
   });
   it('graded exams never open, and an all-graded list opens nothing', () => {
     expect(focusExamId([e('p', '2026-09-10', 'passed'), e('f', '2026-09-11', 'failed')], today)).toBeNull();
+  });
+});
+
+describe('nearestFirst (To do ordering)', () => {
+  it('upcoming soonest first, then past most-recent first', () => {
+    const today = '2026-07-10';
+    const dates = ['2026-07-01', '2026-07-20', '2026-07-10', '2026-07-09', '2026-07-11'];
+    expect(dates.sort((a, b) => nearestFirst(a, b, today)))
+      .toEqual(['2026-07-10', '2026-07-11', '2026-07-20', '2026-07-09', '2026-07-01']);
   });
 });

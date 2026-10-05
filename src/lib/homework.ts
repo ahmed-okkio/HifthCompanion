@@ -131,3 +131,14 @@ export function focusExamId(exams: Pick<Exam, 'id' | 'status' | 'scheduled_date'
     .sort((a, b) => b.scheduled_date.localeCompare(a.scheduled_date))[0];
   return (soonest ?? lastPast)?.id ?? null;
 }
+
+/**
+ * To-do ordering: today/upcoming first (soonest on top), then the past
+ * (most recent on top) — so a months-old completed task never outranks
+ * tomorrow's exam. Dates are local "YYYY-MM-DD".
+ */
+export function nearestFirst(a: string, b: string, today: string): number {
+  const fa = a >= today, fb = b >= today;
+  if (fa !== fb) return fa ? -1 : 1;
+  return fa ? a.localeCompare(b) : b.localeCompare(a);
+}

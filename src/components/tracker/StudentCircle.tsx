@@ -10,8 +10,8 @@ import { leaveCircle } from '@/lib/services/membership';
 import { useRouter } from 'next/navigation';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
-import { homeworkStatus, aggregateStatus, focusExamId, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus } from '@/lib/homework';
-import { recurringSlots } from '@/lib/recurrence';
+import { homeworkStatus, aggregateStatus, focusExamId, groupHomework, nearestFirst, homeworkEntryLabel, homeworkTarget, type HomeworkStatus } from '@/lib/homework';
+import { recurringSlots, sectionSessions } from '@/lib/recurrence';
 import { isStreakAtRisk, mergeActivity } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
 import MarkedPagesList from '@/components/MarkedPagesList';
@@ -47,6 +47,14 @@ function subscribeMobile(cb: () => void) {
   const mq = window.matchMedia(MOBILE_MQ);
   mq.addEventListener('change', cb);
   return () => mq.removeEventListener('change', cb);
+}
+
+// Last time the Notes tab was opened, per membership — drives the To-do "new notes" item.
+// ponytail: per-device localStorage; move to a server read-marker if cross-device matters.
+const notesSeenKey = (id: string) => `hifth:notesSeen:${id}`;
+const noopSubscribe = () => () => {};
+function readNotesSeen(id: string): string {
+  try { return localStorage.getItem(notesSeenKey(id)) ?? ''; } catch { return ''; }
 }
 
 export default function StudentCircle({
@@ -88,7 +96,22 @@ export default function StudentCircle({
   // Members live in the desktop sidebar; below lg they become a tab instead.
   const isMobile = useSyncExternalStore(subscribeMobile, () => window.matchMedia(MOBILE_MQ).matches, () => false);
   const [pickedTab, setTab] = useState<string | null>(null);
-  const tab = pickedTab ?? (isMobile ? 'sessions' : 'homework'); // mobile lands on Next Session by default
+  const tab = pickedTab ?? (isMobile ? 'sessions' : 'todo'); // mobile lands on Next Session by default
+
+  // null during SSR/hydration → no "new notes" item until the client knows.
+  const storedSeen = useSyncExternalStore(noopSubscribe, () => readNotesSeen(membership.id), () => null);
+  const [seenNow, setSeenNow] = useState<string | null>(null);
+  const notesSeen = seenNow ?? storedSeen;
+  const newNotes = notesSeen == null ? 0
+    : initialNotes.filter((n) => n.author_id !== selfUserId && n.created_at > notesSeen).length;
+  function selectTab(key: string) {
+    if (key === 'notes') {
+      const now = new Date().toISOString();
+      try { localStorage.setItem(notesSeenKey(membership.id), now); } catch {}
+      setSeenNow(now);
+    }
+    setTab(key);
+  }
 
   // E5: the streak runs on the MERGED stream (logs + own wird dates), kept
   // separate from `logs` so homework aggregation below is untouched (E1/E6).
@@ -150,7 +173,7 @@ export default function StudentCircle({
             tabs={[
               // Mobile only: the desktop sidebar + profile annotations become tabs.
               ...(isMobile ? [{ key: 'sessions', label: t('sessions.nextSession') }] : []),
-              { key: 'homework', label: t('homework.title') },
+              { key: 'todo', label: t('todo.title') },
               { key: 'log', label: t('log.tab') },
               { key: 'notes', label: t('notes.title') },
               ...(isMobile ? [
@@ -159,20 +182,21 @@ export default function StudentCircle({
               ] : []),
             ]}
             active={tab}
-            onSelect={setTab}
+            onSelect={selectTab}
           />
 
           {isMobile && tab === 'sessions' && (
             <div className="flex flex-col gap-6">
               <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} coveredBy={coveredBy} hideHeading />
-              <UpcomingExams exams={initialExams} />
             </div>
           )}
 
-          {/* Assigned homework (E2/E3/E4/E6) */}
-          {tab === 'homework' && (
-            <AssignedHomework
-              homework={initialHomework} logs={logs} statuses={statuses}
+          {/* Everything waiting on the student: homework (E2/E3/E4/E6), exams, today's session, new notes. */}
+          {tab === 'todo' && (
+            <TodoList
+              homework={initialHomework} exams={initialExams} logs={logs} statuses={statuses}
+              sessions={initialSessions} schedule={membership.schedule} coveredBy={coveredBy}
+              newNotes={newNotes} onOpenNotes={() => selectTab('notes')}
               membershipId={membership.id} onCreated={addLog}
             />
           )}
@@ -217,7 +241,6 @@ export default function StudentCircle({
         {/* Desktop sidebar (hidden on mobile — those widgets are tabs there). */}
         <aside className="hidden lg:flex lg:sticky lg:top-6 self-start min-w-0 flex-col gap-6">
           <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} coveredBy={coveredBy} />
-          <UpcomingExams exams={initialExams} />
           <CircleMembers roster={roster} selfUserId={selfUserId} membershipId={membership.id} />
         </aside>
       </div>
@@ -359,18 +382,31 @@ function CircleMembers({ roster, selfUserId, membershipId }: {
   );
 }
 
-// --- Assigned homework (E2/E3/E4/E6) -----------------------------------------
+// --- To do: homework (E2/E3/E4/E6) + exams + today's session + new notes ----
 
-function AssignedHomework({
-  homework, logs, statuses, membershipId, onCreated,
+type TodoItem =
+  | { kind: 'homework'; key: string; date: string; items: Homework[] }
+  | { kind: 'exam'; key: string; date: string; exam: Exam }
+  | { kind: 'session'; key: string; date: string; at: string }
+  | { kind: 'notes'; key: string; date: string };
+
+function TodoList({
+  homework, exams, logs, statuses, sessions, schedule, coveredBy, newNotes, onOpenNotes, membershipId, onCreated,
 }: {
   homework: Homework[];
+  exams: Exam[];
   logs: ProgressLog[];
   statuses: StatusConfig[];
+  sessions: Session[];
+  schedule: Recurrence | null;
+  coveredBy?: Record<string, string>;
+  newNotes: number;
+  onOpenNotes: () => void;
   membershipId: string;
   onCreated: (log: ProgressLog) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale, fmtNum } = useI18n();
+  const [now] = useState(() => new Date());
   const linked = useMemo(() => {
     const m = new Map<string, ProgressLog[]>();
     for (const l of logs) {
@@ -382,17 +418,62 @@ function AssignedHomework({
     return m;
   }, [logs]);
 
+  const day = today();
+  // One list, nearest date first: deadline (or assigned day) / exam day / today.
+  const items = useMemo(() => {
+    const { next, upcoming } = sectionSessions(schedule, sessions, now);
+    const todays = [next, ...upcoming].filter((s) => s && !s.session?.canceled
+      && localDate(null, new Date(s.scheduled_at)) === day);
+    const list: TodoItem[] = [
+      ...groupHomework(homework).map((g) => ({
+        kind: 'homework' as const, key: `hw:${g.key}`, items: g.items,
+        date: g.items[0].deadline ?? g.items[0].created_at.slice(0, 10),
+      })),
+      ...exams.map((exam) => ({ kind: 'exam' as const, key: `ex:${exam.id}`, date: exam.scheduled_date, exam })),
+      ...todays.map((s) => ({ kind: 'session' as const, key: `s:${s!.scheduled_at}`, date: day, at: s!.scheduled_at })),
+      ...(newNotes > 0 ? [{ kind: 'notes' as const, key: 'notes', date: day }] : []),
+    ];
+    return list.sort((a, b) => nearestFirst(a.date, b.date, day));
+  }, [homework, exams, sessions, schedule, now, newNotes, day]);
+  const focusId = focusExamId(exams, day);
+
   return (
     <div className="flex flex-col gap-2">
-      <SectionTitle>{t('homework.assignedToYou')}</SectionTitle>
-      {homework.length === 0 && <EmptyState>{t('log.empty')}</EmptyState>}
-      <PagedList items={groupHomework(homework)} loadMoreLabel={t('grade.loadMore')}
-        render={(group) => (
-          <HomeworkCard
-            key={group.key} items={group.items} linked={linked}
-            statuses={statuses} membershipId={membershipId} onCreated={onCreated}
-          />
-        )} />
+      <SectionTitle>{t('todo.title')}</SectionTitle>
+      {items.length === 0 && <EmptyState>{t('todo.empty')}</EmptyState>}
+      <PagedList items={items} loadMoreLabel={t('grade.loadMore')}
+        render={(item) => {
+          switch (item.kind) {
+            case 'homework':
+              return <HomeworkCard key={item.key} items={item.items} linked={linked}
+                statuses={statuses} membershipId={membershipId} onCreated={onCreated} />;
+            case 'exam':
+              return <ExamCard key={item.key} exam={item.exam} locale={locale} defaultOpen={item.exam.id === focusId} />;
+            case 'session': {
+              const sub = coveredBy?.[String(new Date(item.at).getTime())];
+              return (
+                <div key={item.key} className="card flex items-center gap-3 py-3 px-4">
+                  <DateChip iso={item.at} locale={locale} />
+                  <span className="flex flex-col gap-0.5 min-w-0 flex-1">
+                    <span className="text-sm font-medium text-primary">{t('todo.sessionToday')}</span>
+                    <span className="text-xs text-muted">
+                      {new Date(item.at).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: true })}
+                    </span>
+                  </span>
+                  {sub && <CoveredBy name={sub} />}
+                </div>
+              );
+            }
+            case 'notes':
+              return (
+                <button key={item.key} onClick={onOpenNotes}
+                  className="card flex items-center gap-3 py-3 px-4 text-start cursor-pointer">
+                  <span className="text-sm font-medium text-primary flex-1">{t('todo.newNotes')}</span>
+                  <span className="badge badge-muted">{fmtNum(newNotes)}</span>
+                </button>
+              );
+          }
+        }} />
     </div>
   );
 }
@@ -806,28 +887,5 @@ function AyahSelect({
         {options.map((a) => <option key={a} value={a}>{fmtNum(a)}</option>)}
       </select>
     </label>
-  );
-}
-
-
-
-
-function UpcomingExams({ exams }: { exams: Exam[] }) {
-  const { t, locale } = useI18n();
-  if (exams.length === 0) return null;
-  // Scheduled first, then most recently scheduled.
-  const sorted = [...exams].sort((a, b) =>
-    (a.status === 'scheduled' ? 0 : 1) - (b.status === 'scheduled' ? 0 : 1)
-    || b.scheduled_date.localeCompare(a.scheduled_date));
-  const focusId = focusExamId(exams, today());
-
-  return (
-    <div className="flex flex-col gap-2">
-      <SectionTitle>{t('exam.title')}</SectionTitle>
-      {/* Collapsed by default — only the exam being worked on opens. */}
-      {sorted.map((exam) => (
-        <ExamCard key={exam.id} exam={exam} locale={locale} defaultOpen={exam.id === focusId} />
-      ))}
-    </div>
   );
 }

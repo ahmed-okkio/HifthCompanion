@@ -1144,9 +1144,12 @@ textarea,
   /* ponytail: --logo matches Android's PWA launch icon (~192dp drawn, logo.png has ~13%
      padding) so the hand-off doesn't jump; measured on one Android 12+ phone, tune here. */
   --logo: 221px; --star: 470px;
+  /* ponytail: Android centres its splash icon on the full screen incl. the ~24dp status bar;
+     the page starts below it, so lift the centre by half (padding shifts the flex centre). */
+  padding-bottom: 24px;
   animation: splash-failsafe 0.2s 8s forwards;
 }
-@media (min-width: 768px) { .splash { --logo: 168px; --star: 580px; } }
+@media (min-width: 768px) { .splash { --logo: 168px; --star: 580px; padding-bottom: 0; } }
 .splash-star {
   position: absolute; width: var(--star); height: var(--star);
   fill: none; stroke: var(--green-600); stroke-width: 2.5; opacity: 0.14;

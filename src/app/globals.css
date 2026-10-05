@@ -1145,8 +1145,8 @@ textarea,
      padding) so the hand-off doesn't jump; measured on one Android 12+ phone, tune here. */
   --logo: 221px; --star: 470px;
   /* ponytail: Android centres its splash icon on the full screen incl. the status bar;
-     the page starts below it, so lift the centre ~10px (padding shifts the flex centre by half). Tuned by eye. */
-  padding-bottom: 20px;
+     the page starts below it, so lift the centre ~8px (padding shifts the flex centre by half). Tuned by eye. */
+  padding-bottom: 16px;
   animation: splash-failsafe 0.2s 8s forwards;
 }
 @media (min-width: 768px) { .splash { --logo: 168px; --star: 580px; padding-bottom: 0; } }

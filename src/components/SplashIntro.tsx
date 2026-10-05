@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // ~1s launch intro: girih star turns in behind the logo, logo + wordmark rise (CSS, runs
 // before hydration). Once hydrated and the 600ms intro has played, the star turns out and
@@ -12,9 +12,13 @@ const EXIT_MS = 400;
 
 export function SplashIntro() {
   const [phase, setPhase] = useState<"intro" | "exit" | "gone">("intro");
+  const star = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
-    const wait = Math.max(0, INTRO_MS - performance.now());
+    // Time from when the CSS intro actually started painting, not navigation start;
+    // on mobile the network alone eats the 600ms and the intro got skipped.
+    const played = Number(star.current?.getAnimations()[0]?.currentTime ?? 0);
+    const wait = Math.max(0, INTRO_MS - played);
     const t1 = setTimeout(() => setPhase("exit"), wait);
     const t2 = setTimeout(() => setPhase("gone"), wait + EXIT_MS);
     return () => { clearTimeout(t1); clearTimeout(t2); };
@@ -23,7 +27,7 @@ export function SplashIntro() {
   if (phase === "gone") return null;
   return (
     <div className={`splash${phase === "exit" ? " splash-exit" : ""}`} aria-hidden="true" dir="ltr" lang="en">
-      <svg className="splash-star" viewBox="0 0 560 560">
+      <svg ref={star} className="splash-star" viewBox="0 0 560 560">
         {Array.from({ length: 8 }, (_, i) => (
           <rect key={i} x="130" y="130" width="300" height="300" transform={`rotate(${i * 11.25} 280 280)`} />
         ))}

@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useI18n } from '@/components/I18nProvider';
 
 const DISMISS_KEY = 'hifth:installDismissed';
@@ -107,7 +108,12 @@ export default function InstallBanner() {
     >
       <div className="flex flex-col flex-1 min-w-0">
         <span className="font-semibold text-body">{t('install.title')}</span>
-        <span className="text-muted text-small">{message}</span>
+        <span className="text-muted text-small">
+          {message}{' '}
+          {mode !== 'prompt' && (
+            <Link href="/install" className="text-accent underline">{t('installPage.link')}</Link>
+          )}
+        </span>
       </div>
       {mode === 'prompt' && (
         <button onClick={install} className="btn btn-primary">

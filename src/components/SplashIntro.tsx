@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 // ~1s launch intro: static logo until window load, then the girih star turns in behind it
 // while the wordmark rises and the logo lifts 10px from where Android's launch icon sat
 // (600ms), then the star turns out and everything fades (400ms)
-// and the overlay unmounts. Only on full page loads — client
-// navigations don't remount the root layout. pointer-events:none so it never blocks input.
+// and the overlay unmounts. Once per tab session: hard reloads skip it via sessionStorage
+// (layout.tsx hides it pre-paint); client navigations don't remount the root layout. pointer-events:none so it never blocks input.
 // English-only by design (no RTL variant).
 const INTRO_MS = 600;
 const EXIT_MS = 400;
@@ -17,6 +17,8 @@ export function SplashIntro() {
   // Android's PWA launch screen covers the page until load, so the intro only starts
   // after load; until then the static logo matches the OS splash it replaces.
   useEffect(() => {
+    if (document.documentElement.hasAttribute("data-intro-seen")) return; // CSS hides it
+    try { sessionStorage.introSeen = "1"; } catch {}
     const start = () => requestAnimationFrame(() => setPhase("intro"));
     if (document.readyState === "complete") start();
     else window.addEventListener("load", start, { once: true });

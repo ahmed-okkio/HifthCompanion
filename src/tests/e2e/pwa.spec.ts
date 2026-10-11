@@ -624,3 +624,12 @@ test.describe('signed out', () => {
     await expect(page).toHaveURL(/\/login\?next=%2Fsettings$/);
   });
 });
+
+test('the launch intro plays once per tab, not on hard navigations', async ({ page }) => {
+  guardConsole(page);
+  await page.goto('/reader');
+  await expect(page.locator('.splash')).toHaveCount(0, { timeout: 5000 }); // played, then unmounted
+  await page.goto('/sets'); // full document load, like <a href> / location.assign
+  await page.waitForLoadState('load');
+  await expect(page.locator('.splash')).toBeHidden(); // stays display:none, never animates
+});

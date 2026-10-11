@@ -1149,6 +1149,8 @@ textarea,
   padding-bottom: 12px;
   animation: splash-failsafe 0.2s 8s forwards;
 }
+/* Already played this tab session (flag set by the inline script in layout.tsx). */
+[data-intro-seen] .splash { display: none; }
 @media (min-width: 768px) { .splash { --logo: 168px; --star: 580px; padding-bottom: 0; } }
 .splash-star {
   position: absolute; width: var(--star); height: var(--star);

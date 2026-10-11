@@ -76,8 +76,11 @@ export default async function RootLayout({
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
   return (
-    <html lang={locale} dir={dirFor(locale)} className={`${sans.variable} ${geistMono.variable} ${brand.variable}`}>
+    <html suppressHydrationWarning lang={locale} dir={dirFor(locale)} className={`${sans.variable} ${geistMono.variable} ${brand.variable}`}>
       <body className="font-sans">
+        {/* Hard navigations (<a href>, location.assign) reload the document; hide the intro
+            before first paint if it already played in this tab. */}
+        <script dangerouslySetInnerHTML={{ __html: "try{sessionStorage.introSeen&&document.documentElement.setAttribute('data-intro-seen','')}catch(e){}" }} />
         <SplashIntro />
         <Suspense fallback={null}>
           <TopProgressBar />

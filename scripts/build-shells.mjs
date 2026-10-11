@@ -5,7 +5,7 @@ import { readFileSync, rmSync, mkdirSync, copyFileSync, writeFileSync } from 'no
 import { dirname, join } from 'node:path';
 
 // Visible route -> prerendered file under .next/server/app/{locale}/. Extend per converted route.
-const ROUTES = { '/wird': 'wird', '/wird/manage': 'wird/manage' };
+const ROUTES = { '/wird': 'wird', '/wird/manage': 'wird/manage', '/sets': 'sets' };
 const LOCALES = ['en', 'ar'];
 
 const app = '.next/server/app';

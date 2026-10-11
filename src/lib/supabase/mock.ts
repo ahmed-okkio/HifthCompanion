@@ -325,8 +325,9 @@ class MockQueryBuilder {
   async execute() {
     // PRD 0016 dec. 17: in the browser, tracker tables (wird, circle, ...) live in the
     // SERVER store that Playwright seeds; forward the query so client reads see fixtures.
-    // ponytail: sets/annotations/notes stay in localStorage (their client paths own them).
-    if (!IS_SERVER && this.table in TRACKER_GLOBAL) {
+    // annotation_sets too (PRD 0016 M4): server actions write them, /sets reads them here.
+    // ponytail: annotations/notes stay in localStorage (their client paths own them).
+    if (!IS_SERVER && (this.table in TRACKER_GLOBAL || this.table === 'annotation_sets')) {
       const res = await fetch('/api/test/tracker', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

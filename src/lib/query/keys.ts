@@ -4,4 +4,5 @@ export const qk = {
   wird: ['wird'] as const,
   wirdDaily: ['wird', 'daily'] as const,
   wirdManage: ['wird', 'manage'] as const,
+  sets: ['sets'] as const,
 };

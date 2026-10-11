@@ -1,12 +1,75 @@
 'use client';
 import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AnnotationSet } from '@/types';
 import { createAnnotationSet, updateAnnotationSet, deleteAnnotationSet } from '@/lib/services/annotationSets';
 import { useI18n } from '@/components/I18nProvider';
+import { createClient } from '@/lib/supabase/client';
+import { qk } from '@/lib/query/keys';
+import { localizeDigits } from '@/lib/i18n/config';
+import { Sk } from '@/components/Skeleton';
+import QueryFallback from '@/components/QueryFallback';
 
-export default function SetsList({ initialSets }: { initialSets: AnnotationSet[] }) {
+/**
+ * The caller's own sets, read in the browser (PRD 0016 E1, RLS boundary). Scoped by
+ * user_id: the teacher-shared-set RLS policy widens SELECT to students' shared sets,
+ * which belong on /shared, not here.
+ */
+async function fetchSets(): Promise<AnnotationSet[]> {
+  const sb = createClient();
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await sb
+    .from('annotation_sets')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+/** /sets screen: static header + footer, data section via TanStack Query. */
+export default function SetsScreen() {
+  const { t, locale } = useI18n();
+  const q = useQuery({ queryKey: qk.sets, queryFn: fetchSets });
+  return (
+    <>
+      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full overflow-y-auto h-full">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-xl font-bold text-primary">{t('sets.pageTitle')}</h1>
+            <p className="text-xs mt-1 text-muted">{t('sets.pageSubtitle')}</p>
+          </div>
+          {q.data ? (
+            <span className="badge">{t('sets.countBadge').replace('{count}', localizeDigits(q.data.length, locale))}</span>
+          ) : <Sk w={64} h={24} r={999} />}
+        </div>
+        <SetsList sets={q.data} fallback={<QueryFallback q={q} skeleton={<SetsSkeleton />} />} />
+      </main>
+      <footer className="w-full text-center text-xs tracking-wider uppercase border-t py-2 text-muted border-subtle bg-surface-app">
+        {t('home.footer')}
+      </footer>
+    </>
+  );
+}
+
+function SetsSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      {[0, 1, 2, 3].map((i) => <Sk key={i} h={64} r={16} />)}
+    </div>
+  );
+}
+
+/** The create row is always rendered (shell primary action, C3); the rows wait for data. */
+export function SetsList({ sets, fallback }: { sets: AnnotationSet[] | undefined; fallback?: React.ReactNode }) {
   const { t } = useI18n();
-  const [sets, setSets] = useState<AnnotationSet[]>(initialSets);
+  const qc = useQueryClient();
+  // E9: write the cache in place, then refetch to reconcile with the server.
+  const setSets = (next: AnnotationSet[]) => {
+    qc.setQueryData(qk.sets, next);
+    void qc.invalidateQueries({ queryKey: qk.sets });
+  };
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -15,7 +78,7 @@ export default function SetsList({ initialSets }: { initialSets: AnnotationSet[]
     if (!newName.trim()) return;
     try {
       const newSet = await createAnnotationSet(newName);
-      setSets([newSet, ...sets]);
+      setSets([newSet, ...(qc.getQueryData<AnnotationSet[]>(qk.sets) ?? [])]);
       setNewName('');
     } catch (error) {
       console.error('Error creating set:', error);
@@ -26,7 +89,7 @@ export default function SetsList({ initialSets }: { initialSets: AnnotationSet[]
     if (!editName.trim()) return;
     try {
       await updateAnnotationSet(id, editName);
-      setSets(sets.map(s => s.id === id ? { ...s, name: editName.trim() } : s));
+      setSets((sets ?? []).map(s => s.id === id ? { ...s, name: editName.trim() } : s));
       setEditingId(null);
     } catch (error) {
       console.error('Error renaming set:', error);
@@ -37,7 +100,7 @@ export default function SetsList({ initialSets }: { initialSets: AnnotationSet[]
     if (!confirm(t('sets.confirmDelete'))) return;
     try {
       await deleteAnnotationSet(id);
-      setSets(sets.filter(s => s.id !== id));
+      setSets((sets ?? []).filter(s => s.id !== id));
     } catch (error) {
       console.error('Error deleting set:', error);
     }
@@ -64,6 +127,7 @@ export default function SetsList({ initialSets }: { initialSets: AnnotationSet[]
         </button>
       </div>
 
+      {!sets ? fallback : <>
       {/* Empty state */}
       {sets.length === 0 && (
         <div className="card text-center animate-fade-in px-6 py-10 text-muted">
@@ -148,6 +212,7 @@ export default function SetsList({ initialSets }: { initialSets: AnnotationSet[]
           )}
         </div>
       ))}
+      </>}
     </div>
   );
 }

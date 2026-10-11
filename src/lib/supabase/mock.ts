@@ -653,6 +653,10 @@ export class MockSupabaseClient {
         error: null,
       };
     },
+    resetPasswordForEmail: async () => ({ data: {}, error: null }),
+    updateUser: async () => this.authenticated
+      ? { data: { user: { id: this.userId } }, error: null }
+      : { data: { user: null }, error: { message: 'Auth session missing!' } },
     // Logout (E6): drop the identity cookie, as the real client drops its session.
     signOut: async () => {
       if (typeof document !== 'undefined') document.cookie = 'sb-auth-token=; Max-Age=0; path=/';

@@ -92,6 +92,10 @@ export default function LoginPage() {
               </div>
             </div>
 
+            <Link href="/forgot-password" className="-mt-2 self-end text-xs font-semibold hover:underline text-green-600">
+              {t('auth.forgotLink')}
+            </Link>
+
             {error && (
               <div className="text-xs font-medium px-3 py-2 rounded-md animate-fade-in bg-danger-muted text-danger border border-danger-muted">
                 {error}

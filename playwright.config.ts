@@ -16,6 +16,7 @@ const areas: Record<string, RegExp> = {
   sets: /sets\.spec\.ts/,
   tracker: /tracker\.spec\.ts/,
   wird: /wird\.spec\.ts/,
+  auth: /auth\.spec\.ts/,
 };
 
 export default defineConfig({

@@ -4,8 +4,10 @@
    page flip. Cache-first out of CacheStorage skips the network entirely — a page already
    read stays instant until the user clears site data. */
 
-const CACHE_VERSION = "hc-shell-v2";
-const SHELL_URLS = ["/", "/offline"];
+const CACHE_VERSION = "hc-shell-v3";
+// Static, user-agnostic page only. Never cache authenticated HTML: "/" redirects signed-in
+// users to their own pages, and a cached copy would leak to the next user on the device.
+const OFFLINE_URL = "/offline.html";
 
 /* Mushaf page imagery. Kept in its own cache so a shell version bump never evicts 70MB of
    already-downloaded pages. Cross-origin (Supabase storage), matched on path not host so a
@@ -17,12 +19,8 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_VERSION)
-      .then((cache) => cache.addAll(SHELL_URLS))
-      .catch(() => {
-        // Best-effort: if "/offline" route is absent the install must still
-        // succeed so navigations can fall back to the cached "/".
-        return caches.open(CACHE_VERSION).then((cache) => cache.add("/"));
-      })
+      .then((cache) => cache.add(new Request(OFFLINE_URL, { credentials: "omit" })))
+      .catch(() => {}) // best-effort: install must still succeed
       .then(() => self.skipWaiting())
   );
 });
@@ -80,14 +78,9 @@ self.addEventListener("fetch", (event) => {
   // forced a version-mismatch reload, which re-served the same stale "/".)
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Refresh the offline fallback copy of the app shell in the background.
-          const copy = response.clone();
-          caches.open(CACHE_VERSION).then((cache) => cache.put("/", copy)).catch(() => {});
-          return response;
-        })
-        .catch(() => caches.match("/offline").then((m) => m || caches.match("/")))
+      fetch(request).catch(() =>
+        caches.match(OFFLINE_URL).then((m) => m || Response.error())
+      )
     );
     return;
   }

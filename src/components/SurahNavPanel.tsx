@@ -290,8 +290,8 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
           {filtered.map((group, i) => {
             const active = isActiveGroup(group.page);
             const juz = getJuzForPage(group.page);
-            // Every juz begun since the previous row gets a divider. A juz that starts mid-surah
-            // (e.g. Juz 2 inside Al-Baqara) has no row of its own, so its divider jumps to its page.
+            // Every juz begun since the previous row gets a divider that jumps to its first page; a juz
+            // starting mid-surah (e.g. Juz 2 inside Al-Baqara) has no row of its own.
             const fromJuz = i === 0 ? juz : getJuzForPage(filtered[i - 1].page) + 1;
             const juzHere = Array.from({ length: Math.max(0, juz - fromJuz + 1) }, (_, k) => fromJuz + k);
             return (
@@ -301,12 +301,10 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
                 const label = t('reader.juz', { n: j });
                 return (
                   <li key={`juz-${j}`} data-testid="juz-divider" className="border-b border-neutral-100 text-meta font-bold text-green-600">
-                    {start < group.page ? (
                       <button type="button" onClick={() => jumpToPage(start)} className="flex w-full items-center justify-between px-4 py-1.5 cursor-pointer transition-colors duration-150 hover:bg-neutral-50">
                         <span>{label}</span>
                         <span className="tabular-nums font-semibold text-muted">{t('reader.pageNum', { n: start })}</span>
                       </button>
-                    ) : <span className="block px-4 py-1.5">{label}</span>}
                   </li>
                 );
               })}

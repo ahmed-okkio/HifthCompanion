@@ -58,6 +58,9 @@ test.describe('Surah panel and toolbar layout', () => {
     // Juz 2 starts mid-Al-Baqara (no row of its own): its divider jumps to its first page.
     await dividers.getByRole('button', { name: 'Juz 2 Page 22' }).click();
     await expect(page).toHaveURL(/\/reader\/22$/);
+    // A juz that starts with a surah (Juz 30 = An-Naba) is clickable too.
+    await dividers.getByRole('button', { name: /^Juz 30\b/ }).click();
+    await expect(page).toHaveURL(/\/reader\/582$/);
   });
 
   test('clicking a surah navigates on the first click', async ({ page }) => {

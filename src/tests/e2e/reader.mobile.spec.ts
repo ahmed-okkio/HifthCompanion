@@ -325,6 +325,16 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
     await expect(sheet.getByTestId('mobile-surah-scroll-list')).toBeVisible();
     await expect(sheet.getByTestId('mobile-marked-scroll-list')).toHaveCount(0);
   });
+
+  test('surah sheet lists all 30 juz; a mid-surah juz divider jumps to its page', async ({ page }) => {
+    listenForErrors(page);
+    await page.getByRole('button', { name: 'Open surah list' }).click();
+    const dividers = page.getByTestId('mobile-surah-scroll-list').getByTestId('juz-divider');
+    await expect(dividers).toHaveCount(30);
+    // Juz 2 starts inside Al-Baqara (no row of its own).
+    await dividers.getByRole('button', { name: /^Juz 2\b/ }).click();
+    await expect(page).toHaveURL(/\/reader\/22$/);
+  });
 });
 
 test.describe('Mobile share view (Pixel 5)', () => {

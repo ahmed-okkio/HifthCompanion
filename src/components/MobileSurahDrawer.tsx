@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { usePathname } from '@/lib/i18n/usePathname';
-import { activeGroupPage, filterSurahGroups, getSurahName, pageFromLocation, type SurahPageGroup } from '@/lib/quran';
+import { activeGroupPage, filterSurahGroups, getJuzForPage, getJuzStartPage, getSurahName, pageFromLocation, type SurahPageGroup } from '@/lib/quran';
 import { usePinnedPage } from '@/hooks/usePinnedPage';
 import { useI18n } from '@/components/I18nProvider';
 import { useGoToPage } from '@/hooks/useGoToPage';
@@ -191,11 +191,32 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
           className={`thin-scroll flex-1 overflow-y-auto px-2 pb-8 ${showMarked ? 'hidden' : ''}`}
         >
           <ul className="flex flex-col gap-1">
-            {filtered.map(group => {
+            {filtered.map((group, i) => {
               const active = activePage === group.page;
               const isMultiSurah = group.surahs.length > 1;
+              // Same juz dividers as the desktop panel (SurahNavPanel): every juz begun since the
+              // previous row, each jumping to its first page.
+              const juz = getJuzForPage(group.page);
+              const fromJuz = i === 0 ? juz : getJuzForPage(filtered[i - 1].page) + 1;
+              const juzHere = Array.from({ length: Math.max(0, juz - fromJuz + 1) }, (_, k) => fromJuz + k);
               return (
-                <li key={group.page} className="px-2 py-0.5">
+                <Fragment key={group.page}>
+                {juzHere.map(j => {
+                  const start = getJuzStartPage(j);
+                  return (
+                    <li key={`juz-${j}`} data-testid="juz-divider" className="px-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => { onOpenChange(false); void goToPage(start); }}
+                        className="flex w-full items-center justify-between rounded-lg px-3 py-2 cursor-pointer text-meta font-bold text-green-600 transition-colors duration-(--duration-fast) active:bg-neutral-100 hover:bg-neutral-50"
+                      >
+                        <span>{t('reader.juz', { n: j })}</span>
+                        <span className="tabular-nums font-semibold text-muted">{t('reader.pageNum', { n: start })}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+                <li className="px-2 py-0.5">
                   <button
                     ref={active ? activeButtonRef : undefined}
                     type="button"
@@ -243,6 +264,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                     </div>
                   </button>
                 </li>
+                </Fragment>
               );
             })}
           </ul>

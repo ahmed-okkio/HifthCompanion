@@ -78,7 +78,8 @@ describe('service worker caches (PRD 0016 D3, D5, D6, F3)', () => {
   it('answers a shell route from this build\'s shell without the network (D3)', async () => {
     expect(await (await dispatch('fetch', nav('/wird/')))!.text()).toBe('shell:wird');
     expect(await (await dispatch('fetch', nav('/reader/9')))!.text()).toBe('shell:reader');
-    expect(fetched).toEqual([]);
+    // Only the background stale-build check touches the network; the page itself comes from the shell.
+    expect(fetched.every((u) => u.endsWith("/_shell/b2/manifest.json"))).toBe(true);
   });
 
   it('never stores a credentialed navigation or API response (D6)', async () => {

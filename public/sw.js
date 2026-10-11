@@ -142,6 +142,7 @@ self.addEventListener("fetch", (event) => {
     const network = () =>
       fetch(request).catch(() => caches.match(OFFLINE_URL).then((m) => m || Response.error()));
     event.respondWith(shellFor(url.pathname).catch(() => null).then((shell) => shell || network()));
+    event.waitUntil(checkStale());
     return;
   }
 });
@@ -164,6 +165,19 @@ function matchRoute(routes, path) {
   return null;
 }
 // </shell-match>
+
+// A shell's page registers /sw.js?v=<its own build>, so a cache-first shell would pin this
+// SW (and its build) forever, and the stale client hard-reloads on every navigation (skew).
+// Each deployment serves only its own /_shell/<id>/, so a 404 here means a newer deploy:
+// unregister and drop the shells so the next navigation loads the live app, which registers
+// the new SW. Offline / network errors change nothing.
+async function checkStale() {
+  if (BUILD_ID === "dev") return;
+  const res = await fetch(`${SHELL_BASE}/manifest.json`, { cache: "no-store", credentials: "omit" }).catch(() => null);
+  if (res?.status !== 404) return;
+  await caches.delete(CACHE_VERSION);
+  await self.registration.unregister();
+}
 
 async function shellFor(pathname) {
   const cache = await caches.open(CACHE_VERSION);

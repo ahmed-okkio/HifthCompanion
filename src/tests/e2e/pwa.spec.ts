@@ -633,3 +633,22 @@ test('the launch intro plays once per tab, not on hard navigations', async ({ pa
   await page.waitForLoadState('load');
   await expect(page.locator('.splash')).toBeHidden(); // stays display:none, never animates
 });
+
+test('a SW whose build is no longer deployed unregisters itself, so the app cannot pin an old build', async ({ page, context }) => {
+  guardConsole(page);
+  await page.goto('/wird');
+  await swReady(page);
+  // A newer deploy no longer serves this build's /_shell/<id>/ (seen by the SW's own fetch).
+  await context.route('**/_shell/*/manifest.json', (route) => route.fulfill({ status: 404 }));
+  await page.goto('/reader'); // shell-served navigation triggers the check
+  // Shells dropped: the next navigation goes to the network (the live build), not a cached shell.
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        for (const k of await caches.keys())
+          if (k.startsWith('hc-shell-') && (await (await caches.open(k)).keys()).some((r) => r.url.endsWith('/wird.html'))) return true;
+        return false;
+      }),
+    )
+    .toBe(false);
+});

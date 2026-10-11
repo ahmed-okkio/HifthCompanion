@@ -1,17 +1,10 @@
-import { Suspense } from 'react';
 import AppShell from '@/components/AppShell';
-import ProfileMenuAsync, { ProfileMenuFallback } from '@/components/ProfileMenuAsync';
+import { ProfileMenuLive } from '@/components/ProfileMenu';
 
 /**
- * Persistent chrome for /wird. SYNC (no awaits) so it returns immediately —
- * the profile menu streams via Suspense and the page's loading.tsx shows
- * instantly. Auth is enforced in the page (inside the loading boundary).
- * Mirrors src/app/sets/layout.tsx.
+ * Persistent chrome for /wird. No server reads (PRD 0016 C4): the profile menu
+ * fills client-side, so the route prerenders as a complete static shell.
  */
 export default function WirdLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AppShell profile={<Suspense fallback={<ProfileMenuFallback />}><ProfileMenuAsync /></Suspense>}>
-      {children}
-    </AppShell>
-  );
+  return <AppShell profile={<ProfileMenuLive />}>{children}</AppShell>;
 }

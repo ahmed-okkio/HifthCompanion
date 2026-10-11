@@ -11,6 +11,9 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { qk } from '@/lib/query/keys';
+import { displayName } from '@/lib/displayName';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { queryClient } from '@/lib/query/Provider';
@@ -119,4 +122,24 @@ export default function ProfileMenu({ name, email }: { name: string; email: stri
       </AnchoredPopup>
     </div>
   );
+}
+
+/**
+ * ProfileMenu fed client-side (PRD 0016 E1), so a layout using it stays a static
+ * shell. Same name/email as the server getMyChrome; avatar shimmer until known.
+ */
+export function ProfileMenuLive() {
+  const q = useQuery({
+    queryKey: qk.me,
+    queryFn: async () => {
+      const sb = createClient();
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return null;
+      const { data: p } = await sb.from('profiles').select('first_name, last_name').eq('id', user.id).maybeSingle();
+      return { name: displayName({ user_id: user.id, first_name: p?.first_name, last_name: p?.last_name }), email: user.email ?? '' };
+    },
+  });
+  if (q.data === null) return null;
+  if (!q.data) return <div aria-hidden className="size-9 rounded-full skeleton" />;
+  return <ProfileMenu name={q.data.name} email={q.data.email} />;
 }

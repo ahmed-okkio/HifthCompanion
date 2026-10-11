@@ -18,6 +18,8 @@
  * Motion is M6; this milestone only builds the states as plain renders.
  */
 
+import { useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query/keys';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -47,6 +49,7 @@ const DOTS_MAX = 5;
 export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardData[]; memorizedPages: number[] }) {
   const { t } = useI18n();
   const router = useRouter();
+  const qc = useQueryClient();
   // The create form opens from the top-bar "New" action via ?new=1, so no
   // floating button sits over the card — the Done disc is the one control.
   // The create form opens as a client-side modal — no navigation, so the /wird
@@ -120,7 +123,7 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
         onCreated={() => {
           setCreating(false);
           closeForm();
-          router.refresh();
+          void qc.invalidateQueries({ queryKey: qk.wird });
           if (cards.length === 0) void reminderSheetStart().then(setReminder);
         }}
         canUseMemorized={memorizedPages.length > 0}
@@ -143,7 +146,7 @@ function Strip({
   onNew: () => void;
   onDoneCard: (id: string) => void;
 }) {
-  const router = useRouter();
+  const qc = useQueryClient();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [active, setActive] = useState(0);
@@ -169,9 +172,9 @@ function Strip({
       // back because the pager filters it out.
       onDoneCard(id);
       setLeavingId(null);
-      router.refresh();
+      void qc.invalidateQueries({ queryKey: qk.wird });
     }, (Number.isFinite(ms) ? ms : 320) + 20); // small buffer past travel end
-  }, [router, onDoneCard]);
+  }, [qc, onDoneCard]);
 
   // H5: track the most-visible card. IntersectionObserver only — no scroll,
   // pointer or touch handlers.

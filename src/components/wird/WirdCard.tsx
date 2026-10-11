@@ -18,8 +18,9 @@
  * exit) is M6 — this milestone only changes state.
  */
 
+import { useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query/keys';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import { completeWird } from '@/lib/services/wird';
 import Progress from './Progress';
@@ -41,7 +42,7 @@ function CheckGlyph() {
 // slide out, close the gap, and refresh once travel ends.
 export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?: (id: string) => void }) {
   const { t, fmtNum } = useI18n();
-  const router = useRouter();
+  const qc = useQueryClient();
   const [error, setError] = useState(false);
   const [bouncing, setBouncing] = useState(false);
   const [justDone, setJustDone] = useState(false);
@@ -57,14 +58,15 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
     // Optimistic: flip the disc and fire the server write now — no spinner, no
     // await. The card exit is handed to the pager only once the disc bounce has
     // played (onAnimationEnd below), so the nice tap animation isn't cut off by
-    // the slide. On failure we refresh to restore the true state (I11).
+    // the slide. On failure we refetch to restore the true state (I11).
     setBouncing(true); // J1: disc squash-and-stretch on the tap
     setError(false);
     setJustDone(true);
-    completeWird(card.id).catch(() => {
+    // Sync once the write lands (the pager's post-slide refetch may beat it).
+    completeWird(card.id).then(() => qc.invalidateQueries({ queryKey: qk.wird }), () => {
       setJustDone(false);
       setError(true);
-      router.refresh();
+      void qc.invalidateQueries({ queryKey: qk.wird });
     });
   }
 

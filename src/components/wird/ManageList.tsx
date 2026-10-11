@@ -7,9 +7,10 @@
  * never touched here, so it keeps its single Done control (H10).
  */
 
+import { useQueryClient } from '@tanstack/react-query';
+import { qk } from '@/lib/query/keys';
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import {
   deleteWird,
@@ -32,7 +33,7 @@ const todayISO = () => localDate();
 
 export default function ManageList({ rows, memorizedPages }: { rows: ManageRow[]; memorizedPages: number[] }) {
   const { t } = useI18n();
-  const router = useRouter();
+  const qc = useQueryClient();
   const [editing, setEditing] = useState<WirdEdit | null>(null);
 
   return (
@@ -51,7 +52,7 @@ export default function ManageList({ rows, memorizedPages }: { rows: ManageRow[]
       ) : (
         <ul className="list-none m-0 p-0 flex flex-col gap-3">
           {rows.map((r) => (
-            <Row key={r.id} row={r} onEdit={() => setEditing(r)} onChanged={() => router.refresh()} />
+            <Row key={r.id} row={r} onEdit={() => setEditing(r)} onChanged={() => void qc.invalidateQueries({ queryKey: qk.wird })} />
           ))}
         </ul>
       )}
@@ -62,7 +63,7 @@ export default function ManageList({ rows, memorizedPages }: { rows: ManageRow[]
           open
           wird={editing}
           onClose={() => setEditing(null)}
-          onCreated={() => { setEditing(null); router.refresh(); }}
+          onCreated={() => { setEditing(null); void qc.invalidateQueries({ queryKey: qk.wird }); }}
           canUseMemorized={memorizedPages.length > 0}
           memorizedPages={memorizedPages}
         />
@@ -73,7 +74,7 @@ export default function ManageList({ rows, memorizedPages }: { rows: ManageRow[]
 
 function Row({ row, onEdit, onChanged }: { row: ManageRow; onEdit: () => void; onChanged: () => void }) {
   const { t, fmtNum, locale } = useI18n();
-  const router = useRouter();
+  const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
@@ -110,7 +111,7 @@ function Row({ row, onEdit, onChanged }: { row: ManageRow; onEdit: () => void; o
     try {
       await deleteWirdEntry(e.id);
       await loadHistory();
-      router.refresh(); // reflect the re-opened day on /wird
+      void qc.invalidateQueries({ queryKey: qk.wird }); // reflect the re-opened day on /wird
     } catch { setError(t('wird.undoFailed')); }
     finally { setBusy(false); }
   }

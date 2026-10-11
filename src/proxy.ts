@@ -17,7 +17,7 @@ export async function proxy(request: NextRequest) {
   target.pathname = `/${locale}${pathname === '/' ? '' : pathname}`;
   const response = NextResponse.rewrite(target, { request });
 
-  const protectedPaths = ['/sets', '/reader', '/tracker'];
+  const protectedPaths = ['/sets', '/reader', '/tracker', '/wird'];
   if (!protectedPaths.some(p => pathname.startsWith(p))) return response;
 
   // Fully bypass auth for E2E tests in test environment
@@ -55,8 +55,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(login);
   }
 
-  // Onboarding gate: DB query only when the cookie is absent.
-  if (request.cookies.get(ONBOARDED_COOKIE)?.value !== '1') {
+  // Onboarding gate: DB query only when the cookie is absent. /wird only needs a session
+  // (it moved here from its page's server check when the page became a static shell).
+  if (!pathname.startsWith('/wird') && request.cookies.get(ONBOARDED_COOKIE)?.value !== '1') {
     const { data: row } = await supabase
       .from('user_hifth')
       .select('onboarded_at')

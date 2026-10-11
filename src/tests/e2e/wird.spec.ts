@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, type Request } from '@playwright/test';
 
 // 0015 wird — daily-screen E2E (O5–O7). Runs against the live app + the mock
 // Supabase store, seeded through the test-only /api/test/tracker route (the same
@@ -46,6 +46,9 @@ async function reset(page: Page, wirds: unknown[]) {
   await page.request.post('/api/test/tracker', { data: { seed: { wird: wirds } } });
 }
 
+// A server-action POST (not a mock client read, which also POSTs).
+const isAction = (req: Request) => req.method() === 'POST' && 'next-action' in req.headers();
+
 // An enabled Done disc = an outstanding wird's control (done cards are disabled).
 const outstandingDone = (page: Page) =>
   page.locator('button[aria-label="Done"]:not([disabled])');
@@ -84,8 +87,9 @@ test.describe('Wird daily screen', () => {
     });
 
     // Complete it. The Done write is a server-action POST; keep its response
-    // to await before re-reading the server below.
-    const written = page.waitForResponse((r) => r.request().method() === 'POST', { timeout: 20000 });
+    // to await before re-reading the server below. Matched by the next-action
+    // header: the e2e mock's client reads are POSTs too (/api/test/tracker).
+    const written = page.waitForResponse((r) => isAction(r.request()), { timeout: 20000 });
     await outstandingDone(page).click();
 
     // Outcome, with the server still held: the card leaves → all-done screen,
@@ -427,7 +431,7 @@ test.describe('Wird reminder', () => {
     await sheet.getByLabel('Reminder time').fill('18:22');
     await expect(sheet.getByRole('button', { name: /^Remind me at 6:15\s?PM$/ })).toBeVisible();
 
-    const saved = page.waitForResponse((r) => r.request().method() === 'POST');
+    const saved = page.waitForResponse((r) => isAction(r.request()));
     await sheet.getByRole('button', { name: 'Not now' }).click();
     await expect(sheet).toHaveCount(0);
     await saved;

@@ -11,7 +11,11 @@ const buildId =
 const nextConfig: NextConfig = {
   cacheComponents: true,
   generateBuildId: () => buildId,
-  env: { NEXT_PUBLIC_BUILD_ID: buildId },
+  env: {
+    NEXT_PUBLIC_BUILD_ID: buildId,
+    // Defined so prod bundles constant-fold the e2e gate and drop the browser mock client.
+    NEXT_PUBLIC_PLAYWRIGHT_TEST: process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST ?? 'false',
+  },
   images: {
     // Vercel's image optimizer returns 402 once the plan's optimization quota is
     // exhausted, which blanks every next/image (logo + Mushaf pages). Serve images

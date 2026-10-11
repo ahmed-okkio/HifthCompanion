@@ -224,3 +224,25 @@ Baseline: `playwright test --project=annotations,reader,sets,tracker,wird,mobile
 | features.spec `:299`, `:315` Notes | 3 / 1 | (a) helper selected the set and trusted `data-canvas-ready`, still true from the previous set, before the `?set=` `router.replace` landed, so the notes column remounted mid-fill. (b) App bug: `useNotes` cleared the draft when its mount fetch resolved, wiping text typed while it was in flight | (a) helper waits for the controlled picker to show the chosen set. (b) `useNotes` resets edit/draft at the set/page switch (render-time key), not on fetch resolve |
 
 After fixes: tracker+wird+annotations 10x = 381/381; pwa 10x = 121/121; full SW-blocked 10x = 911/911.
+
+## M10 results (preview, signed out)
+
+Preview `https://hifth-companion-cg4lop6zy-okkio-s-projects.vercel.app` (ba42444), buildId `dpl_57oYKahF2aKV4tDcpsHfafQ99BdR`.
+Headless Chrome 154 via chrome-agent + raw CDP, fresh browser context. No deployment protection. No console errors.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Vercel build runs build-shells | PASS | `build` = `next build && node scripts/build-shells.mjs`, no vercel.json; `/_shell/<buildId>/manifest.json` 200 (14 routes x en/ar), `en/wird.html`, `ar/wird.html`, `en/reader/view.html` 200 |
+| A3 signed out `/wird` (proxy) | PASS | 307 -> `/login?next=%2Fwird` |
+| A3 signed out via SW shell (online) | PASS | `/wird` and `/tracker/abc-123` served by SW, ShellAuthGuard -> `/login?next=...` |
+| D2 SW registers per build | PASS | controller `/sw.js?v=dpl_57oY...` |
+| D2/D6 caches | PASS | `hc-shell-<buildId>` 30 entries (offline.html, manifest, 28 shells), `hc-static-v1` 45 `/_next/static` only, `hc-locale` 1, `hc-pages-v1` 0. No app-route HTML |
+| D3 offline unvisited protected route | PASS | `/tracker`, `/reader/5`, `/sets` -> shell from SW + offline note (guard leaves shell offline by design) |
+| D4 offline unmapped / `/login` | PASS | offline.html (`/login` has no shell) |
+| B4 `<html lang dir>` first byte | PASS | cookie `locale=ar` -> `lang="ar" dir="rtl"`; shells `ar/*.html` rtl |
+| D7 shell locale | PASS | after an ar page posted locale (`hc-locale`=ar), offline `/wird/manage` -> ar/rtl shell |
+| Deep link + back offline | PASS | `/reader/12` -> `/tracker/abc` -> back renders reader page 12 |
+| Navigation headers | PASS | documents `cache-control: public, max-age=0, must-revalidate` |
+| Skew Protection | FAIL (likely off) | 0 of 21 `/_next/` assets carry `?dpl=`; check dashboard setting |
+| Build log `build-shells:` line | NEEDS-HUMAN | no Vercel CLI; manifest 200 implies it ran |
+| Offline cold launch with cached data, user switch, logout wipe, `/reader/<n>` revalidating-action reload, `/install` QR origin, revoked share, new deploy SW takeover (no stuck `waiting`), onboarding gate on shell deep link, offline cold launch after redeploy | NEEDS-HUMAN | need a signed-in account and/or a second deploy |

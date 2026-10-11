@@ -45,6 +45,24 @@ test('shell routes are served by the SW, online and offline (D2, D3)', async ({ 
   await context.setOffline(false);
 });
 
+test('/reader is a SW shell; /reader/<n> stays network-first with the offline fallback (M5)', async ({ page, context }) => {
+  guardConsole(page);
+  await page.goto('/wird');
+  await swReady(page);
+
+  const res = await page.goto('/reader');
+  expect(res?.fromServiceWorker()).toBe(true);
+  // The index redirect lands on a real page with its canvas and own data.
+  await expect(page).toHaveURL(/\/reader\/\d+/);
+  await expect(page.locator('.upper-canvas')).toBeVisible();
+
+  // No fallback shell for the dynamic segment (it cannot hydrate without the server).
+  await context.setOffline(true);
+  await page.goto('/reader/9');
+  await expect(page).toHaveTitle(/Offline/);
+  await context.setOffline(false);
+});
+
 test('the shell follows the posted locale, incl. rtl (D7)', async ({ page }) => {
   guardConsole(page);
   await page.goto('/wird');

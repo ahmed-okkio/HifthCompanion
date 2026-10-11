@@ -1,115 +1,121 @@
-import { createClient } from '@/lib/supabase/server';
+'use client';
+import { useParams, useSearchParams, notFound, redirect } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { TOTAL_PAGES, parseSpread } from '@/lib/quran';
-import { notFound, redirect } from 'next/navigation';
 import ShareCard from '@/components/ShareCard';
 import NotesPanel from '@/components/NotesPanel';
 import SpreadNotesPanel from '@/components/SpreadNotesPanel';
-import { getNotes } from '@/lib/services/notes';
 import type { Note } from '@/types';
 import { Icon } from '@/components/tracker/ui';
-import { getLocale } from '@/lib/i18n/server';
-import { getDictionary } from '@/lib/i18n/dictionaries';
+import { useI18n } from '@/components/I18nProvider';
+import { useReaderData } from '@/components/ReaderLayoutClient';
+import { createClient } from '@/lib/supabase/client';
+import { qk } from '@/lib/query/keys';
 
-interface Props {
-  params: Promise<{ page: string }>;
-  // `set` lets a teacher view a student's shared set (RLS-gated, read-only).
-  searchParams: Promise<{ set?: string }>;
+const COLUMN = 'flex min-w-0 flex-col gap-4 lg:self-stretch lg:min-h-0 lg:max-h-full lg:overflow-y-auto lg:pr-1';
+const SHIMMER = 'w-full rounded-md skeleton';
+
+/** One page's notes, read in the browser (PRD 0016 E1; RLS decides set access). */
+function useNotesQuery(setId: string | undefined, page: number | null) {
+  return useQuery({
+    queryKey: qk.notes(setId ?? '', page ?? 0),
+    enabled: !!setId && !!page,
+    queryFn: async (): Promise<Note[]> => {
+      const { data, error } = await createClient()
+        .from('notes')
+        .select('*')
+        .eq('set_id', setId!)
+        .eq('page_number', page!)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+function NotesColumnSkeleton() {
+  return (
+    <div className={COLUMN}>
+      <div className={`${SHIMMER} h-45`} />
+      <div className={`${SHIMMER} h-24`} />
+    </div>
+  );
 }
 
 // The reader app-shell (persistent layout) owns the page navigation chrome and the Fabric
-// annotation canvas, so they survive page-to-page navigation without remounting (Story 24).
-// This route segment renders only the per-page notes / share column, which is allowed to
-// remount so its server-fetched notes swap cleanly with the page.
-export default async function ReaderPage({ params, searchParams }: Props) {
-  const { page } = await params;
-  const { set: requestedSet } = await searchParams;
+// annotation canvas. This segment renders only the per-page notes / share column. Static
+// fallback shell (PRD 0016 C2/C4): the page param and all data are read client-side.
+export default function ReaderPage() {
+  const { t } = useI18n();
+  const { page = '' } = useParams<{ page: string }>();
+  // `set` lets a teacher view a student's shared set (RLS-gated, read-only).
+  const requestedSet = useSearchParams().get('set');
 
-  // Spread segment "N-M" (M2/G1): the notes column fetches the LOWER (right) page's
-  // data via the exact same path single mode uses for that page. The second canvas is
-  // lit up by ReaderShell in M3; this route only needs the lower page number here.
-  // A single "3" has no dash → parseSpread isn't called, single behavior is untouched (B4).
+  // Spread segment "N-M": the notes column shows both pages; a malformed one falls back to the
+  // first number's single page. A single "3" has no dash → parseSpread isn't called.
   const spread = page.includes('-') ? parseSpread(page) : null;
   if (page.includes('-') && !spread) {
-    // Malformed spread ("3-5", "5-3", garbage) → fall back to the first number's single page.
     const first = parseInt(page, 10);
     redirect(`/reader/${isNaN(first) ? 1 : first}`);
   }
-  // ponytail: lower page feeds every existing fetch (G1); swap to per-active-page in M3.
   const pageNum = spread ? spread[0] : parseInt(page, 10);
-
-  if (isNaN(pageNum) || pageNum < 1 || pageNum > TOTAL_PAGES) {
-    notFound();
-  }
-
-  const dict = getDictionary(await getLocale());
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  // The reader's own chrome (set list, ShareCard) only ever shows the user's own
-  // sets — cross-user RLS would otherwise mix in students' shared sets.
-  const { data: sets } = user
-    ? await supabase
-        .from('annotation_sets')
-        .select('id, name')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-    : { data: [] };
-
-  // Notes view: an explicit `?set=` (teacher viewing a shared set) wins; RLS
-  // enforces read access. Otherwise the user's own first set.
-  const viewSetId = requestedSet ?? (sets ?? [])[0]?.id;
-  const initialNotes = user && viewSetId
-    ? await getNotes(viewSetId, pageNum).catch(() => [])
-    : [];
-  // Spread: also fetch the OTHER page so both panels render server-side.
+  if (isNaN(pageNum) || pageNum < 1 || pageNum > TOTAL_PAGES) notFound();
   const otherPage = spread ? spread[1] : null;
-  const otherNotes: Note[] = user && viewSetId && otherPage
-    ? await getNotes(viewSetId, otherPage).catch(() => [])
-    : [];
+
+  const { me, sets: setsQ, ready } = useReaderData();
+  const user = me.data;
+  const sets = setsQ.data ?? [];
+  // Notes view: an explicit `?set=` wins; otherwise the user's own first set.
+  const viewSetId = user ? (requestedSet ?? sets[0]?.id) : undefined;
+  const notesA = useNotesQuery(viewSetId, pageNum);
+  const notesB = useNotesQuery(viewSetId, otherPage);
+
+  if (!ready) return <NotesColumnSkeleton />;
+  const notesReady = notesA.data !== undefined && (!otherPage || notesB.data !== undefined);
 
   return (
-    /* V3 Story 13 — Context panel order: Notes (top) → Share → Tags (Stories 14–15 follow).
-       Notes card is always rendered first so it sits at the top of the 320px right panel. */
-    <div className="flex min-w-0 flex-col gap-4 lg:self-stretch lg:min-h-0 lg:max-h-full lg:overflow-y-auto lg:pr-1">
+    /* V3 Story 13 — Context panel order: Notes (top) → Share → Tags. */
+    <div className={COLUMN}>
 
       {/* ── 1. NOTES (top) ── */}
       {user && viewSetId ? (
-        <div className="animate-fade-in-scale [animation-delay:100ms]">
-          {spread ? (
-            <SpreadNotesPanel
-              setId={viewSetId}
-              pages={spread}
-              initialNotes={{ [pageNum]: initialNotes, [otherPage!]: otherNotes }}
-              currentUserId={user.id}
-            />
-          ) : (
-            <NotesPanel setId={viewSetId} pageNum={pageNum} initialNotes={initialNotes} currentUserId={user.id} />
-          )}
-        </div>
+        !notesReady ? (
+          <div className={`${SHIMMER} h-45`} />
+        ) : (
+          <div className="animate-fade-in-scale [animation-delay:100ms]">
+            {spread ? (
+              <SpreadNotesPanel
+                setId={viewSetId}
+                pages={spread}
+                initialNotes={{ [pageNum]: notesA.data ?? [], [otherPage!]: notesB.data ?? [] }}
+                currentUserId={user.id}
+              />
+            ) : (
+              <NotesPanel setId={viewSetId} pageNum={pageNum} initialNotes={notesA.data ?? []} currentUserId={user.id} />
+            )}
+          </div>
+        )
       ) : !user ? (
         <div className="card p-8 text-center flex flex-col items-center justify-center animate-fade-in-scale [animation-delay:100ms] bg-white/82 backdrop-blur-lg">
           <div className="mb-4 opacity-50 text-muted"><Icon name="lock" size={36} /></div>
-          <h3 className="text-body font-semibold text-primary">{dict['reader.signInToAnnotate']}</h3>
-          <p className="text-small mt-2 max-w-60 text-muted">
-            {dict['reader.signInHint']}
-          </p>
-          <a href="/login" className="btn btn-primary mt-6">{dict['reader.logInSignUp']}</a>
+          <h3 className="text-body font-semibold text-primary">{t('reader.signInToAnnotate')}</h3>
+          <p className="text-small mt-2 max-w-60 text-muted">{t('reader.signInHint')}</p>
+          <a href="/login" className="btn btn-primary mt-6">{t('reader.logInSignUp')}</a>
         </div>
       ) : (
         <div className="card p-6 text-center animate-fade-in-scale [animation-delay:100ms] bg-white/82 backdrop-blur-lg">
           <div className="mb-3 opacity-50 text-muted"><Icon name="folder" size={30} /></div>
-          <h3 className="text-body font-semibold text-primary">{dict['reader.noAnnotationSets']}</h3>
-          <p className="text-caption mt-1.5 text-muted">
-            {dict['reader.createSetHint']}
-          </p>
-          <a href="/sets" className="btn btn-outline mt-4">{dict['sets.createSet']}</a>
+          <h3 className="text-body font-semibold text-primary">{t('reader.noAnnotationSets')}</h3>
+          <p className="text-caption mt-1.5 text-muted">{t('reader.createSetHint')}</p>
+          <a href="/sets" className="btn btn-outline mt-4">{t('sets.createSet')}</a>
         </div>
       )}
 
-      {/* ── 2. SHARE (Story 14) — dedicated card, white surface / radius-lg / neutral-200 border / shadow-e1 ── */}
-      {user && (sets ?? []).length > 0 && (
+      {/* ── 2. SHARE (Story 14) ── */}
+      {user && sets.length > 0 && (
         <div className="animate-fade-in-scale [animation-delay:200ms]">
-          <ShareCard userId={user.id} pageNum={pageNum} sets={sets ?? []} />
+          <ShareCard userId={user.id} pageNum={pageNum} sets={sets} />
         </div>
       )}
 

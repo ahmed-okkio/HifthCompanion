@@ -103,3 +103,9 @@ Serial slices; each ends with tsc + build:check + test + the area e2e, and its c
 - **Skew Protection.** Enable and verify Vercel Skew Protection. The SW now precaches each shell's `/_next/static` assets (manifest `assets`) and serves a shell only if all of them are cached, but lazy chunks loaded after boot (not referenced in the shell HTML) can still 404 after a deploy without it.
 - **Offline cold launch after redeploy.** Verify on a device: install build N, deploy N+1, go offline before the N+1 SW installs, cold-launch a shell route. The N shell plus its precached chunks should still boot.
 - **`hc-static-v1` grows without bound.** Hashed assets from every build accumulate and nothing evicts them. Purge by renaming the cache, or prune entries not in the current manifest on activate.
+- **Dynamic routes have no SW shell (M5).** Under `cacheComponents`, `usePathname`/`useParams` postpone in a
+  fallback prerender. `reader/[page].html` passes the C2 check (no `postponed`, ends `</html>`), but it ships
+  unfilled `P:` holes (NavRail, page body). SW-served online, Next recovers via the network; offline it hangs on
+  the splash. Only `/reader` is a shell, and `/reader/<n>` stays network-first → `/offline.html`. The same holds for
+  M6/M7 dynamic routes (`tracker/[circleId]`, `share/[setId]/…`). The fix needs an author decision, e.g. proxy-rewrite
+  `/reader/<n>` to the static `/reader` route and read the page from the URL client-side.

@@ -5,4 +5,5 @@ export const qk = {
   wirdDaily: ['wird', 'daily'] as const,
   wirdManage: ['wird', 'manage'] as const,
   sets: ['sets'] as const,
+  notes: (setId: string, page: number) => ['notes', setId, page] as const,
 };

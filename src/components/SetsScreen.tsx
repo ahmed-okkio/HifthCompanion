@@ -15,7 +15,7 @@ import QueryFallback from '@/components/QueryFallback';
  * user_id: the teacher-shared-set RLS policy widens SELECT to students' shared sets,
  * which belong on /shared, not here.
  */
-async function fetchSets(): Promise<AnnotationSet[]> {
+export async function fetchSets(): Promise<AnnotationSet[]> {
   const sb = createClient();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return [];

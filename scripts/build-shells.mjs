@@ -5,7 +5,9 @@ import { readFileSync, rmSync, mkdirSync, copyFileSync, writeFileSync } from 'no
 import { dirname, join } from 'node:path';
 
 // Visible route -> prerendered file under .next/server/app/{locale}/. Extend per converted route.
-const ROUTES = { '/wird': 'wird', '/wird/manage': 'wird/manage', '/sets': 'sets' };
+// ponytail: no dynamic routes. A fallback shell ("reader/[page]") keeps usePathname/useParams
+// holes that only the server can fill: SW-served offline it never hydrates (0016 M5 build log).
+const ROUTES = { '/wird': 'wird', '/wird/manage': 'wird/manage', '/sets': 'sets', '/reader': 'reader' };
 const LOCALES = ['en', 'ar'];
 
 const app = '.next/server/app';

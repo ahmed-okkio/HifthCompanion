@@ -634,22 +634,69 @@ export function TabBar({
   active: string;
   onSelect: (key: string) => void;
 }) {
+  // Scrollable tabs (Material pattern): when tabs overflow, the clipped edge fades and gets a
+  // chevron that pages the rail, and the selected tab is kept in view. Math.abs: RTL scrollLeft is ≤ 0.
+  const railRef = useRef<HTMLDivElement>(null);
+  const [edges, setEdges] = useState({ start: false, end: false });
+  const measure = useCallback(() => {
+    const el = railRef.current;
+    if (!el) return;
+    const pos = Math.abs(el.scrollLeft);
+    const max = el.scrollWidth - el.clientWidth;
+    setEdges({ start: pos > 1, end: pos < max - 1 });
+  }, []);
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el) return;
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [measure, tabs.length]);
+  const mounted = useRef(false);
+  useEffect(() => {
+    // Not on mount: block:'nearest' would scroll the page to a below-the-fold rail.
+    if (!mounted.current) { mounted.current = true; return; }
+    railRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  }, [active]);
+  const page = (dir: 1 | -1) => {
+    const el = railRef.current;
+    if (!el) return;
+    const rtl = getComputedStyle(el).direction === 'rtl' ? -1 : 1;
+    el.scrollBy({ left: dir * rtl * el.clientWidth * 0.7, behavior: 'smooth' });
+  };
+  const edgeBtn = 'absolute top-0 bottom-0.5 z-10 flex w-10 items-center cursor-pointer text-muted from-surface-app from-40% to-transparent';
   return (
-    <div className="flex gap-0 overflow-x-auto overflow-y-hidden shadow-tab-rail" role="tablist">
-      {tabs.map((t) => {
-        const isActive = t.key === active;
-        return (
-          <button
-            key={t.key}
-            role="tab"
-            aria-selected={isActive}
-            onClick={() => onSelect(t.key)}
-            className={`btn btn-ghost shrink-0 min-h-10.5 text-body border-b-2 rounded-none py-2 px-5 whitespace-nowrap ${isActive ? 'font-semibold text-green-600 border-b-accent' : 'font-normal text-muted border-b-transparent'}`}
-          >
-            {t.label}
-          </button>
-        );
-      })}
+    <div className="relative">
+      <div ref={railRef} onScroll={measure} className="flex gap-0 overflow-x-auto overflow-y-hidden shadow-tab-rail no-scrollbar" role="tablist">
+        {tabs.map((t) => {
+          const isActive = t.key === active;
+          return (
+            <button
+              key={t.key}
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => onSelect(t.key)}
+              className={`btn btn-ghost shrink-0 min-h-10.5 text-body border-b-2 rounded-none py-2 px-5 whitespace-nowrap ${isActive ? 'font-semibold text-green-600 border-b-accent' : 'font-normal text-muted border-b-transparent'}`}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+      {edges.start && (
+        <button type="button" tabIndex={-1} aria-hidden onClick={() => page(-1)} data-testid="tabs-scroll-start"
+          className={`${edgeBtn} start-0 justify-start bg-linear-to-r rtl:bg-linear-to-l`}>
+          <span className="-scale-x-100"><Chevron /></span>
+        </button>
+      )}
+      {edges.end && (
+        <button type="button" tabIndex={-1} aria-hidden onClick={() => page(1)} data-testid="tabs-scroll-end"
+          className={`${edgeBtn} end-0 justify-end bg-linear-to-l rtl:bg-linear-to-r`}>
+          <Chevron />
+        </button>
+      )}
     </div>
   );
 }

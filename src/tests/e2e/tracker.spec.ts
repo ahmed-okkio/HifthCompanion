@@ -165,6 +165,25 @@ test.describe('Progression Tracker (Two-actor)', () => {
     });
     expect(underline).toEqual({ hitsTab: true, width: '2px' });
 
+    // Phone width: the tab rail overflows, so the clipped end shows a chevron that
+    // scrolls the off-screen tabs (Members) into view.
+    const desktopSize = student.viewportSize()!;
+    await student.setViewportSize({ width: 390, height: 844 });
+    const members = student.getByRole('tab', { name: 'Members' });
+    await expect(members).not.toBeInViewport({ ratio: 1 });
+    // Each tap pages ~70% of the rail; at the end the chevron goes away.
+    const endChevron = student.getByTestId('tabs-scroll-end');
+    await expect(async () => {
+      if (await endChevron.isVisible()) await endChevron.click();
+      await expect(endChevron).toBeHidden({ timeout: 1000 });
+    }).toPass();
+    await expect(members).toBeInViewport({ ratio: 1 });
+    await expect(student.getByTestId('tabs-scroll-start')).toBeVisible();
+    await members.click();
+    await expect(members).toHaveAttribute('aria-selected', 'true');
+    await student.setViewportSize(desktopSize);
+    await student.getByRole('tab', { name: 'Log' }).click();
+
     // 4) After accept, the student appears ACTIVE in the teacher roster (C5) and is
     //    clickable into their profile.
     await teacher.goto(`/tracker/${circleId}`);

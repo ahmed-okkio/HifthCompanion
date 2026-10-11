@@ -63,19 +63,45 @@ test.describe('Progression Tracker (Authenticated)', () => {
     await page.reload();
     await expect(page.getByRole('button', { name: new RegExp(`^Rail A ${stamp}`) })).toBeVisible();
     let release!: () => void;
+    let heldHit = false;
     const held = new Promise<void>((r) => { release = r; });
     await page.route(/\/tracker\//, async (route) => {
       const h = route.request().headers();
-      if (h['rsc'] && !h['next-router-prefetch']) await held;
+      if (h['rsc'] && !h['next-router-prefetch']) { heldHit = true; await held; }
       await route.continue();
     });
 
     const bar = page.locator('.top-progress');
     await page.getByRole('button', { name: new RegExp(`^Rail A ${stamp}`) }).click();
     await expect(bar).toHaveClass(/top-progress--active/);
+    expect(heldHit).toBe(true);
     release();
     await expect(page).toHaveURL(urlA);
     await expect(bar).not.toHaveClass(/top-progress--active/);
+  });
+
+  test('an offline write shows the offline error and is not applied (E10)', async ({ page, context }) => {
+    page.on('console', (msg) => {
+      // Offline network failures and ActionButton's own log of the refusal are expected; anything else fails the test.
+      if (msg.type() === 'error' && !/ERR_INTERNET_DISCONNECTED|Failed to load resource|Failed to fetch|You're offline/.test(msg.text())) {
+        throw new Error(`console error: ${msg.text()}`);
+      }
+    });
+    await page.goto('/tracker');
+    await page.getByRole('button', { name: 'Create Hifth Circle' }).click();
+    await page.getByPlaceholder('Name your Hifth Circle…').fill(`Offline ${Date.now()}`);
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    await expect(page).toHaveURL(/\/tracker\/[^/]+$/);
+    await page.locator('button[aria-expanded]').filter({ hasText: 'Invite' }).first().click();
+    const link = page.getByText(/\/tracker\/join\//);
+    await expect(link).toBeVisible();
+    const before = await link.textContent();
+
+    await context.setOffline(true);
+    await page.getByRole('button', { name: 'Rotate code' }).click();
+    await expect(page.getByText("You're offline. This change was not saved.")).toBeVisible();
+    await expect(link).toHaveText(before!);
+    await context.setOffline(false);
   });
 
   test('language switcher flips to Arabic + RTL', async ({ page }) => {

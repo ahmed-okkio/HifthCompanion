@@ -11,5 +11,6 @@ export const qk = {
   trackerRail: ['tracker', 'rail'] as const,
   trackerCovering: ['tracker', 'covering'] as const,
   trackerCircle: (circleId: string) => ['tracker', 'circle', circleId] as const,
+  trackerManage: (circleId: string, horizonDays: number) => ['tracker', 'manage', circleId, horizonDays] as const,
   trackerStudent: (circleId: string, membershipId: string) => ['tracker', 'student', circleId, membershipId] as const,
 };

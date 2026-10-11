@@ -129,9 +129,13 @@ Serial slices; each ends with tsc + build:check + test + the area e2e, and its c
   (`:109` under parallel load). `useSynced` (tracker/ui) now follows the prop when the data changes. Gate: tracker
   `--repeat-each=5 --retries=0 --workers=1` 20/20, full suite 95/95. F4's 10x run is still M9's.
 - **Tracker writes are still Server Actions (M6).** The writes stay server-side. E10 offline refusal uses `navigator.onLine`;
-  on a lie-fi connection the action's own fetch fails and ActionButton surfaces it. The Manage-sessions tab
-  (`getManageSlots`) and the substitute picker (`searchAccountsByEmail`) still read through server actions on
-  interaction. Neither is a page-level server render, but they are not TanStack/browser reads.
+  on a lie-fi connection the action's own fetch fails and ActionButton surfaces it. The Manage-sessions tab now
+  reads through TanStack (`qk.trackerManage`, `reads.getManageSlots`, browser client).
+- **Substitute / share pickers search via a Server Action (M6).** `searchAccountsByEmail` is a user-typed account
+  search, not a data section, so it stays a server action (needs the `accounts_by_email_prefix` RPC per keystroke;
+  nothing to cache or show offline).
+- **A3 e2e covers the shell guard only.** Under `PLAYWRIGHT_TEST` the proxy bypasses auth, so the signed-out
+  `/tracker/<id>` → `/login?next=` test (pwa.spec) runs through the SW shell + ShellAuthGuard, not the proxy.
 - **Teacher's view of a student's wird week uses the viewer's browser timezone (M6).** It used the saved profile
   timezone on the server. Same user in practice; differs only if the device zone and the saved zone disagree.
 - **Persisted cache is throttled (1s).** A cold launch within ~1s of the first data load may find nothing persisted;

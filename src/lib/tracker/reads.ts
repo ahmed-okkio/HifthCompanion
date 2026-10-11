@@ -296,3 +296,56 @@ export async function loadStudent(sb: Supa, circleId: string, membershipId: stri
     notes, exams, markedPages: marked, subByInstant, actorNames, agenda, wirdSummary,
   };
 }
+
+/** One assignable instant in the Manage-sessions list (mirrors AgendaItem). */
+export interface ManageSlot {
+  key: string;
+  membershipId: string;
+  sessionId: string | null;
+  scheduled_at: string;
+  isAdhoc: boolean;
+  canceled: boolean;
+  movedFrom: string | null;
+  student: string;
+  substituteName: string | null;
+}
+
+/**
+ * Every upcoming instant across the circle's active students out to `horizonDays`. Unlike the
+ * dashboard agenda (one next slot per student) this is the full expansion, so the Manage-sessions
+ * tab pages forward by asking for a bigger horizon. Slots are virtual until touched: the
+ * recurrence rule IS the source, so there is nothing to paginate in the database.
+ */
+export async function getManageSlots(sb: Supa, circleId: string, horizonDays: number): Promise<ManageSlot[]> {
+  const active = (await getCircleMembersWithProfiles(sb, circleId))
+    .filter((m) => m.role === 'student' && m.status === 'active');
+  if (active.length === 0) return [];
+  const ids = active.map((m) => m.id);
+  const nowDate = floatingNow();
+  const now = nowDate.getTime();
+  const [sessions, subs] = await Promise.all([getSessionsForMemberships(sb, ids), listSubstitutions(sb, ids)]);
+  const subProfiles = await getProfilesByIds(sb, subs.map((s) => s.substitute_user_id));
+  const subKey = (mid: string, at: string) => `${mid}|${new Date(at).getTime()}`;
+  const subByInstant = new Map(subs.map((s) => {
+    const p = subProfiles.get(s.substitute_user_id);
+    return [subKey(s.membership_id, s.scheduled_at), displayName({ user_id: s.substitute_user_id, first_name: p?.first_name, last_name: p?.last_name })] as const;
+  }));
+  return active
+    .flatMap((m) => {
+      const { next, upcoming } = sectionSessions(m.schedule, sessions.filter((s) => s.membership_id === m.id), nowDate, horizonDays);
+      return [...(next ? [next] : []), ...upcoming]
+        .filter((slot) => new Date(slot.scheduled_at).getTime() >= now)
+        .map((slot) => ({
+          key: slot.session?.id ?? `${m.id}-${slot.scheduled_at}`,
+          membershipId: m.id,
+          sessionId: slot.session?.id ?? null,
+          scheduled_at: slot.scheduled_at,
+          isAdhoc: slot.session?.is_adhoc ?? false,
+          canceled: slot.session?.canceled ?? false,
+          movedFrom: slot.session?.moved_from ?? null,
+          student: displayName(m),
+          substituteName: subByInstant.get(subKey(m.id, slot.scheduled_at)) ?? null,
+        }));
+    })
+    .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
+}

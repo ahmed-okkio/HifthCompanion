@@ -253,4 +253,14 @@ test.describe('signed out', () => {
     expect(res?.fromServiceWorker()).toBe(true);
     await expect(page).toHaveURL(/\/login\?next=%2Fwird%2Fmanage$/);
   });
+
+  // A3 via the shell guard: under PLAYWRIGHT_TEST the proxy bypasses auth, so only the
+  // SW-served shell path is observable here (the proxy path is the same next= contract).
+  test('a signed-out /tracker/<id> redirects to /login?next=/tracker/<id> (A3)', async ({ page }) => {
+    guardConsole(page);
+    await page.goto('/login');
+    await swReady(page);
+    await page.goto('/tracker/some-circle-id');
+    await expect(page).toHaveURL(/\/login\?next=%2Ftracker%2Fsome-circle-id$/);
+  });
 });

@@ -1,7 +1,11 @@
 'use client';
 
 import { rotateInviteCode, deleteCircle, inviteByEmail, setMembershipStatus, materializeSession, setSessionCanceled, rescheduleSession, assignSubstitutes, removeSubstitution } from '@/lib/tracker/actions';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { createClient } from '@/lib/supabase/client';
+import { qk } from '@/lib/query/keys';
+import QueryFallback from '@/components/QueryFallback';
 import { useClientValue } from '@/hooks/useClientValue';
 import { useNow } from '@/hooks/useNow';
 import Link from 'next/link';
@@ -9,7 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import type { Circle, Membership, MemberWithProfile, Session } from '@/types';
 import { displayName } from '@/lib/displayName';
-import { getManageSlots } from '@/lib/services/substitution';
+import { getManageSlots } from '@/lib/tracker/reads';
 import { useSynced, ActionButton, SectionTitle, EmptyState, Avatar, Chevron, DateChip, StatusDot, TabBar, TimeSelect, vt, vtName } from './ui';
 import { SubAssignForm, CoveredBy } from './subs';
 import { sessionCue } from '@/lib/agenda';
@@ -88,31 +92,23 @@ export default function TeacherCircle({
   // Fixed at mount so week boundaries (and the label) don't drift between renders.
   const [weekAnchor] = useState(() => Date.now());
   const [manageWeek, setManageWeek] = useState(0);
-  const [manageRows, setManageRows] = useState<AgendaItem[]>([]);
-  const [hasNextWeek, setHasNextWeek] = useState(false);
-  // Loading until the fetch for this week lands; leaving the tab forgets it (refetch on return).
-  const weekKey = `${circle.id}:${manageWeek}`;
-  const [loadedWeekKey, setLoadedWeekKey] = useState<string | null>(null);
-  if (tab !== 'manage' && loadedWeekKey !== null) setLoadedWeekKey(null);
-  const loadingWeek = loadedWeekKey !== weekKey;
-
-  useEffect(() => {
-    if (tab !== 'manage') return;
-    let alive = true;
-    getManageSlots(circle.id, (manageWeek + 2) * 7)
-      .then((rows) => {
-        if (!alive) return;
-        // Slice relative to the mount anchor; the server list starts at "now".
-        const start = weekAnchor + manageWeek * 7 * DAY_MS;
-        const end = start + 7 * DAY_MS;
-        const at = (r: AgendaItem) => new Date(r.scheduled_at).getTime();
-        setManageRows(rows.filter((r) => at(r) >= start && at(r) < end));
-        setHasNextWeek(rows.some((r) => at(r) >= end));
-      })
-      .catch((e) => alive && setError((e as Error).message))
-      .finally(() => alive && setLoadedWeekKey(weekKey));
-    return () => { alive = false; };
-  }, [tab, manageWeek, circle.id, weekAnchor, DAY_MS, weekKey]);
+  // PRD 0016 E1: browser read under qk.tracker, so every tracker write (tracked()) invalidates it.
+  const horizon = (manageWeek + 2) * 7;
+  const manageQ = useQuery({
+    queryKey: qk.trackerManage(circle.id, horizon),
+    queryFn: () => getManageSlots(createClient(), circle.id, horizon),
+    enabled: tab === 'manage',
+  });
+  // Slice relative to the mount anchor; the list starts at "now".
+  const { weekRows, hasNextWeek } = useMemo(() => {
+    const start = weekAnchor + manageWeek * 7 * DAY_MS;
+    const end = start + 7 * DAY_MS;
+    const at = (r: AgendaItem) => new Date(r.scheduled_at).getTime();
+    const rows = manageQ.data ?? [];
+    return { weekRows: rows.filter((r) => at(r) >= start && at(r) < end), hasNextWeek: rows.some((r) => at(r) >= end) };
+  }, [manageQ.data, weekAnchor, manageWeek, DAY_MS]);
+  const [manageRows, setManageRows] = useSynced<AgendaItem[]>(weekRows);
+  const loadingWeek = tab === 'manage' && !manageQ.data;
 
   const weekLabel = new Date(weekAnchor + manageWeek * 7 * DAY_MS)
     .toLocaleDateString(locale, { month: 'short', day: 'numeric' });
@@ -468,8 +464,10 @@ export default function TeacherCircle({
                   )}
                 </div>
               </div>
-              {manageRows.length === 0 ? (
-                <EmptyState>{loadingWeek ? t('common.loading') : t('sessions.none')}</EmptyState>
+              {!manageQ.data ? (
+                <QueryFallback q={manageQ} skeleton={<EmptyState>{t('common.loading')}</EmptyState>} />
+              ) : manageRows.length === 0 ? (
+                <EmptyState>{t('sessions.none')}</EmptyState>
               ) : (<>
                 {manageRows.map((item) => {
                   const editing = reschedKey === item.key;

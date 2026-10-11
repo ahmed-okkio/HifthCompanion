@@ -5,11 +5,6 @@ import { after } from 'next/server';
 import * as reads from '@/lib/tracker/reads';
 
 import { notifySubstitution, type SubAssignment } from '@/lib/email/notify';
-import { getCircleMembersWithProfiles } from '@/lib/services/membership';
-import { getSessionsForMemberships } from '@/lib/services/sessions';
-import { getProfilesByIds } from '@/lib/services/profile';
-import { sectionSessions, floatingNow } from '@/lib/recurrence';
-import { displayName } from '@/lib/displayName';
 import type { StatusConfig } from '@/types';
 
 /** Selected columns off the new substitution table (not yet in generated types). */
@@ -41,68 +36,6 @@ export interface CoveringSession {
 // F2 (sub must be an existing account) is enforced by the picker: it only ever
 // hands back an id from `accounts_by_email_prefix`, so a typed-but-unknown email
 // can't be submitted at all. See SubAssignForm.
-
-/** One assignable instant in the Manage-sessions list (mirrors AgendaItem). */
-export interface ManageSlot {
-  key: string;
-  membershipId: string;
-  sessionId: string | null;
-  scheduled_at: string;
-  isAdhoc: boolean;
-  canceled: boolean;
-  movedFrom: string | null;
-  student: string;
-  substituteName: string | null;
-}
-
-/**
- * Every upcoming instant across the circle's active students out to
- * `horizonDays` — unlike the dashboard agenda (one next slot per student) this
- * is the full expansion, so the Manage-sessions tab can page forward simply by
- * asking for a bigger horizon. Slots are virtual until someone touches them, so
- * there is nothing to paginate server-side: the recurrence rule IS the source.
- */
-export async function getManageSlots(circleId: string, horizonDays: number): Promise<ManageSlot[]> {
-  const active = (await getCircleMembersWithProfiles(circleId))
-    .filter((m) => m.role === 'student' && m.status === 'active');
-  if (active.length === 0) return [];
-
-  const nowDate = floatingNow();
-  const now = nowDate.getTime();
-  const sessions = await getSessionsForMemberships(active.map((m) => m.id));
-  const subs = await listSubstitutions(active.map((m) => m.id));
-  const subProfiles = await getProfilesByIds(subs.map((s) => s.substitute_user_id));
-  const subKey = (mid: string, at: string) => `${mid}|${new Date(at).getTime()}`;
-  const subByInstant = new Map(
-    subs.map((s) => {
-      const p = subProfiles.get(s.substitute_user_id);
-      return [
-        subKey(s.membership_id, s.scheduled_at),
-        displayName({ user_id: s.substitute_user_id, first_name: p?.first_name, last_name: p?.last_name }),
-      ] as const;
-    }),
-  );
-
-  return active
-    .flatMap((m) => {
-      const rows = sessions.filter((s) => s.membership_id === m.id);
-      const { next, upcoming } = sectionSessions(m.schedule, rows, nowDate, horizonDays);
-      return [...(next ? [next] : []), ...upcoming]
-        .filter((slot) => new Date(slot.scheduled_at).getTime() >= now)
-        .map((slot) => ({
-          key: slot.session?.id ?? `${m.id}-${slot.scheduled_at}`,
-          membershipId: m.id,
-          sessionId: slot.session?.id ?? null,
-          scheduled_at: slot.scheduled_at,
-          isAdhoc: slot.session?.is_adhoc ?? false,
-          canceled: slot.session?.canceled ?? false,
-          movedFrom: slot.session?.moved_from ?? null,
-          student: displayName(m),
-          substituteName: subByInstant.get(subKey(m.id, slot.scheduled_at)) ?? null,
-        }));
-    })
-    .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
-}
 
 /**
  * Upsert one substitution row per instant (A2). ON CONFLICT (membership_id,

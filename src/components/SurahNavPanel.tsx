@@ -300,13 +300,13 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
                 const start = getJuzStartPage(j);
                 const label = t('reader.juz', { n: j });
                 return (
-                  <li key={`juz-${j}`} data-testid="juz-divider" className="px-4 py-1.5 border-b border-neutral-100 text-meta font-bold text-green-600">
+                  <li key={`juz-${j}`} data-testid="juz-divider" className="border-b border-neutral-100 text-meta font-bold text-green-600">
                     {start < group.page ? (
-                      <button type="button" onClick={() => jumpToPage(start)} className="flex w-full items-center justify-between cursor-pointer hover:underline">
+                      <button type="button" onClick={() => jumpToPage(start)} className="flex w-full items-center justify-between px-4 py-1.5 cursor-pointer transition-colors duration-150 hover:bg-neutral-50">
                         <span>{label}</span>
                         <span className="tabular-nums font-semibold text-muted">{t('reader.pageNum', { n: start })}</span>
                       </button>
-                    ) : label}
+                    ) : <span className="block px-4 py-1.5">{label}</span>}
                   </li>
                 );
               })}

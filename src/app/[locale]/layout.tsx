@@ -5,6 +5,7 @@ import "./globals.css";
 import { I18nProvider } from "@/components/I18nProvider";
 import { QueryProvider } from "@/lib/query/Provider";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
+import { ShellAuthGuard } from "@/components/ShellAuthGuard";
 import { TopProgressBar } from "@/components/TopProgressBar";
 import { SplashIntro } from "@/components/SplashIntro";
 import { notFound } from "next/navigation";
@@ -89,6 +90,7 @@ export default async function RootLayout({
           </Suspense>
         </I18nProvider>
         <ServiceWorkerRegister />
+        <ShellAuthGuard />
       </body>
     </html>
   );

@@ -51,3 +51,6 @@ playwright/.auth/
 
 # All log files
 *.log
+
+# PRD 0016 shells, generated per build
+/public/_shell/

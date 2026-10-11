@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { isProtected } from '@/lib/protectedPaths';
 import { defaultLocale, isLocale, LOCALE_COOKIE } from '@/lib/i18n/config';
 
 /** Set once the user is known to be onboarded; skips the user_hifth query (PRD 0016 A5/A6).
@@ -17,8 +18,7 @@ export async function proxy(request: NextRequest) {
   target.pathname = `/${locale}${pathname === '/' ? '' : pathname}`;
   const response = NextResponse.rewrite(target, { request });
 
-  const protectedPaths = ['/sets', '/reader', '/tracker', '/wird'];
-  if (!protectedPaths.some(p => pathname.startsWith(p))) return response;
+  if (!isProtected(pathname)) return response;
 
   // Fully bypass auth for E2E tests in test environment
   // Env only: the x-e2e-test header is client-controlled and must never bypass auth.

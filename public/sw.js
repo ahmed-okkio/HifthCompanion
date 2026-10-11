@@ -4,7 +4,14 @@
    page flip. Cache-first out of CacheStorage skips the network entirely — a page already
    read stays instant until the user clears site data. */
 
-const CACHE_VERSION = "hc-shell-v3";
+// Per-build (PRD 0016 D2): registered as /sw.js?v=<buildId>; this build's shells + offline page.
+const BUILD_ID = new URL(self.location.href).searchParams.get("v") || "dev";
+const CACHE_VERSION = `hc-shell-${BUILD_ID}`;
+const SHELL_BASE = `/_shell/${BUILD_ID}`;
+// User's locale, posted by the page (D7; cookieStore is not in Safari). Survives build swaps.
+const LOCALE_CACHE = "hc-locale";
+const LOCALE_KEY = "/__hc-locale";
+const DEFAULT_LOCALE = "en";
 // Static, user-agnostic page only. Never cache authenticated HTML: "/" redirects signed-in
 // users to their own pages, and a cached copy would leak to the next user on the device.
 const OFFLINE_URL = "/offline.html";
@@ -21,7 +28,23 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_VERSION)
-      .then((cache) => cache.add(new Request(OFFLINE_URL, { credentials: "omit" })))
+      .then(async (cache) => {
+        await cache.add(new Request(OFFLINE_URL, { credentials: "omit" })).catch(() => {});
+        // Shells are user-agnostic static files (D6): fetched without cookies. ponytail: a failed
+        // shell fetch just leaves that route network-first; no retry until the next build.
+        const manifest = await fetch(`${SHELL_BASE}/manifest.json`, { credentials: "omit" })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null);
+        if (!manifest) return;
+        await cache.put(`${SHELL_BASE}/manifest.json`, new Response(JSON.stringify(manifest)));
+        await Promise.all(
+          manifest.locales.flatMap((locale) =>
+            Object.values(manifest.routes).map((file) =>
+              cache.add(new Request(`${SHELL_BASE}/${locale}/${file}`, { credentials: "omit" })).catch(() => {})
+            )
+          )
+        );
+      })
       .catch(() => {}) // best-effort: install must still succeed
       .then(() => self.skipWaiting())
   );
@@ -34,7 +57,7 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((k) => k !== CACHE_VERSION && k !== PAGE_CACHE && k !== STATIC_CACHE)
+            .filter((k) => ![CACHE_VERSION, PAGE_CACHE, STATIC_CACHE, LOCALE_CACHE].includes(k))
             .map((k) => caches.delete(k))
         )
       )
@@ -95,14 +118,39 @@ self.addEventListener("fetch", (event) => {
   // cached shell when the network is unavailable. (Cache-first here caused an
   // infinite reload loop: a stale cached "/" referenced old build chunks, Next
   // forced a version-mismatch reload, which re-served the same stale "/".)
+  //
+  // Exception (D3): routes with a shell for this build are answered CACHE-FIRST from the shell.
+  // Safe from that loop: the shell and its chunks belong to this SW's own build.
   if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request).catch(() =>
-        caches.match(OFFLINE_URL).then((m) => m || Response.error())
-      )
-    );
+    const network = () =>
+      fetch(request).catch(() => caches.match(OFFLINE_URL).then((m) => m || Response.error()));
+    event.respondWith(shellFor(url.pathname).catch(() => null).then((shell) => shell || network()));
     return;
   }
+});
+
+async function shellFor(pathname) {
+  const cache = await caches.open(CACHE_VERSION);
+  const manifestRes = await cache.match(`${SHELL_BASE}/manifest.json`);
+  if (!manifestRes) return null;
+  const { routes } = await manifestRes.json();
+  const file = routes[pathname.replace(/\/+$/, "") || "/"];
+  if (!file) return null;
+  const stored = await caches.open(LOCALE_CACHE).then((c) => c.match(LOCALE_KEY));
+  const locale = (stored && (await stored.text())) || DEFAULT_LOCALE;
+  return cache.match(`${SHELL_BASE}/${locale}/${file}`);
+}
+
+// Page -> SW: {type: "locale", locale}. Acks on the transferred port so the page can reload after.
+self.addEventListener("message", (event) => {
+  const data = event.data || {};
+  if (data.type !== "locale" || !/^(en|ar)$/.test(data.locale)) return;
+  event.waitUntil(
+    caches
+      .open(LOCALE_CACHE)
+      .then((c) => c.put(LOCALE_KEY, new Response(data.locale)))
+      .finally(() => event.ports[0] && event.ports[0].postMessage("ok"))
+  );
 });
 
 /* M4-3: Web Push. Payload is JSON {title, body, url}. We keep parsing tolerant

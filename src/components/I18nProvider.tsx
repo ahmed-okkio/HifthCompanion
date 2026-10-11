@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
+import { postLocale } from '@/components/ServiceWorkerRegister';
 import { LOCALE_COOKIE, localizeDigits, type Locale } from '@/lib/i18n/config';
 import { getDictionary, type MessageKey } from '@/lib/i18n/dictionaries';
 import { saveTimezone } from '@/lib/services/profile';
@@ -61,7 +62,8 @@ export function I18nProvider({
   const setLocale = useCallback((next: Locale) => {
     // Persist for a year; server layout reads this cookie to set lang/dir.
     document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
-    window.location.reload();
+    // The SW serves shell routes in its stored locale; update it before the reload (D7).
+    postLocale(next).then(() => window.location.reload());
   }, []);
 
   const value = useMemo<I18nContextValue>(

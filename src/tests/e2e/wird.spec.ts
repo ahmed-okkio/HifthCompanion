@@ -365,6 +365,11 @@ test.describe('Wird reminder', () => {
     // instead would make PushToggle quietly subscribe.)
     await page.addInitScript(() => {
       Object.defineProperty(Notification, 'permission', { get: () => 'default' });
+      // serviceWorkers:'block' (F1) leaves .ready pending forever; stand in for a registered
+      // SW with no push subscription, as before.
+      Object.defineProperty(navigator.serviceWorker, 'ready', {
+        get: () => Promise.resolve({ pushManager: { getSubscription: async () => null } }),
+      });
       // ...which would also raise NotifyBanner; its ✕ falls back to the Google
       // Arabic font, and the x-e2e-test header fails that font's CORS preflight.
       localStorage.setItem('hifth:notifyDismissed', '1');
@@ -407,6 +412,11 @@ test.describe('Wird reminder', () => {
     // in for a browser that hasn't asked yet, which is when the sheet offers.
     await page.addInitScript(() => {
       Object.defineProperty(Notification, 'permission', { get: () => 'default' });
+      // serviceWorkers:'block' (F1) leaves .ready pending forever; stand in for a registered
+      // SW with no push subscription, as before.
+      Object.defineProperty(navigator.serviceWorker, 'ready', {
+        get: () => Promise.resolve({ pushManager: { getSubscription: async () => null } }),
+      });
       // ...which would also raise NotifyBanner; its ✕ falls back to the Google
       // Arabic font, and the x-e2e-test header fails that font's CORS preflight.
       localStorage.setItem('hifth:notifyDismissed', '1');

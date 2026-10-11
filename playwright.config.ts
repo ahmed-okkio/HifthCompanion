@@ -29,6 +29,9 @@ export default defineConfig({
     // the wird day (D20). Pin it so seeded UTC dates mean the same day on every
     // machine; zone maths is covered by src/tests/wirdReminder.test.ts.
     timezoneId: 'UTC',
+    // F1: only the pwa project runs the service worker; elsewhere a cached shell would mask
+    // server responses and leak state across tests.
+    serviceWorkers: 'block',
     extraHTTPHeaders: {
       'x-e2e-test': 'true',
     },
@@ -59,6 +62,13 @@ export default defineConfig({
       },
       dependencies: ['setup'],
       testMatch: /.*\.mobile\.spec\.ts/,
+    },
+    {
+      name: 'pwa',
+      // No x-e2e-test header: it fails CORS preflights on cross-origin fonts (ar), and auth is env-gated.
+      use: { ...desktop, serviceWorkers: 'allow', extraHTTPHeaders: {} },
+      dependencies: ['setup'],
+      testMatch: /pwa\.spec\.ts/,
     },
   ],
 });

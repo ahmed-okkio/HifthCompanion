@@ -86,8 +86,9 @@ export async function saveLocale(locale: Locale, timezone?: string): Promise<voi
  * in *their* zone — teacher and student are often in different ones. Captured
  * on app load (I18nProvider), best-effort.
  */
-export async function saveTimezone(timezone: string): Promise<void> {
-  await patchOwnProfile({ timezone });
+export async function saveTimezone(timezone: string): Promise<boolean> {
+  // Runs for signed-out visitors too: no user is a no-op (false), not a 500 (console error).
+  return patchOwnProfile({ timezone }, { signedOutOk: true });
 }
 
 /**
@@ -102,16 +103,20 @@ export async function saveWirdReminderTime(time: string | null): Promise<void> {
   await patchOwnProfile({ wird_reminder_time: time });
 }
 
-async function patchOwnProfile(patch: Record<string, unknown>): Promise<void> {
+async function patchOwnProfile(patch: Record<string, unknown>, { signedOutOk = false } = {}): Promise<boolean> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  if (!user) {
+    if (signedOutOk) return false;
+    throw new Error('Not authenticated');
+  }
 
   const { error } = await supabase
     .from('profiles')
     .update({ ...patch, updated_at: new Date().toISOString() })
     .eq('id', user.id);
   if (error) throw error;
+  return true;
 }
 
 /** The caller's own memorized ranges + onboarding timestamp (empty/null if none). */

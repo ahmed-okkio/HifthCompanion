@@ -188,6 +188,9 @@ Serial slices; each ends with tsc + build:check + test + the area e2e, and its c
   `skipWaiting()` called and only one entry in its shell cache. No reload loop (the old SW keeps serving), but an update
   could be delayed. F2e asserts the purge + single load and stops there. M10: after a real deploy, confirm the new SW
   activates on an open device without a manual close.
+- **Signed-out visitors got a 500 on every load (M9 fix).** `I18nProvider` calls the `saveTimezone` action for everyone;
+  signed out it threw "Not authenticated" (500, browser console error), hidden until annotations.spec got its console
+  guard. It is now a no-op returning `false`, and the provider marks the zone synced only when it was saved.
 - **`waitForTimeout` remains outside pwa.spec** (`reader.mobile.spec.ts:200,243`, `reader_nav.spec.ts:40`,
   `surah_panel.spec.ts:85,297`). Not M9 scope; pwa.spec has none.
 

@@ -48,6 +48,8 @@ const globalForDb = global as unknown as {
   mockWird?: Row[];
   mockWirdEntry?: Row[];
   mockUserHifth?: Row[];
+  mockSetCollaborators?: Row[];
+  mockCovering?: Row[];
 };
 
 if (!globalForDb.mockSets) {
@@ -70,6 +72,8 @@ if (!globalForDb.mockExam) globalForDb.mockExam = [];
 if (!globalForDb.mockWird) globalForDb.mockWird = [];
 if (!globalForDb.mockWirdEntry) globalForDb.mockWirdEntry = [];
 if (!globalForDb.mockUserHifth) globalForDb.mockUserHifth = [];
+if (!globalForDb.mockSetCollaborators) globalForDb.mockSetCollaborators = [];
+if (!globalForDb.mockCovering) globalForDb.mockCovering = [];
 // One seeded profile for the mock user; email_prefs '{}' ⇒ all events enabled.
 if (!globalForDb.mockProfiles) globalForDb.mockProfiles = [
   // wird_reminder_time mirrors the 20260925000001 column default.
@@ -102,8 +106,10 @@ const TRACKER_STORAGE: Record<string, string> = {
   wird: 'mock_supabase_wird',
   wird_entry: 'mock_supabase_wird_entry',
   user_hifth: 'mock_supabase_user_hifth',
+  set_collaborators: 'mock_supabase_set_collaborators',
+  covering: 'mock_supabase_covering',
 };
-const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockHomework' | 'mockMembershipNote' | 'mockAgendaItem' | 'mockExam' | 'mockProfiles' | 'mockWird' | 'mockWirdEntry' | 'mockUserHifth'> = {
+const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProgressLog' | 'mockSession' | 'mockHomework' | 'mockMembershipNote' | 'mockAgendaItem' | 'mockExam' | 'mockProfiles' | 'mockWird' | 'mockWirdEntry' | 'mockUserHifth' | 'mockSetCollaborators' | 'mockCovering'> = {
   circle: 'mockCircle',
   membership: 'mockMembership',
   progress_log: 'mockProgressLog',
@@ -116,6 +122,9 @@ const TRACKER_GLOBAL: Record<string, 'mockCircle' | 'mockMembership' | 'mockProg
   wird: 'mockWird',
   wird_entry: 'mockWirdEntry',
   user_hifth: 'mockUserHifth',
+  set_collaborators: 'mockSetCollaborators',
+  // Mock-only: rows the covering_sessions() RPC returns ({substitute_user_id, default_set_id, ...}).
+  covering: 'mockCovering',
 };
 function trackerGet(table: string): Row[] {
   if (IS_SERVER) return (globalForDb as unknown as Record<string, Row[]>)[TRACKER_GLOBAL[table]]!;
@@ -374,6 +383,12 @@ class MockQueryBuilder {
       // Default: select
       let sets = getSets();
       sets = this.applyFilters(sets);
+      // RLS mirror (0016 M7): a set is visible to its owner, a collaborator, or a covering substitute.
+      const uid = this.userId;
+      sets = sets.filter((s) =>
+        s.user_id === uid ||
+        trackerGet('set_collaborators').some((c) => c.set_id === s.id && c.user_id === uid) ||
+        trackerGet('covering').some((c) => c.default_set_id === s.id && c.substitute_user_id === uid));
       if (this.orderField) {
         sets.sort((a: Row, b: Row) => {
           const valA = a[this.orderField!];
@@ -383,7 +398,7 @@ class MockQueryBuilder {
           return 0;
         });
       }
-      if (this.isSingle) {
+      if (this.isSingle || this.isMaybeSingle) {
         return sets[0] ?? null;
       }
       return sets;
@@ -641,6 +656,9 @@ export class MockSupabaseClient {
   }
 
   async rpc(fn: string, args?: Row) {
+    if (fn === 'covering_sessions') {
+      return await this.from('covering').select('*').eq('substitute_user_id', this.userId);
+    }
     if (fn === 'user_id_by_email') {
       // Mock: resolve any known e2e identity by email (teacher/student fixtures).
       const email = (args?._email ?? '').toLowerCase();
@@ -713,6 +731,8 @@ export function __resetMockStore(tables?: string[]) {
   globalForDb.mockWird = [];
   globalForDb.mockWirdEntry = [];
   globalForDb.mockUserHifth = [];
+  globalForDb.mockSetCollaborators = [];
+  globalForDb.mockCovering = [];
 }
 
 export function __seedMockStore(payload: Partial<{
@@ -727,6 +747,9 @@ export function __seedMockStore(payload: Partial<{
   wird: Row[];
   wird_entry: Row[];
   user_hifth: Row[];
+  annotation_sets: MockSet[];
+  set_collaborators: Row[];
+  covering: Row[];
 }>) {
   if (payload.circle) globalForDb.mockCircle!.push(...payload.circle);
   if (payload.membership) globalForDb.mockMembership!.push(...payload.membership);
@@ -739,4 +762,7 @@ export function __seedMockStore(payload: Partial<{
   if (payload.wird) globalForDb.mockWird!.push(...payload.wird);
   if (payload.wird_entry) globalForDb.mockWirdEntry!.push(...payload.wird_entry);
   if (payload.user_hifth) globalForDb.mockUserHifth!.push(...payload.user_hifth);
+  if (payload.annotation_sets) globalForDb.mockSets!.push(...payload.annotation_sets);
+  if (payload.set_collaborators) globalForDb.mockSetCollaborators!.push(...payload.set_collaborators);
+  if (payload.covering) globalForDb.mockCovering!.push(...payload.covering);
 }

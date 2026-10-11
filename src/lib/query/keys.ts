@@ -6,6 +6,9 @@ export const qk = {
   wirdManage: ['wird', 'manage'] as const,
   sets: ['sets'] as const,
   notes: (setId: string, page: number) => ['notes', setId, page] as const,
+  annotation: (setId: string, page: number) => ['annotation', setId, page] as const,
+  share: (setId: string) => ['share', setId] as const,
+  shared: ['shared'] as const,
   // Every tracker mutation invalidates qk.tracker (src/lib/tracker/actions.ts).
   tracker: ['tracker'] as const,
   trackerRail: ['tracker', 'rail'] as const,

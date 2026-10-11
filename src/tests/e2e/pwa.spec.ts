@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { seedShare } from './shareFixture';
 
 // PRD 0016 M3 smoke (SW enabled): shell routes are answered by the service worker, offline
 // too, in the user's locale; a shell launch without a session goes to /login. Full F2 in M9.
@@ -241,6 +242,52 @@ test('/tracker/<id> cold-launches offline from the SW with cached data; /tracker
   await context.setOffline(false);
 });
 
+test('a visited /share/<id>/<page> cold-launches offline from the SW with cached data (M7)', async ({ page, context }) => {
+  guardConsole(page);
+  const { id, name } = await seedShare(page.request, 'collaborator');
+  await page.goto('/wird');
+  await swReady(page);
+
+  const online = await page.goto(`/share/${id}/4`);
+  expect(online?.fromServiceWorker()).toBe(true);
+  await expect(page.getByText(name)).toBeVisible();
+  await expect(page.locator('[title="Click to jump to page"]')).toHaveText('4');
+  await expect.poll(() => persistedKeys(page)).toContain(`["share","${id}"]`);
+
+  await context.setOffline(true);
+  const cold = await context.newPage();
+  guardConsole(cold);
+  const off = await cold.goto(`/share/${id}/4`);
+  expect(off?.fromServiceWorker()).toBe(true);
+  await expect(cold).not.toHaveTitle(/Offline/);
+  await expect(cold.getByText(name)).toBeVisible();
+  await expect(cold.locator('[title="Click to jump to page"]')).toHaveText('4');
+  await expect(cold.locator('.upper-canvas')).toBeVisible();
+  await expect(cold).toHaveURL(new RegExp(`/share/${id}/4$`));
+  await context.setOffline(false);
+});
+
+test('a visited /shared cold-launches offline from the SW with cached data (M7)', async ({ page, context }) => {
+  guardConsole(page);
+  const { id, name } = await seedShare(page.request, 'collaborator');
+  await page.goto('/wird');
+  await swReady(page);
+
+  const online = await page.goto('/shared');
+  expect(online?.fromServiceWorker()).toBe(true);
+  await expect(page.locator(`a[href="/share/${id}"]`)).toContainText(name);
+  await expect.poll(() => persistedKeys(page)).toContain('["shared"]');
+
+  await context.setOffline(true);
+  const cold = await context.newPage();
+  guardConsole(cold);
+  const off = await cold.goto('/shared');
+  expect(off?.fromServiceWorker()).toBe(true);
+  await expect(cold).not.toHaveTitle(/Offline/);
+  await expect(cold.locator(`a[href="/share/${id}"]`)).toContainText(name);
+  await context.setOffline(false);
+});
+
 test.describe('signed out', () => {
   // E2E auth cookie only; no sb-auth-token = no session for the mock client.
   test.use({ storageState: { cookies: [{ name: 'x-e2e-test', value: 'true', domain: 'localhost', path: '/', expires: -1, httpOnly: false, secure: false, sameSite: 'Lax' }], origins: [] } });
@@ -260,7 +307,17 @@ test.describe('signed out', () => {
     guardConsole(page);
     await page.goto('/login');
     await swReady(page);
-    await page.goto('/tracker/some-circle-id');
+    const res = await page.goto('/tracker/some-circle-id');
+    expect(res?.fromServiceWorker()).toBe(true);
     await expect(page).toHaveURL(/\/login\?next=%2Ftracker%2Fsome-circle-id$/);
+  });
+
+  test('a signed-out /shared redirects to /login?next=/shared (A3, M7)', async ({ page }) => {
+    guardConsole(page);
+    await page.goto('/login');
+    await swReady(page);
+    const res = await page.goto('/shared');
+    expect(res?.fromServiceWorker()).toBe(true);
+    await expect(page).toHaveURL(/\/login\?next=%2Fshared$/);
   });
 });

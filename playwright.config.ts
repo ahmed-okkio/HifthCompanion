@@ -12,7 +12,7 @@ const desktop = {
 // Impact areas: run one with `npm run test:e2e:<area>` (= `playwright test --project=<area>`).
 const areas: Record<string, RegExp> = {
   annotations: /(annotations|features|persistence)\.spec\.ts/,
-  reader: /(reader_nav|surah_panel|surah_panel_screenshot)\.spec\.ts/,
+  reader: /(reader_nav|surah_panel|surah_panel_screenshot|share)\.spec\.ts/,
   sets: /sets\.spec\.ts/,
   tracker: /tracker\.spec\.ts/,
   wird: /wird\.spec\.ts/,

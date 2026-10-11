@@ -8,6 +8,7 @@ vi.mock('@/lib/services/notes', () => ({
   createNote: vi.fn(),
   updateNote: vi.fn(),
   deleteNote: vi.fn(),
+  linkNote: vi.fn(),
 }));
 
 // useNotes constructs a real @supabase/ssr browser client at runtime (createClient).

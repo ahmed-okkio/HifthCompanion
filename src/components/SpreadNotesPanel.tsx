@@ -115,6 +115,8 @@ export default function SpreadNotesPanel({ setId, pages, initialNotes, readOnly 
           </div>
         )}
 
+        {(a.error ?? b.error) && <p role="alert" className="px-4 py-2 text-small text-danger">{a.error ?? b.error}</p>}
+
         {/* Merged note list */}
         {rows.length === 0 && (
           <p className="px-6 py-8 text-center text-small text-muted">

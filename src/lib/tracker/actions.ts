@@ -1,7 +1,5 @@
-import { queryClient } from '@/lib/query/Provider';
+import { guarded } from '@/lib/query/guarded';
 import { qk } from '@/lib/query/keys';
-import { getDictionary } from '@/lib/i18n/dictionaries';
-import { isLocale, defaultLocale } from '@/lib/i18n/config';
 import * as membership from '@/lib/services/membership';
 import * as agenda from '@/lib/services/agenda';
 import * as circle from '@/lib/services/circle';
@@ -12,25 +10,8 @@ import * as subs from '@/lib/services/substitution';
 import * as homework from '@/lib/services/homework';
 import * as exam from '@/lib/services/exam';
 
-/**
- * Every tracker write goes through here (PRD 0016 E9/E10): refused up front when the browser
- * is offline (an error, never a silent loss), and the tracker queries are invalidated once it
- * settles so every screen and the rail refetch the new value. Components keep their own
- * optimistic local state on top.
- */
-function tracked<A extends unknown[], R>(fn: (...a: A) => Promise<R>) {
-  return async (...a: A): Promise<R> => {
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      const lang = document.documentElement.lang;
-      throw new Error(getDictionary(isLocale(lang) ? lang : defaultLocale)['common.offlineWrite']);
-    }
-    try {
-      return await fn(...a);
-    } finally {
-      void queryClient.invalidateQueries({ queryKey: qk.tracker });
-    }
-  };
-}
+// Every tracker write goes through here (PRD 0016 E9/E10); invalidates every tracker query.
+const tracked = <A extends unknown[], R>(fn: (...a: A) => Promise<R>) => guarded(qk.tracker, fn);
 
 export const acceptMembership = tracked(membership.acceptMembership);
 export const leaveCircle = tracked(membership.leaveCircle);

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { seedShare, actAsSubstitute } from './shareFixture';
 
 function listenForErrors(page: Page) {
   page.on('console', msg => {
@@ -229,6 +230,7 @@ test.describe('Surah panel and toolbar layout', () => {
 
   test('share page shows the surah panel and navigates within the shared route', async ({ page }) => {
     listenForErrors(page);
+    await seedShare(page.request, 'readonly', 'test-set'); await actAsSubstitute(page);
 
     await page.goto('/share/test-set/1');
     await page.waitForLoadState('networkidle');

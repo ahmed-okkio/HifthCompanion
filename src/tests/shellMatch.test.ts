@@ -21,6 +21,12 @@ const CASES: [string, string | null][] = [
   ['/tracker/join/code1', null],
   ['/tracker/a/b', null],
   ['/sets', null],
+  ['/shared', '/shared'],
+  ['/share/abc', '/share/set'],
+  ['/share/abc/9', '/share/view'],
+  ['/share/abc/9-10', '/share/view'],
+  ['/share', null],
+  ['/share/abc/9/x', null],
 ];
 
 describe('shell route matching', () => {

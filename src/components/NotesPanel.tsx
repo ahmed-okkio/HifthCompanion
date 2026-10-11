@@ -63,7 +63,7 @@ export function flashBadge(setId: string, pageNum: number, fabricObjectId?: stri
 
 export default function NotesPanel({ setId, pageNum, initialNotes, readOnly = false, currentUserId }: Props) {
   const {
-    notes, newBody, editingId, editBody, collapsed, isPending,
+    notes, newBody, editingId, editBody, collapsed, isPending, error,
     setNewBody, setEditBody, setCollapsed,
     handleCreate, handleUpdate, handleDelete, handleLink, startEdit, cancelEdit,
   } = useNotes(setId, pageNum, initialNotes);
@@ -136,6 +136,7 @@ export default function NotesPanel({ setId, pageNum, initialNotes, readOnly = fa
               textareaRef={textareaRef}
             />
           )}
+          {error && <p role="alert" className="px-4 py-2 text-small text-danger">{error}</p>}
 
           {/* Note list */}
           <div ref={listRef}>

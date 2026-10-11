@@ -95,22 +95,3 @@ export async function remove(setId: string, userId: string): Promise<void> {
   if (error) throw error;
 }
 
-/** Sets shared WITH the current user via an explicit `set_collaborators` grant.
- *  Circle membership creates such a grant on accept (see acceptMembership), so a
- *  teacher's supervised student mushafs appear here alongside email invites. */
-export async function sharedWithMe(): Promise<AnnotationSet[]> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
-
-  const { data, error } = await supabase
-    .from('set_collaborators')
-    .select('annotation_sets:set_id(*)')
-    .eq('user_id', user.id);
-  if (error) throw error;
-
-  const rows = (data ?? []) as unknown as { annotation_sets: AnnotationSet | null }[];
-  return rows
-    .map((r) => r.annotation_sets)
-    .filter((s): s is AnnotationSet => s != null);
-}

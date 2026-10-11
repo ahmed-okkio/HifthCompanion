@@ -15,6 +15,7 @@
  */
 
 import { test, expect, type Page } from '@playwright/test';
+import { seedShare, actAsSubstitute } from './shareFixture';
 
 function listenForErrors(page: Page) {
   page.on('console', msg => {
@@ -310,6 +311,9 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
 });
 
 test.describe('Mobile share view (Pixel 5)', () => {
+  // 0016 M7: the share view reads the set client-side; a covering substitute gets the read-only view.
+  test.beforeEach(async ({ page }) => { await seedShare(page.request, 'readonly', 'test-set'); await actAsSubstitute(page); });
+
   // (e) Share view loads at mobile width, surah control present, no horizontal overflow
   test('(e) share view loads at mobile width with surah control', async ({ page }) => {
     listenForErrors(page);

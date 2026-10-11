@@ -3,39 +3,17 @@ import { useEffect } from 'react';
 import { useSearchParams, useRouter, notFound } from 'next/navigation';
 import { usePathname, useHydrated } from '@/lib/i18n/usePathname';
 import QueryFallback from '@/components/QueryFallback';
-import { useQuery } from '@tanstack/react-query';
+import { useNotesQuery } from '@/hooks/useNotesQuery';
 import { TOTAL_PAGES, parseSpread } from '@/lib/quran';
 import ShareCard from '@/components/ShareCard';
 import NotesPanel from '@/components/NotesPanel';
 import SpreadNotesPanel from '@/components/SpreadNotesPanel';
-import type { Note } from '@/types';
 import { Icon } from '@/components/tracker/ui';
 import { useI18n } from '@/components/I18nProvider';
 import { useReaderData } from '@/components/ReaderLayoutClient';
-import { createClient } from '@/lib/supabase/client';
-import { qk } from '@/lib/query/keys';
 
 const COLUMN = 'flex min-w-0 flex-col gap-4 lg:self-stretch lg:min-h-0 lg:max-h-full lg:overflow-y-auto lg:pr-1';
 const SHIMMER = 'w-full rounded-md skeleton';
-
-/** One page's notes, read in the browser (PRD 0016 E1; RLS decides set access). */
-function useNotesQuery(setId: string | undefined, page: number | null) {
-  return useQuery({
-    queryKey: qk.notes(setId ?? '', page ?? 0),
-    enabled: !!setId && !!page,
-    queryFn: async (): Promise<Note[]> => {
-      const { data, error } = await createClient()
-        .from('notes')
-        .select('*')
-        .eq('set_id', setId!)
-        .eq('page_number', page!)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-}
 
 function NotesColumnSkeleton() {
   return (

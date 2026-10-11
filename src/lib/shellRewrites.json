@@ -3,5 +3,8 @@
   "/tracker": "/tracker",
   "/tracker/covering": "/tracker/covering",
   "/tracker/:circleId": "/tracker/circle",
-  "/tracker/:circleId/student/:membershipId": "/tracker/student"
+  "/tracker/:circleId/student/:membershipId": "/tracker/student",
+  "/shared": "/shared",
+  "/share/:setId": "/share/set",
+  "/share/:setId/:page": "/share/view"
 }

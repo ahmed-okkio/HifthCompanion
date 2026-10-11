@@ -112,7 +112,8 @@ Serial slices; each ends with tsc + build:check + test + the area e2e, and its c
   `/tracker/circle` and `/tracker/:circleId/student/:membershipId` -> `/tracker/student`, plus literal entries
   `/tracker` and `/tracker/covering`: one rule in the proxy (`shellRewrites.ts`) and the SW (`matchRoute`,
   compiled patterns cached, metacharacters escaped), checked against each other by `shellMatch.test.ts`:
-  an exact key wins, else the first pattern. M7 adds `share/[setId]/[page]`. Unmapped routes still fall back
+  an exact key wins, else the first pattern. M7 added `/share/:setId` -> `/share/set` (bookmark redirect),
+  `/share/:setId/:page` -> `/share/view` and the literal `/shared`. Unmapped routes still fall back
   to `/offline.html`. M10: check `/reader/<n>` and `/tracker/<id>` deep links and back/forward on a device.
 - **Revalidating Server Actions on a rewritten route can hard-reload (M5).** An action whose response is marked
   revalidated (any Set-Cookie, e.g. a Supabase token refresh in `createClientAction`) makes the router refresh;
@@ -142,3 +143,18 @@ Serial slices; each ends with tsc + build:check + test + the area e2e, and its c
   the pwa e2e waits for `me`/`sets` in IDB before going offline.
 - **`/sets` input before hydration.** On the static `/sets` shell, text typed before hydration is reset (seen as an
   e2e race; tests now retry the fill). Minor UX gap on slow devices.
+
+- **Share capability is read client-side (M7).** `src/lib/share/reads.ts` (`loadShareCap`, `loadSharedWithMe`) replaces
+  the server `services/share.ts`; `qk.share(setId)`, `qk.shared`, `qk.annotation(setId, page)`. A set RLS hides now renders
+  **not found** (was an empty read-only canvas titled "Shared Set"); in prod that was already everything a guest or
+  non-grantee could see, but the ShareCard copy "Anyone with this link can view" stays untrue under current RLS.
+  The persisted capability is per user (buster), so a revoked grant shows the cached view offline until the next online
+  refetch returns not found. M10: open a revoked share link online and confirm not found.
+- **`/shared` is now a protected path (M7).** The proxy (with `next=`) and ShellAuthGuard enforce it, replacing the
+  page's own `redirect('/login')`. `/share/**` stays public (RLS decides).
+- **Only note writes are offline-guarded on share/reader (M7).** `useNotes` writes go through `src/lib/query/guarded.ts`
+  (generalised from tracker `tracked()`, invalidates `['notes']`) and NotesPanel shows the error. Fabric canvas saves
+  (annotationStore) are not wrapped: offline they fail through the store's existing error path.
+- **Mock store mirrors annotation_sets RLS (M7).** Selects return only sets the acting user owns, collaborates on
+  (`set_collaborators`) or covers (mock-only `covering` table, served by the `covering_sessions` RPC). Read-only share
+  e2e acts as a dedicated substitute id (`shareFixture.ts`) so no covering row lands on the default mock user.

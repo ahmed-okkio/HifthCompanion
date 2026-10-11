@@ -1,10 +1,15 @@
 'use client';
-import { useState, useEffect, useTransition, useMemo, useContext } from 'react';
-import { QueryClientContext } from '@tanstack/react-query';
-import { qk } from '@/lib/query/keys';
+import { useState, useEffect, useTransition, useMemo } from 'react';
 import type { Note } from '@/types';
-import { createNote, updateNote, deleteNote, linkNote } from '@/lib/services/notes';
+import * as svc from '@/lib/services/notes';
+import { guarded } from '@/lib/query/guarded';
 import { createClient } from '@/lib/supabase/client';
+
+// E9/E10: every note write is refused offline and refreshes the cached page notes (qk.notes prefix).
+const createNote = guarded(['notes'], svc.createNote);
+const updateNote = guarded(['notes'], svc.updateNote);
+const deleteNote = guarded(['notes'], svc.deleteNote);
+const linkNote = guarded(['notes'], svc.linkNote);
 
 export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = []) {
   const supabase = useMemo(() => createClient(), []);
@@ -14,10 +19,9 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
   const [editBody, setEditBody] = useState('');
   const [collapsed, setCollapsed] = useState(false);
   const [isPending, startTransition] = useTransition();
-  // E9: a successful write refreshes the cached page notes so a revisit or cold launch shows it.
-  // Optional: unit tests render without a QueryClientProvider.
-  const queryClient = useContext(QueryClientContext);
-  const invalidate = () => queryClient?.invalidateQueries({ queryKey: qk.notes(setId, pageNum) });
+  // Last write failure (e.g. offline), shown by the panel; cleared by the next write.
+  const [error, setError] = useState<string | null>(null);
+  const fail = (err: unknown) => setError(err instanceof Error ? err.message : String(err));
 
   const [notesSetId, setNotesSetId] = useState(setId);
   if (notesSetId !== setId) {
@@ -71,6 +75,7 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
     const tempId = `temp-${(globalThis.crypto?.randomUUID?.() ?? String(Date.now() + Math.random()))}`;
     const optimistic: Note = { id: tempId, set_id: setId, page_number: pageNum, body, x: null, y: null, created_at: now, updated_at: now, fabric_object_id: fabricObjectId ?? null };
     setNotes(prev => [...prev, optimistic]);
+    setError(null);
     if (bodyArg === undefined) setNewBody('');
     startTransition(async () => {
       try {
@@ -84,6 +89,7 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
         setNotes(prev => prev.map(n => n.id === tempId ? data : n)); // temp → real row
       } catch (err) {
         console.error('[NotesPanel] Create error:', err);
+        fail(err);
         setNotes(prev => prev.filter(n => n.id !== tempId));
         if (bodyArg === undefined) setNewBody(body);
       }
@@ -97,11 +103,11 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
         const { error } = await updateNote(id, editBody.trim());
         if (error) { console.error('[NotesPanel] Update error:', error); return; }
         setNotes(prev => prev.map(n => n.id === id ? { ...n, body: editBody.trim() } : n));
-        invalidate();
         setEditingId(null);
         setEditBody('');
       } catch (err) {
         console.error('[NotesPanel] Update error:', err);
+        fail(err);
       }
     });
   };
@@ -113,9 +119,9 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
       try {
         const { error } = await linkNote(id, fabricObjectId);
         if (error) console.error('[NotesPanel] Link error:', error);
-        else invalidate();
       } catch (err) {
         console.error('[NotesPanel] Link error:', err);
+        fail(err);
       }
     });
   };
@@ -126,9 +132,9 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
         const { error } = await deleteNote(id);
         if (error) { console.error('[NotesPanel] Delete error:', error); return; }
         setNotes(prev => prev.filter(n => n.id !== id));
-        invalidate();
       } catch (err) {
         console.error('[NotesPanel] Delete error:', err);
+        fail(err);
       }
     });
   };
@@ -144,7 +150,7 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
   };
 
   return {
-    notes, newBody, editingId, editBody, collapsed, isPending,
+    notes, newBody, editingId, editBody, collapsed, isPending, error,
     setNewBody, setEditBody, setCollapsed,
     handleCreate, handleUpdate, handleDelete, handleLink, startEdit, cancelEdit,
   };

@@ -21,12 +21,17 @@ export async function proxy(request: NextRequest) {
   target.pathname = `/${locale}${pathname === '/' ? '' : (rewritten ?? pathname)}`;
   const response = NextResponse.rewrite(target, { request });
 
-  if (!isProtected(pathname)) return response;
+  // Signed-in "/" -> /wird is decided here, not in the page: under cacheComponents the page's
+  // redirect() streams after the layout, as a meta refresh, so the app loads (and the launch
+  // intro plays) twice.
+  const isHome = pathname === '/';
+  if (!isProtected(pathname) && !isHome) return response;
 
   // Fully bypass auth for E2E tests in test environment
   // Env only: the x-e2e-test header is client-controlled and must never bypass auth.
   const isE2E = process.env.PLAYWRIGHT_TEST === 'true';
   if (isE2E) {
+    if (isHome) return response;
     // Not re-set on mapped shell routes (/reader/<n>, /tracker/**): a Set-Cookie on a Server
     // Action response marks it revalidated, and the refresh on a rewritten route can end in a hard
     // reload (0016 M5); tracker flows must not depend on that refresh either (M6).
@@ -54,6 +59,8 @@ export async function proxy(request: NextRequest) {
   const userId = data?.claims?.sub;
   // Where to return after auth/onboarding — preserves invite links (/tracker/join/*).
   const next = pathname + search;
+
+  if (isHome) return userId ? NextResponse.redirect(new URL('/wird', request.url)) : response;
 
   if (!userId) {
     const login = new URL('/login', request.url);

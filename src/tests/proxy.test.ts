@@ -25,7 +25,13 @@ beforeEach(() => {
 describe('proxy', () => {
   it('rewrites to the cookie locale, default en (B2)', async () => {
     expect((await proxy(req('/login', 'locale=ar'))).headers.get('x-middleware-rewrite')).toBe('http://localhost/ar/login');
+    getClaims.mockResolvedValue({ data: null });
     expect((await proxy(req('/', 'locale=zz'))).headers.get('x-middleware-rewrite')).toBe('http://localhost/en');
+  });
+
+  // An in-page redirect streams after the layout under cacheComponents (meta refresh -> double load).
+  it('redirects signed-in "/" to /wird with a real HTTP redirect', async () => {
+    expect((await proxy(req('/'))).headers.get('location')).toBe('http://localhost/wird');
   });
 
   it('redirects unauthenticated/invalid JWT to /login?next (A3/A4)', async () => {

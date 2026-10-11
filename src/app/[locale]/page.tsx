@@ -3,8 +3,6 @@ import Link from 'next/link';
 import HomeReaderDemo from '@/components/HomeReaderDemo';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
 
 export async function generateMetadata() {
   const dict = getDictionary(await getLocale());
@@ -13,10 +11,7 @@ export async function generateMetadata() {
 
 export default async function Home() {
   const dict = getDictionary(await getLocale());
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  // Logged in → splash has nothing to offer; go straight to the daily wird.
-  if (user) redirect('/wird');
+  // Signed-in users never reach here: the proxy sends them to /wird.
   return (
     <main
       className="relative min-h-dvh flex flex-col items-center overflow-hidden bg-surface-app text-primary"

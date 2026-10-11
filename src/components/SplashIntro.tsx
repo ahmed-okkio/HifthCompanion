@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // ~1s launch intro: static logo until window load, then the girih star turns in behind it
 // while the wordmark rises and the logo lifts 10px from where Android's launch icon sat
@@ -13,12 +13,16 @@ const EXIT_MS = 400;
 
 export function SplashIntro() {
   const [phase, setPhase] = useState<"wait" | "intro" | "exit" | "gone">("wait");
+  const ref = useRef<HTMLDivElement>(null);
 
   // Android's PWA launch screen covers the page until load, so the intro only starts
   // after load; until then the static logo matches the OS splash it replaces.
   useEffect(() => {
-    if (document.documentElement.hasAttribute("data-intro-seen")) return; // CSS hides it
-    try { sessionStorage.introSeen = "1"; } catch {}
+    // Checked here too, not only via the <html> flag: a client-side remount of the root
+    // layout re-renders <html> without it.
+    let seen = false;
+    try { seen = !!sessionStorage.introSeen; sessionStorage.introSeen = "1"; } catch {}
+    if (seen) { ref.current!.style.display = "none"; return; }
     const start = () => requestAnimationFrame(() => setPhase("intro"));
     if (document.readyState === "complete") start();
     else window.addEventListener("load", start, { once: true });
@@ -32,7 +36,7 @@ export function SplashIntro() {
 
   if (phase === "gone") return null;
   return (
-    <div className={`splash splash-${phase}`} aria-hidden="true" dir="ltr" lang="en">
+    <div ref={ref} className={`splash splash-${phase}`} aria-hidden="true" dir="ltr" lang="en">
       <svg className="splash-star" viewBox="0 0 560 560">
         {Array.from({ length: 8 }, (_, i) => (
           <rect key={i} x="130" y="130" width="300" height="300" transform={`rotate(${i * 11.25} 280 280)`} />

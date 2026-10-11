@@ -95,3 +95,11 @@ Serial slices; each ends with tsc + build:check + test + the area e2e, and its c
 | M8 | Convert `/settings`, `/install` | those routes | same |
 | M9 | `pwa` e2e area + flaky tracker fixes (`tracker.spec.ts:41`, `:109`, `:19`) | `src/tests/e2e/pwa.spec.ts`, `tracker.spec.ts`, `package.json` (`test:e2e:pwa`) | F2a–F2e, F4 |
 | M10 | Final verification on a Vercel preview from a real browser (cold launch offline, user switch) | build log evidence | all, F5 |
+
+## Known gaps / M10 checks
+
+- **Onboarding gate skipped on deep-link shell launch.** A SW-served shell never passes the proxy, so a user who has not finished onboarding and opens `/wird` (or `/wird/manage`) directly lands on the shell, not the onboarding redirect. ShellAuthGuard only checks for a stored session.
+- **Vercel build command must be `package.json` `build`** (it runs `build-shells`). Check the deploy build log for the `build-shells: N routes x 2 locales, M assets -> public/_shell/<buildId>` line, and that `/_shell/<buildId>/manifest.json` returns 200 on the deployment.
+- **Skew Protection.** Enable and verify Vercel Skew Protection. The SW now precaches each shell's `/_next/static` assets (manifest `assets`) and serves a shell only if all of them are cached, but lazy chunks loaded after boot (not referenced in the shell HTML) can still 404 after a deploy without it.
+- **Offline cold launch after redeploy.** Verify on a device: install build N, deploy N+1, go offline before the N+1 SW installs, cold-launch a shell route. The N shell plus its precached chunks should still boot.
+- **`hc-static-v1` grows without bound.** Hashed assets from every build accumulate and nothing evicts them. Purge by renaming the cache, or prune entries not in the current manifest on activate.

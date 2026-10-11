@@ -12,6 +12,7 @@ const app = '.next/server/app';
 const buildId = readFileSync('.next/BUILD_ID', 'utf8').trim();
 rmSync('public/_shell', { recursive: true, force: true });
 const out = join('public/_shell', buildId);
+const assets = {}; // "{locale}/{file}.html" -> /_next/static URLs that shell boots with
 
 for (const locale of LOCALES) {
   for (const file of Object.values(ROUTES)) {
@@ -25,9 +26,11 @@ for (const locale of LOCALES) {
     const dest = join(out, locale, `${file}.html`);
     mkdirSync(dirname(dest), { recursive: true });
     copyFileSync(`${src}.html`, dest);
+    // Skew: the shell must boot with its own build's chunks, so the SW precaches these with it.
+    assets[`${locale}/${file}.html`] = [...new Set([...html.matchAll(/\/_next\/static\/[^"'\s)\\]+/g)].map((m) => m[0]))];
   }
 }
 
 const routes = Object.fromEntries(Object.entries(ROUTES).map(([r, f]) => [r, `${f}.html`]));
-writeFileSync(join(out, 'manifest.json'), JSON.stringify({ buildId, locales: LOCALES, routes }));
-console.log(`build-shells: ${Object.keys(routes).length} routes x ${LOCALES.length} locales -> ${out}`);
+writeFileSync(join(out, 'manifest.json'), JSON.stringify({ buildId, locales: LOCALES, routes, assets }));
+console.log(`build-shells: ${Object.keys(routes).length} routes x ${LOCALES.length} locales, ${new Set(Object.values(assets).flat()).size} assets -> ${out}`);

@@ -64,6 +64,52 @@ test('the shell follows the posted locale, incl. rtl (D7)', async ({ page }) => 
   await expect(page).toHaveTitle(/الورد/);
 });
 
+test('the page auto-posts the locale cookie to a fresh SW, not only when it is the first cookie (D7)', async ({ page, context }) => {
+  guardConsole(page);
+  // Another cookie ahead of locale: the regex must match after "; ".
+  await context.addCookies([
+    { name: 'aaa-first', value: '1', domain: 'localhost', path: '/' },
+    { name: 'locale', value: 'ar', domain: 'localhost', path: '/' },
+  ]);
+  await page.goto('/wird');
+  expect(await page.evaluate(() => document.cookie.indexOf('locale=') > 0)).toBe(true);
+  await swReady(page);
+  // No manual postMessage: wait for ServiceWorkerRegister's own post to land.
+  await expect
+    .poll(() =>
+      page.evaluate(async () => {
+        const hit = await (await caches.open('hc-locale')).match('/__hc-locale');
+        return hit ? hit.text() : null;
+      }),
+    )
+    .toBe('ar');
+  const res = await page.reload();
+  expect(res?.fromServiceWorker()).toBe(true);
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
+});
+
+test('each cached shell has its /_next/static assets precached (skew)', async ({ page }) => {
+  guardConsole(page);
+  await page.goto('/wird');
+  await swReady(page);
+  const missing = await page.evaluate(async () => {
+    const shellKey = (await caches.keys()).find((k) => k.startsWith('hc-shell-'))!;
+    const shells = await caches.open(shellKey);
+    const manifestReq = (await shells.keys()).find((r) => r.url.endsWith('/manifest.json'))!;
+    const { assets } = await (await shells.match(manifestReq))!.json();
+    const statics = await caches.open('hc-static-v1');
+    const out: string[] = [];
+    for (const [shell, urls] of Object.entries(assets as Record<string, string[]>)) {
+      if (!(await shells.match(manifestReq.url.replace('manifest.json', shell)))) continue;
+      for (const u of urls) if (!(await statics.match(u))) out.push(u);
+    }
+    return { out, count: Object.keys(assets).length };
+  });
+  expect(missing.count).toBeGreaterThan(0);
+  expect(missing.out).toEqual([]);
+});
+
 test.describe('signed out', () => {
   // E2E auth cookie only; no sb-auth-token = no session for the mock client.
   test.use({ storageState: { cookies: [{ name: 'x-e2e-test', value: 'true', domain: 'localhost', path: '/', expires: -1, httpOnly: false, secure: false, sameSite: 'Lax' }], origins: [] } });

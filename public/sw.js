@@ -37,11 +37,28 @@ self.addEventListener("install", (event) => {
           .catch(() => null);
         if (!manifest) return;
         await cache.put(`${SHELL_BASE}/manifest.json`, new Response(JSON.stringify(manifest)));
+        // Skew: precache each shell's own /_next/static assets first (a later deploy may 404 them).
+        // One fetch per URL, shared across shells; a shell is cached (= served) only when all of its
+        // assets are, otherwise its route stays network-first.
+        const statics = await caches.open(STATIC_CACHE);
+        const fetched = new Map();
+        const precache = (u) => {
+          if (!fetched.has(u))
+            fetched.set(
+              u,
+              statics.match(u).then((hit) =>
+                hit ? true : statics.add(new Request(u, { credentials: "omit" })).then(() => true, () => false)
+              )
+            );
+          return fetched.get(u);
+        };
         await Promise.all(
           manifest.locales.flatMap((locale) =>
-            Object.values(manifest.routes).map((file) =>
-              cache.add(new Request(`${SHELL_BASE}/${locale}/${file}`, { credentials: "omit" })).catch(() => {})
-            )
+            Object.values(manifest.routes).map(async (file) => {
+              const ok = await Promise.all((manifest.assets?.[`${locale}/${file}`] || []).map(precache));
+              if (!ok.every(Boolean)) return;
+              await cache.add(new Request(`${SHELL_BASE}/${locale}/${file}`, { credentials: "omit" })).catch(() => {});
+            })
           )
         );
       })

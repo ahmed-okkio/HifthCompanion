@@ -40,7 +40,7 @@ export function ServiceWorkerRegister() {
       .then(() => navigator.serviceWorker.ready)
       .then((reg) => {
         // The cookie, not <html lang>: a shell-served page carries the SW's current guess.
-        const m = document.cookie.match(new RegExp(`(?:^|;\s*)${LOCALE_COOKIE}=([^;]+)`));
+        const m = document.cookie.match(new RegExp(String.raw`(?:^|;\s*)${LOCALE_COOKIE}=([^;]+)`));
         const locale = m?.[1];
         if (isLocale(locale)) reg.active?.postMessage({ type: "locale", locale });
       })

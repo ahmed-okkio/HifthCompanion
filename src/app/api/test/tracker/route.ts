@@ -1,18 +1,12 @@
 import { NextResponse } from 'next/server';
-import { cookies, headers } from 'next/headers';
 import { __resetMockStore, __seedMockStore } from '@/lib/supabase/mock';
 
 // Test-only route handler: lets Playwright reset/seed the SERVER-side mock store
 // (a process global the server components read). Reachable ONLY under the E2E
 // env gate — same gate the mock client uses — so it cannot activate in prod.
-async function isE2E() {
-  const cookieStore = await cookies();
-  const headerStore = await headers();
-  return (
-    process.env.PLAYWRIGHT_TEST === 'true' ||
-    cookieStore.get('x-e2e-test')?.value === 'true' ||
-    headerStore.get('x-e2e-test') === 'true'
-  );
+// Env only: cookie/header are client-controlled.
+function isE2E() {
+  return process.env.PLAYWRIGHT_TEST === 'true';
 }
 
 export async function POST(req: Request) {

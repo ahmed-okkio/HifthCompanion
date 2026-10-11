@@ -1,15 +1,12 @@
 import { createServerClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import { MockSupabaseClient, MOCK_USER_ID } from './mock';
 
 async function getE2EStatus() {
   const cookieStore = await cookies();
-  const headerStore = await headers();
-
-  const isE2E = process.env.PLAYWRIGHT_TEST === 'true' ||
-                cookieStore.get('x-e2e-test')?.value === 'true' ||
-                headerStore.get('x-e2e-test') === 'true';
+  // Env only: the x-e2e-test cookie/header are client-controlled and must never select the mock.
+  const isE2E = process.env.PLAYWRIGHT_TEST === 'true';
 
   if (!isE2E) return { isE2E: false, authenticated: false, userId: MOCK_USER_ID };
 

@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   // Fully bypass auth for E2E tests in test environment
-  const isE2E = process.env.PLAYWRIGHT_TEST === 'true' || request.headers.get('x-e2e-test') === 'true';
+  const isE2E = process.env.PLAYWRIGHT_TEST === 'true'; // env only: header/cookie are client-controlled
   const effectiveUser = isE2E ? { id: 'test-user' } : user;
 
   const protectedPaths = ['/sets', '/reader', '/tracker'];

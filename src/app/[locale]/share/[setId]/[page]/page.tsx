@@ -13,7 +13,7 @@ import { resolveShareCapability } from '@/lib/services/share';
 import { getLocale } from '@/lib/i18n/server';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 
-export const dynamic = 'force-dynamic';
+// ponytail: removed for cacheComponents (incompatible)
 
 interface Props {
   params: Promise<{ setId: string; page: string }>;

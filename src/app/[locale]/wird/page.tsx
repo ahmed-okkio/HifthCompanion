@@ -4,12 +4,17 @@ import { listWirds } from '@/lib/services/wird';
 import { getMyMemorization } from '@/lib/services/profile';
 import { getPageForAyah } from '@/lib/quran';
 import { openingRef, closingRef } from '@/components/wird/ref';
-import { getLocale } from '@/lib/i18n/server';
+import { Suspense } from 'react';
+import { Sk } from '@/components/Skeleton';
+import { defaultLocale, isLocale, type Locale } from '@/lib/i18n/config';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 import WirdPager, { type WirdCardData } from '@/components/wird/WirdPager';
 
-export async function generateMetadata() {
-  const dict = getDictionary(await getLocale());
+type Props = { params: Promise<{ locale: string }> };
+
+export async function generateMetadata({ params }: Props) {
+  const { locale } = await params;
+  const dict = getDictionary(isLocale(locale) ? locale : defaultLocale);
   return { title: dict['wird.pageTitle'] };
 }
 
@@ -20,12 +25,40 @@ export async function generateMetadata() {
  * here beyond deriving pages-to-go / percent from the position the service
  * already computed (H11 — position → cycle_page_end).
  */
-export default async function WirdPage() {
+export default async function WirdPage({ params }: Props) {
+  const { locale } = await params;
+  // Static shell = layout chrome + skeleton; user data streams into this hole (PRD 0016 C4).
+  return (
+    <Suspense fallback={<WirdSkeleton />}>
+      <WirdData locale={isLocale(locale) ? locale : defaultLocale} />
+    </Suspense>
+  );
+}
+
+// Instant skeleton — a single centred card standing in for the pager, sized like it.
+function WirdSkeleton() {
+  return (
+    <main className="fit-screen w-full flex-1 min-h-0 flex flex-col items-center overflow-hidden">
+      <div className="w-full flex-1 min-h-0 flex flex-col items-center px-4 pt-8 pb-4 max-w-130">
+        <div className="w-full flex flex-col gap-2 mb-6">
+          <Sk w={120} h={24} />
+          <Sk w={160} h={13} />
+        </div>
+        {/* eslint-disable-next-line shadcn/no-inline-styles -- Sk takes style, not className */}
+        <Sk w="100%" h="100%" r={20} style={{ flex: '1 1 0', minHeight: 0, maxHeight: 360 }} />
+        <div className="flex gap-2 mt-4">
+          {[0, 1, 2].map((i) => <Sk key={i} w={8} h={8} r={999} />)}
+        </div>
+      </div>
+    </main>
+  );
+}
+
+async function WirdData({ locale }: { locale: Locale }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const locale = await getLocale();
   const wirds = await listWirds();
 
   // Memorized scope span, for the form's 'what I've memorized' preset (K5/D10)

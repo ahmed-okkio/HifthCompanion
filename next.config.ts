@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  cacheComponents: true,
   images: {
     // Vercel's image optimizer returns 402 once the plan's optimization quota is
     // exhausted, which blanks every next/image (logo + Mushaf pages). Serve images

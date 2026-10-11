@@ -1,6 +1,7 @@
 'use client';
 import { useCallback } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname } from '@/lib/i18n/usePathname';
 import { clampPage, spreadUrl } from '@/lib/quran';
 
 type ReaderWindow = Window & {

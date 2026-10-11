@@ -1,5 +1,5 @@
 'use client';
-import { usePathname } from 'next/navigation';
+import { usePathname } from '@/lib/i18n/usePathname';
 import { spreadOf } from '@/lib/quran';
 import { useGoToPage } from '@/hooks/useGoToPage';
 import { useI18n } from '@/components/I18nProvider';

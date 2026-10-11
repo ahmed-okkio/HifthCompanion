@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { usePathname } from "@/lib/i18n/usePathname";
 
 // YouTube-style top loading strip. No Next-native equivalent and no lib installed,
 // so we detect navigation starts by intercepting same-origin link clicks + back/forward,

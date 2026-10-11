@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import ReaderShell, { ReaderShellSkeleton } from '@/components/ReaderShell';
 import { getMyChrome } from '@/lib/services/profile';
 
-export const dynamic = 'force-dynamic';
+// ponytail: removed for cacheComponents (incompatible)
 
 /**
  * Reader layout. Kept SYNC so entering the reader paints an instant skeleton instead of

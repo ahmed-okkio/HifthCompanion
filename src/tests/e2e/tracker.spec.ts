@@ -33,7 +33,7 @@ test.describe('Progression Tracker (Authenticated)', () => {
 
     // Creating switches straight into the new circle's teacher view.
     await expect(page).toHaveURL(/\/tracker\/[^/]+$/);
-    await expect(page.getByText('Invite link')).toBeVisible();
+    await expect(page.getByText('Invite link', { exact: true })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Students' })).toBeVisible();
     await expect(page.getByText('No students yet')).toBeVisible();
   });
@@ -122,7 +122,7 @@ test.describe('Progression Tracker (Two-actor)', () => {
     await teacher.getByRole('button', { name: 'Create', exact: true }).click();
     await expect(teacher).toHaveURL(/\/tracker\/[^/]+$/);
     const circleId = teacher.url().split('/').pop()!;
-    await expect(teacher.getByText('Invite link')).toBeVisible();
+    await expect(teacher.getByText('Invite link', { exact: true })).toBeVisible();
     await expect(teacher.getByText('No students yet')).toBeVisible(); // C1: empty roster
     // The invite <code> shows the full join URL; the code is its last segment.
     const inviteCode = (await teacher.locator('code').first().innerText()).trim().split('/').pop()!;

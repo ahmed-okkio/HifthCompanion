@@ -3,7 +3,7 @@ import { resolveShareCapability } from '@/lib/services/share';
 import { isLocale, defaultLocale } from '@/lib/i18n/config';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 
-export const dynamic = 'force-dynamic';
+// ponytail: removed for cacheComponents (incompatible)
 
 /**
  * Persistent share layout. For a COLLABORATOR it hoists ReaderShell here (above the [page]

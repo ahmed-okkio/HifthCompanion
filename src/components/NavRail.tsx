@@ -23,7 +23,7 @@
 import React, { useState } from 'react';
 import { useClientValue } from '@/hooks/useClientValue';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname } from '@/lib/i18n/usePathname';
 import { useI18n } from './I18nProvider';
 import { LAST_CIRCLE_KEY, LAST_READER_PAGE_KEY } from '@/lib/tracker/lastCircle';
 

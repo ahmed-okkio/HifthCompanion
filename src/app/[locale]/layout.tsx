@@ -7,7 +7,7 @@ import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { TopProgressBar } from "@/components/TopProgressBar";
 import { SplashIntro } from "@/components/SplashIntro";
 import { notFound } from "next/navigation";
-import { defaultLocale, dirFor, isLocale } from "@/lib/i18n/config";
+import { defaultLocale, dirFor, isLocale, locales } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 
 // UI typeface: Plus Jakarta Sans — a modern, geometric sans for a premium feel.
@@ -32,6 +32,11 @@ const brand = Outfit({
 
 // Locale comes from the hidden [locale] segment (proxy rewrites /x -> /{cookie locale}/x),
 // so this layout reads no cookies/headers (PRD 0016 B3).
+// Prerender a shell per locale (cacheComponents needs known root params).
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }));
+}
+
 type LocaleParams = { params: Promise<{ locale: string }> };
 
 export async function generateMetadata({ params }: LocaleParams): Promise<Metadata> {
@@ -75,7 +80,11 @@ export default async function RootLayout({
         <Suspense fallback={null}>
           <TopProgressBar />
         </Suspense>
-        <I18nProvider locale={locale}>{children}</I18nProvider>
+        <I18nProvider locale={locale}>
+          {/* ponytail: catch-all boundary so unconverted routes build under cacheComponents;
+              Phase 3 moves Suspense down to each data section. */}
+          <Suspense fallback={null}>{children}</Suspense>
+        </I18nProvider>
         <ServiceWorkerRegister />
       </body>
     </html>

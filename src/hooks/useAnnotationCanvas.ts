@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useRef, useState, useCallback, useLayoutEffect } from 'react';
 import { fabric } from 'fabric';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname } from '@/lib/i18n/usePathname';
 import type { AnnotationSet } from '@/types';
 import { CanvasHistory } from '@/lib/canvasHistory';
 import { getToolCursor } from '@/lib/canvasTools';

@@ -1,5 +1,6 @@
 'use client';
-import { usePathname, useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { usePathname } from '@/lib/i18n/usePathname';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AnnotationSet } from '@/types';
 import { getPageImageUrl, clampPage } from '@/lib/quran';

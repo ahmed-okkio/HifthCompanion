@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { usePathname } from '@/lib/i18n/usePathname';
 import { activeGroupPage, filterSurahGroups, getSurahName, pageFromLocation, type SurahPageGroup } from '@/lib/quran';
 import { usePinnedPage } from '@/hooks/usePinnedPage';
 import { useI18n } from '@/components/I18nProvider';

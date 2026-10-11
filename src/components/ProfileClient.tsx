@@ -4,11 +4,15 @@
 // prefilled with saved ranges; Save persists via the server action and shows a
 // light inline confirmation.
 
-import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import MemorizationEditor from '@/components/MemorizationEditor';
 import { saveMemorization } from '@/lib/services/profile';
+import { guarded } from '@/lib/query/guarded';
+import { qk } from '@/lib/query/keys';
 import type { MemorizedRange } from '@/types';
+
+// Ranges feed wird scopes, and settings shows them (qk.me).
+const save = guarded(qk.wird, guarded(qk.me, saveMemorization));
 
 export default function ProfileClient({
   initialRanges,
@@ -17,12 +21,10 @@ export default function ProfileClient({
   initialRanges: MemorizedRange[];
   initialWeakest: number[];
 }) {
-  const router = useRouter();
   const { t } = useI18n();
 
   const onSave = async (ranges: MemorizedRange[], weakest: number[]) => {
-    await saveMemorization(ranges, weakest);
-    router.refresh();
+    await save(ranges, weakest);
   };
 
   return (

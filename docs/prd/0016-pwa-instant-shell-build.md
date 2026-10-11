@@ -92,7 +92,7 @@ Serial slices; each ends with tsc + build:check + test + the area e2e, and its c
 | M5 | Convert `/reader` + `/reader/[page]` (params client-side) | `src/app/[locale]/reader/**`, `ReaderShell`, annotation hooks | same (reader) |
 | M6 | Convert `/tracker/**` (resolves B3 for tracker layouts) | `src/app/[locale]/tracker/**`, `src/components/tracker/**` | same + B3 (tracker) |
 | M7 | Convert `/share/**` + `/shared` (resolves B3 for share layout) | `src/app/[locale]/share/**`, `shared/**` | same + B3 (share) |
-| M8 | Convert `/settings`, `/install` | those routes | same |
+| M8 | Convert `/settings`, `/install` (done) | those routes | same |
 | M9 | `pwa` e2e area + flaky tracker fixes (`tracker.spec.ts:41`, `:109`, `:19`) | `src/tests/e2e/pwa.spec.ts`, `tracker.spec.ts`, `package.json` (`test:e2e:pwa`) | F2a–F2e, F4 |
 | M10 | Final verification on a Vercel preview from a real browser (cold launch offline, user switch) | build log evidence | all, F5 |
 
@@ -158,6 +158,22 @@ Serial slices; each ends with tsc + build:check + test + the area e2e, and its c
 - **Mock store mirrors annotation_sets RLS (M7).** Selects return only sets the acting user owns, collaborates on
   (`set_collaborators`) or covers (mock-only `covering` table, served by the `covering_sessions` RPC). Read-only share
   e2e acts as a dedicated substitute id (`shareFixture.ts`) so no covering row lands on the default mock user.
+- **`/settings` and `/install` are static shells (M8).** Literal `shellRewrites.json` entries; settings reads client-side
+  (`src/lib/settings/reads.ts`, `qk.settings` = `['me','settings']`, so a `qk.me` invalidation refreshes it); its layout
+  uses `ProfileMenuLive`; `/settings` is now a protected path (proxy `next=` + ShellAuthGuard) instead of the page's own
+  `redirect('/login')`. The `/install` QR is generated client-side from `location.origin` (lazy `qrcode` import);
+  `NEXT_PUBLIC_SITE_URL` is no longer used there, so a QR opened behind a proxy/alias shows the visible origin.
+- **Settings writes are still Server Actions, wrapped in `guarded()` (M8).** Email prefs -> `qk.me`; reminder time and
+  memorization -> `qk.wird` + `qk.me` (closes the M2 gap: reminder changes now refresh the wird screen). Offline
+  refusals are shown inline (email prefs roll back; MemorizationEditor now shows save errors, which also covers
+  onboarding). `saveLocale` stays fire-and-forget (switch must not block) and `saveTimezone` is not a settings write.
+  PushToggle is device state (push subscription), not guarded.
+- **Language switch and logout live in ProfileMenu, not settings (M8).** D7 was already wired (`setLocale` posts the
+  locale to the SW before reload); M8 adds the UI-driven e2e (switch to ar, offline cold launch -> ar/rtl shell) and an
+  E6 e2e (logout wipes the persisted cache). The e2e mock client gained `auth.signOut` (drops `sb-auth-token`).
+- **Email-prefs switch knob swallowed clicks (M8 fix).** The knob span sat above the invisible checkbox, so a click at
+  the switch centre did nothing; it is now `pointer-events-none`.
+
 ## Flake log (F4)
 
 Baseline: `playwright test --project=annotations,reader,sets,tracker,wird,mobile --repeat-each=10 --retries=0`

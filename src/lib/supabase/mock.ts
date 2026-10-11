@@ -653,6 +653,12 @@ export class MockSupabaseClient {
         error: null,
       };
     },
+    // Logout (E6): drop the identity cookie, as the real client drops its session.
+    signOut: async () => {
+      if (typeof document !== 'undefined') document.cookie = 'sb-auth-token=; Max-Age=0; path=/';
+      this.authenticated = false;
+      return { error: null };
+    },
   };
 
   from(table: string) {

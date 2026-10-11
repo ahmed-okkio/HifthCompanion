@@ -128,6 +128,7 @@ export default function MemorizationEditor({
 
   const save = async () => {
     setSaving(true);
+    setError('');
     try {
       const ranges = normalize([...juzUnion(selected), ...extras]);
       const memSet = new Set(ranges.map((r) => r.surah));
@@ -137,6 +138,8 @@ export default function MemorizationEditor({
         setJustSaved(true);
         setTimeout(() => setJustSaved(false), 2000);
       }
+    } catch (e) {
+      setError((e as Error).message); // E10: an offline refusal or failed save is shown, never lost silently
     } finally {
       setSaving(false);
     }
@@ -369,6 +372,7 @@ export default function MemorizationEditor({
           </button>
         )}
       </div>
+      {error && <span role="alert" className="text-danger text-caption">{error}</span>}
     </div>
   );
 }

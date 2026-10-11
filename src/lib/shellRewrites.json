@@ -5,6 +5,8 @@
   "/tracker/:circleId": "/tracker/circle",
   "/tracker/:circleId/student/:membershipId": "/tracker/student",
   "/shared": "/shared",
+  "/settings": "/settings",
+  "/install": "/install",
   "/share/:setId": "/share/set",
   "/share/:setId/:page": "/share/view"
 }

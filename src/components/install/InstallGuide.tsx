@@ -33,10 +33,17 @@ function detect(): View {
   return /Android/.test(ua) ? 'android' : 'desktop';
 }
 
-export default function InstallGuide({ qrSvg }: { qrSvg: string }) {
+export default function InstallGuide() {
   const { t } = useI18n();
   const [view, setView] = useState<View>('loading');
   const [deferred, setDeferred] = useState<InstallEvent | null>(null);
+  const [qrSvg, setQrSvg] = useState('');
+
+  // Desktop only: a QR back to this page, built from the visible origin (lazy: qrcode stays off other views).
+  useEffect(() => {
+    if (view !== 'desktop') return;
+    void import('qrcode').then((QR) => QR.toString(`${location.origin}/install`, { type: 'svg', margin: 1 })).then(setQrSvg);
+  }, [view]);
 
   useEffect(() => {
     queueMicrotask(() => setView(v => (v === 'loading' ? detect() : v)));

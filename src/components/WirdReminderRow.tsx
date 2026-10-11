@@ -10,10 +10,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import { saveWirdReminderTime } from '@/lib/services/profile';
+import { guarded } from '@/lib/query/guarded';
+import { qk } from '@/lib/query/keys';
 import { PUSH_CHANGED, readPushStatus, type PushStatus } from '@/lib/push/client';
 import { REMINDER_TIMES, formatReminderTime } from '@/lib/wirdReminder';
 import { AMBER } from '@/components/wird/WirdCard';
 import type { MessageKey } from '@/lib/i18n/dictionaries';
+
+// The reminder drives the wird screen (M2 gap) and is shown on settings (qk.me).
+const save = guarded(qk.wird, guarded(qk.me, saveWirdReminderTime));
 
 const BAR: Record<Exclude<PushStatus, 'on'>, MessageKey> = {
   off: 'wird.reminder.pushOff',
@@ -49,7 +54,7 @@ export default function WirdReminderRow({ initial, hasWirds }: {
     setSaving(true);
     const req = ++latest.current; // last change wins
     try {
-      await saveWirdReminderTime(next === '' ? null : next);
+      await save(next === '' ? null : next);
       saved.current = next;
     } catch {
       if (req === latest.current) {

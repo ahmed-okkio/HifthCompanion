@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { seedShare } from './shareFixture';
+import { asNewUser } from './e2eUser';
 
 // PRD 0016 M3 smoke (SW enabled): shell routes are answered by the service worker, offline
 // too, in the user's locale; a shell launch without a session goes to /login. Full F2 in M9.
@@ -41,7 +42,7 @@ test('shell routes are served by the SW, online and offline (D2, D3)', async ({ 
   await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 
   // D4: a route without a shell falls back to the offline page.
-  await page.goto('/settings');
+  await page.goto('/onboarding');
   await expect(page).toHaveTitle(/Offline/);
   await context.setOffline(false);
 });
@@ -288,6 +289,109 @@ test('a visited /shared cold-launches offline from the SW with cached data (M7)'
   await context.setOffline(false);
 });
 
+// M8: a fresh user whose saved email prefs have "homework" off, so cached data is observable.
+async function settingsUser(context: import('@playwright/test').BrowserContext) {
+  const id = await asNewUser(context);
+  await context.request.post('/api/test/tracker', {
+    data: { seed: { profiles: [{ id, first_name: 'Mock', last_name: 'User', email_prefs: { homework: false }, wird_reminder_time: null }] } },
+  });
+}
+const homework = (page: Page) => page.locator('input[aria-labelledby="pref-homework"]');
+
+test('a visited /settings cold-launches offline from the SW with cached data (M8)', async ({ page, context }) => {
+  guardConsole(page);
+  await settingsUser(context);
+  await page.goto('/wird');
+  await swReady(page);
+
+  const online = await page.goto('/settings');
+  expect(online?.fromServiceWorker()).toBe(true);
+  await expect(homework(page)).not.toBeChecked();
+  await expect(page.locator('input[aria-labelledby="pref-invite"]')).toBeChecked();
+  await expect.poll(() => persistedKeys(page)).toContain('["me","settings"]');
+
+  await context.setOffline(true);
+  const cold = await context.newPage();
+  guardConsole(cold);
+  const off = await cold.goto('/settings');
+  expect(off?.fromServiceWorker()).toBe(true);
+  await expect(cold).not.toHaveTitle(/Offline/);
+  await expect(homework(cold)).not.toBeChecked();
+  await expect(cold.locator('input[aria-labelledby="pref-invite"]')).toBeChecked();
+  await context.setOffline(false);
+});
+
+test('an offline settings write is refused with an error and rolled back (E10, M8)', async ({ page, context }) => {
+  guardConsole(page);
+  await settingsUser(context);
+  await page.goto('/settings');
+  await expect(homework(page)).not.toBeChecked();
+
+  await context.setOffline(true);
+  await homework(page).click();
+  await expect(page.getByText("You're offline. This change was not saved.")).toBeVisible();
+  await expect(homework(page)).not.toBeChecked();
+  await context.setOffline(false);
+
+  // Nothing reached the server: a fresh load still shows it off.
+  await page.reload();
+  await expect(homework(page)).not.toBeChecked();
+});
+
+test('switching to ar in the menu makes the next shell ar + rtl, offline too (B5/D7, M8)', async ({ page, context }) => {
+  guardConsole(page);
+  await settingsUser(context);
+  await page.goto('/settings');
+  await swReady(page);
+  await expect(homework(page)).not.toBeChecked();
+
+  await page.getByRole('button', { name: 'Account' }).click();
+  await Promise.all([page.waitForEvent('load'), page.getByLabel('Language').selectOption('ar')]);
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  await expect(page.getByRole('heading', { name: 'الإعدادات' })).toBeVisible();
+  await expect.poll(() => persistedKeys(page)).toContain('["me","settings"]');
+
+  await context.setOffline(true);
+  const cold = await context.newPage();
+  guardConsole(cold);
+  const off = await cold.goto('/settings');
+  expect(off?.fromServiceWorker()).toBe(true);
+  await expect(cold.locator('html')).toHaveAttribute('dir', 'rtl');
+  await expect(cold.locator('html')).toHaveAttribute('lang', 'ar');
+  await expect(cold.getByRole('heading', { name: 'الإعدادات' })).toBeVisible();
+  await expect(homework(cold)).not.toBeChecked();
+  await context.setOffline(false);
+});
+
+test('logging out from /settings wipes the persisted settings data (E6, M8)', async ({ page, context }) => {
+  guardConsole(page);
+  await settingsUser(context);
+  await page.goto('/settings');
+  await expect(homework(page)).not.toBeChecked();
+  await expect.poll(() => persistedKeys(page)).toContain('["me","settings"]');
+
+  await page.getByRole('button', { name: 'Account' }).click();
+  await page.getByRole('menuitem', { name: 'Log out' }).click();
+  await expect(page).toHaveURL(/\/login/);
+  expect(await persistedKeys(page)).not.toContain('"settings"');
+});
+
+test('/install is served from the SW, with its QR code built client-side (M8)', async ({ page, context }) => {
+  guardConsole(page);
+  await page.goto('/wird');
+  await swReady(page);
+  const res = await page.goto('/install');
+  expect(res?.fromServiceWorker()).toBe(true);
+  await expect(page.getByText('Scan this code with your phone to install the app.')).toBeVisible();
+  await expect(page.locator('[role="img"] svg')).toBeVisible();
+
+  await context.setOffline(true);
+  const off = await page.goto('/install');
+  expect(off?.fromServiceWorker()).toBe(true);
+  await expect(page).not.toHaveTitle(/Offline/);
+  await context.setOffline(false);
+});
+
 test.describe('signed out', () => {
   // E2E auth cookie only; no sb-auth-token = no session for the mock client.
   test.use({ storageState: { cookies: [{ name: 'x-e2e-test', value: 'true', domain: 'localhost', path: '/', expires: -1, httpOnly: false, secure: false, sameSite: 'Lax' }], origins: [] } });
@@ -319,5 +423,14 @@ test.describe('signed out', () => {
     const res = await page.goto('/shared');
     expect(res?.fromServiceWorker()).toBe(true);
     await expect(page).toHaveURL(/\/login\?next=%2Fshared$/);
+  });
+
+  test('a signed-out /settings redirects to /login?next=/settings (A3, M8)', async ({ page }) => {
+    guardConsole(page);
+    await page.goto('/login');
+    await swReady(page);
+    const res = await page.goto('/settings');
+    expect(res?.fromServiceWorker()).toBe(true);
+    await expect(page).toHaveURL(/\/login\?next=%2Fsettings$/);
   });
 });

@@ -1,6 +1,8 @@
 // Query keys (PRD 0016). Mutations invalidate by prefix, e.g. qk.wird covers every wird screen.
 export const qk = {
   me: ['me'] as const,
+  // Under qk.me: a settings write invalidates qk.me and refreshes the menu name too.
+  settings: ['me', 'settings'] as const,
   wird: ['wird'] as const,
   wirdDaily: ['wird', 'daily'] as const,
   wirdManage: ['wird', 'manage'] as const,

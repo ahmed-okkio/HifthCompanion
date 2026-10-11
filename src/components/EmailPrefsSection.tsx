@@ -6,7 +6,11 @@
 import { useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import { saveEmailPrefs } from '@/lib/services/profile';
+import { guarded } from '@/lib/query/guarded';
+import { qk } from '@/lib/query/keys';
 import type { EmailPrefs } from '@/types';
+
+const save = guarded(qk.me, saveEmailPrefs);
 
 const KEYS = ['invite', 'homework', 'session_change', 'progress', 'exam'] as const;
 
@@ -31,7 +35,7 @@ function Switch({ checked, onChange, labelledBy }: {
       />
       <span
         aria-hidden
-        className={`absolute top-0.75 size-4.5 rounded-full bg-white shadow-e1 transition-all ${checked ? 'start-4.75' : 'start-0.75'}`}
+        className={`pointer-events-none absolute top-0.75 size-4.5 rounded-full bg-white shadow-e1 transition-all ${checked ? 'start-4.75' : 'start-0.75'}`}
       />
     </span>
   );
@@ -40,11 +44,17 @@ function Switch({ checked, onChange, labelledBy }: {
 export default function EmailPrefsSection({ initial }: { initial: EmailPrefs }) {
   const { t } = useI18n();
   const [prefs, setPrefs] = useState<EmailPrefs>(initial);
+  const [error, setError] = useState<string | null>(null);
 
   const toggle = async (key: (typeof KEYS)[number], value: boolean) => {
     setPrefs((p) => ({ ...p, [key]: value }));
-    // ponytail: no rollback on failure — reload shows truth; add a toast if users hit it.
-    await saveEmailPrefs({ [key]: value });
+    setError(null);
+    try {
+      await save({ [key]: value });
+    } catch (e) {
+      setPrefs((p) => ({ ...p, [key]: !value })); // E10: refused or failed, never a silent loss
+      setError((e as Error).message);
+    }
   };
 
   return (
@@ -72,6 +82,7 @@ export default function EmailPrefsSection({ initial }: { initial: EmailPrefs }) 
           />
         </div>
       ))}
+      {error && <span role="alert" className="text-danger text-caption">{error}</span>}
     </div>
   );
 }

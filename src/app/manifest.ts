@@ -23,6 +23,13 @@ export default function manifest(): MetadataRoute.Manifest {
         type: "image/png",
         purpose: "maskable",
       },
+      // Android 13+ themed icons (Material You) tint this alpha silhouette.
+      {
+        src: "/icon-512-monochrome.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "monochrome",
+      },
     ],
   };
 }

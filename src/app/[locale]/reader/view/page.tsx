@@ -101,7 +101,8 @@ function ReaderPageColumn({ page }: { page: string }) {
 
       {/* ── 2. SHARE (Story 14) ── */}
       {user && sets.length > 0 && (
-        <div className="animate-fade-in-scale [animation-delay:200ms]">
+        // lg-only: a transformed ancestor would trap ShareCard's position:fixed mobile sheet.
+        <div className="lg:animate-fade-in-scale lg:[animation-delay:200ms]">
           <ShareCard userId={user.id} pageNum={pageNum} sets={sets} />
         </div>
       )}

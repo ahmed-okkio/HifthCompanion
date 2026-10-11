@@ -354,7 +354,7 @@ test.describe('Share Links', () => {
     const setName = `Share-${Date.now()}`;
     await setupAuthenticatedReader(page, setName);
 
-    await expect(page.locator('button:has-text("Share")')).toBeVisible();
+    await expect(page.getByTestId('share-card').locator('button:has-text("Share")')).toBeVisible();
   });
 
   test('share link opens and shows copy button', async ({ page }) => {
@@ -362,10 +362,10 @@ test.describe('Share Links', () => {
     const setName = `ShareCopy-${Date.now()}`;
     await setupAuthenticatedReader(page, setName);
 
-    await page.click('button:has-text("Share")');
+    await page.getByTestId('share-card').locator('button:has-text("Share")').click();
 
     // Copy button appears
-    await expect(page.locator('button:has-text("Copy")')).toBeVisible();
+    await expect(page.getByTestId('share-card').locator('button:has-text("Copy")')).toBeVisible();
 
     // URL input contains /share/
     const urlInput = page.locator('input[readonly]');
@@ -391,7 +391,7 @@ test.describe('Share Links', () => {
     // Get share link from reader
     await page.goto('/reader/1');
     await page.locator('#set-picker-top').selectOption({ label: setName });
-    await page.click('button:has-text("Share")');
+    await page.getByTestId('share-card').locator('button:has-text("Share")').click();
 
     const urlInput = page.locator('input[readonly]');
     await expect(urlInput).toBeVisible();

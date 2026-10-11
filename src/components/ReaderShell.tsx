@@ -429,7 +429,9 @@ export default function ReaderShell({ children, user, sets, account = null, lock
               {/* Opened from a homework/exam card → what the page is for, plus marking.
                   Lives here, not above the mushaf, so the page never shrinks for it. */}
               <ReaderTaskBanner />
-              <div id="sets-card-portal" className="mb-4 empty:mb-0" />
+              {/* Mobile: Sets/Share collapse to buttons here (MobileSheet portals them in). */}
+              <div id="mobile-panel-buttons" className="lg:hidden flex gap-2 mb-4 empty:hidden *:flex-1 [&>[data-testid=sets-card-button]]:order-first" />
+              <div id="sets-card-portal" className="lg:mb-4 lg:empty:mb-0" />
               {children}
               <footer
                 className="lg:hidden w-full text-center text-caption tracking-wider uppercase border-t mt-6 py-3 text-muted border-subtle bg-surface-app"

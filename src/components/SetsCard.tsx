@@ -5,6 +5,7 @@ import type { AnnotationSet } from '@/types';
 import { createAnnotationSet } from '@/lib/services/annotationSets';
 import PanelCard, { PanelIcon, ICON_PATHS } from '@/components/PanelCard';
 import { useI18n } from '@/components/I18nProvider';
+import MobileSheet from '@/components/MobileSheet';
 
 interface Props {
   user: { id: string } | null;
@@ -46,6 +47,11 @@ export default function SetsCard({ user, sets, selectedSetId, saving, onSetChang
   };
 
   return (
+    <MobileSheet
+      testid="sets-card"
+      icon={<PanelIcon d={ICON_PATHS.layers} />}
+      label={sets.find(s => s.id === selectedSetId)?.name ?? t('sets.title')}
+    >
     <PanelCard
       testid="sets-card"
       icon={<PanelIcon d={ICON_PATHS.layers} />}
@@ -114,5 +120,6 @@ export default function SetsCard({ user, sets, selectedSetId, saving, onSetChang
         )}
       </div>
     </PanelCard>
+    </MobileSheet>
   );
 }

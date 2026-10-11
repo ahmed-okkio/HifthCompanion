@@ -16,6 +16,7 @@
 
 import { test, expect, type Page } from '@playwright/test';
 import { seedShare, actAsSubstitute } from './shareFixture';
+import { asNewUser } from './e2eUser';
 
 function listenForErrors(page: Page) {
   page.on('console', msg => {
@@ -334,6 +335,37 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
     // Juz 2 starts inside Al-Baqara (no row of its own).
     await dividers.getByRole('button', { name: /^Juz 2\b/ }).click();
     await expect(page).toHaveURL(/\/reader\/22$/);
+  });
+
+  test('sets and share collapse to buttons that open bottom sheets', async ({ page, context }) => {
+    listenForErrors(page);
+    await asNewUser(context);
+    const setName = `Mobile-${Date.now()}`;
+    await page.goto('/sets');
+    // /sets is a static shell: a fill before hydration is reset, so retry until Create enables.
+    await expect(async () => { await page.fill('input[placeholder="New set name..."]', setName); await expect(page.locator('button:has-text("Create")')).toBeEnabled({ timeout: 1000 }); }).toPass();
+    await page.click('button:has-text("Create")');
+    await expect(page.locator(`text=${setName}`)).toBeVisible();
+    await page.goto('/reader/1');
+
+    const picker = page.locator('#set-picker-top');
+    await expect(picker).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Create share link' })).toBeHidden();
+
+    // Sets button names the active set; its sheet holds the picker.
+    const setsBtn = page.getByTestId('sets-card-button');
+    await expect(setsBtn).toBeVisible({ timeout: 10000 });
+    const selected = await picker.evaluate((s: HTMLSelectElement) => s.selectedOptions[0].text);
+    await expect(setsBtn).toHaveText(selected);
+    await setsBtn.click();
+    await expect(picker).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(picker).toBeHidden();
+
+    // Share sheet opens and its link flow works.
+    await page.getByTestId('share-card-button').click();
+    await page.getByRole('button', { name: 'Create share link' }).click();
+    await expect(page.getByLabel('Share URL')).toHaveValue(/\/share\/.+\/1\?set=/);
   });
 });
 

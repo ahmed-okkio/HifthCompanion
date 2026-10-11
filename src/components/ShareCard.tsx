@@ -5,6 +5,7 @@ import { addByEmail, searchAccountsByEmail, list, remove, type AccountMatch, typ
 import PanelCard, { PanelIcon, ICON_PATHS } from '@/components/PanelCard';
 import { Avatar, Icon } from '@/components/tracker/ui';
 import { useI18n } from '@/components/I18nProvider';
+import MobileSheet from '@/components/MobileSheet';
 
 interface Props {
   userId: string;
@@ -113,6 +114,7 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
   const sectionLabel = 'block text-meta font-semibold text-muted uppercase tracking-wider mb-2';
 
   return (
+    <MobileSheet testid="share-card" icon={<PanelIcon d={ICON_PATHS.share} />} label={t('share.shareButton')}>
     <PanelCard testid="share-card" icon={<PanelIcon d={ICON_PATHS.share} />} title={t('share.shareButton')}>
       <div className="p-4">
         {/* Set selector — only when multiple sets exist */}
@@ -260,5 +262,6 @@ export default function ShareCard({ userId, pageNum, sets }: Props) {
         )}
       </div>
     </PanelCard>
+    </MobileSheet>
   );
 }

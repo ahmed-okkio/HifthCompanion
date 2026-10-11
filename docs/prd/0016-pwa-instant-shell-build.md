@@ -108,17 +108,32 @@ Serial slices; each ends with tsc + build:check + test + the area e2e, and its c
   a shell. Instead `src/lib/shellRewrites.json` maps a visible pattern to a static route (`/reader/:page` ->
   `/reader/view`): the proxy rewrites to it (visible URL unchanged), build-shells ships it under the pattern in the
   manifest, and the SW matches the pattern. `usePathname` (i18n wrapper) returns the shell path while hydrating and
-  the visible path after, so the page reads its number from the URL. M6/M7 add `tracker/[circleId]`,
-  `tracker/[circleId]/student/[membershipId]` and `share/[setId]/[page]` as entries plus a static route each.
-  Unmapped routes still fall back to `/offline.html`. M10: check `/reader/<n>` deep links and back/forward on a device.
+  the visible path after, so the page reads its number from the URL. M6 added `/tracker/:circleId` ->
+  `/tracker/circle` and `/tracker/:circleId/student/:membershipId` -> `/tracker/student`, plus literal entries
+  `/tracker` and `/tracker/covering`: one rule in the proxy (`shellRewrites.ts`) and the SW (`matchRoute`,
+  compiled patterns cached, metacharacters escaped), checked against each other by `shellMatch.test.ts`:
+  an exact key wins, else the first pattern. M7 adds `share/[setId]/[page]`. Unmapped routes still fall back
+  to `/offline.html`. M10: check `/reader/<n>` and `/tracker/<id>` deep links and back/forward on a device.
 - **Revalidating Server Actions on a rewritten route can hard-reload (M5).** An action whose response is marked
   revalidated (any Set-Cookie, e.g. a Supabase token refresh in `createClientAction`) makes the router refresh;
   on `/reader/<n>` racing a `?set=` navigation that refresh mismatched twice and Next fell back to a full page load
   (seen in e2e, where the proxy re-set `x-e2e-test` on every request; it now skips that on mapped routes). Prod hits it
   only on a token refresh during an action. M10: watch for reloads on set switch / note save.
-- **Tracker create depends on action revalidation (M6/M9).** With the e2e cookie not re-set, `tracker.spec.ts:19/41/109`
-  fail deterministically (create circle never reaches `/tracker/<id>`), so in prod, where actions rarely revalidate,
-  that flow may misbehave. Likely root of those flakes.
+- **Tracker flakes `tracker.spec.ts:19/41/109`: root cause (M6).** The create flow ran `router.push(/tracker/<id>)`
+  and then immediately `router.refresh()` against a dynamic server page, and it only landed because every e2e action
+  response was "revalidated" (the proxy re-set `x-e2e-test`), so the push, the refresh and the action's own refresh
+  raced. Fixed: the tracker reads client-side, every write goes through `src/lib/tracker/actions.ts` (invalidates
+  `qk.tracker`), create pushes to the new id only after the action resolves, and there is no `router.refresh()` in the
+  tracker. The proxy no longer re-sets the e2e cookie on any mapped tracker route. A second cause surfaced with the
+  persisted cache: components seed local state from props, so a stale restored snapshot stuck after the refetch
+  (`:109` under parallel load). `useSynced` (tracker/ui) now follows the prop when the data changes. Gate: tracker
+  `--repeat-each=5 --retries=0 --workers=1` 20/20, full suite 95/95. F4's 10x run is still M9's.
+- **Tracker writes are still Server Actions (M6).** The writes stay server-side. E10 offline refusal uses `navigator.onLine`;
+  on a lie-fi connection the action's own fetch fails and ActionButton surfaces it. The Manage-sessions tab
+  (`getManageSlots`) and the substitute picker (`searchAccountsByEmail`) still read through server actions on
+  interaction. Neither is a page-level server render, but they are not TanStack/browser reads.
+- **Teacher's view of a student's wird week uses the viewer's browser timezone (M6).** It used the saved profile
+  timezone on the server. Same user in practice; differs only if the device zone and the saved zone disagree.
 - **Persisted cache is throttled (1s).** A cold launch within ~1s of the first data load may find nothing persisted;
   the pwa e2e waits for `me`/`sets` in IDB before going offline.
 - **`/sets` input before hydration.** On the static `/sets` shell, text typed before hydration is reset (seen as an

@@ -2,6 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
+import * as reads from '@/lib/tracker/reads';
 import { displayName } from '@/lib/displayName';
 import { validate, normalize } from '@/lib/memorization';
 import type { Locale } from '@/lib/i18n/config';
@@ -32,17 +33,7 @@ export async function getMyChrome(
  * callers fall back to a short-id tag via displayName().
  */
 export async function getProfilesByIds(ids: string[]): Promise<Map<string, Profile>> {
-  const unique = Array.from(new Set(ids.filter(Boolean)));
-  if (unique.length === 0) return new Map();
-
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, first_name, last_name')
-    .in('id', unique);
-
-  if (error) throw error;
-  return new Map((data ?? []).map((p: Profile) => [p.id, p] as const));
+  return reads.getProfilesByIds(await createClient(), ids);
 }
 
 /** The caller's own profile row (null when unauthenticated or no row). */
@@ -145,19 +136,6 @@ export async function getMyMemorization(): Promise<{
     weakest: data?.weakest_surahs ?? [],
     onboarded_at: data?.onboarded_at ?? null,
   };
-}
-
-/** A student's memorized ranges, readable by a teacher of an active membership
- *  (teacher-read RLS on user_hifth). Empty when the row/access is absent. */
-export async function getStudentMemorization(userId: string): Promise<MemorizedRange[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('user_hifth')
-    .select('memorized_ranges')
-    .eq('user_id', userId)
-    .maybeSingle();
-  if (error) throw error;
-  return data?.memorized_ranges ?? [];
 }
 
 /** Upsert the caller's own hifth path. Re-validates+normalizes server-side;

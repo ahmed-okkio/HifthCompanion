@@ -2,7 +2,7 @@
 
 import { after } from 'next/server';
 
-import { createClient, createClientAction } from '@/lib/supabase/server';
+import { createClientAction } from '@/lib/supabase/server';
 import { notifyProgressLogged, notifyLogGraded } from '@/lib/email/notify';
 import type { LogType, Polarity, ProgressLog, StatusConfig } from '@/types';
 import { logToMemorizedRanges } from '@/lib/analytics';
@@ -21,40 +21,6 @@ export type NewProgressLog = {
   student_status?: string | null;
   student_notes?: string | null;
 };
-
-/** Logs for one membership (student timeline / teacher profile view). */
-export async function getLogsForMembership(
-  membershipId: string,
-): Promise<ProgressLog[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('progress_log')
-    .select('*')
-    .eq('membership_id', membershipId)
-    .order('log_date', { ascending: false });
-
-  if (error) throw error;
-  return data ?? [];
-}
-
-/** Today's submissions across a set of memberships (teacher daily feed). */
-export async function getLogsForMemberships(
-  membershipIds: string[],
-  logDate?: string,
-): Promise<ProgressLog[]> {
-  if (membershipIds.length === 0) return [];
-  const supabase = await createClient();
-  let query = supabase
-    .from('progress_log')
-    .select('*')
-    .in('membership_id', membershipIds)
-    .order('created_at', { ascending: false });
-  if (logDate) query = query.eq('log_date', logDate);
-
-  const { data, error } = await query;
-  if (error) throw error;
-  return data ?? [];
-}
 
 export async function createLog(log: NewProgressLog): Promise<ProgressLog> {
   const supabase = await createClientAction();

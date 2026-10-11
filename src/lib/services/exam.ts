@@ -2,25 +2,13 @@
 
 import { after } from 'next/server';
 
-import { createClient, createClientAction } from '@/lib/supabase/server';
+import { createClientAction } from '@/lib/supabase/server';
 import { notifyExam } from '@/lib/email/notify';
 import type { Exam, ExamStatus } from '@/types';
 
 import { getPageForAyah, juzPageBounds } from '@/lib/quran';
 import { wholeSurahPages } from '@/lib/homework';
 import type { SurahEntry } from '@/lib/services/homework';
-
-export async function getExamsForMembership(membershipId: string): Promise<Exam[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('exam')
-    .select('*')
-    .eq('membership_id', membershipId)
-    .order('scheduled_date', { ascending: false });
-
-  if (error) throw error;
-  return data ?? [];
-}
 
 export async function scheduleExam(
   membershipId: string,

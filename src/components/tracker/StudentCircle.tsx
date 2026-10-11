@@ -1,12 +1,12 @@
 'use client';
 
+import { createLog, deleteLog, leaveCircle } from '@/lib/tracker/actions';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type {
   Circle, Homework, LogType, Membership, ProgressLog, Recurrence, Session, StatusConfig, Exam
 } from '@/types';
-import { createLog, deleteLog, type NewProgressLog } from '@/lib/services/progressLog';
-import { leaveCircle } from '@/lib/services/membership';
+import { type NewProgressLog } from '@/lib/services/progressLog';
 import { useRouter } from 'next/navigation';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
@@ -16,7 +16,7 @@ import { isStreakAtRisk, mergeActivity } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
 import MarkedPagesList from '@/components/MarkedPagesList';
 import { wholeSurahPages } from '@/lib/homework';
-import { ActionButton, SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, MushafLink, Icon, Avatar, GradeMark, Chevron, vt, vtName } from './ui';
+import { useSynced, ActionButton, SectionTitle, EmptyState, DateChip, NumberStepper, TabBar, PagedList, SegmentedControl, HOMEWORK_STATUS_STYLE, MushafLink, Icon, Avatar, GradeMark, Chevron, vt, vtName } from './ui';
 import { SurahPicker, ExamCard, StudentProfileCard, type Entry } from './TeacherStudent';
 import type { RosterMember } from '@/lib/services/membership';
 import type { MarkedPage } from '@/lib/markedPages';
@@ -92,7 +92,7 @@ export default function StudentCircle({
   initialWirdDates?: string[];
 }) {
   const { t, locale, fmtNum } = useI18n();
-  const [logs, setLogs] = useState(initialLogs);
+  const [logs, setLogs] = useSynced(initialLogs);
   // Members live in the desktop sidebar; below lg they become a tab instead.
   const isMobile = useSyncExternalStore(subscribeMobile, () => window.matchMedia(MOBILE_MQ).matches, () => false);
   const [pickedTab, setTab] = useState<string | null>(null);

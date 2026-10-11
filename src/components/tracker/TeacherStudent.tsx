@@ -1,32 +1,25 @@
 'use client';
 
+import { setMembershipStatus, createAdhocSession, materializeSession, rescheduleSession, setSchedule, setSessionAttendance, setSessionCanceled, prescribeHomework, editDeadline, deleteHomework, gradeLog, logAndReview, assignSubstitutes, removeSubstitution, scheduleExam, gradeExam, deleteExam, rescheduleExam } from '@/lib/tracker/actions';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNow } from '@/hooks/useNow';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
-import { setMembershipStatus } from '@/lib/services/membership';
 import type {
   AgendaTask, AttendanceStatus, Circle, Exam, ExamStatus, Homework, LogType, MemberWithProfile,
   ProgressLog, Recurrence, Session, StatusConfig,
 } from '@/types';
 import { DEFAULT_SESSION_MINUTES, SESSION_LENGTHS } from '@/types';
 import { displayName } from '@/lib/displayName';
-import {
-  createAdhocSession, materializeSession, rescheduleSession, setSchedule, setSessionAttendance, setSessionCanceled,
-} from '@/lib/services/sessions';
 import { sectionSessions, floatingNow, nextSessionDate, type SessionSlot } from '@/lib/recurrence';
-import { prescribeHomework, editDeadline, deleteHomework } from '@/lib/services/homework';
-import { gradeLog, logAndReview } from '@/lib/services/progressLog';
-import { assignSubstitutes, removeSubstitution } from '@/lib/services/substitution';
 import { SubAssignForm, CoveredBy, AttributionProvider, Attribution } from './subs';
-import { scheduleExam, gradeExam, deleteExam, rescheduleExam } from '@/lib/services/exam';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
 import {
   homeworkStatus, aggregateStatus, focusExamId, groupHomework, homeworkEntryLabel, homeworkTarget, type HomeworkStatus,
 } from '@/lib/homework';
 import { AYAH_COUNTS, TOTAL_JUZ, TOTAL_SURAHS, getSurahName, getSurahForPage, spreadUrl } from '@/lib/quran';
-import {
+import { useSynced,
   SectionTitle, EmptyState, Avatar, StatCard, Ring, StatusDot, DateChip, TabBar,
   SurahCombobox, SegmentedControl, HOMEWORK_STATUS_STYLE, MushafLink, Chevron, Icon, TimeSelect, GradeButtons, GradeMark,
   ActionButton, isPending, vt, vtName,
@@ -449,7 +442,7 @@ function useSessionsState(
   initial: Session[],
   initialSchedule: Recurrence | null,
 ) {
-  const [sessions, setSessions] = useState(initial);
+  const [sessions, setSessions] = useSynced(initial);
   const [subOverride, setSubOverride] = useState<Record<string, string | null>>({});
   // Instants (epoch ms) that just became resolved — marked or cancelled — and
   // are being kept in place for a beat so the change is visible before the row
@@ -963,8 +956,8 @@ export type Entry =
  * tab live — no page refresh, and no reset when a tab switch unmounts the panel.
  */
 export function useHomeworkState(initialHomework: Homework[], initialLogs: ProgressLog[]) {
-  const [items, setItems] = useState(initialHomework);
-  const [logRows, setLogRows] = useState(initialLogs);
+  const [items, setItems] = useSynced(initialHomework);
+  const [logRows, setLogRows] = useSynced(initialLogs);
   const onGraded = (id: string, grade: { teacher_status: string | null; teacher_comment: string | null }) =>
     setLogRows((p) => p.map((l) => (l.id === id ? { ...l, ...grade, reviewed_at: new Date().toISOString() } : l)));
   // Linked-log count per prescription drives derived status (D10/B4).
@@ -1526,7 +1519,7 @@ function ExamsPanel({
   setId: string | null;
 }) {
   const { t } = useI18n();
-  const [items, setItems] = useState(initial);
+  const [items, setItems] = useSynced(initial);
   const [scheduling, setScheduling] = useState(false);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [date, setDate] = useState('');

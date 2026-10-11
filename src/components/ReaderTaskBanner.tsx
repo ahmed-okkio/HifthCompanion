@@ -1,13 +1,12 @@
 'use client';
 
+import { gradeExam, createLog, logAndReview } from '@/lib/tracker/actions';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { useI18n } from '@/components/I18nProvider';
 import { ActionButton, GradeButtons, Icon } from '@/components/tracker/ui';
-import { gradeExam } from '@/lib/services/exam';
 import { getHomeworkForBanner } from '@/lib/services/homework';
-import { createLog, logAndReview } from '@/lib/services/progressLog';
 import type { ExamStatus } from '@/types';
 
 type HomeworkTask = Awaited<ReturnType<typeof getHomeworkForBanner>>;

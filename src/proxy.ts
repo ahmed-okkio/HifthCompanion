@@ -27,8 +27,9 @@ export async function proxy(request: NextRequest) {
   // Env only: the x-e2e-test header is client-controlled and must never bypass auth.
   const isE2E = process.env.PLAYWRIGHT_TEST === 'true';
   if (isE2E) {
-    // Not re-set on mapped shell routes: a Set-Cookie on a Server Action response marks it
-    // revalidated, and the refresh on a rewritten /reader/<n> can end in a hard reload (0016 M5).
+    // Not re-set on mapped shell routes (/reader/<n>, /tracker/**): a Set-Cookie on a Server
+    // Action response marks it revalidated, and the refresh on a rewritten route can end in a hard
+    // reload (0016 M5); tracker flows must not depend on that refresh either (M6).
     if (!(rewritten && request.cookies.get('x-e2e-test'))) response.cookies.set('x-e2e-test', 'true');
     return response;
   }

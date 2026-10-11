@@ -1,6 +1,6 @@
 'use server';
 
-import { createClient, createClientAction } from '@/lib/supabase/server';
+import { createClientAction } from '@/lib/supabase/server';
 import type { MembershipNote } from '@/types';
 import { getProfilesByIds } from '@/lib/services/profile';
 
@@ -29,20 +29,3 @@ export async function postNote(
   return { ...note, first_name: p?.first_name, last_name: p?.last_name };
 }
 
-/** Full thread for a membership, newest first, each note carrying its author. */
-export async function listNotes(membershipId: string): Promise<NoteWithAuthor[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('membership_note')
-    .select('*')
-    .eq('membership_id', membershipId)
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-
-  const rows = (data ?? []) as MembershipNote[];
-  const profiles = await getProfilesByIds(rows.map((r) => r.author_id));
-  return rows.map((r) => {
-    const p = profiles.get(r.author_id);
-    return { ...r, first_name: p?.first_name, last_name: p?.last_name };
-  });
-}

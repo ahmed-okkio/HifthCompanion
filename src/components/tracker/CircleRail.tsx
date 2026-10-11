@@ -9,11 +9,15 @@
  * (AppShell stacks it above the content there). RTL-safe via logical properties.
  */
 
+import { createCircle } from '@/lib/tracker/actions';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { usePathname } from '@/lib/i18n/usePathname';
+import { usePathname, useHydrated } from '@/lib/i18n/usePathname';
+import { useQuery } from '@tanstack/react-query';
+import { createClient } from '@/lib/supabase/client';
+import { qk } from '@/lib/query/keys';
+import { loadRail } from '@/lib/tracker/reads';
 import { useI18n } from '@/components/I18nProvider';
-import { createCircle } from '@/lib/services/circle';
 import type { RailCircle } from '@/lib/tracker/railCircles';
 import { ActionButton, Avatar, Icon } from './ui';
 import { LAST_CIRCLE_KEY } from '@/lib/tracker/lastCircle';
@@ -21,6 +25,14 @@ import { useCircleReady } from './CircleReady';
 import { Sk } from '@/components/Skeleton';
 
 export type { RailCircle };
+
+/** The rail fed client-side (PRD 0016 E1): skeleton until the rail query has data. */
+export const useRail = () => useQuery({ queryKey: qk.trackerRail, queryFn: () => loadRail(createClient()) });
+
+export function CircleRailLive() {
+  const q = useRail();
+  return q.data ? <CircleRail circles={q.data.circles} /> : <RailSkeleton count={3} />;
+}
 
 export default function CircleRail({ circles }: { circles: RailCircle[] }) {
   const { t } = useI18n();
@@ -30,7 +42,9 @@ export default function CircleRail({ circles }: { circles: RailCircle[] }) {
   const [hovered, setHovered] = useState<string | null>(null);
   // Active circle derived from the URL (the rail lives in a persistent layout that
   // doesn't re-render per switch, so it can't get currentId from the server).
-  const routeId = pathname?.match(/^\/tracker\/(?!join(?:\/|$))([^/]+)/)?.[1];
+  // Not while hydrating: the shell's own path (/tracker/circle) is not a circle id.
+  const hydrated = useHydrated();
+  const routeId = !hydrated ? undefined : pathname?.match(/^\/tracker\/(?!join(?:\/|$))([^/]+)/)?.[1];
   // Optimistic selection: highlight the tapped circle immediately, before the route
   // actually changes. Sync when the pathname catches up.
   const [selected, setSelected] = useState(routeId);
@@ -132,7 +146,7 @@ export default function CircleRail({ circles }: { circles: RailCircle[] }) {
       {creating && (
         <CreateCircleModal
           onClose={() => setCreating(false)}
-          onCreated={(id) => { setCreating(false); router.push(`/tracker/${id}`); router.refresh(); }}
+          onCreated={(id) => { setCreating(false); router.push(`/tracker/${id}`); }}
         />
       )}
     </nav>

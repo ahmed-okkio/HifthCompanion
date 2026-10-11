@@ -1,26 +1,8 @@
 'use server';
 
-import { createClient, createClientAction } from '@/lib/supabase/server';
-import { normalizeBody, sectionAgenda, DONE_RETENTION_DAYS } from '@/lib/agenda';
+import { createClientAction } from '@/lib/supabase/server';
+import { normalizeBody } from '@/lib/agenda';
 import type { AgendaTask } from '@/types';
-
-/**
- * A membership's agenda: all open items oldest-first, then items done within the
- * last 30 days newest-done-first (C1, C2). No membership filtering here — RLS
- * (B1) is the gate, so a caller who does not teach the membership gets nothing (C7).
- */
-export async function listAgenda(membershipId: string): Promise<AgendaTask[]> {
-  const now = new Date();
-  const cutoff = new Date(now.getTime() - DONE_RETENTION_DAYS * 24 * 60 * 60_000).toISOString();
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('agenda_item')
-    .select('*')
-    .eq('membership_id', membershipId)
-    .or(`done_at.is.null,done_at.gte.${cutoff}`);
-  if (error) throw error;
-  return sectionAgenda((data ?? []) as AgendaTask[], now);
-}
 
 /** Add an item. Empty or whitespace-only bodies are rejected before any write (C3). */
 export async function addItem(membershipId: string, body: string): Promise<AgendaTask> {

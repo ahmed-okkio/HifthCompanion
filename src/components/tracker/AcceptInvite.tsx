@@ -1,9 +1,9 @@
 'use client';
 
+import { acceptMembership } from '@/lib/tracker/actions';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
-import { acceptMembership } from '@/lib/services/membership';
 import { ActionButton, PageHeader } from './ui';
 
 /**
@@ -32,8 +32,8 @@ export default function AcceptInvite({
     setError(null);
     try {
       await acceptMembership(membershipId);
-      // pending→active: re-render the page, now landing on the student view.
-      router.refresh();
+      // pending→active: the action invalidates qk.tracker, so the circle query refetches
+      // and the page swaps to the student view (this component unmounts).
     } catch (e) {
       setError((e as Error).message);
       setBusy(false);

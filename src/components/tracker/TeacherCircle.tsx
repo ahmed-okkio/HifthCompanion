@@ -1,5 +1,6 @@
 'use client';
 
+import { rotateInviteCode, deleteCircle, inviteByEmail, setMembershipStatus, materializeSession, setSessionCanceled, rescheduleSession, assignSubstitutes, removeSubstitution } from '@/lib/tracker/actions';
 import { useState, useEffect } from 'react';
 import { useClientValue } from '@/hooks/useClientValue';
 import { useNow } from '@/hooks/useNow';
@@ -8,11 +9,8 @@ import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import type { Circle, Membership, MemberWithProfile, Session } from '@/types';
 import { displayName } from '@/lib/displayName';
-import { rotateInviteCode, deleteCircle } from '@/lib/services/circle';
-import { inviteByEmail, setMembershipStatus } from '@/lib/services/membership';
-import { materializeSession, setSessionCanceled, rescheduleSession } from '@/lib/services/sessions';
-import { assignSubstitutes, removeSubstitution, getManageSlots } from '@/lib/services/substitution';
-import { ActionButton, SectionTitle, EmptyState, Avatar, Chevron, DateChip, StatusDot, TabBar, TimeSelect, vt, vtName } from './ui';
+import { getManageSlots } from '@/lib/services/substitution';
+import { useSynced, ActionButton, SectionTitle, EmptyState, Avatar, Chevron, DateChip, StatusDot, TabBar, TimeSelect, vt, vtName } from './ui';
 import { SubAssignForm, CoveredBy } from './subs';
 import { sessionCue } from '@/lib/agenda';
 
@@ -62,7 +60,7 @@ export default function TeacherCircle({
   // so the first render matches the server's.
   const now = useNow(30_000);
   const inviteLink = `${origin}/tracker/join/${code}`;
-  const [students, setStudents] = useState(initialStudents);
+  const [students, setStudents] = useSynced(initialStudents);
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState('roster');

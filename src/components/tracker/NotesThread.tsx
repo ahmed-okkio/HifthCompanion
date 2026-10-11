@@ -1,9 +1,10 @@
 'use client';
 
+import { postNote } from '@/lib/tracker/actions';
 import { useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
-import { postNote, type NoteWithAuthor } from '@/lib/services/membershipNotes';
-import { ActionButton, SectionTitle, EmptyState, Avatar, PagedList, vt, vtName } from './ui';
+import { type NoteWithAuthor } from '@/lib/services/membershipNotes';
+import { useSynced, ActionButton, SectionTitle, EmptyState, Avatar, PagedList, vt, vtName } from './ui';
 
 /** Shared membership notes thread (G1/G2/G3): composer on top, newest first. */
 export default function NotesThread({
@@ -14,7 +15,7 @@ export default function NotesThread({
   initial: NoteWithAuthor[];
 }) {
   const { t, locale, fmtNum } = useI18n();
-  const [notes, setNotes] = useState(initial);
+  const [notes, setNotes] = useSynced(initial);
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
 

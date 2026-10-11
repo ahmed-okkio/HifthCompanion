@@ -6,13 +6,13 @@
 // they can mark, and the progress feed. Every teacher control (cancel,
 // reschedule, ad-hoc, schedule, exams, notes, roster, deactivate, assign-sub)
 // is absent rather than rendered-and-403'd (D1-D5). RLS is still the real gate.
+import { materializeSession, setSessionAttendance } from '@/lib/tracker/actions';
 import { useMemo, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type { AttendanceStatus, Homework, ProgressLog, Session, StatusConfig } from '@/types';
-import { materializeSession, setSessionAttendance } from '@/lib/services/sessions';
 import { GradeableLog, HomeworkPanel, StudentProfileCard, placeholderRow, upsertByInstant, useHomeworkState } from './TeacherStudent';
 import { Attribution, AttributionProvider } from './subs';
-import { SectionTitle, EmptyState, DateChip, TabBar, vt } from './ui';
+import { useSynced, SectionTitle, EmptyState, DateChip, TabBar, vt } from './ui';
 
 const ATT_STATUSES: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'];
 const key = (iso: string) => String(new Date(iso).getTime());
@@ -40,7 +40,7 @@ export default function SubStudent({
 }) {
   const { t, locale, fmtNum } = useI18n();
   const [tab, setTab] = useState('sessions');
-  const [sessions, setSessions] = useState(initialSessions);
+  const [sessions, setSessions] = useSynced(initialSessions);
   const [err, setErr] = useState<string | null>(null);
   // C4: grade fields only (the DB stamps graded_by). Shared with HomeworkPanel so
   // marking a prescription updates this tab and the KPI without a refresh.

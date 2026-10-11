@@ -1,7 +1,8 @@
+'use client';
+
 import Link from 'next/link';
-import { getCovering } from '@/lib/services/substitution';
-import { getLocale } from '@/lib/i18n/server';
-import { getDictionary } from '@/lib/i18n/dictionaries';
+import type { CoveringSession } from '@/lib/services/substitution';
+import { useI18n } from '@/components/I18nProvider';
 import { SectionTitle, Avatar, Chevron } from './ui';
 
 /**
@@ -13,12 +14,9 @@ import { SectionTitle, Avatar, Chevron } from './ui';
  * G2: circle_id comes from the RPC — a sub cannot read circle/membership (D4/D5).
  * G4: renders nothing when the caller covers nobody.
  */
-export default async function CoveringSection() {
-  const rows = await getCovering();
+export default function CoveringSection({ rows }: { rows: CoveringSession[] }) {
+  const { t, locale } = useI18n();
   if (rows.length === 0) return null;
-
-  const locale = await getLocale();
-  const dict = getDictionary(locale);
   const chip = (iso: string) =>
     new Date(iso).toLocaleString(locale, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
@@ -33,14 +31,14 @@ export default async function CoveringSection() {
   return (
     <div className="flex flex-col gap-2 mb-6">
       <SectionTitle
-        trailing={<span className="badge text-micro">{dict['subs.badge']}</span>}
+        trailing={<span className="badge text-micro">{t('subs.badge')}</span>}
       >
-        {dict['subs.covering']}
+        {t('subs.covering')}
       </SectionTitle>
       <div className="grid gap-3 sm:grid-cols-2">
         {[...byStudent.values()].map((group) => {
           const r = group[0];
-          const name = r.student_name || dict['tracker.roleStudent'];
+          const name = r.student_name || t('tracker.roleStudent');
           return (
             <div key={r.membership_id} className="card flex flex-col gap-3 p-4">
               <Link href={`/tracker/${r.circle_id}/student/${r.membership_id}`} className="flex items-center gap-2 min-w-0">
@@ -49,7 +47,7 @@ export default async function CoveringSection() {
                   <div className="flex flex-col gap-0.5 min-w-0 flex-1">
                     <span className="text-sm font-semibold truncate text-primary">{name}</span>
                     <span className="text-xs truncate text-muted">
-                      {r.circle_name} · {dict['subs.awayTeacher'].replace('{teacher}', r.teacher_name)}
+                      {r.circle_name} · {t('subs.awayTeacher').replace('{teacher}', r.teacher_name)}
                     </span>
                   </div>
                 </div>

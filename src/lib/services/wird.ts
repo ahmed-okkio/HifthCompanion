@@ -2,9 +2,9 @@
 
 import { createClient, createClientAction } from '@/lib/supabase/server';
 import { dailyRate, portionSize, wrapCycle, coveredCount } from '@/lib/wirdRate';
-import { me, dayNumber, memorizedBounds, cyclePages } from '@/lib/wirdRead';
+import { me, memorizedBounds, cyclePages } from '@/lib/wirdRead';
 import { getMyMemorization, getMyProfile } from '@/lib/services/profile';
-import { addDays, localDate } from '@/lib/localDate';
+import { localDate } from '@/lib/localDate';
 import type { Wird, WirdEntry, WirdScopeSource } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -286,63 +286,6 @@ export interface StudentWirdSummary {
   wirds: { id: string; name: string; week: boolean[] }[];
   /** Whole days since the most recent entry across all wirds; null if never. */
   days_since_last: number | null;
-}
-
-/**
- * A read-only summary of one student's wird practice for their teacher
- * (L1/D17). Scoped to the given studentId — which student to show — NOT a
- * permission check: RLS policy B3 (`public.teaches_user`) is the gate, so this
- * read returns rows only when the caller actually teaches that student. No
- * client-side teacher check here. Returns null when the student has no wirds
- * (L4 renders no card). Uses createClient (read); never writes.
- */
-export async function getStudentWirdSummary(userId: string): Promise<StudentWirdSummary | null> {
-  const supabase = await createClient();
-  const { data: wirds, error } = await supabase
-    .from('wird')
-    .select('id, name')
-    .eq('user_id', userId)
-    .is('deleted_at', null)
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  const list = (wirds ?? []) as { id: string; name: string }[];
-  if (list.length === 0) return null;
-
-  const { data: entryData, error: entryErr } = await supabase
-    .from('wird_entry')
-    .select('wird_id, entry_date')
-    .in('wird_id', list.map((w) => w.id));
-  if (entryErr) throw entryErr;
-  const entries = (entryData ?? []) as { wird_id: string; entry_date: string }[];
-
-  const today = await todayLocal();
-  const days = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
-  const lastDone = entries.reduce<string | null>(
-    (max, e) => (max === null || e.entry_date > max ? e.entry_date : max),
-    null,
-  );
-  return {
-    wirds: list.map((w) => {
-      const done = new Set(entries.filter((e) => e.wird_id === w.id).map((e) => e.entry_date));
-      return { id: w.id, name: w.name, week: days.map((d) => done.has(d)) };
-    }),
-    days_since_last: lastDone === null ? null : dayNumber(today) - dayNumber(lastDone),
-  };
-}
-
-/**
- * Every entry_date of the caller's wird entries, for the merged streak (E5, via
- * streak.mergeActivity). Soft-deleted wirds' entries are included — they still
- * count toward the streak (E6). RLS scopes the rows to the caller (F4).
- */
-export async function listWirdEntryDates(): Promise<string[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('wird_entry')
-    .select('entry_date, wird!inner(user_id)')
-    .eq('wird.user_id', await me(supabase));
-  if (error) throw error;
-  return (data ?? []).map((e: { entry_date: string }) => e.entry_date);
 }
 
 /** Whether the caller keeps any live wird — gates the Settings reminder row (0016). RLS scopes to the caller. */

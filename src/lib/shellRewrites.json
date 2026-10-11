@@ -1,1 +1,7 @@
-{ "/reader/:page": "/reader/view" }
+{
+  "/reader/:page": "/reader/view",
+  "/tracker": "/tracker",
+  "/tracker/covering": "/tracker/covering",
+  "/tracker/:circleId": "/tracker/circle",
+  "/tracker/:circleId/student/:membershipId": "/tracker/student"
+}

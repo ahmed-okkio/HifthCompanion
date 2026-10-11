@@ -79,18 +79,6 @@ function notificationRange(type: LogType, rows: Homework[]): string {
   return `${verb} ${whole ?? homeworkTarget(rows, 'en', 'Juz')}`;
 }
 
-/** Homework rows for a membership (teacher or owning student per RLS). */
-export async function listHomework(membershipId: string): Promise<Homework[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('homework')
-    .select('*')
-    .eq('membership_id', membershipId)
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return data ?? [];
-}
-
 /**
  * One homework row plus what the reader's task banner needs to mark it: the circle's
  * grade vocabulary and whether a submission already exists. The banner otherwise reads

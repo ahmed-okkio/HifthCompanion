@@ -6,4 +6,10 @@ export const qk = {
   wirdManage: ['wird', 'manage'] as const,
   sets: ['sets'] as const,
   notes: (setId: string, page: number) => ['notes', setId, page] as const,
+  // Every tracker mutation invalidates qk.tracker (src/lib/tracker/actions.ts).
+  tracker: ['tracker'] as const,
+  trackerRail: ['tracker', 'rail'] as const,
+  trackerCovering: ['tracker', 'covering'] as const,
+  trackerCircle: (circleId: string) => ['tracker', 'circle', circleId] as const,
+  trackerStudent: (circleId: string, membershipId: string) => ['tracker', 'student', circleId, membershipId] as const,
 };

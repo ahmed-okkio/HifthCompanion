@@ -8,13 +8,13 @@
  * teacher's private item list. The "waiting on you" block is M4 and lands below.
  */
 
+import { addItem, setDone, updateBody } from '@/lib/tracker/actions';
 import { useState, type ReactNode } from 'react';
 import { useClientValue } from '@/hooks/useClientValue';
 import { useI18n } from '@/components/I18nProvider';
 import type { AgendaTask, Exam, Homework, ProgressLog, Session } from '@/types';
 import { isStale, waitingOnYou } from '@/lib/agenda';
-import { addItem, setDone, updateBody } from '@/lib/services/agenda';
-import { ActionButton, SectionTitle, EmptyState, Chevron, Icon, isPending, tempId, vt, vtName } from './ui';
+import { useSynced, ActionButton, SectionTitle, EmptyState, Chevron, Icon, isPending, tempId, vt, vtName } from './ui';
 
 const DAY = 24 * 60 * 60_000;
 
@@ -38,7 +38,7 @@ export default function AgendaPanel({
   onNavigate?: (tab: string) => void;
 }) {
   const { t, fmtNum } = useI18n();
-  const [items, setItems] = useState(initial);
+  const [items, setItems] = useSynced(initial);
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState('');
   const [showDone, setShowDone] = useState(false);

@@ -3,30 +3,6 @@
 import { createClient, createClientAction } from '@/lib/supabase/server';
 import type { Circle } from '@/types';
 
-/** Circles the current user teaches (created). */
-export async function getTeachingCircles(): Promise<Circle[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('circle')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return data ?? [];
-}
-
-export async function getCircle(id: string): Promise<Circle | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('circle')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data ?? null;
-}
-
 /** Look up a circle by invite code (for the join flow). */
 export async function getCircleByCode(code: string): Promise<Circle | null> {
   const supabase = await createClient();

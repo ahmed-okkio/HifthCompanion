@@ -7,7 +7,8 @@ import { dirname, join } from 'node:path';
 // Visible route -> prerendered file under .next/server/app/{locale}/. Extend per converted route.
 // Dynamic routes come from src/lib/shellRewrites.json ("/reader/:page" -> static "/reader/view"):
 // a fallback shell for "[page]" keeps holes only the server fills, so the proxy rewrites to a
-// static route instead and the SW matches the pattern.
+// static route instead and the SW matches the pattern. Literal entries ("/tracker/covering")
+// are exact keys, which win over patterns in the proxy and the SW (one rule, shellMatch.test.ts).
 const REWRITES = JSON.parse(readFileSync('src/lib/shellRewrites.json', 'utf8'));
 const ROUTES = {
   '/wird': 'wird', '/wird/manage': 'wird/manage', '/sets': 'sets', '/reader': 'reader',

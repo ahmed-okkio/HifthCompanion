@@ -57,7 +57,11 @@ test.describe('Progression Tracker (Authenticated)', () => {
     await create(`Rail B ${stamp}`);
     await expect(page).not.toHaveURL(urlA);
 
-    // Hold the RSC navigation response so the slow-server window is observable.
+    // Circles share one static shell route (PRD 0016 M6), so a revisited circle comes from the
+    // router cache without a server round-trip. Reload for a cold router cache, then hold the
+    // RSC navigation response so the slow-server window is observable.
+    await page.reload();
+    await expect(page.getByRole('button', { name: new RegExp(`^Rail A ${stamp}`) })).toBeVisible();
     let release!: () => void;
     const held = new Promise<void>((r) => { release = r; });
     await page.route(/\/tracker\//, async (route) => {

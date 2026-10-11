@@ -2,6 +2,7 @@
 
 import { createClientAction } from '@/lib/supabase/server';
 import { after } from 'next/server';
+import * as reads from '@/lib/tracker/reads';
 
 import { notifySubstitution, type SubAssignment } from '@/lib/email/notify';
 import { getCircleMembersWithProfiles } from '@/lib/services/membership';
@@ -171,28 +172,10 @@ export async function removeSubstitution(
 export async function listSubstitutions(
   membershipIds: string[],
 ): Promise<SubRow[]> {
-  if (membershipIds.length === 0) return [];
-  const supabase = await createClientAction();
-  const { data, error } = await supabase
-    .from('substitution')
-    .select('membership_id, scheduled_at, substitute_user_id')
-    .in('membership_id', membershipIds);
-  if (error) throw error;
-  return data ?? [];
-}
-
-/**
- * The caller's own active coverage for ONE membership (G2 scoped page). Same
- * RPC, same active-only guarantee — empty means no active coverage.
- */
-export async function getCoveringFor(membershipId: string): Promise<CoveringSession[]> {
-  return (await getCovering()).filter((r) => r.membership_id === membershipId);
+  return reads.listSubstitutions(await createClientAction(), membershipIds);
 }
 
 /** The caller's own active coverage (G3) — feeds the UI Covering section. */
 export async function getCovering(): Promise<CoveringSession[]> {
-  const supabase = await createClientAction();
-  const { data, error } = await supabase.rpc('covering_sessions');
-  if (error) throw error;
-  return data ?? [];
+  return reads.getCovering(await createClientAction());
 }

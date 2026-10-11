@@ -187,6 +187,60 @@ test('each cached shell has its /_next/static assets precached (skew)', async ({
   expect(missing.out).toEqual([]);
 });
 
+/** Persisted query keys (IDB, throttled 1s) — "visited" means the data is in here. */
+const persistedKeys = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<string>((resolve) => {
+        const r = indexedDB.open('keyval-store');
+        r.onsuccess = () => {
+          const g = r.result.transaction('keyval').objectStore('keyval').get('hc-query');
+          g.onsuccess = () =>
+            resolve(JSON.stringify((g.result?.clientState?.queries ?? []).map((q: { queryKey: unknown }) => q.queryKey)));
+        };
+        r.onerror = () => resolve('');
+      }),
+  );
+
+test('/tracker/<id> cold-launches offline from the SW with cached data; /tracker/covering is its own shell (M6)', async ({ page, context }) => {
+  guardConsole(page);
+  // A circle the mock user teaches, plus one student. Unique ids: the server store is shared.
+  const id = `pwa${Date.now()}`;
+  const name = `PWA Circle ${id}`;
+  const statuses = [{ label: 'Good', polarity: 'positive' }];
+  await page.request.post('/api/test/tracker', {
+    data: {
+      seed: {
+        circle: [{ id, name, teacher_id: '52345ff6-3348-40d5-b6d8-1234567890ab', invite_code: id, student_statuses: statuses, teacher_statuses: statuses, created_at: new Date().toISOString() }],
+        membership: [{ id: `${id}-t`, circle_id: id, user_id: '52345ff6-3348-40d5-b6d8-1234567890ab', role: 'teacher', status: 'active', schedule: null, joined_at: new Date().toISOString() }],
+      },
+    },
+  });
+  await page.goto('/wird');
+  await swReady(page);
+
+  // /tracker/covering is the literal route's own shell, not the "/tracker/:circleId" one.
+  const cov = await page.goto('/tracker/covering');
+  expect(cov?.fromServiceWorker()).toBe(true);
+  await expect(page.getByText('Nothing to cover right now.')).toBeVisible();
+
+  const online = await page.goto(`/tracker/${id}`);
+  expect(online?.fromServiceWorker()).toBe(true);
+  await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible();
+  await expect.poll(() => persistedKeys(page)).toContain(`["tracker","circle","${id}"]`);
+
+  await context.setOffline(true);
+  const cold = await context.newPage();
+  guardConsole(cold);
+  const off = await cold.goto(`/tracker/${id}`);
+  expect(off?.fromServiceWorker()).toBe(true);
+  await expect(cold).not.toHaveTitle(/Offline/);
+  await expect(cold.getByRole('heading', { name, level: 1 })).toBeVisible();
+  await expect(cold.getByRole('button', { name: new RegExp(`^${name}`) })).toBeVisible(); // rail, cached
+  await expect(cold.getByText('Invite link', { exact: true })).toBeVisible();
+  await context.setOffline(false);
+});
+
 test.describe('signed out', () => {
   // E2E auth cookie only; no sb-auth-token = no session for the mock client.
   test.use({ storageState: { cookies: [{ name: 'x-e2e-test', value: 'true', domain: 'localhost', path: '/', expires: -1, httpOnly: false, secure: false, sameSite: 'Lax' }], origins: [] } });

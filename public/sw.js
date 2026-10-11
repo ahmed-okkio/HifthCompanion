@@ -146,16 +146,32 @@ self.addEventListener("fetch", (event) => {
   }
 });
 
+// <shell-match> Same rule as src/lib/shellRewrites.ts (src/tests/shellMatch.test.ts runs both):
+// an exact route wins (literal /tracker/covering over /tracker/:circleId), else the first
+// ":param" pattern, metacharacters escaped. Compiled patterns are cached for the SW's life.
+const compiledRoutes = new Map();
+function matchRoute(routes, path) {
+  if (Object.prototype.hasOwnProperty.call(routes, path)) return routes[path];
+  for (const p of Object.keys(routes)) {
+    if (!p.includes(":")) continue;
+    let re = compiledRoutes.get(p);
+    if (!re) {
+      re = new RegExp(`^${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/:\w+/g, "[^/]+")}$`);
+      compiledRoutes.set(p, re);
+    }
+    if (re.test(path)) return routes[p];
+  }
+  return null;
+}
+// </shell-match>
+
 async function shellFor(pathname) {
   const cache = await caches.open(CACHE_VERSION);
   const manifestRes = await cache.match(`${SHELL_BASE}/manifest.json`);
   if (!manifestRes) return null;
   const { routes } = await manifestRes.json();
   const path = pathname.replace(/\/+$/, "") || "/";
-  // Exact route, else a dynamic pattern ("/reader/:page", src/lib/shellRewrites.json).
-  const file =
-    routes[path] ||
-    Object.entries(routes).find(([p]) => p.includes(":") && new RegExp(`^${p.replace(/:[^/]+/g, "[^/]+")}$`).test(path))?.[1];
+  const file = matchRoute(routes, path);
   if (!file) return null;
   const stored = await caches.open(LOCALE_CACHE).then((c) => c.match(LOCALE_KEY));
   const locale = (stored && (await stored.text())) || DEFAULT_LOCALE;

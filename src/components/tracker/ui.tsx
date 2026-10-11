@@ -655,6 +655,18 @@ export function TabBar({
 }
 
 /** Short, friendly label for a member that has no profile name yet. */
+/**
+ * Local state seeded from a prop that also follows the prop when it changes: the screen's data
+ * is restored from the persisted cache first, then refetched (PRD 0016 E2/E3), and refetched
+ * again after each mutation (E9). Structural sharing keeps the reference while nothing changed.
+ */
+export function useSynced<T>(prop: T) {
+  const [value, setValue] = useState(prop);
+  const [seen, setSeen] = useState(prop);
+  if (seen !== prop) { setSeen(prop); setValue(prop); }
+  return [value, setValue] as const;
+}
+
 export function shortId(id: string) {
   return id.slice(0, 6);
 }

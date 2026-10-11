@@ -19,6 +19,7 @@ const en = {
   'common.copied': 'Copied!',
   'common.saved': 'Saved',
   'common.failed': 'Failed to save',
+  'common.offlineWrite': "You're offline. This change was not saved.",
 
   'lang.label': 'Language',
   'lang.en': 'English',
@@ -665,6 +666,7 @@ const ar: Record<MessageKey, string> = {
   'common.copied': 'تم النسخ!',
   'common.saved': 'تم الحفظ',
   'common.failed': 'تعذر الحفظ',
+  'common.offlineWrite': 'أنت غير متصل. لم يُحفظ هذا التغيير.',
 
   'lang.label': 'اللغة',
   'lang.en': 'English',

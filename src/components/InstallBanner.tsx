@@ -26,7 +26,7 @@ interface InstallEvent extends Event {
 
 type Mode = 'none' | 'prompt' | 'ios-safari' | 'ios-other';
 
-function isStandalone(): boolean {
+export function isStandalone(): boolean {
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
     (window.navigator as { standalone?: boolean }).standalone === true

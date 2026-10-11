@@ -652,3 +652,18 @@ test('a SW whose build is no longer deployed unregisters itself, so the app cann
     )
     .toBe(false);
 });
+
+for (const installed of [true, false]) {
+  test(`the notifications banner shows only in the installed app (installed: ${installed})`, async ({ page }) => {
+    guardConsole(page);
+    await page.addInitScript((installed) => {
+      Object.defineProperty(Notification, 'permission', { get: () => 'default' });
+      const mm = window.matchMedia.bind(window);
+      window.matchMedia = (q: string) =>
+        q === '(display-mode: standalone)' ? ({ ...mm(q), matches: installed } as MediaQueryList) : mm(q);
+    }, installed);
+    await page.goto('/wird');
+    await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+    await expect(page.locator('.notify-banner')).toHaveCount(installed ? 1 : 0);
+  });
+}

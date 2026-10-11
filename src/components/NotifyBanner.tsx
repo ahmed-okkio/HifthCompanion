@@ -18,6 +18,7 @@
 import { useEffect, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import { PUSH_CHANGED, pushSupported, subscribeToPush } from '@/lib/push/client';
+import { isStandalone } from '@/components/InstallBanner';
 
 const DISMISS_KEY = 'hifth:notifyDismissed';
 
@@ -29,7 +30,8 @@ export default function NotifyBanner() {
   const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 
   useEffect(() => {
-    if (!pushSupported() || !vapidKey) return;
+    // Installed app only: in a browser tab the install banner is the nudge; Settings keeps the toggle.
+    if (!isStandalone() || !pushSupported() || !vapidKey) return;
     // 'granted' → already on (PushToggle re-subscribes if the sub was lost).
     // 'denied'  → the prompt is spent; nagging cannot undo it.
     if (Notification.permission !== 'default') return;

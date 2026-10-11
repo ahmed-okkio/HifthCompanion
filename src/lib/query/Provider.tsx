@@ -39,8 +39,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       if (userId === null) await clearQueryCache(qc);
       else {
-        const u = await restoreFor(qc, userId);
-        if (alive) unsub = u; else u();
+        unsub = await restoreFor(qc, userId, () => alive);
       }
       if (alive) setRestoring(false);
     })();

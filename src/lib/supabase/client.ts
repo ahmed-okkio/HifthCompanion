@@ -15,7 +15,8 @@ function e2eUserIdFromCookie(): string {
 }
 
 export function createClient() {
-  const isE2E = typeof window !== 'undefined' && document.cookie.includes('x-e2e-test=true');
+  // Build-time gate: production bundles never select the mock, whatever the cookie says.
+  const isE2E = process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST === 'true' && typeof window !== 'undefined' && document.cookie.includes('x-e2e-test=true');
 
   if (isE2E) {
     // Do not cache across identities: each Playwright context acts as a

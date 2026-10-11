@@ -2,8 +2,9 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { render, act } from '@testing-library/react';
 
 const store = new Map<string, unknown>();
+let getGate: Promise<void> | null = null; // blocks the next IDB read once
 vi.mock('idb-keyval', () => ({
-  get: async (k: string) => store.get(k),
+  get: async (k: string) => { const g = getGate; getGate = null; if (g) await g; return store.get(k); },
   set: async (k: string, v: unknown) => { store.set(k, v); },
   del: async (k: string) => { store.delete(k); },
 }));
@@ -83,5 +84,23 @@ describe('query cache persistence (PRD 0016 E5-E7, F3)', () => {
     act(() => authCb!('SIGNED_OUT', null));
     await act(async () => { await new Promise((r) => setTimeout(r, 20)); });
     expect(store.has(IDB_KEY)).toBe(false);
+  });
+
+  it('provider: a restore superseded by a new user never hydrates (E7 race)', async () => {
+    vi.resetModules();
+    await seedFor('A', 'a-data');
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    getGate = gate;
+    sessionUser = 'A';
+    const { QueryProvider, queryClient } = await import('@/lib/query/Provider');
+    render(<QueryProvider>{null}</QueryProvider>);
+    await act(async () => { await new Promise((r) => setTimeout(r, 20)); }); // A's restore is now blocked on IDB
+    act(() => authCb!('SIGNED_IN', { user: { id: 'B' } }));
+    await act(async () => { release(); await new Promise((r) => setTimeout(r, 20)); });
+    expect(queryClient.getQueryData(['k'])).toBeUndefined();
+    await act(async () => { await flushSave(); });
+    const saved = store.get(IDB_KEY) as { clientState: { queries: { state: { data: unknown } }[] } } | undefined;
+    expect(JSON.stringify(saved ?? null)).not.toContain('a-data');
   });
 });

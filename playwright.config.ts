@@ -40,6 +40,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     env: {
       PLAYWRIGHT_TEST: 'true',
+      NEXT_PUBLIC_PLAYWRIGHT_TEST: 'true',
     },
   },
   projects: [

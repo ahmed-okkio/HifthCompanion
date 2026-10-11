@@ -56,6 +56,10 @@ test.describe('Wird daily screen', () => {
     await reset(page, [seedWird('w-o5', 'Fajr wird', 10)]);
 
     await page.goto('/wird');
+    // Hydrated + streamed in before Done: a tap racing the router mount was seen
+    // to drop the Done action (optimistic UI only, no POST).
+    await page.waitForLoadState('networkidle');
+    await streamSettled(page);
 
     // Outstanding card: real values, not just a button.
     await expect(page.getByText('10 pages to go')).toBeVisible();
@@ -68,8 +72,14 @@ test.describe('Wird daily screen', () => {
 
     // Hold every server round-trip (the Done write + the refresh) so anything
     // shown below is known before Done, not fetched after it.
+    // Released by flag, not unroute(): unrouting while a handler sleeps makes its
+    // continue() fail and the request hang, stalling the queued Done action.
+    let release!: () => void;
+    const released = new Promise<void>((r) => { release = r; });
     await page.route('**/wird**', async (route) => {
-      if (route.request().resourceType() === 'fetch') await new Promise((r) => setTimeout(r, 8000));
+      if (route.request().resourceType() === 'fetch') {
+        await Promise.race([released, new Promise((r) => setTimeout(r, 8000))]);
+      }
       await route.continue().catch(() => {});
     });
 
@@ -87,12 +97,13 @@ test.describe('Wird daily screen', () => {
     // original opening ref.
     const nextText = await nextLine.innerText();
     expect(nextText).not.toContain(openingRef);
-    await page.unroute('**/wird**');
+    release();
     await written;
 
     // Entry persisted (not just optimistic UI): a fresh navigation still shows
     // done, driven by the server re-read of wird_entry.
     await page.goto('/wird');
+    await streamSettled(page);
     await expect(page.getByRole('heading', { name: 'All done today' })).toBeVisible();
     await expect(page.getByText('10 pages to go')).toHaveCount(0);
     // The server's advanced position matches what was shown up front.
@@ -105,6 +116,7 @@ test.describe('Wird daily screen', () => {
     await reset(page, [seedWird('w-a', 'Morning wird', 5), seedWird('w-b', 'Evening wird', 5)]);
 
     await page.goto('/wird');
+    await streamSettled(page);
     // Two outstanding wirds → not all done yet.
     await expect(page.getByRole('heading', { name: 'All done today' })).toHaveCount(0);
 
@@ -124,6 +136,7 @@ test.describe('Wird daily screen', () => {
     await reset(page, [seedWird('w-1', 'Wird A', 5), seedWird('w-2', 'Wird B', 6), seedWird('w-3', 'Wird C', 7)]);
 
     await page.goto('/wird');
+    await streamSettled(page);
     // The card centred in the strip (scroll-clipped, so measured, not toBeInViewport).
     const centred = () => page.evaluate(() => {
       const slides = [...document.querySelectorAll('.wird-slide')];
@@ -163,6 +176,7 @@ test.describe('Wird daily screen', () => {
     await reset(page, []); // empty state → the direct New wird button
 
     await page.goto('/wird');
+    await streamSettled(page);
     await page.getByRole('button', { name: 'New wird' }).first().click();
     const dialog = page.getByRole('dialog', { name: 'New wird' });
     await dialog.getByLabel('Name').fill('Midway wird');
@@ -173,6 +187,7 @@ test.describe('Wird daily screen', () => {
 
     // Outcome, read back from the server: pages 5..10 remain, not the full 10.
     await page.goto('/wird');
+    await streamSettled(page);
     await expect(page.getByText('6 pages to go')).toHaveCount(1);
     await expect(page.getByText('10 pages to go')).toHaveCount(0);
   });
@@ -187,6 +202,7 @@ test.describe('Wird daily screen', () => {
     await page.request.post('/api/test/tracker', { data: { seed: { wird_entry: [entry('w-fresh', 1), entry('w-missed', 2)] } } });
 
     await page.goto('/wird');
+    await streamSettled(page);
     await expect(page.getByText('9 pages to go')).toHaveCount(2); // both entries counted
     await expect(page.getByText(/^Waiting/)).toHaveCount(1);
     await expect(page.getByText('Waiting since yesterday')).toHaveCount(1);
@@ -197,6 +213,7 @@ test.describe('Wird daily screen', () => {
     await reset(page, [seedWird('w-first', 'First wird', 10)]);
 
     await page.goto('/wird');
+    await streamSettled(page);
     const dialog = page.getByRole('dialog', { name: 'New wird' });
     for (const name of ['Second wird', 'Third wird']) {
       await page.getByRole('button', { name: 'Options' }).click();
@@ -237,6 +254,7 @@ test.describe('Wird daily screen', () => {
     });
 
     await page.goto('/wird');
+    await streamSettled(page);
     await page.getByRole('button', { name: 'New wird' }).first().click();
     const dialog = page.getByRole('dialog', { name: 'New wird' });
     await dialog.getByLabel('Name').fill('Memorized midway');
@@ -257,6 +275,7 @@ test.describe('Wird daily screen', () => {
 
     // Outcome: pages 3 and 604 remain (gap 4..603 skipped), not all 4.
     await page.goto('/wird');
+    await streamSettled(page);
     await expect(page.getByText('2 pages to go')).toHaveCount(1);
     await expect(page.getByText('4 pages to go')).toHaveCount(0);
   });
@@ -280,6 +299,7 @@ test.describe('Wird daily screen', () => {
     await expect(page.locator('[data-done]')).toHaveCount(0);
 
     await page.goto('/wird');
+    await streamSettled(page);
     await outstandingDone(page).click();
     await expect(page.getByRole('heading', { name: 'All done today' })).toBeVisible({ timeout: 15000 });
 
@@ -309,6 +329,7 @@ test.describe('Wird daily screen', () => {
     // area. Simulate it; the screen must still fit, since it can't rely on dvh.
     await page.setViewportSize({ width: 390, height: 700 });
     await page.goto('/wird');
+    await streamSettled(page);
     await page.addStyleTag({ content: '.min-h-dvh { min-height: calc(100dvh + 46px); }' });
     await expect(page.getByText('10 pages to go')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);
@@ -388,6 +409,7 @@ test.describe('Wird reminder', () => {
     });
     await reset(page, []);
     await page.goto('/wird');
+    await streamSettled(page);
 
     const create = async (name: string) => {
       const dialog = page.getByRole('dialog', { name: 'New wird' });
@@ -417,6 +439,7 @@ test.describe('Wird reminder', () => {
     // Once per device: deleting back to zero and creating again doesn't re-ask.
     await reset(page, []);
     await page.goto('/wird');
+    await streamSettled(page);
     await page.getByRole('button', { name: 'New wird' }).first().click();
     await create('Second first wird');
     await expect(page.getByText('10 pages to go')).toHaveCount(1);

@@ -37,3 +37,17 @@ test.describe('Annotation Sets (Authenticated)', () => {
     await expect(page.locator('h1')).toContainText('My Annotation Sets');
   });
 });
+
+// PRD 0016 B1/B2/B4/B5: hidden [locale] segment — visible URL has no prefix, html lang/dir
+// is right on first byte, and a cookie change applies on the next request. Asserts on raw
+// server HTML: a browser load of the Arabic font trips CORS on the global x-e2e-test header.
+test('locale cookie renders /sets in Arabic RTL with unprefixed URL', async ({ request }) => {
+  const ar = await request.get('/sets', { headers: { cookie: 'locale=ar' } });
+  expect(ar.url()).toMatch(/\/sets$/);
+  const arHtml = await ar.text();
+  expect(arHtml).toMatch(/<html[^>]*lang="ar"[^>]*dir="rtl"/);
+
+  const en = await request.get('/sets', { headers: { cookie: 'locale=en' } });
+  const enHtml = await en.text();
+  expect(enHtml).toMatch(/<html[^>]*lang="en"[^>]*dir="ltr"/);
+});

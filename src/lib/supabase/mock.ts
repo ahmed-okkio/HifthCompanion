@@ -287,7 +287,11 @@ class MockQueryBuilder {
   private applyFilters<T extends Row>(items: T[]): T[] {
     let result = [...items];
     for (const filter of this.filters) {
-      result = result.filter(item => item[filter.field] == filter.value);
+      // `.eq('wird.user_id', x)` filters on an embedded `wird!inner(...)` row: join via `wird_id`.
+      const [rel, col] = filter.field.split('.');
+      result = col
+        ? result.filter(item => trackerGet(rel).find((r: Row) => r.id === item[`${rel}_id`])?.[col] == filter.value)
+        : result.filter(item => item[filter.field] == filter.value);
     }
     for (const f of this.inFilters) {
       result = result.filter(item => f.values.includes(item[f.field]));

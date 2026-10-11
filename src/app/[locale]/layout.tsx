@@ -6,8 +6,8 @@ import { I18nProvider } from "@/components/I18nProvider";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { TopProgressBar } from "@/components/TopProgressBar";
 import { SplashIntro } from "@/components/SplashIntro";
-import { dirFor } from "@/lib/i18n/config";
-import { getLocale } from "@/lib/i18n/server";
+import { notFound } from "next/navigation";
+import { defaultLocale, dirFor, isLocale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 
 // UI typeface: Plus Jakarta Sans — a modern, geometric sans for a premium feel.
@@ -30,8 +30,13 @@ const brand = Outfit({
   weight: ["400"],
 });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const dict = getDictionary(await getLocale());
+// Locale comes from the hidden [locale] segment (proxy rewrites /x -> /{cookie locale}/x),
+// so this layout reads no cookies/headers (PRD 0016 B3).
+type LocaleParams = { params: Promise<{ locale: string }> };
+
+export async function generateMetadata({ params }: LocaleParams): Promise<Metadata> {
+  const { locale } = await params;
+  const dict = getDictionary(isLocale(locale) ? locale : defaultLocale);
   return {
     title: dict['common.metaTitle'],
     description: dict['common.metaDescription'],
@@ -59,10 +64,10 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  const locale = await getLocale();
+  params,
+}: Readonly<{ children: React.ReactNode } & LocaleParams>) {
+  const { locale } = await params;
+  if (!isLocale(locale)) notFound();
   return (
     <html lang={locale} dir={dirFor(locale)} className={`${sans.variable} ${geistMono.variable} ${brand.variable}`}>
       <body className="font-sans">

@@ -42,6 +42,7 @@ export default function ProfileMenu({ name, email }: { name: string; email: stri
   async function logout() {
     const supabase = createClient();
     await supabase.auth.signOut();
+    document.cookie = 'hc-onboarded=; Max-Age=0; path=/'; // next user re-checks onboarding (A8)
     setOpen(false);
     router.push('/login');
   }

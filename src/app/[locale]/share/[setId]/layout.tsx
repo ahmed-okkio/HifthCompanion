@@ -1,6 +1,6 @@
 import ReaderShell from '@/components/ReaderShell';
 import { resolveShareCapability } from '@/lib/services/share';
-import { getLocale } from '@/lib/i18n/server';
+import { isLocale, defaultLocale } from '@/lib/i18n/config';
 import { getDictionary } from '@/lib/i18n/dictionaries';
 
 export const dynamic = 'force-dynamic';
@@ -16,14 +16,14 @@ export default async function ShareLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ setId: string }>;
+  params: Promise<{ setId: string; locale: string }>;
 }) {
-  const { setId } = await params;
+  const { setId, locale } = await params;
   const cap = await resolveShareCapability(setId);
 
   if (cap.kind !== 'collaborator') return <>{children}</>;
 
-  const dict = getDictionary(await getLocale());
+  const dict = getDictionary(isLocale(locale) ? locale : defaultLocale);
   const { user, annotationSet, account, ownerName } = cap;
 
   const banner = (

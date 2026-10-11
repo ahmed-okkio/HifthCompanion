@@ -1,5 +1,6 @@
 'use server';
 
+import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { displayName } from '@/lib/displayName';
 import { validate, normalize } from '@/lib/memorization';
@@ -182,4 +183,6 @@ export async function saveMemorization(
     { onConflict: 'user_id' },
   );
   if (error) throw error;
+  // Proxy's onboarding gate skips its user_hifth query while this is set (PRD 0016 A7).
+  (await cookies()).set('hc-onboarded', '1', { path: '/', maxAge: 31536000, sameSite: 'lax' });
 }

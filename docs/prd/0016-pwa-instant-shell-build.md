@@ -71,3 +71,27 @@ chrome-agent was not used. Playwright's bundled Chromium gave scripted access to
 2. Have the SW do a GET for the whole page instead of a resume. The document must still be
    one stream, so a cached shell can't be combined with a fresh full page. This means no instant cold launch.
 3. Raise it with Vercel (POST to PPR route is 405 at the edge) or self-host. Out of scope.
+
+### Outcome (2026-10-11)
+
+Author chose a new architecture (PRD v2). Branch rebased onto master (SW hotfix 9063f6e). SW resume
+code, `scripts/build-shells.mjs` and its `.gitignore`/`package.json` hooks removed; `sw.js` keeps the
+hotfix (no authenticated HTML cached) plus `/_next/static` cache-first. Full e2e: 86 passed, 1 flaky
+(`tracker.spec.ts:19`, passed on retry).
+
+## Milestone ladder (v2)
+
+Serial slices; each ends with tsc + build:check + test + the area e2e, and its contract IDs PASS.
+
+| M | Goal | Files likely touched | Contract IDs |
+|---|------|----------------------|--------------|
+| M1 | Query infra: `QueryClientProvider` + IndexedDB persister, buster `${userId}:${buildId}`, discard on mismatch, clear on logout/user switch; e2e mock data path decided (PRD dec. 17) | `package.json` (`@tanstack/react-query`, `@tanstack/react-query-persist-client`, `idb-keyval`), `src/lib/query/{client,persist,keys}.ts`, `src/app/[locale]/layout.tsx`, `src/components/ProfileMenu.tsx` (signOut), `src/lib/supabase/{client,mock}.ts`, Vitest | E5, E6, E7 (unit), F3 (persist part) |
+| M2 | Convert `/wird` (+ `/wird/manage`): client data sections, skeleton only without cache, mutations invalidate; route becomes a complete static shell | `src/app/[locale]/wird/**`, wird components/actions, `src/tests/e2e/wird*.spec.ts` | C2–C4, C6, E1–E4, E9, E10 (wird) |
+| M3 | Static shell per route + offline: postbuild shell copy with postponed-check, per-build SW registration, shell precache, cache-first shell navigations, purge, locale postMessage, client auth redirect on shell launch | `scripts/build-shells.mjs` (new version), `package.json`, `.gitignore`, `public/sw.js`, SW registration component, `playwright.config.ts` (`pwa` project, `serviceWorkers:'block'` elsewhere) | C5, D2–D9, E8, F1 |
+| M4 | Convert `/sets` | `src/app/[locale]/sets/**`, sets components | C2–C4, C6, E1–E4, E9 (sets) |
+| M5 | Convert `/reader` + `/reader/[page]` (params client-side) | `src/app/[locale]/reader/**`, `ReaderShell`, annotation hooks | same (reader) |
+| M6 | Convert `/tracker/**` (resolves B3 for tracker layouts) | `src/app/[locale]/tracker/**`, `src/components/tracker/**` | same + B3 (tracker) |
+| M7 | Convert `/share/**` + `/shared` (resolves B3 for share layout) | `src/app/[locale]/share/**`, `shared/**` | same + B3 (share) |
+| M8 | Convert `/settings`, `/install` | those routes | same |
+| M9 | `pwa` e2e area + flaky tracker fixes (`tracker.spec.ts:41`, `:109`, `:19`) | `src/tests/e2e/pwa.spec.ts`, `tracker.spec.ts`, `package.json` (`test:e2e:pwa`) | F2a–F2e, F4 |
+| M10 | Final verification on a Vercel preview from a real browser (cold launch offline, user switch) | build log evidence | all, F5 |

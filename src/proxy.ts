@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { isProtected } from '@/lib/protectedPaths';
 import { defaultLocale, isLocale, LOCALE_COOKIE } from '@/lib/i18n/config';
+import { shellRewrite } from '@/lib/shellRewrites';
 
 /** Set once the user is known to be onboarded; skips the user_hifth query (PRD 0016 A5/A6).
  *  Not httpOnly so logout can clear it client-side. A forged cookie only skips a UX redirect —
@@ -12,10 +13,12 @@ export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   // Hidden [locale] segment: /sets -> /{locale}/sets, visible URL unchanged (B1/B2).
+  // Mapped dynamic routes (/reader/9) go to their static shell route (D3, shellRewrites).
   const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
   const locale = isLocale(cookieLocale) ? cookieLocale : defaultLocale;
   const target = request.nextUrl.clone();
-  target.pathname = `/${locale}${pathname === '/' ? '' : pathname}`;
+  const rewritten = shellRewrite(pathname);
+  target.pathname = `/${locale}${pathname === '/' ? '' : (rewritten ?? pathname)}`;
   const response = NextResponse.rewrite(target, { request });
 
   if (!isProtected(pathname)) return response;
@@ -24,7 +27,9 @@ export async function proxy(request: NextRequest) {
   // Env only: the x-e2e-test header is client-controlled and must never bypass auth.
   const isE2E = process.env.PLAYWRIGHT_TEST === 'true';
   if (isE2E) {
-    response.cookies.set('x-e2e-test', 'true');
+    // Not re-set on mapped shell routes: a Set-Cookie on a Server Action response marks it
+    // revalidated, and the refresh on a rewritten /reader/<n> can end in a hard reload (0016 M5).
+    if (!(rewritten && request.cookies.get('x-e2e-test'))) response.cookies.set('x-e2e-test', 'true');
     return response;
   }
 

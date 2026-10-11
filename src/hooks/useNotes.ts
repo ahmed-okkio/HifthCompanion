@@ -1,5 +1,7 @@
 'use client';
-import { useState, useEffect, useTransition, useMemo } from 'react';
+import { useState, useEffect, useTransition, useMemo, useContext } from 'react';
+import { QueryClientContext } from '@tanstack/react-query';
+import { qk } from '@/lib/query/keys';
 import type { Note } from '@/types';
 import { createNote, updateNote, deleteNote, linkNote } from '@/lib/services/notes';
 import { createClient } from '@/lib/supabase/client';
@@ -12,6 +14,10 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
   const [editBody, setEditBody] = useState('');
   const [collapsed, setCollapsed] = useState(false);
   const [isPending, startTransition] = useTransition();
+  // E9: a successful write refreshes the cached page notes so a revisit or cold launch shows it.
+  // Optional: unit tests render without a QueryClientProvider.
+  const queryClient = useContext(QueryClientContext);
+  const invalidate = () => queryClient?.invalidateQueries({ queryKey: qk.notes(setId, pageNum) });
 
   const [notesSetId, setNotesSetId] = useState(setId);
   if (notesSetId !== setId) {
@@ -91,6 +97,7 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
         const { error } = await updateNote(id, editBody.trim());
         if (error) { console.error('[NotesPanel] Update error:', error); return; }
         setNotes(prev => prev.map(n => n.id === id ? { ...n, body: editBody.trim() } : n));
+        invalidate();
         setEditingId(null);
         setEditBody('');
       } catch (err) {
@@ -106,6 +113,7 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
       try {
         const { error } = await linkNote(id, fabricObjectId);
         if (error) console.error('[NotesPanel] Link error:', error);
+        else invalidate();
       } catch (err) {
         console.error('[NotesPanel] Link error:', err);
       }
@@ -118,6 +126,7 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
         const { error } = await deleteNote(id);
         if (error) { console.error('[NotesPanel] Delete error:', error); return; }
         setNotes(prev => prev.filter(n => n.id !== id));
+        invalidate();
       } catch (err) {
         console.error('[NotesPanel] Delete error:', err);
       }

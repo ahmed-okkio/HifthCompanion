@@ -5,9 +5,14 @@ import { readFileSync, rmSync, mkdirSync, copyFileSync, writeFileSync } from 'no
 import { dirname, join } from 'node:path';
 
 // Visible route -> prerendered file under .next/server/app/{locale}/. Extend per converted route.
-// ponytail: no dynamic routes. A fallback shell ("reader/[page]") keeps usePathname/useParams
-// holes that only the server can fill: SW-served offline it never hydrates (0016 M5 build log).
-const ROUTES = { '/wird': 'wird', '/wird/manage': 'wird/manage', '/sets': 'sets', '/reader': 'reader' };
+// Dynamic routes come from src/lib/shellRewrites.json ("/reader/:page" -> static "/reader/view"):
+// a fallback shell for "[page]" keeps holes only the server fills, so the proxy rewrites to a
+// static route instead and the SW matches the pattern.
+const REWRITES = JSON.parse(readFileSync('src/lib/shellRewrites.json', 'utf8'));
+const ROUTES = {
+  '/wird': 'wird', '/wird/manage': 'wird/manage', '/sets': 'sets', '/reader': 'reader',
+  ...Object.fromEntries(Object.entries(REWRITES).map(([pattern, target]) => [pattern, target.slice(1)])),
+};
 const LOCALES = ['en', 'ar'];
 
 const app = '.next/server/app';

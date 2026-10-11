@@ -1,4 +1,4 @@
-/* src/app/reader/[page]/page.module.css */
+/* src/app/[locale]/reader/view/page.module.css (serves /reader/<n>) */
 .pageContainer {
   display: flex;
   flex-direction: column;

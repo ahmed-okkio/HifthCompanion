@@ -143,7 +143,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
   // here (one hop, no /reader index redirect). Skip the share view (own base path).
   useEffect(() => {
     if (sharePageBasePath) return;
-    const seg = pathname.match(/^\/reader\/([^/]+)$/)?.[1];
+    const seg = pathname.match(/^\/reader\/(\d[\d-]*)$/)?.[1]; // not the /reader/view shell path
     if (seg) localStorage.setItem(LAST_READER_PAGE_KEY, seg);
   }, [pathname, sharePageBasePath]);
 

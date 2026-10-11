@@ -45,7 +45,10 @@ test('shell routes are served by the SW, online and offline (D2, D3)', async ({ 
   await context.setOffline(false);
 });
 
-test('/reader is a SW shell; /reader/<n> stays network-first with the offline fallback (M5)', async ({ page, context }) => {
+// The page indicator in the reader chrome shows which page rendered.
+const pageShown = (page: Page) => page.locator('[title="Click to jump to page"]');
+
+test('/reader and /reader/<n> are SW shells; the page comes from the URL (M5, D3)', async ({ page, context }) => {
   guardConsole(page);
   await page.goto('/wird');
   await swReady(page);
@@ -56,11 +59,67 @@ test('/reader is a SW shell; /reader/<n> stays network-first with the offline fa
   await expect(page).toHaveURL(/\/reader\/\d+/);
   await expect(page.locator('.upper-canvas')).toBeVisible();
 
-  // No fallback shell for the dynamic segment (it cannot hydrate without the server).
+  // Online: /reader/9 is answered by the SW from the static shell and renders page 9.
+  const online = await page.goto('/reader/9');
+  expect(online?.fromServiceWorker()).toBe(true);
+  await expect(pageShown(page)).toHaveText('9');
+  await expect(page.locator('.upper-canvas')).toBeVisible();
+
+  // In-app nav + back/forward stay client-side (no document reload) across the rewrite.
+  await page.evaluate(() => ((window as unknown as { __noReload: boolean }).__noReload = true));
+  const next = page.locator('button[aria-label="Next page"]:visible');
+  const box = (await next.boundingBox())!;
+  await next.click({ position: { x: box.width - 10, y: box.height / 2 } });
+  await expect(page).toHaveURL(/\/reader\/10(\?|$)/);
+  await expect(pageShown(page)).toHaveText('10');
+  await page.goBack();
+  await expect(page).toHaveURL(/\/reader\/9(\?|$)/);
+  await expect(pageShown(page)).toHaveText('9');
+  await page.goForward();
+  await expect(page).toHaveURL(/\/reader\/10(\?|$)/);
+  await expect(pageShown(page)).toHaveText('10');
+  expect(await page.evaluate(() => (window as unknown as { __noReload?: boolean }).__noReload)).toBe(true);
+
+  // Offline cold launch of the visited page: SW shell with chrome, canvas and page 9.
+  // "Visited": the reader data is persisted (E2; the persister is throttled to 1s).
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<string>((resolve) => {
+            const r = indexedDB.open('keyval-store');
+            r.onsuccess = () => {
+              const g = r.result.transaction('keyval').objectStore('keyval').get('hc-query');
+              g.onsuccess = () =>
+                resolve(JSON.stringify((g.result?.clientState?.queries ?? []).map((q: { queryKey: unknown }) => q.queryKey)));
+            };
+            r.onerror = () => resolve('');
+          }),
+      ),
+    )
+    .toMatch(/\["me"\].*\["sets"\]|\["sets"\].*\["me"\]/);
   await context.setOffline(true);
-  await page.goto('/reader/9');
-  await expect(page).toHaveTitle(/Offline/);
+  const cold = await context.newPage();
+  guardConsole(cold);
+  const off = await cold.goto('/reader/9');
+  expect(off?.fromServiceWorker()).toBe(true);
+  await expect(pageShown(cold)).toHaveText('9');
+  await expect(cold.locator('nav').first()).toBeVisible();
+  await expect(cold.locator('.upper-canvas')).toBeVisible();
+  await expect(cold).not.toHaveTitle(/Offline/);
   await context.setOffline(false);
+});
+
+test('a bad /reader page number shows not-found or redirects, without console errors', async ({ page }) => {
+  guardConsole(page);
+  await page.goto('/wird');
+  await swReady(page);
+  await page.goto('/reader/9999');
+  await expect(page.getByText(/not found|404/i).first()).toBeVisible();
+  await page.goto('/reader/7-x');
+  await expect(page).toHaveURL(/\/reader\/7(\?|$)/);
+  await expect(page.locator('.upper-canvas')).toBeVisible();
+  await expect(pageShown(page)).toHaveText('7');
 });
 
 test('the shell follows the posted locale, incl. rtl (D7)', async ({ page }) => {

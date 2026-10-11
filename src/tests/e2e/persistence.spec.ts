@@ -22,7 +22,8 @@ test.describe('Annotations Persistence', () => {
     // 2. Go to sets page to create a REAL set
     await page.goto('/sets');
     const setName = `Test Set ${Date.now()}`;
-    await page.fill('input[placeholder="New set name..."]', setName);
+    // /sets is a static shell: a fill before hydration is reset, so retry until Create enables.
+    await expect(async () => { await page.fill('input[placeholder="New set name..."]', setName); await expect(page.locator('button:has-text("Create")')).toBeEnabled({ timeout: 1000 }); }).toPass();
     await page.click('button:has-text("Create")');
     await expect(page.locator(`text=${setName}`)).toBeVisible();
 

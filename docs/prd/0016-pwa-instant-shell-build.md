@@ -103,9 +103,23 @@ Serial slices; each ends with tsc + build:check + test + the area e2e, and its c
 - **Skew Protection.** Enable and verify Vercel Skew Protection. The SW now precaches each shell's `/_next/static` assets (manifest `assets`) and serves a shell only if all of them are cached, but lazy chunks loaded after boot (not referenced in the shell HTML) can still 404 after a deploy without it.
 - **Offline cold launch after redeploy.** Verify on a device: install build N, deploy N+1, go offline before the N+1 SW installs, cold-launch a shell route. The N shell plus its precached chunks should still boot.
 - **`hc-static-v1` grows without bound.** Hashed assets from every build accumulate and nothing evicts them. Purge by renaming the cache, or prune entries not in the current manifest on activate.
-- **Dynamic routes have no SW shell (M5).** Under `cacheComponents`, `usePathname`/`useParams` postpone in a
-  fallback prerender. `reader/[page].html` passes the C2 check (no `postponed`, ends `</html>`), but it ships
-  unfilled `P:` holes (NavRail, page body). SW-served online, Next recovers via the network; offline it hangs on
-  the splash. Only `/reader` is a shell, and `/reader/<n>` stays network-first → `/offline.html`. The same holds for
-  M6/M7 dynamic routes (`tracker/[circleId]`, `share/[setId]/…`). The fix needs an author decision, e.g. proxy-rewrite
-  `/reader/<n>` to the static `/reader` route and read the page from the URL client-side.
+- **Dynamic routes via static shell routes (M5, author decision "SW maps to parent").** A `[page]` fallback
+  prerender under `cacheComponents` keeps unfilled `P:` holes (`usePathname`/`useParams` postpone), so it cannot be
+  a shell. Instead `src/lib/shellRewrites.json` maps a visible pattern to a static route (`/reader/:page` ->
+  `/reader/view`): the proxy rewrites to it (visible URL unchanged), build-shells ships it under the pattern in the
+  manifest, and the SW matches the pattern. `usePathname` (i18n wrapper) returns the shell path while hydrating and
+  the visible path after, so the page reads its number from the URL. M6/M7 add `tracker/[circleId]`,
+  `tracker/[circleId]/student/[membershipId]` and `share/[setId]/[page]` as entries plus a static route each.
+  Unmapped routes still fall back to `/offline.html`. M10: check `/reader/<n>` deep links and back/forward on a device.
+- **Revalidating Server Actions on a rewritten route can hard-reload (M5).** An action whose response is marked
+  revalidated (any Set-Cookie, e.g. a Supabase token refresh in `createClientAction`) makes the router refresh;
+  on `/reader/<n>` racing a `?set=` navigation that refresh mismatched twice and Next fell back to a full page load
+  (seen in e2e, where the proxy re-set `x-e2e-test` on every request; it now skips that on mapped routes). Prod hits it
+  only on a token refresh during an action. M10: watch for reloads on set switch / note save.
+- **Tracker create depends on action revalidation (M6/M9).** With the e2e cookie not re-set, `tracker.spec.ts:19/41/109`
+  fail deterministically (create circle never reaches `/tracker/<id>`), so in prod, where actions rarely revalidate,
+  that flow may misbehave. Likely root of those flakes.
+- **Persisted cache is throttled (1s).** A cold launch within ~1s of the first data load may find nothing persisted;
+  the pwa e2e waits for `me`/`sets` in IDB before going offline.
+- **`/sets` input before hydration.** On the static `/sets` shell, text typed before hydration is reset (seen as an
+  e2e race; tests now retry the fill). Minor UX gap on slow devices.

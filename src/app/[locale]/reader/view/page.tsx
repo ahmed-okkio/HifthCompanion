@@ -1,5 +1,8 @@
 'use client';
-import { useParams, useSearchParams, notFound, redirect } from 'next/navigation';
+import { useEffect } from 'react';
+import { useSearchParams, useRouter, notFound } from 'next/navigation';
+import { usePathname, useHydrated } from '@/lib/i18n/usePathname';
+import QueryFallback from '@/components/QueryFallback';
 import { useQuery } from '@tanstack/react-query';
 import { TOTAL_PAGES, parseSpread } from '@/lib/quran';
 import ShareCard from '@/components/ShareCard';
@@ -44,21 +47,27 @@ function NotesColumnSkeleton() {
 }
 
 // The reader app-shell (persistent layout) owns the page navigation chrome and the Fabric
-// annotation canvas. This segment renders only the per-page notes / share column. Static
-// fallback shell (PRD 0016 C2/C4): the page param and all data are read client-side.
+// annotation canvas. This segment renders only the per-page notes / share column. Static shell
+// for every /reader/<n> (the proxy rewrites here, src/lib/shellRewrites.json): the page number
+// comes from the visible URL once hydrated, and all data is read client-side.
 export default function ReaderPage() {
+  const hydrated = useHydrated();
+  const page = usePathname().split('/')[2] ?? '';
+  // A malformed spread "N-x" falls back to N's single page. Replaced from an effect: a render-time
+  // redirect() after hydration lands on the error boundary instead.
+  const fix = hydrated && page.includes('-') && !parseSpread(page) ? `/reader/${parseInt(page, 10) || 1}` : null;
+  const router = useRouter();
+  useEffect(() => { if (fix) router.replace(fix); }, [fix, router]);
+  return hydrated && !fix ? <ReaderPageColumn page={page} /> : <NotesColumnSkeleton />;
+}
+
+function ReaderPageColumn({ page }: { page: string }) {
   const { t } = useI18n();
-  const { page = '' } = useParams<{ page: string }>();
   // `set` lets a teacher view a student's shared set (RLS-gated, read-only).
   const requestedSet = useSearchParams().get('set');
 
-  // Spread segment "N-M": the notes column shows both pages; a malformed one falls back to the
-  // first number's single page. A single "3" has no dash → parseSpread isn't called.
+  // Spread segment "N-M": the notes column shows both pages (malformed ones redirect above).
   const spread = page.includes('-') ? parseSpread(page) : null;
-  if (page.includes('-') && !spread) {
-    const first = parseInt(page, 10);
-    redirect(`/reader/${isNaN(first) ? 1 : first}`);
-  }
   const pageNum = spread ? spread[0] : parseInt(page, 10);
   if (isNaN(pageNum) || pageNum < 1 || pageNum > TOTAL_PAGES) notFound();
   const otherPage = spread ? spread[1] : null;
@@ -72,7 +81,7 @@ export default function ReaderPage() {
   const notesB = useNotesQuery(viewSetId, otherPage);
 
   if (!ready) return <NotesColumnSkeleton />;
-  const notesReady = notesA.data !== undefined && (!otherPage || notesB.data !== undefined);
+  const pendingNotes = notesA.data === undefined ? notesA : otherPage && notesB.data === undefined ? notesB : null;
 
   return (
     /* V3 Story 13 — Context panel order: Notes (top) → Share → Tags. */
@@ -80,8 +89,8 @@ export default function ReaderPage() {
 
       {/* ── 1. NOTES (top) ── */}
       {user && viewSetId ? (
-        !notesReady ? (
-          <div className={`${SHIMMER} h-45`} />
+        pendingNotes ? (
+          <QueryFallback q={pendingNotes} skeleton={<div className={`${SHIMMER} h-45`} />} />
         ) : (
           <div className="animate-fade-in-scale [animation-delay:100ms]">
             {spread ? (

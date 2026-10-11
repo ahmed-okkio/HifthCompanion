@@ -17,7 +17,8 @@ function listenForErrors(page: Page) {
 // Helper: create a set and go to reader
 async function setupAuthenticatedReader(page: Page, setName: string) {
   await page.goto('/sets');
-  await page.fill('input[placeholder="New set name..."]', setName);
+  // /sets is a static shell: a fill before hydration is reset, so retry until Create enables.
+  await expect(async () => { await page.fill('input[placeholder="New set name..."]', setName); await expect(page.locator('button:has-text("Create")')).toBeEnabled({ timeout: 1000 }); }).toPass();
   await page.click('button:has-text("Create")');
   await expect(page.locator(`text=${setName}`)).toBeVisible();
   await page.goto('/reader/1');
@@ -290,10 +291,7 @@ test.describe('Toolbar UX', () => {
     page.on('dialog', dialog => dialog.accept());
     await page.click('button:has-text("Clear")');
 
-    const count = await page.evaluate(() => {
-      return window.fabricCanvas?.getObjects().length ?? 0;
-    });
-    expect(count).toBe(0);
+    await expect.poll(() => page.evaluate(() => window.fabricCanvas?.getObjects().length ?? 0)).toBe(0);
   });
 });
 
@@ -380,7 +378,8 @@ test.describe('Share Links', () => {
 
     await page.goto('/sets');
     const setName = `ShareView-${Date.now()}`;
-    await page.fill('input[placeholder="New set name..."]', setName);
+    // /sets is a static shell: a fill before hydration is reset, so retry until Create enables.
+    await expect(async () => { await page.fill('input[placeholder="New set name..."]', setName); await expect(page.locator('button:has-text("Create")')).toBeEnabled({ timeout: 1000 }); }).toPass();
     await page.click('button:has-text("Create")');
     await expect(page.locator(`text=${setName}`)).toBeVisible();
 

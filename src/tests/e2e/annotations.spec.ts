@@ -56,7 +56,8 @@ test.describe('Annotations', () => {
     // Since mock DB starts empty on page load, sets list might be empty.
     // Let's navigate to /sets first to create a set.
     await page.goto('/sets');
-    await page.fill('input[placeholder="New set name..."]', 'E2E Highlight Set');
+    // /sets is a static shell: a fill before hydration is reset, so retry until Create enables.
+    await expect(async () => { await page.fill('input[placeholder="New set name..."]', 'E2E Highlight Set'); await expect(page.locator('button:has-text("Create")')).toBeEnabled({ timeout: 1000 }); }).toPass();
     await page.click('button:has-text("Create")');
     await expect(page.locator('text=E2E Highlight Set').first()).toBeVisible();
 

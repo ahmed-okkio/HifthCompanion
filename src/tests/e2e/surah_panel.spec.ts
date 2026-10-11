@@ -49,6 +49,17 @@ test.describe('Surah panel and toolbar layout', () => {
     }
   });
 
+  test('surah list is split into 30 juz sections', async ({ page }) => {
+    listenForErrors(page);
+    const dividers = page.locator('[data-testid="surah-scroll-list"] [data-testid="juz-divider"]');
+    await expect(dividers).toHaveCount(30);
+    await expect(dividers.first()).toHaveText(/Juz 1/);
+    await expect(dividers.last()).toHaveText(/Juz 30/);
+    // Juz 2 starts mid-Al-Baqara (no row of its own): its divider jumps to its first page.
+    await dividers.getByRole('button', { name: 'Juz 2 Page 22' }).click();
+    await expect(page).toHaveURL(/\/reader\/22$/);
+  });
+
   test('clicking a surah navigates on the first click', async ({ page }) => {
     listenForErrors(page);
 

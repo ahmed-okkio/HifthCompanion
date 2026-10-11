@@ -2,7 +2,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { usePathname } from '@/lib/i18n/usePathname';
-import { SURAH_PAGE_GROUPS, activeGroupPage, filterSurahGroups, getJuzForPage, getSurahsForPage, getSurahName, pageFromLocation, spreadOf, type SurahPageGroup } from '@/lib/quran';
+import { SURAH_PAGE_GROUPS, activeGroupPage, filterSurahGroups, getJuzForPage, getJuzStartPage, getSurahsForPage, getSurahName, pageFromLocation, spreadOf, type SurahPageGroup } from '@/lib/quran';
 import { usePinnedPage } from '@/hooks/usePinnedPage';
 import { useI18n } from '@/components/I18nProvider';
 import { sortMarked, type MarkedPage } from '@/lib/markedPages';
@@ -287,10 +287,30 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
         className={`flex-1 min-h-0 overflow-y-auto thin-scroll ${markedPages !== undefined && tab === 'marked' ? 'hidden' : ''}`}
       >
         <ul>
-          {filtered.map(group => {
+          {filtered.map((group, i) => {
             const active = isActiveGroup(group.page);
+            const juz = getJuzForPage(group.page);
+            // Every juz begun since the previous row gets a divider. A juz that starts mid-surah
+            // (e.g. Juz 2 inside Al-Baqara) has no row of its own, so its divider jumps to its page.
+            const fromJuz = i === 0 ? juz : getJuzForPage(filtered[i - 1].page) + 1;
+            const juzHere = Array.from({ length: Math.max(0, juz - fromJuz + 1) }, (_, k) => fromJuz + k);
             return (
-              <li key={group.page} className="group/row relative">
+              <React.Fragment key={group.page}>
+              {juzHere.map(j => {
+                const start = getJuzStartPage(j);
+                const label = t('reader.juz', { n: j });
+                return (
+                  <li key={`juz-${j}`} data-testid="juz-divider" className="px-4 py-1.5 border-b border-neutral-100 text-meta font-bold text-green-600">
+                    {start < group.page ? (
+                      <button type="button" onClick={() => jumpToPage(start)} className="flex w-full items-center justify-between cursor-pointer hover:underline">
+                        <span>{label}</span>
+                        <span className="tabular-nums font-semibold text-muted">{t('reader.pageNum', { n: start })}</span>
+                      </button>
+                    ) : label}
+                  </li>
+                );
+              })}
+              <li className="group/row relative">
                 <button
                   type="button"
                   onClick={() => togglePin(group.page)}
@@ -335,6 +355,7 @@ export default function SurahNavPanel({ onSelect, currentPage: currentPageProp, 
                   </span>
                 </button>
               </li>
+              </React.Fragment>
             );
           })}
         </ul>

@@ -116,12 +116,13 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
         {/* Header */}
         <div className="px-3 pt-2 pb-3 shrink-0">
           <div className="rounded-lg border border-subtle bg-surface-app p-3">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between gap-2 mb-3">
               {markedPages === undefined ? (
                 <span className="text-heading-m text-primary">
                   {t('reader.surahs')}
                 </span>
               ) : (
+                <div className="flex-1 min-w-0">
                 <SegmentedControl
                   tabs
                   options={[
@@ -131,6 +132,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                   value={tab}
                   onChange={k => setTab(k as 'surahs' | 'marked')}
                 />
+                </div>
               )}
               <button
                 type="button"

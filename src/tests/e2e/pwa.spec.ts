@@ -292,6 +292,10 @@ test('a visited /shared cold-launches offline from the SW with cached data (M7)'
 // M8: a fresh user whose saved email prefs have "homework" off, so cached data is observable.
 async function settingsUser(context: import('@playwright/test').BrowserContext) {
   const id = await asNewUser(context);
+  await seedProfile(context, id);
+  return id;
+}
+async function seedProfile(context: import('@playwright/test').BrowserContext, id: string) {
   await context.request.post('/api/test/tracker', {
     data: { seed: { profiles: [{ id, first_name: 'Mock', last_name: 'User', email_prefs: { homework: false }, wird_reminder_time: null }] } },
   });
@@ -365,30 +369,16 @@ test('switching to ar in the menu makes the next shell ar + rtl, offline too (B5
 
 test('logging out from /settings wipes the persisted settings data (E6, M8)', async ({ page, context }) => {
   guardConsole(page);
-  await settingsUser(context);
+  const id = await settingsUser(context);
   await page.goto('/settings');
   await expect(homework(page)).not.toBeChecked();
   await expect.poll(() => persistedKeys(page)).toContain('["me","settings"]');
+  await expect.poll(() => rawIdb(page)).toContain('Mock User');
 
-  await page.getByRole('button', { name: 'Account' }).click();
-  await page.getByRole('menuitem', { name: 'Log out' }).click();
-  await expect(page).toHaveURL(/\/login/);
-  // The mounted settings query may re-create itself (signed out, data null) after the wipe;
-  // what must be gone is the user's data, not the key.
-  const persisted = () =>
-    page.evaluate(
-      () =>
-        new Promise<string>((resolve) => {
-          const r = indexedDB.open('keyval-store');
-          r.onsuccess = () => {
-            const g = r.result.transaction('keyval').objectStore('keyval').get('hc-query');
-            g.onsuccess = () => resolve(JSON.stringify(g.result ?? null));
-          };
-          r.onerror = () => resolve('');
-        }),
-    );
-  await page.waitForTimeout(1500); // past the 1s persist throttle
-  expect(await persisted()).not.toContain('homework');
+  await logout(page);
+  // A mounted query may re-create its key (signed out, data null) after the wipe; what must be
+  // gone is every query's data and any trace of the user (id, name, saved prefs).
+  await expect.poll(() => leaks(page, [id, 'Mock User', 'homework'])).toEqual([]);
 });
 
 test('/install is served from the SW, with its QR code built client-side (M8)', async ({ page, context }) => {
@@ -405,6 +395,191 @@ test('/install is served from the SW, with its QR code built client-side (M8)', 
   expect(off?.fromServiceWorker()).toBe(true);
   await expect(page).not.toHaveTitle(/Offline/);
   await context.setOffline(false);
+});
+
+// ---- F2 (PRD 0016 F2a-F2e): per-user fixtures, outcomes in the DOM and in raw IDB. ----
+
+const OFFLINE_TEXT = "You're offline. This page will load once you're back online.";
+
+/** The raw persisted query cache (IDB `hc-query`) as JSON; 'null' when absent. */
+function rawIdb(page: Page) {
+  return page.evaluate(
+    () =>
+      new Promise<string>((resolve) => {
+        const r = indexedDB.open('keyval-store');
+        r.onsuccess = () => {
+          const g = r.result.transaction('keyval').objectStore('keyval').get('hc-query');
+          g.onsuccess = () => resolve(JSON.stringify(g.result ?? null));
+        };
+        r.onerror = () => resolve('null');
+      }),
+  );
+}
+
+/** Persisted queries still holding data, plus any marker found in the raw IDB value. [] = clean. */
+async function leaks(page: Page, markers: string[]) {
+  const raw = await rawIdb(page);
+  const queries: { queryKey: unknown; state?: { data?: unknown } }[] = JSON.parse(raw)?.clientState?.queries ?? [];
+  return [
+    ...queries.filter((q) => q.state?.data != null).map((q) => `data: ${JSON.stringify(q.queryKey)}`),
+    ...markers.filter((m) => raw.includes(m)).map((m) => `idb: ${m}`),
+  ];
+}
+
+/** None of `markers` in the rendered DOM or the raw persisted cache. */
+async function expectNoTrace(page: Page, markers: string[]) {
+  const html = await page.content();
+  const raw = await rawIdb(page);
+  for (const m of markers) {
+    expect(html, `DOM contains ${m}`).not.toContain(m);
+    expect(raw, `IDB contains ${m}`).not.toContain(m);
+  }
+}
+
+/** A fresh identity with a unique name and one owned set: its id, name and set title are the markers. */
+async function persona(context: import('@playwright/test').BrowserContext, label: string) {
+  const id = await asNewUser(context);
+  const name = `${label}${id.slice(0, 8)}`;
+  const set = `${label} Set ${id.slice(0, 8)}`;
+  const res = await context.request.post('/api/test/tracker', {
+    data: {
+      seed: {
+        profiles: [{ id, first_name: name, last_name: 'Tester', email_prefs: {}, wird_reminder_time: null }],
+        annotation_sets: [{ id: `set-${id}`, user_id: id, name: set, created_at: new Date().toISOString() }],
+      },
+    },
+  });
+  expect(res.ok()).toBe(true);
+  return { id, name, set, markers: [id, name, set] };
+}
+
+async function logout(page: Page) {
+  if (!/\/settings/.test(page.url())) await page.goto('/settings');
+  await page.getByRole('button', { name: 'Account' }).click();
+  await page.getByRole('menuitem', { name: 'Log out' }).click();
+  await expect(page).toHaveURL(/\/login/);
+}
+
+/** Visit /sets as the current user until its set list is on screen and persisted. */
+async function visitSets(page: Page, set: string) {
+  await page.goto('/sets');
+  await expect(page.getByText(set)).toBeVisible();
+  await expect.poll(() => rawIdb(page)).toContain(set);
+}
+
+test('F2a: an offline cold launch of a visited route shows the real chrome and cached data (D3, E2)', async ({ page, context }) => {
+  guardConsole(page);
+  const u = await persona(context, 'Cyra');
+  await page.goto('/wird');
+  await swReady(page);
+  await visitSets(page, u.set);
+
+  await context.setOffline(true);
+  const cold = await context.newPage();
+  guardConsole(cold);
+  const off = await cold.goto('/sets');
+  expect(off?.fromServiceWorker()).toBe(true);
+  await expect(cold).not.toHaveTitle(/Offline/);
+  await expect(cold.locator('nav').first()).toBeVisible();
+  await expect(cold.getByText(u.set)).toBeVisible();
+  await expect(cold.getByText(OFFLINE_TEXT)).toHaveCount(0);
+  await context.setOffline(false);
+});
+
+test('F2b: after logout, offline and online relaunches show none of the prior data (E6)', async ({ page, context }) => {
+  guardConsole(page);
+  const a = await persona(context, 'Alma');
+  await page.goto('/wird');
+  await swReady(page);
+  await visitSets(page, a.set);
+
+  await logout(page);
+  await expect.poll(() => leaks(page, a.markers)).toEqual([]);
+
+  await context.setOffline(true);
+  const off = await context.newPage();
+  guardConsole(off);
+  expect((await off.goto('/sets'))?.fromServiceWorker()).toBe(true);
+  await expect(off.getByText(OFFLINE_TEXT)).toBeVisible();
+  await expectNoTrace(off, a.markers);
+  await off.close();
+  await context.setOffline(false);
+
+  const on = await context.newPage();
+  guardConsole(on);
+  await on.goto('/sets');
+  await expect(on).toHaveURL(/\/login\?next=%2Fsets$/);
+  await expectNoTrace(on, a.markers);
+});
+
+test("F2c: user A, logout, user B shows none of A's data, online and offline (E7)", async ({ page, context }) => {
+  guardConsole(page);
+  const a = await persona(context, 'Alma');
+  await page.goto('/wird');
+  await swReady(page);
+  await visitSets(page, a.set);
+  await logout(page);
+
+  const b = await persona(context, 'Badr');
+  await visitSets(page, b.set);
+  await expect.poll(() => rawIdb(page)).toContain(b.name); // B's own `me` is persisted
+  await expectNoTrace(page, a.markers);
+
+  await context.setOffline(true);
+  const cold = await context.newPage();
+  guardConsole(cold);
+  expect((await cold.goto('/sets'))?.fromServiceWorker()).toBe(true);
+  await expect(cold.getByText(b.set)).toBeVisible();
+  await expectNoTrace(cold, a.markers);
+  await context.setOffline(false);
+});
+
+test('F2d: an unvisited route offline shows the offline state, not a skeleton (D4, E4)', async ({ page, context }) => {
+  guardConsole(page);
+  await persona(context, 'Dina');
+  await page.goto('/wird');
+  await swReady(page);
+
+  await context.setOffline(true);
+  const cold = await context.newPage();
+  guardConsole(cold);
+  // A shell route whose data was never fetched: the shell, then the offline note.
+  expect((await cold.goto('/shared'))?.fromServiceWorker()).toBe(true);
+  await expect(cold.getByText(OFFLINE_TEXT)).toBeVisible();
+  // A route with no shell at all: /offline.html.
+  await cold.goto('/onboarding');
+  await expect(cold).toHaveTitle(/Offline/);
+  await context.setOffline(false);
+});
+
+test("F2e: a new build's SW purges old hc-shell-* caches with no reload loop (D5)", async ({ page }) => {
+  guardConsole(page);
+  await page.goto('/wird');
+  await swReady(page);
+  const build = await page.evaluate(async () => {
+    await (await caches.open('hc-shell-old')).put('/old', new Response('old'));
+    return (await caches.keys()).find((k) => k.startsWith('hc-shell-') && k !== 'hc-shell-old')!;
+  });
+  // Document loads, not framenavigated (which also counts same-document URL updates).
+  let navs = 0;
+  page.on('load', () => navs++);
+
+  // "Deploy": a different build's SW takes over this page.
+  await page.evaluate(() => navigator.serviceWorker.register('/sw.js?v=e2e-next'));
+  // controllerchange fires as activation starts; the purge is the activate handler's work.
+  await expect
+    .poll(() => page.evaluate(async () => (await caches.keys()).filter((k) => k.startsWith('hc-shell-'))))
+    .toEqual(['hc-shell-e2e-next']);
+  expect(await page.evaluate(() => navigator.serviceWorker.controller?.scriptURL)).toMatch(/v=e2e-next$/);
+  expect(navs).toBe(0);
+
+  expect(build).not.toBe('hc-shell-e2e-next');
+
+  // The next launch loads exactly once under the new SW (no version-mismatch reload loop).
+  await page.reload();
+  await expect(page).toHaveTitle(/wird/i);
+  await expect(page.locator('nav').first()).toBeVisible();
+  expect(navs).toBe(1);
 });
 
 test.describe('signed out', () => {

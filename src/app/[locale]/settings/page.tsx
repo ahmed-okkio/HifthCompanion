@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import { qk } from '@/lib/query/keys';
@@ -17,6 +18,11 @@ import SettingsHeader, { SettingsSection } from '@/components/SettingsHeader';
 export default function SettingsPage() {
   const q = useQuery({ queryKey: qk.settings, queryFn: () => loadSettings(createClient()) });
   const d = q.data;
+  // A read that succeeds with no user (session gone) must not leave an endless skeleton.
+  const signedOut = q.isSuccess && d === null;
+  useEffect(() => {
+    if (signedOut) window.location.replace(`/login?next=${encodeURIComponent('/settings')}`);
+  }, [signedOut]);
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full overflow-y-auto h-full">

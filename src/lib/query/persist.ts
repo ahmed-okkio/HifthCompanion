@@ -5,8 +5,17 @@ import { get, set, del } from 'idb-keyval';
 import { MAX_AGE, makeQueryClient } from './client';
 
 export const IDB_KEY = 'hc-query';
+// The buster currently allowed to write. The persister's throttled save can fire after a logout
+// or user switch; without this it re-wrote the cache (empty, but tagged with the old user's id).
+let bound: string | null = null;
 const persister = createAsyncStoragePersister({
-  storage: { getItem: get, setItem: set, removeItem: del },
+  storage: {
+    getItem: get,
+    setItem: async (k: string, v: unknown) => {
+      if (bound && (v as { buster?: string }).buster === bound) await set(k, v);
+    },
+    removeItem: del,
+  },
   key: IDB_KEY,
   // idb stores structured clones; skip the JSON round-trip.
   serialize: (c) => c as unknown as string,
@@ -25,12 +34,17 @@ export async function restoreFor(qc: QueryClient, userId: string, isCurrent: () 
   await persistQueryClientRestore({ ...opts, queryClient: scratch });
   if (!isCurrent()) return () => {};
   hydrate(qc, dehydrate(scratch));
-  return persistQueryClientSubscribe(opts);
+  bound = opts.buster;
+  const unsub = persistQueryClientSubscribe(opts);
+  return () => {
+    unsub();
+    if (bound === opts.buster) bound = null;
+  };
 }
 
-// Wipe memory + IDB. Clear while still subscribed so any pending throttled save
-// carries the empty cache, not the old one. PRD 0016 E6/E7.
+// Wipe memory + IDB, and unbind so no pending throttled save can write afterwards. PRD 0016 E6/E7.
 export async function clearQueryCache(qc: QueryClient) {
+  bound = null;
   qc.clear();
   await del(IDB_KEY);
 }

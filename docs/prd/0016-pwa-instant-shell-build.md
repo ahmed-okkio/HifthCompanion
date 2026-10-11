@@ -93,7 +93,7 @@ Serial slices; each ends with tsc + build:check + test + the area e2e, and its c
 | M6 | Convert `/tracker/**` (resolves B3 for tracker layouts) | `src/app/[locale]/tracker/**`, `src/components/tracker/**` | same + B3 (tracker) |
 | M7 | Convert `/share/**` + `/shared` (resolves B3 for share layout) | `src/app/[locale]/share/**`, `shared/**` | same + B3 (share) |
 | M8 | Convert `/settings`, `/install` (done) | those routes | same |
-| M9 | `pwa` e2e area + flaky tracker fixes (`tracker.spec.ts:41`, `:109`, `:19`) | `src/tests/e2e/pwa.spec.ts`, `tracker.spec.ts`, `package.json` (`test:e2e:pwa`) | F2a–F2e, F4 |
+| M9 | `pwa` e2e area + flaky tracker fixes (`tracker.spec.ts:41`, `:109`, `:19`) (done) | `src/tests/e2e/pwa.spec.ts`, `tracker.spec.ts`, `package.json` (`test:e2e:pwa`) | F2a–F2e, F4 |
 | M10 | Final verification on a Vercel preview from a real browser (cold launch offline, user switch) | build log evidence | all, F5 |
 
 ## Known gaps / M10 checks
@@ -173,6 +173,40 @@ Serial slices; each ends with tsc + build:check + test + the area e2e, and its c
   E6 e2e (logout wipes the persisted cache). The e2e mock client gained `auth.signOut` (drops `sb-auth-token`).
 - **Email-prefs switch knob swallowed clicks (M8 fix).** The knob span sat above the invisible checkbox, so a click at
   the switch centre did nothing; it is now `pointer-events-none`.
+
+- **Offline cold launch ran every fetcher (M9 fix, E2/E4).** TanStack v5's `onlineManager` assumes online until an
+  `online`/`offline` event fires, so an offline cold launch ran each queryFn; a failed `getUser` returned `[]`/null and the
+  page showed "No annotation sets yet" (or an empty `/shared`) instead of the offline note. `src/lib/query/client.ts` now
+  seeds it from `navigator.onLine`, so those queries pause: cached data stays, uncached sections show `common.offline`.
+- **Logout left the old user's id in IDB (M9 fix, E6 [SEC]).** The persister's throttled save fired after `del()` and wrote
+  an empty cache tagged `buster: "<userId>:<buildId>"`. `persist.ts` now only writes for the currently bound buster
+  (set by `restoreFor`, cleared by its unsubscribe and by `clearQueryCache`). Vitest: "a save still pending at logout".
+- **`/settings` with a signed-out read (M9).** A settings query that succeeds with `null` (no user) now redirects to
+  `/login?next=%2Fsettings` instead of an endless skeleton.
+- **New SW observed stuck in `waiting` (M9, M10 check).** In F2e's manual swap (`/sw.js?v=e2e-next` then a reload that
+  re-registers the real build), the real build's worker sometimes stayed `waiting` for 30s+ under 5-worker load, with
+  `skipWaiting()` called and only one entry in its shell cache. No reload loop (the old SW keeps serving), but an update
+  could be delayed. F2e asserts the purge + single load and stops there. M10: after a real deploy, confirm the new SW
+  activates on an open device without a manual close.
+- **`waitForTimeout` remains outside pwa.spec** (`reader.mobile.spec.ts:200,243`, `reader_nav.spec.ts:40`,
+  `surah_panel.spec.ts:85,297`). Not M9 scope; pwa.spec has none.
+
+## F-matrix (M9)
+
+| F id | Test |
+|---|---|
+| F1 | all non-pwa projects run `serviceWorkers: 'block'` (`playwright.config.ts`); full suite green |
+| F2a | pwa.spec `F2a: an offline cold launch of a visited route shows the real chrome and cached data (D3, E2)`; also the M5-M8 cold-launch tests (`/reader/<n>`, `/tracker/<id>`, `/share/<id>/<page>`, `/shared`, `/settings`) |
+| F2b | pwa.spec `F2b: after logout, offline and online relaunches show none of the prior data (E6)`; `logging out from /settings wipes the persisted settings data (E6, M8)` (every persisted query's data null/absent, no id/name/prefs in raw IDB) |
+| F2c | pwa.spec `F2c: user A, logout, user B shows none of A's data, online and offline (E7)` (A's id, name and set title absent from DOM and raw IDB) |
+| F2d | pwa.spec `F2d: an unvisited route offline shows the offline state, not a skeleton (D4, E4)`; D4 leg of `shell routes are served by the SW, online and offline (D2, D3)` |
+| F2e | pwa.spec `F2e: a new build's SW purges old hc-shell-* caches with no reload loop (D5)`; vitest `swCache.test.ts` "activate deletes every older hc-shell-* cache" |
+| F3 | vitest `queryPersist.test.tsx` (buster/key, user + build mismatch, clear, pending save at logout, provider user switch/logout, restore race); `swCache.test.ts` (shell lookup D3, allowlist D6, offline fallback D4, purge D5); `shellMatch.test.ts` (route matching) |
+| F4 | `playwright test --project=tracker --repeat-each=10 --retries=0` 51/51 (M9 re-run) |
+| F5 | M9 gates: tsc, `build:check`, vitest, full `test:e2e` (counts in the M9 commit receipt) |
+
+Console-error guards (AGENTS.md): added to `annotations.spec.ts`, `sets.spec.ts`, `surah_panel_screenshot.spec.ts`
+(file-level `beforeEach`); every other spec already had one.
 
 ## Flake log (F4)
 

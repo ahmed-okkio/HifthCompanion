@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test';
 
+// AGENTS.md: every test fails on a browser console error.
+test.beforeEach(({ page }) => {
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') throw new Error(`console error: ${msg.text()}`);
+  });
+});
+
 test.describe('Annotation Sets (Authenticated)', () => {
   test('footer is visible on the sets page (Story 19)', async ({ page, context }) => {
     await context.addCookies([

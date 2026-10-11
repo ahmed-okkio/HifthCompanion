@@ -69,6 +69,15 @@ describe('query cache persistence (PRD 0016 E5-E7, F3)', () => {
     expect(store.has(IDB_KEY)).toBe(false);
   });
 
+  it('a save still pending at logout writes nothing, not even the old buster (E6)', async () => {
+    const qc = makeQueryClient();
+    await restoreFor(qc, 'A');
+    qc.setQueryData(['k'], 'a-data'); // schedules a throttled save
+    await clearQueryCache(qc);
+    await flushSave();
+    expect(store.has(IDB_KEY)).toBe(false);
+  });
+
   it('provider: user switch clears memory before the next render; no session restores nothing', async () => {
     await seedFor('A', 'a-data');
     const { QueryProvider, queryClient } = await import('@/lib/query/Provider');

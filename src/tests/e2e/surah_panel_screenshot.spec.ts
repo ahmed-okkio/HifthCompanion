@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test';
 
+// AGENTS.md: every test fails on a browser console error.
+test.beforeEach(({ page }) => {
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') throw new Error(`console error: ${msg.text()}`);
+  });
+});
+
 test('desktop screenshot of surah panel', async ({ page }) => {
   // ensure desktop viewport
   await page.setViewportSize({ width: 1366, height: 900 });

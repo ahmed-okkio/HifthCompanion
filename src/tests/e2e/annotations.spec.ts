@@ -1,5 +1,12 @@
 import { test, expect } from '@playwright/test';
 
+// AGENTS.md: every test fails on a browser console error.
+test.beforeEach(({ page }) => {
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') throw new Error(`console error: ${msg.text()}`);
+  });
+});
+
 test.describe('Annotations', () => {
   test('should render canvas for unauthenticated users with login prompt', async ({ page, context }) => {
     await context.clearCookies();

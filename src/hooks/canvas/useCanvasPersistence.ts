@@ -9,6 +9,8 @@ import { CanvasHistory } from '@/lib/canvasHistory';
 import { TOTAL_PAGES } from '@/lib/quran';
 import { type PageCanvasSize } from '@/lib/pageCanvas';
 import { reconcileNoteBindings } from '@/lib/services/notes';
+import { queryClient } from '@/lib/query/Provider';
+import { qk } from '@/lib/query/keys';
 
 type AnnotCacheEntry = { json: CanvasJson | null };
 const annotCache = new Map<string, AnnotCacheEntry>();
@@ -174,7 +176,11 @@ export function useCanvasPersistence({
         const ids = (payload.objects as { id?: string }[]).map(o => o?.id).filter(Boolean) as string[];
         const rec = await reconcileNoteBindings(setId, page, ids);
         if (rec.error) console.error('[AnnotationCanvas] Note reconcile error:', rec.error);
-        else window.dispatchEvent(new CustomEvent('hifth:notes-stale', { detail: { setId, pageNum: page } }));
+        else {
+          // The cached notes query must follow too, or a remount restores the pre-reconcile list.
+          void queryClient.invalidateQueries({ queryKey: qk.notes(setId, page) });
+          window.dispatchEvent(new CustomEvent('hifth:notes-stale', { detail: { setId, pageNum: page } }));
+        }
       } else if (r.status === 'denied') {
         if (lockedSet) {
           accessRevokedRef.current = true;

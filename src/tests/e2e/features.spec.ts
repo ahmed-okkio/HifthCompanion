@@ -27,7 +27,12 @@ async function setupAuthenticatedReader(page: Page, setName: string) {
   // Ensure our set is selected in the picker.
   // selectOption triggers loadAnnotation which may cycle canvasReady false→true.
   // We poll for canvasReady via the data attr, then confirm fabricCanvas + isDrawingMode.
-  await page.locator('#set-picker-top').selectOption({ label: setName });
+  const picker = page.locator('#set-picker-top');
+  const chosen = (await picker.locator('option', { hasText: setName }).getAttribute('value'))!;
+  await picker.selectOption(chosen);
+  // F4: the switch is a router.replace(?set=); the controlled picker shows the set only once it
+  // lands. Before that, canvas-ready is the previous set's and the notes column still remounts.
+  await expect(picker).toHaveValue(chosen);
   // Poll until canvas-ready attr appears (handles both the cycle case and the instant case)
   await expect.poll(async () => {
     return await page.evaluate(() => {

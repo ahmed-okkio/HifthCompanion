@@ -14,8 +14,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'not found' }, { status: 404 });
   }
   const body = await req.json().catch(() => ({}));
-  // reset: true wipes everything; reset: ['wird', ...] wipes only those tables.
-  if (body?.reset) __resetMockStore(Array.isArray(body.reset) ? body.reset : undefined);
+  // reset: true wipes everything; reset: ['wird', ...] wipes only those tables (+ resetUser: only that user's rows).
+  if (body?.reset) __resetMockStore(Array.isArray(body.reset) ? body.reset : undefined, body.resetUser);
   if (body?.seed) __seedMockStore(body.seed);
   if (body?.query) {
     try {

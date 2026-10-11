@@ -1,19 +1,23 @@
 import { test, expect, type Page, type Request } from '@playwright/test';
+import { asNewUser } from './e2eUser';
 
 // 0015 wird — daily-screen E2E (O5–O7). Runs against the live app + the mock
 // Supabase store, seeded through the test-only /api/test/tracker route (the same
 // harness tracker.spec uses). Asserts OUTCOMES of completing a wird, not that a
 // button rendered (AGENTS.md high-signal policy).
 
-const MOCK_USER_ID = '52345ff6-3348-40d5-b6d8-1234567890ab'; // matches auth.setup
+// F4: each test acts as its own user, with its own profile and ids, so parallel copies never collide.
+let uid = '';
+const wid = (id: string) => `${id}-${uid.slice(0, 8)}`;
+test.beforeEach(async ({ context }) => { uid = await asNewUser(context, { profile: true }); });
 
 // A no-entry 'pages' wird at rate 1 page/day over pages 1..end. Fresh cards read
 // "start at page 1" and "<end> pages to go".
 function seedWird(id: string, name: string, pageEnd: number) {
   const now = new Date().toISOString();
   return {
-    id,
-    user_id: MOCK_USER_ID,
+    id: wid(id),
+    user_id: uid,
     name,
     scope_source: 'pages',
     page_start: 1,
@@ -42,7 +46,7 @@ async function streamSettled(page: Page) {
 }
 
 async function reset(page: Page, wirds: unknown[]) {
-  await page.request.post('/api/test/tracker', { data: { reset: ['wird', 'wird_entry', 'user_hifth'] } });
+  await page.request.post('/api/test/tracker', { data: { reset: ['wird', 'wird_entry', 'user_hifth'], resetUser: uid } });
   await page.request.post('/api/test/tracker', { data: { seed: { wird: wirds } } });
 }
 
@@ -200,7 +204,7 @@ test.describe('Wird daily screen', () => {
     guardConsole(page);
     const day = (ago: number) => new Date(Date.now() - ago * 86_400_000).toISOString().slice(0, 10); // UTC, like the app
     const entry = (wirdId: string, ago: number) => ({
-      id: `e-${wirdId}`, wird_id: wirdId, user_id: MOCK_USER_ID, entry_date: day(ago), cycle_seq: 1, page_start: 1, page_end: 1,
+      id: `e-${wid(wirdId)}`, wird_id: wid(wirdId), user_id: uid, entry_date: day(ago), cycle_seq: 1, page_start: 1, page_end: 1,
     });
     await reset(page, [seedWird('w-fresh', 'Fresh wird', 10), seedWird('w-missed', 'Missed wird', 10)]);
     await page.request.post('/api/test/tracker', { data: { seed: { wird_entry: [entry('w-fresh', 1), entry('w-missed', 2)] } } });
@@ -242,7 +246,7 @@ test.describe('Wird daily screen', () => {
       data: {
         seed: {
           user_hifth: [{
-            user_id: MOCK_USER_ID,
+            user_id: uid,
             memorized_ranges: [
               { surah: 1, from: 1, to: 7 },
               { surah: 2, from: 1, to: 16 },
@@ -352,13 +356,6 @@ test.describe('Wird daily screen', () => {
 // what the user controls: the saved time, the Off switch, and the one-time
 // offer after the first wird.
 test.describe('Wird reminder', () => {
-  const setReminder = async (page: Page, value: string) => {
-    await page.goto('/settings');
-    const select = page.getByLabel('Daily wird reminder');
-    await select.selectOption(value);
-    await expect(page.getByText('Saving…')).toHaveCount(0);
-  };
-
   test('settings: the reminder time saves, survives a reload, and can be turned off', async ({ page }) => {
     guardConsole(page);
     // Not asked yet, not subscribed = push is off on this device. (Granting it
@@ -394,8 +391,6 @@ test.describe('Wird reminder', () => {
     await expect(page.getByLabel('Daily wird reminder')).toHaveValue('');
     // Off: nothing to warn about.
     await expect(page.getByText(/so it won't arrive here/)).toHaveCount(0);
-
-    await setReminder(page, '18:00'); // the mock profile outlives the test
   });
 
   test('settings: with no wirds the reminder is dimmed and says what to do', async ({ page }) => {
@@ -458,7 +453,5 @@ test.describe('Wird reminder', () => {
     await create('Second first wird');
     await expect(page.getByText('10 pages to go')).toHaveCount(1);
     await expect(sheet).toHaveCount(0);
-
-    await setReminder(page, '18:00');
   });
 });

@@ -511,6 +511,7 @@ const en = {
   'legend.other': 'Other marks',
   'share.editingSetBanner': 'Editing {owner}’s “{name}” — shared with you',
   'share.openStudentProfile': 'Open student profile',
+  'share.readOnlyLabel': 'Shared annotation — read-only',
   // 0013 Substitute teacher
   'subs.assign': 'Assign sub',
   'subs.removeSub': 'Remove {name}',
@@ -1158,6 +1159,7 @@ const ar: Record<MessageKey, string> = {
   'legend.other': 'علامات أخرى',
   'share.editingSetBanner': 'تعديل “{name}” الخاصة بـ {owner} — مشاركة معك',
   'share.openStudentProfile': 'فتح ملف الطالب',
+  'share.readOnlyLabel': 'تعليق مشترك — للقراءة فقط',
   // 0013 Substitute teacher
   'subs.assign': 'تعيين بديل',
   'subs.removeSub': 'إزالة {name}',

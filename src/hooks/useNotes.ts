@@ -23,15 +23,21 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
   const [error, setError] = useState<string | null>(null);
   const fail = (err: unknown) => setError(err instanceof Error ? err.message : String(err));
 
-  const [notesSetId, setNotesSetId] = useState(setId);
-  if (notesSetId !== setId) {
-    setNotesSetId(setId);
+  // A set/page switch drops the open edit and the draft — here, at the switch. Doing it when the
+  // fetch resolves (as before) also wiped text typed while the panel's first fetch was in flight.
+  const viewKey = `${setId}:${pageNum}`;
+  const [notesKey, setNotesKey] = useState(viewKey);
+  if (notesKey !== viewKey) {
+    setNotesKey(viewKey);
     if (!setId) setNotes([]);
+    setEditingId(null);
+    setEditBody('');
+    setNewBody('');
   }
 
   useEffect(() => {
     if (!setId) return;
-    const fetchNotes = (reset: boolean) => {
+    const fetchNotes = () => {
       supabase
         .from('notes')
         .select('*')
@@ -39,20 +45,14 @@ export function useNotes(setId: string, pageNum: number, initialNotes: Note[] = 
         .eq('page_number', pageNum)
         .is('deleted_at', null)
         .order('created_at', { ascending: true })
-        .then((res) => {
-          setNotes((res.data ?? []) as Note[]);
-          if (!reset) return;
-          setEditingId(null);
-          setEditBody('');
-          setNewBody('');
-        });
+        .then((res) => setNotes((res.data ?? []) as Note[]));
     };
-    fetchNotes(true);
+    fetchNotes();
     // A canvas save may have soft-deleted or restored this page's bound notes; refetch so the
     // panel follows the erase/undo instead of showing notes whose object is gone.
     const onStale = (e: Event) => {
       const d = (e as CustomEvent).detail;
-      if (d?.setId === setId && d?.pageNum === pageNum) fetchNotes(false);
+      if (d?.setId === setId && d?.pageNum === pageNum) fetchNotes();
     };
     window.addEventListener('hifth:notes-stale', onStale);
     return () => window.removeEventListener('hifth:notes-stale', onStale);

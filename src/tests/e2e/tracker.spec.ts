@@ -1,19 +1,15 @@
-import { test, expect, type BrowserContext } from '@playwright/test';
+import { test, expect, type Browser } from '@playwright/test';
+import { asNewUser } from './e2eUser';
 
-// Only this spec's tables: other specs share the server mock store in parallel.
-const TRACKER_TABLES = ['circle', 'membership', 'progress_log', 'session', 'homework', 'membership_note', 'agenda_item', 'exam'];
 
 // Tracker — teacher create + open flow against the mock Supabase client.
 // One authenticated mock user (teacher of the circles they create).
 test.describe('Progression Tracker (Authenticated)', () => {
   test.beforeEach(async ({ context }) => {
-    await context.addCookies([
-      { name: 'sb-access-token', value: 'dummy-token', domain: 'localhost', path: '/' },
-    ]);
     await context.setExtraHTTPHeaders({ 'x-e2e-test': 'true' });
-    // Start with no circles so /tracker shows the empty state (it redirects to the
-    // first circle otherwise) and the rail "+" create flow is exercised deterministically.
-    await context.request.post('/api/test/tracker', { data: { reset: TRACKER_TABLES } });
+    // A fresh teacher (F4) has no circles, so /tracker shows the empty state (it redirects to the
+    // first circle otherwise) and nothing a parallel test creates or resets can show up here.
+    await asNewUser(context);
   });
 
   test('create a circle and open its teacher view', async ({ page }) => {
@@ -45,17 +41,19 @@ test.describe('Progression Tracker (Authenticated)', () => {
 
     await page.goto('/tracker');
     const create = async (name: string) => {
+      // F4: from circle A the URL already matches /tracker/<id>; wait for the NEW circle's push.
+      const before = page.url();
       await page.getByRole('button', { name: 'Create Hifth Circle' }).click();
       await page.getByPlaceholder('Name your Hifth Circle…').fill(name);
       // The circle page has its own (disabled) "Create" button; target the dialog's.
       await page.getByRole('button', { name: 'Create', exact: true }).and(page.locator(':enabled')).click();
-      await expect(page).toHaveURL(/\/tracker\/[^/]+$/, { timeout: 15000 });
+      await expect(page).not.toHaveURL(before, { timeout: 15000 });
+      await expect(page).toHaveURL(/\/tracker\/[^/]+$/);
     };
     const stamp = Date.now();
     await create(`Rail A ${stamp}`);
     const urlA = page.url();
     await create(`Rail B ${stamp}`);
-    await expect(page).not.toHaveURL(urlA);
 
     // Circles share one static shell route (PRD 0016 M6), so a revisited circle comes from the
     // router cache without a server round-trip. Reload for a cold router cache, then hold the
@@ -120,28 +118,16 @@ test.describe('Progression Tracker (Authenticated)', () => {
 // NOTE: the mock does NOT enforce RLS — it only exercises the *UI flow* driven by
 // real membership.status data (pending→accept→active). Security/consent isolation
 // (C2, S1–S6, G4) are RLS guarantees and are NOT covered here — DB-only.
-const TEACHER_ID = '52345ff6-3348-40d5-b6d8-1234567890ab';
-const STUDENT_ID = '6a1b2c3d-4e5f-6789-abcd-0123456789ef';
-
-async function makeActor(
-  browser: import('@playwright/test').Browser,
-  sub: string,
-): Promise<BrowserContext> {
+// Fresh identities per run (F4): parallel copies never share a teacher, student or circle.
+async function makeActor(browser: Browser) {
   const ctx = await browser.newContext({ extraHTTPHeaders: { 'x-e2e-test': 'true' } });
-  await ctx.addCookies([
-    { name: 'sb-auth-token', value: JSON.stringify({ sub }), domain: 'localhost', path: '/' },
-    { name: 'x-e2e-test', value: 'true', domain: 'localhost', path: '/' },
-  ]);
-  return ctx;
+  return { ctx, id: await asNewUser(ctx) };
 }
 
 test.describe('Progression Tracker (Two-actor)', () => {
   test('consent gate + open submission: join → accept → active roster → student logs', async ({ browser }) => {
-    const teacherCtx = await makeActor(browser, TEACHER_ID);
-    const studentCtx = await makeActor(browser, STUDENT_ID);
-
-    // Reset the server-side mock store so the run is deterministic.
-    await teacherCtx.request.post('/api/test/tracker', { data: { reset: TRACKER_TABLES } });
+    const { ctx: teacherCtx, id: TEACHER_ID } = await makeActor(browser);
+    const { ctx: studentCtx, id: STUDENT_ID } = await makeActor(browser);
 
     // 1) Teacher creates a circle and opens its teacher view.
     const teacher = await teacherCtx.newPage();
@@ -217,12 +203,12 @@ test.describe('Progression Tracker (Two-actor)', () => {
     const day = (offset: number) => new Date(Date.now() + offset * 864e5).toLocaleDateString('en-CA');
     const now = new Date().toISOString();
     await teacherCtx.request.post('/api/test/tracker', { data: { seed: {
-      homework: [{ id: 'hw-todo', membership_id: membershipId, prescribed_by: TEACHER_ID, group_id: null,
+      homework: [{ id: `hw-${membershipId}`, membership_id: membershipId, prescribed_by: TEACHER_ID, group_id: null,
         type: 'memorization', deadline: day(5), page_start: 1, page_end: 1, surah: 1,
         ayah_start: null, ayah_end: null, instructions: null, created_at: now }],
-      exam: [{ id: 'ex-todo', membership_id: membershipId, scheduled_date: day(1), page_start: 2, page_end: 2,
+      exam: [{ id: `ex-${membershipId}`, membership_id: membershipId, scheduled_date: day(1), page_start: 2, page_end: 2,
         surah: 2, ayah_start: 1, ayah_end: 5, entries: [], status: 'scheduled', teacher_notes: null, created_at: now }],
-      membership_note: [{ id: 'note-todo', membership_id: membershipId, author_id: TEACHER_ID,
+      membership_note: [{ id: `note-${membershipId}`, membership_id: membershipId, author_id: TEACHER_ID,
         body: 'Revise juz amma', created_at: now }],
     } } });
     await student.reload();

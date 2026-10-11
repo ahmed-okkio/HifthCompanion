@@ -8,6 +8,7 @@ interface MockSet {
   user_id: string;
   name: string;
   created_at: string;
+  is_default?: boolean;
 }
 
 interface MockAnnotation {
@@ -383,12 +384,15 @@ class MockQueryBuilder {
       // Default: select
       let sets = getSets();
       sets = this.applyFilters(sets);
-      // RLS mirror (0016 M7): a set is visible to its owner, a collaborator, or a covering substitute.
+      // RLS mirror (0016 M7): a set is visible to its owner, a collaborator, a covering substitute, or the student's teacher (default set).
       const uid = this.userId;
       sets = sets.filter((s) =>
         s.user_id === uid ||
         trackerGet('set_collaborators').some((c) => c.set_id === s.id && c.user_id === uid) ||
-        trackerGet('covering').some((c) => c.default_set_id === s.id && c.substitute_user_id === uid));
+        trackerGet('covering').some((c) => c.default_set_id === s.id && c.substitute_user_id === uid) ||
+        // teacher_reads_default_set: the teacher of an active student's circle reads that student's default set.
+        (s.is_default && trackerGet('membership').some((m) => m.user_id === s.user_id && m.role === 'student' && m.status === 'active' &&
+          trackerGet('circle').some((c) => c.id === m.circle_id && c.teacher_id === uid))));
       if (this.orderField) {
         sets.sort((a: Row, b: Row) => {
           const valA = a[this.orderField!];
@@ -712,7 +716,13 @@ function emailForUser(userId: string): string {
 // to seed/reset deterministic fixtures. Guarded upstream by the E2E env gate.
 // `tables` limits the wipe to those tables — specs run in parallel against one server
 // store, so a full reset from one spec deletes another spec's rows mid-test.
-export function __resetMockStore(tables?: string[]) {
+export function __resetMockStore(tables?: string[], userId?: string) {
+  // Per-user wipe: only that identity's rows (user_id), so parallel tests never touch each other.
+  if (tables && userId) {
+    const g = globalForDb as unknown as Record<string, Row[]>;
+    for (const t of tables) g[TRACKER_GLOBAL[t]] = g[TRACKER_GLOBAL[t]].filter((r) => r.user_id !== userId);
+    return;
+  }
   if (tables) {
     for (const t of tables) (globalForDb as unknown as Record<string, Row[]>)[TRACKER_GLOBAL[t]] = [];
     return;
@@ -750,6 +760,7 @@ export function __seedMockStore(payload: Partial<{
   annotation_sets: MockSet[];
   set_collaborators: Row[];
   covering: Row[];
+  profiles: Row[];
 }>) {
   if (payload.circle) globalForDb.mockCircle!.push(...payload.circle);
   if (payload.membership) globalForDb.mockMembership!.push(...payload.membership);
@@ -765,4 +776,5 @@ export function __seedMockStore(payload: Partial<{
   if (payload.annotation_sets) globalForDb.mockSets!.push(...payload.annotation_sets);
   if (payload.set_collaborators) globalForDb.mockSetCollaborators!.push(...payload.set_collaborators);
   if (payload.covering) globalForDb.mockCovering!.push(...payload.covering);
+  if (payload.profiles) globalForDb.mockProfiles!.push(...payload.profiles);
 }

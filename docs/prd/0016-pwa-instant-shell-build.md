@@ -158,3 +158,16 @@ Serial slices; each ends with tsc + build:check + test + the area e2e, and its c
 - **Mock store mirrors annotation_sets RLS (M7).** Selects return only sets the acting user owns, collaborates on
   (`set_collaborators`) or covers (mock-only `covering` table, served by the `covering_sessions` RPC). Read-only share
   e2e acts as a dedicated substitute id (`shareFixture.ts`) so no covering row lands on the default mock user.
+## Flake log (F4)
+
+Baseline: `playwright test --project=annotations,reader,sets,tracker,wird,mobile --repeat-each=10 --retries=0`
+= 60 failed / 911. pwa `--repeat-each=10 --retries=0` = 121/121 (no flakes).
+
+| Test | Fails /10 | Root cause | Fix |
+|---|---|---|---|
+| tracker.spec `:139` two-actor | 9 | Shared server mock store: every copy reset ALL tracker tables and acted as the same fixed teacher/student ids, so parallel workers / repeats wiped each other's circle mid-test (invite → `/tracker`, missing "Join", 2 "Create" buttons) | Each actor is a fresh random identity (`e2eUser.ts asNewUser`, cookie `sb-auth-token {sub}`); no table reset; seeded ids derived from the membership id |
+| tracker.spec `:19`, `:41`, `:83` | 1 / 3 / 1 | Same shared-store reset + one default teacher (sibling circles showed, "No circles yet" missing). `:41` also: `create()` waited for `/tracker/<id>`, which circle A's URL already matched, so creating B could return before its push | Fresh teacher per test (beforeEach); `create()` waits for the URL to change |
+| wird.spec (11 tests, `:57` 8, `:362` 7, `:138` 6, `:237` 5, ...) | 1–8 | `reset` wiped the global wird/wird_entry/user_hifth tables for the one default user, and the reminder tests mutated the single default profile row; parallel copies deleted/duplicated each other's wirds (strict-mode "Start at" ×2, 500 on `scope_source` of a deleted wird, reminder value flipping) | Fresh user + seeded profile per test; reset is per-user (`resetUser`, mock `__resetMockStore(tables, userId)`); wird ids suffixed per user; the "restore 18:00" cleanups removed |
+| features.spec `:299`, `:315` Notes | 3 / 1 | (a) helper selected the set and trusted `data-canvas-ready`, still true from the previous set, before the `?set=` `router.replace` landed, so the notes column remounted mid-fill. (b) App bug: `useNotes` cleared the draft when its mount fetch resolved, wiping text typed while it was in flight | (a) helper waits for the controlled picker to show the chosen set. (b) `useNotes` resets edit/draft at the set/page switch (render-time key), not on fetch resolve |
+
+After fixes: tracker+wird+annotations 10x = 381/381; pwa 10x = 121/121; full SW-blocked 10x = 911/911.

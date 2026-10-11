@@ -375,7 +375,8 @@ export default function ReaderShell({ children, user, sets, account = null, lock
                   {banner}
 
                   <div className="flex min-w-0 flex-col gap-4">
-                    <div className="mx-auto w-full">
+                    {/* Mobile: bleed past <main>'s px-4 so the page spans the full viewport width. */}
+                    <div className="-mx-4 sm:mx-auto sm:w-full">
                       {/* Persistent across page navigation — Fabric is not torn down (Story 24).
                           M3: in spread mode (`/reader/N-M`, desktop only — E1 redirects narrow
                           viewports to single) we mount TWO independent persistent canvases. Each

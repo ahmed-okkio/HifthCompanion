@@ -13,6 +13,8 @@ const OFFLINE_URL = "/offline.html";
    already-downloaded pages. Cross-origin (Supabase storage), matched on path not host so a
    storage move doesn't need a SW edit. */
 const PAGE_CACHE = "hc-pages-v1";
+// Hashed build assets: content-addressed, so cache-first is always correct. ponytail: grows across deploys; bump this name to purge.
+const STATIC_CACHE = "hc-static-v1";
 const PAGE_IMAGE_RE = /\/storage\/v1\/object\/public\/[^/]*tajweed[^/]*\/\d+\.png$/;
 
 self.addEventListener("install", (event) => {
@@ -32,7 +34,7 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((k) => k !== CACHE_VERSION && k !== PAGE_CACHE)
+            .filter((k) => k !== CACHE_VERSION && k !== PAGE_CACHE && k !== STATIC_CACHE)
             .map((k) => caches.delete(k))
         )
       )
@@ -70,6 +72,23 @@ self.addEventListener("fetch", (event) => {
 
   // Same-origin only.
   if (url.origin !== self.location.origin) return;
+
+  // /_next/static: CACHE-FIRST (immutable hashed filenames, no user data).
+  if (url.pathname.startsWith("/_next/static/")) {
+    event.respondWith(
+      caches.open(STATIC_CACHE).then((cache) =>
+        cache.match(request).then(
+          (hit) =>
+            hit ||
+            fetch(request).then((response) => {
+              if (response.ok) cache.put(request, response.clone()).catch(() => {});
+              return response;
+            })
+        )
+      )
+    );
+    return;
+  }
 
   // Navigation requests: NETWORK-FIRST. Always serve the live page so route
   // changes and updated build chunks load correctly; only fall back to the

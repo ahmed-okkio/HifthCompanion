@@ -51,4 +51,3 @@ playwright/.auth/
 
 # All log files
 *.log
-/public/_shell

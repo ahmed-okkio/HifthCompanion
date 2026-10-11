@@ -7,6 +7,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 # Project Instructions
 
 ## Development Workflow
+- **Git worktrees:** don't `npm install` in a fresh worktree; run `npm run worktree:deps` to copy the main checkout's `node_modules`.
 - **Verify Build and Test:** After any code change, perform the following:
   1. `npx tsc --noEmit` (Type Check)
   2. `npm run build:check` (Build Verification)

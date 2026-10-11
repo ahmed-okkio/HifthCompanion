@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { __resetMockStore, __seedMockStore } from '@/lib/supabase/mock';
+import { __resetMockStore, __runMockQuery, __seedMockStore } from '@/lib/supabase/mock';
 
 // Test-only route handler: lets Playwright reset/seed the SERVER-side mock store
 // (a process global the server components read). Reachable ONLY under the E2E
@@ -17,5 +17,12 @@ export async function POST(req: Request) {
   // reset: true wipes everything; reset: ['wird', ...] wipes only those tables.
   if (body?.reset) __resetMockStore(Array.isArray(body.reset) ? body.reset : undefined);
   if (body?.seed) __seedMockStore(body.seed);
+  if (body?.query) {
+    try {
+      return NextResponse.json({ data: await __runMockQuery(body.query) });
+    } catch (e) {
+      return NextResponse.json({ error: { message: e instanceof Error ? e.message : String(e) } });
+    }
+  }
   return NextResponse.json({ ok: true });
 }

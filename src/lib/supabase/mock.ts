@@ -323,6 +323,19 @@ class MockQueryBuilder {
   }
 
   async execute() {
+    // PRD 0016 dec. 17: in the browser, tracker tables (wird, circle, ...) live in the
+    // SERVER store that Playwright seeds; forward the query so client reads see fixtures.
+    // ponytail: sets/annotations/notes stay in localStorage (their client paths own them).
+    if (!IS_SERVER && this.table in TRACKER_GLOBAL) {
+      const res = await fetch('/api/test/tracker', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ query: this }),
+      });
+      const body = await res.json();
+      if (body.error) throw body.error;
+      return body.data;
+    }
     if (this.table === 'annotation_sets') {
       if (this.op === 'insert') {
         const sets = getSets();
@@ -649,6 +662,11 @@ export class MockSupabaseClient {
     }
     return { data: null, error: null };
   }
+}
+
+// Server side of the forwarded browser query above (test route only).
+export function __runMockQuery(state: Row) {
+  return Object.assign(new MockQueryBuilder(state.table, state.userId), state).execute();
 }
 
 // --- E2E multi-user fixtures -------------------------------------------------

@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Geist_Mono, Outfit } from "next/font/google";
 import "./globals.css";
 import { I18nProvider } from "@/components/I18nProvider";
+import { QueryProvider } from "@/lib/query/Provider";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { TopProgressBar } from "@/components/TopProgressBar";
 import { SplashIntro } from "@/components/SplashIntro";
@@ -83,7 +84,9 @@ export default async function RootLayout({
         <I18nProvider locale={locale}>
           {/* ponytail: catch-all boundary so unconverted routes build under cacheComponents;
               Phase 3 moves Suspense down to each data section. */}
-          <Suspense fallback={null}>{children}</Suspense>
+          <Suspense fallback={null}>
+            <QueryProvider>{children}</QueryProvider>
+          </Suspense>
         </I18nProvider>
         <ServiceWorkerRegister />
       </body>

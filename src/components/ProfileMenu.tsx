@@ -13,6 +13,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { queryClient } from '@/lib/query/Provider';
+import { clearQueryCache } from '@/lib/query/persist';
 import { AnchoredPopup, Avatar } from '@/components/tracker/ui';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useI18n } from '@/components/I18nProvider';
@@ -42,6 +44,7 @@ export default function ProfileMenu({ name, email }: { name: string; email: stri
   async function logout() {
     const supabase = createClient();
     await supabase.auth.signOut();
+    await clearQueryCache(queryClient); // PRD 0016 E6: wipe before the next screen renders
     document.cookie = 'hc-onboarded=; Max-Age=0; path=/'; // next user re-checks onboarding (A8)
     setOpen(false);
     router.push('/login');

@@ -35,6 +35,12 @@ function guardConsole(page: Page) {
   });
 }
 
+// A re-goto can briefly leave React's streamed Suspense payload in a hidden div#S:n
+// beside the revealed copy; wait for the swap so strict locators see one element.
+async function streamSettled(page: Page) {
+  await expect(page.locator('div[hidden][id^="S:"]')).toHaveCount(0);
+}
+
 async function reset(page: Page, wirds: unknown[]) {
   await page.request.post('/api/test/tracker', { data: { reset: ['wird', 'wird_entry', 'user_hifth'] } });
   await page.request.post('/api/test/tracker', { data: { seed: { wird: wirds } } });
@@ -90,6 +96,7 @@ test.describe('Wird daily screen', () => {
     await expect(page.getByRole('heading', { name: 'All done today' })).toBeVisible();
     await expect(page.getByText('10 pages to go')).toHaveCount(0);
     // The server's advanced position matches what was shown up front.
+    await streamSettled(page);
     await expect(page.locator('li', { hasText: /next begins at/i })).toHaveText(nextText);
   });
 
@@ -289,6 +296,7 @@ test.describe('Wird daily screen', () => {
     for (const [width, height] of [[375, 420], [640, 360]]) {
       await page.setViewportSize({ width, height });
       await page.goto('/wird');
+      await streamSettled(page);
       await expect(page.getByText('10 pages to go')).toBeVisible();
       // No page scroll: the document is exactly the viewport tall.
       expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true);

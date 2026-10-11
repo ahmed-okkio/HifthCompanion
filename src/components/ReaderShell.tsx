@@ -439,7 +439,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
           </>
         )}
       </div>
-      <MobileSurahDrawer open={surahOpen} onOpenChange={setSurahOpen} basePath={sharePageBasePath} isSpread={!!spread} />
+      <MobileSurahDrawer open={surahOpen} onOpenChange={setSurahOpen} basePath={sharePageBasePath} isSpread={!!spread} markedPages={markedRows} />
       <MobileNavDrawer open={navOpen} onOpenChange={setNavOpen} />
     </div>
   );

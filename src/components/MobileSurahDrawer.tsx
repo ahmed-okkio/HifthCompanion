@@ -6,6 +6,9 @@ import { activeGroupPage, filterSurahGroups, getSurahName, pageFromLocation, typ
 import { usePinnedPage } from '@/hooks/usePinnedPage';
 import { useI18n } from '@/components/I18nProvider';
 import { useGoToPage } from '@/hooks/useGoToPage';
+import { sortMarked, type MarkedPage } from '@/lib/markedPages';
+import MarkedPagesList from '@/components/MarkedPagesList';
+import { SegmentedControl } from '@/components/ui';
 
 interface Props {
   open: boolean;
@@ -13,10 +16,15 @@ interface Props {
   basePath?: string;
   /** M6: when true, surah jumps target the spread URL containing the page (D3). */
   isSpread?: boolean;
+  /** Marked pages for the active set; undefined hides the Annotations tab (as in SurahNavPanel). */
+  markedPages?: MarkedPage[];
 }
 
-export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/reader', isSpread = false }: Props) {
+export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/reader', isSpread = false, markedPages }: Props) {
   const { t, locale, fmtNum } = useI18n();
+  const [tab, setTab] = useState<'surahs' | 'marked'>('surahs');
+  const markedRows = useMemo(() => sortMarked(markedPages ?? []), [markedPages]);
+  const showMarked = markedPages !== undefined && tab === 'marked';
   const [query, setQuery] = useState('');
   const [bookmarkedPage, toggleBookmarkedPage] = usePinnedPage(basePath);
   const activeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -109,9 +117,21 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
         <div className="px-3 pt-2 pb-3 shrink-0">
           <div className="rounded-lg border border-subtle bg-surface-app p-3">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-heading-m text-primary">
-                {t('reader.surahs')}
-              </span>
+              {markedPages === undefined ? (
+                <span className="text-heading-m text-primary">
+                  {t('reader.surahs')}
+                </span>
+              ) : (
+                <SegmentedControl
+                  tabs
+                  options={[
+                    { key: 'surahs', label: t('reader.surahs') },
+                    { key: 'marked', label: t('reader.marked') },
+                  ]}
+                  value={tab}
+                  onChange={k => setTab(k as 'surahs' | 'marked')}
+                />
+              )}
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
@@ -125,7 +145,7 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
               </button>
             </div>
 
-            <div className="relative">
+            {!showMarked && <div className="relative">
               <svg
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4.5 text-muted pointer-events-none"
                 viewBox="0 0 24 24"
@@ -144,17 +164,29 @@ export default function MobileSurahDrawer({ open, onOpenChange, basePath = '/rea
                 className="input input-sm w-full bg-transparent pl-11"
                 aria-label={t('reader.searchSurah')}
               />
-            </div>
+            </div>}
           </div>
-          <p className="mt-2 mx-1 mb-0 text-caption text-muted">
-            {t('reader.holdToBookmark')}
-          </p>
+          {!showMarked && (
+            <p className="mt-2 mx-1 mb-0 text-caption text-muted">
+              {t('reader.holdToBookmark')}
+            </p>
+          )}
         </div>
+
+        {showMarked && (
+          <div data-testid="mobile-marked-scroll-list" className="thin-scroll flex-1 overflow-y-auto pb-8">
+            <MarkedPagesList
+              rows={markedRows}
+              currentPage={currentPage}
+              onJump={page => { onOpenChange(false); void goToPage(page); }}
+            />
+          </div>
+        )}
 
         {/* Scrollable list */}
         <div
           data-testid="mobile-surah-scroll-list"
-          className="thin-scroll flex-1 overflow-y-auto px-2 pb-8"
+          className={`thin-scroll flex-1 overflow-y-auto px-2 pb-8 ${showMarked ? 'hidden' : ''}`}
         >
           <ul className="flex flex-col gap-1">
             {filtered.map(group => {

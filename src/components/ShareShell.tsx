@@ -212,7 +212,7 @@ export default function ShareShell({ basePath, pageNum, setName, ownerName, chil
         </div>
       </div>
 
-      <MobileSurahDrawer open={surahOpen} onOpenChange={setSurahOpen} basePath={basePath} />
+      <MobileSurahDrawer open={surahOpen} onOpenChange={setSurahOpen} basePath={basePath} markedPages={markedRows} />
       <MobileNavDrawer open={navOpen} onOpenChange={setNavOpen} />
     </div>
   );

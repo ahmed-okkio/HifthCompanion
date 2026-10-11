@@ -308,6 +308,23 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
     });
     await expect.poll(wrapperPE).not.toBe('none');
   });
+
+  // Mobile parity with the desktop sidebar's Surahs | Annotations tabs.
+  test('surah sheet has an Annotations tab that swaps the surah list for marked pages', async ({ page }) => {
+    listenForErrors(page);
+    await page.getByRole('button', { name: 'Open surah list' }).click();
+    const sheet = page.getByTestId('mobile-surah-sheet');
+    await expect(sheet.getByTestId('mobile-surah-scroll-list')).toBeVisible();
+
+    await sheet.getByRole('tab', { name: 'Annotations' }).click();
+    await expect(sheet.getByTestId('mobile-marked-scroll-list')).toBeVisible();
+    await expect(sheet.getByTestId('mobile-surah-scroll-list')).toBeHidden();
+    await expect(sheet.getByLabel('Search surah')).toHaveCount(0);
+
+    await sheet.getByRole('tab', { name: 'Surahs' }).click();
+    await expect(sheet.getByTestId('mobile-surah-scroll-list')).toBeVisible();
+    await expect(sheet.getByTestId('mobile-marked-scroll-list')).toHaveCount(0);
+  });
 });
 
 test.describe('Mobile share view (Pixel 5)', () => {

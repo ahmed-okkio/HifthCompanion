@@ -373,7 +373,22 @@ test('logging out from /settings wipes the persisted settings data (E6, M8)', as
   await page.getByRole('button', { name: 'Account' }).click();
   await page.getByRole('menuitem', { name: 'Log out' }).click();
   await expect(page).toHaveURL(/\/login/);
-  expect(await persistedKeys(page)).not.toContain('"settings"');
+  // The mounted settings query may re-create itself (signed out, data null) after the wipe;
+  // what must be gone is the user's data, not the key.
+  const persisted = () =>
+    page.evaluate(
+      () =>
+        new Promise<string>((resolve) => {
+          const r = indexedDB.open('keyval-store');
+          r.onsuccess = () => {
+            const g = r.result.transaction('keyval').objectStore('keyval').get('hc-query');
+            g.onsuccess = () => resolve(JSON.stringify(g.result ?? null));
+          };
+          r.onerror = () => resolve('');
+        }),
+    );
+  await page.waitForTimeout(1500); // past the 1s persist throttle
+  expect(await persisted()).not.toContain('homework');
 });
 
 test('/install is served from the SW, with its QR code built client-side (M8)', async ({ page, context }) => {

@@ -34,12 +34,12 @@ describe('TOOL_ICONS', () => {
 });
 
 describe('ALL_TOOLS', () => {
-  it('contains exactly 6 tools', () => {
-    expect(ALL_TOOLS).toHaveLength(6);
+  it('contains exactly 5 tools', () => {
+    expect(ALL_TOOLS).toHaveLength(5);
   });
 
   it('includes expected tool names', () => {
-    const expected: Tool[] = ['pen', 'highlighter', 'circle', 'underline', 'text', 'eraser'];
+    const expected: Tool[] = ['pen', 'highlighter', 'eraser', 'underline', 'text'];
     expect(ALL_TOOLS).toEqual(expected);
   });
 });

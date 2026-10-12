@@ -137,23 +137,21 @@ test.describe('Toolbar tools', () => {
     expect(result!.blend).toBe('multiply');
   });
 
-  test('circle tool draws an ellipse on canvas', async ({ page }) => {
+  test('last picked tool is remembered across reloads', async ({ page }) => {
     listenForErrors(page);
-    const setName = `Circle-${Date.now()}`;
+    const setName = `Remember-${Date.now()}`;
     await setupAuthenticatedReader(page, setName);
 
-    await page.click('button[title="Circle"]', { force: true });
-    await expect.poll(async () => page.evaluate(() => {
-      const c = window.fabricCanvas;
-      return c != null && c.isDrawingMode === false;
-    }), { timeout: 10000 }).toBeTruthy();
-    await drawOnCanvas(page, 100, 80);
+    await page.click('button[title="Underline"]', { force: true });
+    await expect.poll(() => page.evaluate(() => window.__annotationTool)).toBe('underline');
 
-    const count = await page.evaluate(() => {
+    await page.reload();
+    await expect.poll(() => page.evaluate(() => window.__annotationTool), { timeout: 10000 }).toBe('underline');
+    await drawOnCanvas(page, 120, 5);
+    await expect.poll(() => page.evaluate(() => {
       const c = window.fabricCanvas;
-      return c ? c.getObjects().filter((o) => o.type === 'ellipse').length : 0;
-    });
-    expect(count).toBeGreaterThan(0);
+      return c ? c.getObjects().filter((o) => o.type === 'line').length : 0;
+    })).toBeGreaterThan(0);
   });
 
   test('underline tool draws a horizontal line', async ({ page }) => {

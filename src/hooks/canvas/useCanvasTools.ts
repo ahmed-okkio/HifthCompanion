@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { fabric } from 'fabric';
-import { type Tool, getToolCursor } from '@/lib/canvasTools';
+import { type Tool, ALL_TOOLS, getToolCursor } from '@/lib/canvasTools';
 import { ensureObjectId } from '@/lib/canvasHistory';
 
 // Highlighter is a fixed wide brush (like a real marker), independent of the pen width.
@@ -21,8 +21,23 @@ export interface ToolState {
   eraserSize: number; setEraserSize: React.Dispatch<React.SetStateAction<number>>;
 }
 
+const LAST_TOOL_KEY = 'lastAnnotationTool';
+
 export function useToolState(): ToolState {
   const [activeTool, setActiveTool] = useState<Tool>('pen');
+  // Remember the last picked tool across reloads. Restored after mount (not in the
+  // initializer) so the server-rendered toolbar matches the first client render.
+  const restored = useRef(false);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LAST_TOOL_KEY) as Tool | null;
+      if (saved && ALL_TOOLS.includes(saved)) setActiveTool(saved);
+    } catch {}
+  }, []);
+  useEffect(() => {
+    if (!restored.current) { restored.current = true; return; }
+    try { localStorage.setItem(LAST_TOOL_KEY, activeTool); } catch {}
+  }, [activeTool]);
   const [activeColor, setActiveColor] = useState<string>('#ef4444');
   const [opacity, setOpacity] = useState<number>(0.4);
   const [penWidth, setPenWidth] = useState<number>(4);
@@ -416,9 +431,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
       isDrawing = true;
       startX = pointer.x;
       startY = pointer.y;
-      if (activeTool === 'circle') {
-        shape = new fabric.Ellipse({ left: startX, top: startY, rx: 0, ry: 0, fill: 'transparent', stroke: activeColor, strokeWidth: 2, selectable: false, hasBorders: false, hasControls: false });
-      } else if (activeTool === 'underline') {
+      if (activeTool === 'underline') {
         shape = new fabric.Line([startX, startY, startX, startY], { stroke: activeColor, strokeWidth: 2, selectable: false, hasBorders: false, hasControls: false });
       }
       if (shape) { canvas.add(shape); }
@@ -429,11 +442,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
       const pointer = canvas.getPointer(opt.e);
       const x = pointer.x;
       const y = pointer.y;
-      if (activeTool === 'circle') {
-        const rx = Math.abs(startX - x) / 2;
-        const ry = Math.abs(startY - y) / 2;
-        (shape as fabric.Ellipse).set({ left: Math.min(startX, x), top: Math.min(startY, y), rx, ry });
-      } else if (activeTool === 'underline') {
+      if (activeTool === 'underline') {
         (shape as fabric.Line).set({ x2: x, y2: startY });
       }
       canvas.renderAll();
@@ -443,10 +452,9 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
       if (!isDrawing) return;
       isDrawing = false;
       if (shape) {
-        const obj = shape as fabric.Object & { rx?: number; ry?: number; x1?: number; x2?: number; y1?: number; y2?: number };
+        const obj = shape as fabric.Object & { x1?: number; x2?: number; y1?: number; y2?: number };
         let tooSmall = false;
         if (obj.type === 'rect') tooSmall = (obj.width ?? 0) < 2 || (obj.height ?? 0) < 2;
-        else if (obj.type === 'ellipse') tooSmall = (obj.rx ?? 0) < 2 || (obj.ry ?? 0) < 2;
         else if (obj.type === 'line') tooSmall = Math.abs((obj.x2 ?? 0) - (obj.x1 ?? 0)) < 2 && Math.abs((obj.y2 ?? 0) - (obj.y1 ?? 0)) < 2;
         if (tooSmall) { canvas.remove(shape); }
         else { commit(true); void saveNow(); }

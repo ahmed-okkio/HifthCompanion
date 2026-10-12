@@ -3,7 +3,7 @@
  *
  * @module canvas
  *
- * useCanvasTools     — tool state, cursors, shape/eraser/underline drawing effects
+ * useCanvasTools     — tool state, cursors, eraser/underline drawing effects
  * useCanvasViewport  — sizing, backing ratio, pan-less layout measurement
  * useCanvasPersistence — load/save, cache, history, skeleton gating
  * useViewportState   — pan/zoom UI state (shared between single & spread modes)

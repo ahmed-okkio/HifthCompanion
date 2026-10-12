@@ -2,7 +2,7 @@
 import { type Tool } from '@/lib/canvasTools';
 import { useI18n } from '@/components/I18nProvider';
 
-const POPOVER_TOOLS: Tool[] = ['pen', 'circle', 'underline', 'highlighter', 'eraser'];
+const POPOVER_TOOLS: Tool[] = ['pen', 'underline', 'highlighter', 'eraser'];
 
 interface Props {
   hoveredTool: Tool | null;
@@ -33,7 +33,7 @@ export default function ToolHoverPopover({
       style={{ left: hoverPos.left, top: hoverPos.top }}
     >
       <div className="rounded-md border border-neutral-200 bg-surface-main px-4 py-3 shadow-e2">
-        {(hoveredTool === 'pen' || hoveredTool === 'circle' || hoveredTool === 'underline') && (
+        {(hoveredTool === 'pen' || hoveredTool === 'underline') && (
           <div className="flex min-h-7 items-center gap-3">
             <span className="text-small font-semibold text-secondary">{t('annot.size')}</span>
             <input

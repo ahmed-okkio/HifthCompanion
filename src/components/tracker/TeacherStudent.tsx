@@ -1,7 +1,7 @@
 'use client';
 
 import { setMembershipStatus, createAdhocSession, materializeSession, rescheduleSession, setSchedule, setSessionAttendance, setSessionCanceled, prescribeHomework, editDeadline, deleteHomework, gradeLog, logAndReview, assignSubstitutes, removeSubstitution, scheduleExam, gradeExam, deleteExam, rescheduleExam } from '@/lib/tracker/actions';
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useNow } from '@/hooks/useNow';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
@@ -268,7 +268,7 @@ export default function TeacherStudent({
  * detail view and the student's own self-service view (same three cards).
  */
 export function StudentProfileCard({
-  name, circleName, defaultSetId, memorized, attendance, openHomework, markedPages, markedDesktopOnly, wirdSummary,
+  name, circleName, defaultSetId, memorized, attendance, openHomework, markedPages, markedDesktopOnly, wirdSummary, children,
 }: {
   name: string;
   circleName: string;
@@ -277,7 +277,10 @@ export function StudentProfileCard({
    *  sub): the juz/surah rings are then hidden rather than shown as zeros. */
   memorized?: { juz: number; surahs: number };
   attendance: { status: AttendanceStatus }[];
-  openHomework: number;
+  /** Omit to hide the Homework-due card (the student's own view). */
+  openHomework?: number;
+  /** Extra card in the KPI slot (student view: Next session). */
+  children?: ReactNode;
   /** PRD 0009 C1/C2: default-set marked pages, read-only. Omit to hide the card. */
   markedPages?: MarkedPage[];
   /** When set, the marked-pages card only shows ≥lg (mobile surfaces it as a tab instead). */
@@ -309,7 +312,10 @@ export function StudentProfileCard({
         </>)}
         <AttendanceLine marked={att.marked} rate={att.rate} />
       </div>
-      <StatCard icon={<Icon name="hourglass" />} value={fmtNum(openHomework)} label={t('homework.openHomework')} />
+      {openHomework !== undefined && (
+        <StatCard icon={<Icon name="hourglass" />} value={fmtNum(openHomework)} label={t('homework.openHomework')} />
+      )}
+      {children}
 
       {/* 0015 L1–L4: read-only merged wird summary, only present for a teacher of an
           active membership (page passes it on that branch alone). Null → no card (L4). */}

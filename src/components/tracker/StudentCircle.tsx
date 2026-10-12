@@ -1,6 +1,6 @@
 'use client';
 
-import { createLog, deleteLog, leaveCircle } from '@/lib/tracker/actions';
+import { createLog, deleteLog, leaveCircle, postNote } from '@/lib/tracker/actions';
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type {
@@ -9,7 +9,7 @@ import type {
 import { type NewProgressLog } from '@/lib/services/progressLog';
 import { useRouter } from 'next/navigation';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
-import NotesThread from './NotesThread';
+import { NoteCard } from './NotesThread';
 import { homeworkStatus, aggregateStatus, focusExamId, groupHomework, nearestFirst, homeworkEntryLabel, homeworkTarget, type HomeworkStatus } from '@/lib/homework';
 import { recurringSlots, sectionSessions } from '@/lib/recurrence';
 import { isStreakAtRisk, mergeActivity } from '@/lib/streak';
@@ -49,7 +49,7 @@ function subscribeMobile(cb: () => void) {
   return () => mq.removeEventListener('change', cb);
 }
 
-// Last time the Notes tab was opened, per membership — drives the To-do "new notes" item.
+// Last time the Log tab (which holds notes) was opened, per membership — drives the To-do "new notes" item.
 // ponytail: per-device localStorage; move to a server read-marker if cross-device matters.
 const notesSeenKey = (id: string) => `hifth:notesSeen:${id}`;
 const noopSubscribe = () => () => {};
@@ -95,17 +95,18 @@ export default function StudentCircle({
   const [logs, setLogs] = useSynced(initialLogs);
   // Members live in the desktop sidebar; below lg they become a tab instead.
   const isMobile = useSyncExternalStore(subscribeMobile, () => window.matchMedia(MOBILE_MQ).matches, () => false);
-  const [pickedTab, setTab] = useState<string | null>(null);
-  const tab = pickedTab ?? (isMobile ? 'sessions' : 'todo'); // mobile lands on Next Session by default
+  const [tab, setTab] = useState('todo');
+  // Notes are a text-only log type: they share the Log tab + feed with progress logs.
+  const [notes, setNotes] = useSynced(initialNotes);
 
   // null during SSR/hydration → no "new notes" item until the client knows.
   const storedSeen = useSyncExternalStore(noopSubscribe, () => readNotesSeen(membership.id), () => null);
   const [seenNow, setSeenNow] = useState<string | null>(null);
   const notesSeen = seenNow ?? storedSeen;
   const newNotes = notesSeen == null ? 0
-    : initialNotes.filter((n) => n.author_id !== selfUserId && n.created_at > notesSeen).length;
+    : notes.filter((n) => n.author_id !== selfUserId && n.created_at > notesSeen).length;
   function selectTab(key: string) {
-    if (key === 'notes') {
+    if (key === 'log') {
       const now = new Date().toISOString();
       try { localStorage.setItem(notesSeenKey(membership.id), now); } catch {}
       setSeenNow(now);
@@ -122,17 +123,17 @@ export default function StudentCircle({
   const atRisk = useMemo(() => isStreakAtRisk(streakStream), [streakStream]);
   const statuses = circle.student_statuses;
 
-  // Sidebar KPIs — mirror the teacher's view. Attendance from marked sessions;
-  // open-homework from prescriptions with no completing log yet (today's cutoff).
+  // Sidebar KPIs — attendance from marked sessions. Open homework lives in To do.
   const attendance = useMemo(
     () => initialSessions.filter((s) => s.attendance_status).map((s) => ({ status: s.attendance_status! })),
     [initialSessions],
   );
-  const openHomework = useMemo(() => {
-    const linked = new Map<string, number>();
-    for (const l of logs) if (l.homework_id) linked.set(l.homework_id, (linked.get(l.homework_id) ?? 0) + 1);
-    return initialHomework.filter((h) => homeworkStatus(h, linked.get(h.id) ?? 0, today()) === 'open').length;
-  }, [initialHomework, logs]);
+
+  // Log feed: progress logs + notes (both authors), newest first.
+  const feed = useMemo(() => [
+    ...logs.map((log) => ({ kind: 'log' as const, ts: log.created_at, log })),
+    ...notes.map((note) => ({ kind: 'note' as const, ts: note.created_at, note })),
+  ].sort((a, b) => b.ts.localeCompare(a.ts)), [logs, notes]);
 
   function addLog(log: ProgressLog) {
     vt(() => setLogs((prev) => [log, ...prev]));
@@ -164,39 +165,31 @@ export default function StudentCircle({
         <StudentProfileCard
           name={displayName(roster.find((m) => m.user_id === selfUserId) ?? { user_id: selfUserId })}
           circleName={circle.name} defaultSetId={defaultSetId}
-          memorized={memorized} attendance={attendance} openHomework={openHomework}
+          memorized={memorized} attendance={attendance}
           markedPages={markedPages} markedDesktopOnly
-        />
+        >
+          <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} coveredBy={coveredBy} />
+        </StudentProfileCard>
 
         <div className="flex flex-col gap-6 min-w-0">
           <TabBar
             tabs={[
-              // Mobile only: the desktop sidebar + profile annotations become tabs.
-              ...(isMobile ? [{ key: 'sessions', label: t('sessions.nextSession') }] : []),
+              // Mobile only: the desktop profile annotations + members sidebar become tabs.
               { key: 'todo', label: t('todo.title') },
+              ...(isMobile ? [{ key: 'annotations', label: t('reader.marked') }] : []),
               { key: 'log', label: t('log.tab') },
-              { key: 'notes', label: t('notes.title') },
-              ...(isMobile ? [
-                { key: 'annotations', label: t('reader.marked') },
-                { key: 'members', label: t('circle.membersTitle') },
-              ] : []),
+              ...(isMobile ? [{ key: 'members', label: t('circle.membersTitle') }] : []),
             ]}
             active={tab}
             onSelect={selectTab}
           />
-
-          {isMobile && tab === 'sessions' && (
-            <div className="flex flex-col gap-6">
-              <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} coveredBy={coveredBy} hideHeading />
-            </div>
-          )}
 
           {/* Everything waiting on the student: homework (E2/E3/E4/E6), exams, today's session, new notes. */}
           {tab === 'todo' && (
             <TodoList
               homework={initialHomework} exams={initialExams} logs={logs} statuses={statuses}
               sessions={initialSessions} schedule={membership.schedule} coveredBy={coveredBy}
-              newNotes={newNotes} onOpenNotes={() => selectTab('notes')}
+              newNotes={newNotes} onOpenNotes={() => selectTab('log')}
               membershipId={membership.id} onCreated={addLog}
             />
           )}
@@ -205,21 +198,21 @@ export default function StudentCircle({
             {/* Open self-submission (F1/F2/F3) — same collapse-behind-a-button +
                 surah picker pattern as the teacher's prescribe form, but it
                 creates a log entry instead of homework. */}
-            <LogEntryForm membershipId={membership.id} statuses={statuses} onCreated={addLog} />
+            <LogEntryForm membershipId={membership.id} statuses={statuses} onCreated={addLog}
+              onNote={(n) => vt(() => setNotes((p) => [n, ...p]))} />
 
             {/* My logs */}
             <div className="flex flex-col gap-2">
-              <SectionTitle trailing={<span className="badge badge-muted">{fmtNum(logs.length)}</span>}>
+              <SectionTitle trailing={<span className="badge badge-muted">{fmtNum(feed.length)}</span>}>
                 {t('log.mine')}
               </SectionTitle>
-              {logs.length === 0 && <EmptyState>{t('log.empty')}</EmptyState>}
-              <PagedList items={logs} loadMoreLabel={t('grade.loadMore')}
-                render={(l) => <LogRow key={l.id} log={l} teacherStatuses={circle.teacher_statuses} onDelete={handleDelete} />} />
+              {feed.length === 0 && <EmptyState>{t('log.empty')}</EmptyState>}
+              <PagedList items={feed} loadMoreLabel={t('grade.loadMore')}
+                render={(e) => e.kind === 'note'
+                  ? <NoteCard key={`n:${e.note.id}`} note={e.note} />
+                  : <LogRow key={e.log.id} log={e.log} teacherStatuses={circle.teacher_statuses} onDelete={handleDelete} />} />
             </div>
           </>)}
-
-          {/* Own notes thread (G2/G3) */}
-          {tab === 'notes' && <NotesThread membershipId={membership.id} initial={initialNotes} />}
 
           {isMobile && tab === 'annotations' && (
             <div className="card flex flex-col gap-2 pt-4 px-0 pb-2">
@@ -238,9 +231,8 @@ export default function StudentCircle({
           {isMobile && tab === 'members' && <CircleMembers roster={roster} selfUserId={selfUserId} membershipId={membership.id} />}
         </div>
 
-        {/* Desktop sidebar (hidden on mobile — those widgets are tabs there). */}
+        {/* Desktop sidebar (hidden on mobile — members is a tab there). */}
         <aside className="hidden lg:flex lg:sticky lg:top-6 self-start min-w-0 flex-col gap-6">
-          <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} coveredBy={coveredBy} />
           <CircleMembers roster={roster} selfUserId={selfUserId} membershipId={membership.id} />
         </aside>
       </div>
@@ -250,7 +242,7 @@ export default function StudentCircle({
 
 // --- Upcoming sessions (read-only, D3) ---------------------------------------
 
-function UpcomingSessions({ sessions, schedule, coveredBy, hideHeading = false }: { sessions: Session[]; schedule: Recurrence | null; coveredBy?: Record<string, string>; hideHeading?: boolean }) {
+function UpcomingSessions({ sessions, schedule, coveredBy }: { sessions: Session[]; schedule: Recurrence | null; coveredBy?: Record<string, string> }) {
   const { t, locale } = useI18n();
   const [now] = useState(() => Date.now());
   const subFor = (iso: string) => coveredBy?.[String(new Date(iso).getTime())];
@@ -282,7 +274,7 @@ function UpcomingSessions({ sessions, schedule, coveredBy, hideHeading = false }
     <div className="flex flex-col gap-3">
       {/* Recurring schedule — one card per weekday, reusing the session look */}
       <div className="flex flex-col gap-2">
-        {!hideHeading && <SectionTitle>{t('sessions.nextSession') ?? t('sessions.tabSessions')}</SectionTitle>}
+        <SectionTitle>{t('sessions.nextSession') ?? t('sessions.tabSessions')}</SectionTitle>
         {weekSlots && weekSlots.length > 0 ? weekSlots.map((iso) => {
           const d = new Date(iso);
           return (
@@ -574,16 +566,19 @@ function entryToLog(e: Entry): Pick<NewProgressLog, 'page_start' | 'page_end' | 
 }
 
 function LogEntryForm({
-  membershipId, statuses, onCreated,
+  membershipId, statuses, onCreated, onNote,
 }: {
   membershipId: string;
   statuses: StatusConfig[];
   onCreated: (log: ProgressLog) => void;
+  onNote: (note: NoteWithAuthor) => void;
 }) {
   const { t, locale, fmtNum } = useI18n();
   // Collapsed behind a button by default, like the teacher's prescribe form.
   const [logging, setLogging] = useState(false);
-  const [logType, setLogType] = useState<LogType>('memorization');
+  // 'note' = text-only entry, stored as a membership note (not a progress log).
+  const [logType, setLogType] = useState<LogType | 'note'>('memorization');
+  const isNote = logType === 'note';
   const [entries, setEntries] = useState<Entry[]>([]);
   const [status, setStatus] = useState(statuses[0]?.label ?? '');
   const [note, setNote] = useState('');
@@ -592,17 +587,24 @@ function LogEntryForm({
   const [error, setError] = useState('');
 
   async function submit() {
-    if (busy || entries.length === 0) return;
+    if (busy || (isNote ? !note.trim() : entries.length === 0)) return;
     setBusy(true);
     setError('');
     try {
+      if (isNote) {
+        onNote(await postNote(membershipId, note));
+        setNote('');
+        setLogging(false);
+        return;
+      }
+      const type = logType as LogType;
       // One log per picked entry (mirrors prescribe writing one row per surah).
       // Written together, not one-round-trip-after-another.
       const payloads: NewProgressLog[] = entries.map((e) => ({
         membership_id: membershipId,
         homework_id: null,
         log_date: logDate,
-        log_type: logType,
+        log_type: type,
         ...entryToLog(e),
         student_status: status,
         student_notes: note || null,
@@ -643,13 +645,13 @@ function LogEntryForm({
             <span aria-hidden className="absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted flex">
               <Icon name="book" size={16} />
             </span>
-            <select value={logType} onChange={(e) => setLogType(e.target.value as LogType)}
+            <select value={logType} onChange={(e) => setLogType(e.target.value as LogType | 'note')}
                     className="input min-h-11 w-full ps-10">
-              {LOG_TYPES.map((lt) => <option key={lt} value={lt}>{t(`logType.${lt}`)}</option>)}
+              {[...LOG_TYPES, 'note' as const].map((lt) => <option key={lt} value={lt}>{t(`logType.${lt}`)}</option>)}
             </select>
           </div>
         </label>
-        <label className="flex flex-col gap-1.5">
+        {!isNote && <label className="flex flex-col gap-1.5">
           <span className={labelCls}>{t('log.date')}</span>
           <div className="relative">
             <span aria-hidden className="absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted flex">
@@ -658,12 +660,13 @@ function LogEntryForm({
             <input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)}
                    className="input min-h-11 w-full ps-10" />
           </div>
-        </label>
+        </label>}
       </div>
 
-      <SurahPicker entries={entries} onChange={setEntries} locale={locale} />
-
-      <ChipRow label={t('log.selfStatus')} options={statuses.map((s) => s.label)} value={status} onChange={setStatus} />
+      {!isNote && <>
+        <SurahPicker entries={entries} onChange={setEntries} locale={locale} />
+        <ChipRow label={t('log.selfStatus')} options={statuses.map((s) => s.label)} value={status} onChange={setStatus} />
+      </>}
 
       {/* Note — textarea with a live character counter. */}
       <label className="flex flex-col gap-1.5">
@@ -684,7 +687,7 @@ function LogEntryForm({
         <button onClick={() => setLogging(false)} className="btn btn-outline btn-lg">
           {t('common.cancel')}
         </button>
-        <ActionButton onClick={submit} disabled={busy || entries.length === 0} className="btn btn-primary btn-lg">
+        <ActionButton onClick={submit} disabled={busy || (isNote ? !note.trim() : entries.length === 0)} className="btn btn-primary btn-lg">
           {t('log.submit')}
         </ActionButton>
       </div>

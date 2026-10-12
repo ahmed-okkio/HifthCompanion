@@ -177,7 +177,7 @@ test.describe('Progression Tracker (Two-actor)', () => {
       if (await endChevron.isVisible()) await endChevron.click();
       await expect(endChevron).toBeHidden({ timeout: 1000 });
     }).toPass();
-    await expect(members).toBeInViewport({ ratio: 1 });
+    await expect(members).toBeInViewport({ ratio: 0.99 }); // chevron hides within 1px of the end
     await expect(student.getByTestId('tabs-scroll-start')).toBeVisible();
     await members.click();
     await expect(members).toHaveAttribute('aria-selected', 'true');
@@ -243,6 +243,20 @@ test.describe('Progression Tracker (Two-actor)', () => {
     await expect(student.getByText('Revise juz amma')).toBeVisible();
     await student.getByRole('tab', { name: 'To Do' }).click();
     await expect(student.getByText('New notes from your teacher')).toHaveCount(0);
+
+    // 8) Notes are a log type: no Notes tab, no Homework-due card; a text-only
+    //    "Note" entry from the Log form lands in the Log feed and survives reload.
+    await expect(student.getByRole('tab', { name: 'Notes' })).toHaveCount(0);
+    await expect(student.getByText('Homework due')).toHaveCount(0);
+    await student.getByRole('tab', { name: 'Log' }).click();
+    await student.getByRole('button', { name: 'Log today' }).click();
+    await student.getByRole('combobox').first().selectOption('note');
+    await student.getByPlaceholder('Write your note here…').fill('Struggled with page 3');
+    await student.getByRole('button', { name: 'Submit' }).click();
+    await student.reload();
+    await student.getByRole('tab', { name: 'Log' }).click();
+    await expect(student.getByText('Struggled with page 3')).toBeVisible();
+    await expect(student.getByText('Revise juz amma')).toBeVisible();
 
     await teacherCtx.close();
     await studentCtx.close();

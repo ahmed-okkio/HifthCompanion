@@ -14,7 +14,7 @@ export default function NotesThread({
   membershipId: string;
   initial: NoteWithAuthor[];
 }) {
-  const { t, locale, fmtNum } = useI18n();
+  const { t, fmtNum } = useI18n();
   const [notes, setNotes] = useSynced(initial);
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
@@ -45,27 +45,31 @@ export default function NotesThread({
         </ActionButton>
       </div>
       {notes.length === 0 && <EmptyState>{t('notes.empty')}</EmptyState>}
-      <PagedList items={notes} loadMoreLabel={t('grade.loadMore')} render={(n) => {
-        const name = `${n.first_name ?? ''} ${n.last_name ?? ''}`.trim() || `#${n.author_id.slice(0, 6)}`;
-        return (
-          <div key={n.id} className="card flex gap-3 py-3 px-4"
-            // eslint-disable-next-line shadcn/no-inline-styles -- per-note view-transition name
-            style={{ viewTransitionName: vtName('note', n.id) }}>
-            <Avatar seed={name} size={32} />
-            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-semibold truncate text-primary">
-                  {name}
-                </span>
-                <span className="text-xs shrink-0 text-muted">
-                  {new Date(n.created_at).toLocaleDateString(locale)}
-                </span>
-              </div>
-              <span className="text-sm text-secondary">{n.body}</span>
-            </div>
-          </div>
-        );
-      }} />
+      <PagedList items={notes} loadMoreLabel={t('grade.loadMore')} render={(n) => <NoteCard key={n.id} note={n} />} />
+    </div>
+  );
+}
+
+/** One note card — also rendered inline in the student's Log feed. */
+export function NoteCard({ note: n }: { note: NoteWithAuthor }) {
+  const { locale } = useI18n();
+  const name = `${n.first_name ?? ''} ${n.last_name ?? ''}`.trim() || `#${n.author_id.slice(0, 6)}`;
+  return (
+    <div className="card flex gap-3 py-3 px-4"
+      // eslint-disable-next-line shadcn/no-inline-styles -- per-note view-transition name
+      style={{ viewTransitionName: vtName('note', n.id) }}>
+      <Avatar seed={name} size={32} />
+      <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-semibold truncate text-primary">
+            {name}
+          </span>
+          <span className="text-xs shrink-0 text-muted">
+            {new Date(n.created_at).toLocaleDateString(locale)}
+          </span>
+        </div>
+        <span className="text-sm text-secondary">{n.body}</span>
+      </div>
     </div>
   );
 }

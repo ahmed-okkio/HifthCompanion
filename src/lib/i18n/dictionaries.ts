@@ -69,6 +69,7 @@ const en = {
   'logType.memorization': 'Memorization',
   'logType.general_revision': 'General revision',
   'logType.targeted_revision': 'Targeted revision',
+  'logType.note': 'Note',
 
   // Consent / accept screen (D12).
   'accept.title': 'Join this Hifth Circle',
@@ -729,6 +730,7 @@ const ar: Record<MessageKey, string> = {
   'logType.memorization': 'حفظ',
   'logType.general_revision': 'مراجعة عامة',
   'logType.targeted_revision': 'مراجعة موجهة',
+  'logType.note': 'ملاحظة',
 
   // شاشة الموافقة (D12).
   'accept.title': 'الانضمام إلى حلقة التحفيظ',

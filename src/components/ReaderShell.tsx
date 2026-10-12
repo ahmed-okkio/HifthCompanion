@@ -126,7 +126,7 @@ interface ReaderShellProps {
   account?: { name: string; email: string } | null;
   /** Collaborator share view: lock the canvas to the single shared set (hides the swapper). */
   lockedSet?: boolean;
-  /** Optional banner rendered above the canvas in region 2 (e.g. "Editing X's Mushaf"). */
+  /** Optional banner rendered at the top of the right panel (region 3) (e.g. "Editing X's Mushaf"). */
   banner?: React.ReactNode;
   /** When set (e.g. `/share/{setId}`), nav + surah links target the share route instead of /reader. */
   sharePageBasePath?: string;
@@ -372,8 +372,6 @@ export default function ReaderShell({ children, user, sets, account = null, lock
               <main className="w-full flex-grow px-4 pt-6 pb-2 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:py-0">
                 <div data-canvas-centered className="mx-auto flex w-full max-w-330 flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
 
-                  {banner}
-
                   <div className="flex min-w-0 flex-col gap-4">
                     {/* Mobile: bleed past <main>'s px-4 so the page spans the full viewport width. */}
                     <div className="-mx-4 sm:mx-auto sm:w-full">
@@ -429,6 +427,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
               {/* Opened from a homework/exam card → what the page is for, plus marking.
                   Lives here, not above the mushaf, so the page never shrinks for it. */}
               <ReaderTaskBanner />
+              {banner}
               {/* Mobile: Sets/Share collapse to buttons here (MobileSheet portals them in). */}
               <div id="mobile-panel-buttons" className="lg:hidden flex gap-2 mb-4 empty:hidden *:flex-1 [&>[data-testid=sets-card-button]]:order-first [&>[data-testid=share-card-button]]:order-last" />
               <div id="sets-card-portal" className="lg:mb-4 lg:empty:mb-0" />

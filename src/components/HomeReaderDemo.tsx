@@ -6,6 +6,7 @@
  */
 
 import Image from 'next/image';
+import { SETS_ENABLED } from '@/lib/features';
 import { ALL_TOOLS, TOOL_ICONS, PRESET_COLORS } from '@/lib/canvasTools';
 import { getPageImageUrl, getSurahName } from '@/lib/quran';
 import { getLocale } from '@/lib/i18n/server';
@@ -133,7 +134,7 @@ export default async function HomeReaderDemo() {
         <aside className="hidden md:flex flex-col flex-shrink-0 w-52 border-s border-subtle bg-surface-main" aria-hidden>
           <div className="flex items-center justify-between px-3 py-3 border-b border-subtle">
             <span className="text-caption font-bold uppercase tracking-wider text-muted">{dict['home.notes']}</span>
-            <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-green-soft text-green-700 text-meta font-bold">{dict['home.myNotes']}</span>
+            {SETS_ENABLED && <span className="inline-flex items-center gap-1 h-6 px-2 rounded-full bg-green-soft text-green-700 text-meta font-bold">{dict['home.myNotes']}</span>}
           </div>
           <div className="p-2 flex flex-col gap-2">
             {NOTE_KEYS.map((nt, i) => (

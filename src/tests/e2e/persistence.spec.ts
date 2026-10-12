@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { seedSet } from './e2eUser';
 
 test.describe('Annotations Persistence', () => {
   test('should persist drawings across page reloads', async ({ page }) => {
@@ -19,30 +20,17 @@ test.describe('Annotations Persistence', () => {
       }
     });
 
-    // 2. Go to sets page to create a REAL set
-    await page.goto('/sets');
-    const setName = `Test Set ${Date.now()}`;
-    // /sets is a static shell: a fill before hydration is reset, so retry until Create enables.
-    await expect(async () => { await page.fill('input[placeholder="New set name..."]', setName); await expect(page.locator('button:has-text("Create")')).toBeEnabled({ timeout: 1000 }); }).toPass();
-    await page.click('button:has-text("Create")');
-    await expect(page.locator(`text=${setName}`)).toBeVisible();
+    // 2. Seed a set of our own (parallel tests share the mock store) and open the reader on it
+    const setId = await seedSet(page.request, `Test Set ${Date.now()}`);
+    await page.goto(`/reader/1?set=${setId}`);
 
-    // 3. Go to reader page
-    await page.goto('/reader/1');
-
-    // 4. Wait for canvas to be initialized, then explicitly select our set
+    // 4. Wait for canvas to be initialized
     const upperCanvas = page.locator('.upper-canvas');
     await expect(upperCanvas).toBeVisible();
     await expect.poll(async () => {
       return await page.evaluate(() => Boolean(window.fabricCanvas));
     }, { timeout: 10000 }).toBeTruthy();
 
-    // Explicitly select our set (parallel tests may have added other sets)
-    const picker = page.locator('#set-picker-top');
-    await picker.selectOption({ label: setName });
-    await expect.poll(async () => {
-      return await page.evaluate(() => Boolean(window.fabricCanvas));
-    }, { timeout: 10000 }).toBeTruthy();
     // Poll until canvas-ready attr appears (handles cycle and instant load)
     await expect.poll(async () => {
       return await page.evaluate(() => {
@@ -100,9 +88,6 @@ test.describe('Annotations Persistence', () => {
     const lsAfter = await page.evaluate(() => localStorage.getItem('mock_supabase_annotations'));
     console.error('[E2E DEBUG] LS AFTER:', lsAfter);
     
-    // Ensure our set is selected (to avoid parallel test pollution)
-    const pickerAfter = page.locator('#set-picker-top');
-    await pickerAfter.selectOption({ label: setName });
     await expect.poll(async () => {
       return await page.evaluate(() => Boolean(window.fabricCanvas));
     }, { timeout: 10000 }).toBeTruthy();

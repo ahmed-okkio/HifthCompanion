@@ -14,6 +14,7 @@ import SetsCard from '@/components/SetsCard';
 import ZoomControl from '@/components/ZoomControl';
 import { LegendButton } from '@/components/LegendModal';
 import SpreadToggle from '@/components/SpreadToggle';
+import { SETS_ENABLED } from '@/lib/features';
 import NoteBadgeLayer from '@/components/NoteBadgeLayer';
 import { useAnnotationCanvas, type ToolState } from '@/hooks/useAnnotationCanvas';
 import { useGoToPage } from '@/hooks/useGoToPage';
@@ -233,7 +234,7 @@ function AnnotationCanvasInner(
 
         {/* Sets card portaled into the right context panel top (replaces the old wide bar).
             Hidden in the locked collaborator share view — only the one shared set is editable. */}
-        {showSetsCard && !lockedSet && setsSlot && createPortal(
+        {SETS_ENABLED && showSetsCard && !lockedSet && setsSlot && createPortal(
           <SetsCard
             user={user}
             sets={sets}

@@ -1,4 +1,5 @@
 import { test, expect, Page } from '@playwright/test';
+import { seedSet } from './e2eUser';
 
 // Helper: fail on meaningful browser console errors.
 // Excludes React DevTools noise and network resource errors (which are emitted
@@ -14,32 +15,12 @@ function listenForErrors(page: Page) {
   });
 }
 
-// Helper: create a set and go to reader
+// Helper: seed a set and open the reader on it
 async function setupAuthenticatedReader(page: Page, setName: string) {
-  await page.goto('/sets');
-  // /sets is a static shell: a fill before hydration is reset, so retry until Create enables.
-  await expect(async () => { await page.fill('input[placeholder="New set name..."]', setName); await expect(page.locator('button:has-text("Create")')).toBeEnabled({ timeout: 1000 }); }).toPass();
-  await page.click('button:has-text("Create")');
-  await expect(page.locator(`text=${setName}`)).toBeVisible();
-  await page.goto('/reader/1');
+  const setId = await seedSet(page.request, setName);
+  await page.goto(`/reader/1?set=${setId}`);
   await expect(page.locator('.upper-canvas')).toBeVisible();
   await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible();
-  // Ensure our set is selected in the picker.
-  // selectOption triggers loadAnnotation which may cycle canvasReady false→true.
-  // We poll for canvasReady via the data attr, then confirm fabricCanvas + isDrawingMode.
-  const picker = page.locator('#set-picker-top');
-  const chosen = (await picker.locator('option', { hasText: setName }).getAttribute('value'))!;
-  await picker.selectOption(chosen);
-  // F4: the switch is a router.replace(?set=); the controlled picker shows the set only once it
-  // lands. Before that, canvas-ready is the previous set's and the notes column still remounts.
-  await expect(picker).toHaveValue(chosen);
-  // Poll until canvas-ready attr appears (handles both the cycle case and the instant case)
-  await expect.poll(async () => {
-    return await page.evaluate(() => {
-      const el = document.querySelector('[data-canvas-ready="true"]');
-      return el !== null;
-    });
-  }, { timeout: 15000, message: 'data-canvas-ready="true" not found after set selection' }).toBeTruthy();
   await expect.poll(async () => {
     return await page.evaluate(() => Boolean(window.fabricCanvas));
   }, { timeout: 10000 }).toBeTruthy();
@@ -100,7 +81,7 @@ test.describe('Annotations — Core', () => {
     await context.clearCookies();
     await page.goto('/reader/1');
     await expect(page.locator('.upper-canvas')).toBeVisible();
-    await expect(page.locator('text=Log in to annotate')).toBeVisible();
+    await expect(page.locator('text=Sign in to annotate')).toBeVisible();
   });
 
   test('shows toolbar (not login prompt) when authenticated', async ({ page, context }) => {
@@ -109,7 +90,7 @@ test.describe('Annotations — Core', () => {
     await context.setExtraHTTPHeaders({ 'x-e2e-test': 'true' });
     await page.goto('/reader/1');
     await expect(page.locator('.upper-canvas')).toBeVisible();
-    await expect(page.locator('text=Log in to annotate')).not.toBeVisible();
+    await expect(page.locator('text=Sign in to annotate')).not.toBeVisible();
   });
 });
 
@@ -377,20 +358,13 @@ test.describe('Share Links', () => {
 
   test('share page renders read-only canvas at share URL', async ({ page, context }) => {
     listenForErrors(page);
-    // Get a set ID from mock — we'll visit /sets first
     await context.addCookies([{ name: 'sb-access-token', value: 'dummy-token', domain: 'localhost', path: '/' }]);
     await context.setExtraHTTPHeaders({ 'x-e2e-test': 'true' });
 
-    await page.goto('/sets');
-    const setName = `ShareView-${Date.now()}`;
-    // /sets is a static shell: a fill before hydration is reset, so retry until Create enables.
-    await expect(async () => { await page.fill('input[placeholder="New set name..."]', setName); await expect(page.locator('button:has-text("Create")')).toBeEnabled({ timeout: 1000 }); }).toPass();
-    await page.click('button:has-text("Create")');
-    await expect(page.locator(`text=${setName}`)).toBeVisible();
+    const setId = await seedSet(page.request, `ShareView-${Date.now()}`);
 
     // Get share link from reader
-    await page.goto('/reader/1');
-    await page.locator('#set-picker-top').selectOption({ label: setName });
+    await page.goto(`/reader/1?set=${setId}`);
     await page.getByTestId('share-card').locator('button:has-text("Share")').click();
 
     const urlInput = page.locator('input[readonly]');

@@ -16,7 +16,7 @@
 
 import { test, expect, type Page } from '@playwright/test';
 import { seedShare, actAsSubstitute } from './shareFixture';
-import { asNewUser } from './e2eUser';
+import { asNewUser, seedSet } from './e2eUser';
 
 function listenForErrors(page: Page) {
   page.on('console', msg => {
@@ -337,30 +337,25 @@ test.describe('Mobile reader layout (Pixel 5)', () => {
     await expect(page).toHaveURL(/\/reader\/22$/);
   });
 
-  test('sets and share collapse to buttons that open bottom sheets', async ({ page, context }) => {
+  test('notes and share collapse to buttons that open bottom sheets; no sets button', async ({ page, context }) => {
     listenForErrors(page);
-    await asNewUser(context);
-    const setName = `Mobile-${Date.now()}`;
-    await page.goto('/sets');
-    // /sets is a static shell: a fill before hydration is reset, so retry until Create enables.
-    await expect(async () => { await page.fill('input[placeholder="New set name..."]', setName); await expect(page.locator('button:has-text("Create")')).toBeEnabled({ timeout: 1000 }); }).toPass();
-    await page.click('button:has-text("Create")');
-    await expect(page.locator(`text=${setName}`)).toBeVisible();
-    await page.goto('/reader/1');
+    const me = await asNewUser(context);
+    const setId = await seedSet(page.request, `Mobile-${Date.now()}`, me);
+    await page.goto(`/reader/1?set=${setId}`);
 
-    const picker = page.locator('#set-picker-top');
-    await expect(picker).toBeHidden();
     await expect(page.getByRole('button', { name: 'Create share link' })).toBeHidden();
+    // Sets are off (SETS_ENABLED): no set button, no picker.
+    await expect(page.getByTestId('notes-card-button')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByTestId('sets-card-button')).toHaveCount(0);
+    await expect(page.locator('#set-picker-top')).toHaveCount(0);
 
-    // Sets button names the active set; its sheet holds the picker.
-    const setsBtn = page.getByTestId('sets-card-button');
-    await expect(setsBtn).toBeVisible({ timeout: 10000 });
-    const selected = await picker.evaluate((s: HTMLSelectElement) => s.selectedOptions[0].text);
-    await expect(setsBtn).toHaveText(selected);
-    await setsBtn.click();
-    await expect(picker).toBeVisible();
+    // Notes collapse to a button; its sheet slides in.
+    const notesBtn = page.getByTestId('notes-card-button');
+    await expect(notesBtn).toHaveText('Notes');
+    await expect(page.getByTestId('notes-card-sheet')).not.toBeInViewport();
+    await notesBtn.click();
+    await expect(page.getByTestId('notes-card-sheet')).toBeInViewport();
     await page.keyboard.press('Escape');
-    await expect(picker).toBeHidden();
 
     // Share sheet opens and its link flow works.
     await page.getByTestId('share-card-button').click();

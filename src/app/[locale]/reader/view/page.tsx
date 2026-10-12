@@ -9,6 +9,9 @@ import ShareCard from '@/components/ShareCard';
 import NotesPanel from '@/components/NotesPanel';
 import SpreadNotesPanel from '@/components/SpreadNotesPanel';
 import { Icon } from '@/components/tracker/ui';
+import MobileSheet from '@/components/MobileSheet';
+import { SETS_ENABLED } from '@/lib/features';
+import { PanelIcon, ICON_PATHS } from '@/components/PanelCard';
 import { useI18n } from '@/components/I18nProvider';
 import { useReaderData } from '@/components/ReaderLayoutClient';
 
@@ -70,7 +73,9 @@ function ReaderPageColumn({ page }: { page: string }) {
         pendingNotes ? (
           <QueryFallback q={pendingNotes} skeleton={<div className={`${SHIMMER} h-45`} />} />
         ) : (
-          <div className="animate-fade-in-scale [animation-delay:100ms]">
+          // lg-only animation: a transformed ancestor would trap MobileSheet's position:fixed sheet.
+          <div className="lg:animate-fade-in-scale lg:[animation-delay:100ms]">
+            <MobileSheet testid="notes-card" icon={<PanelIcon d={ICON_PATHS.note} />} label={t('notes.title')}>
             {spread ? (
               <SpreadNotesPanel
                 setId={viewSetId}
@@ -81,6 +86,7 @@ function ReaderPageColumn({ page }: { page: string }) {
             ) : (
               <NotesPanel setId={viewSetId} pageNum={pageNum} initialNotes={notesA.data ?? []} currentUserId={user.id} />
             )}
+            </MobileSheet>
           </div>
         )
       ) : !user ? (
@@ -95,7 +101,7 @@ function ReaderPageColumn({ page }: { page: string }) {
           <div className="mb-3 opacity-50 text-muted"><Icon name="folder" size={30} /></div>
           <h3 className="text-body font-semibold text-primary">{t('reader.noAnnotationSets')}</h3>
           <p className="text-caption mt-1.5 text-muted">{t('reader.createSetHint')}</p>
-          <a href="/sets" className="btn btn-outline mt-4">{t('sets.createSet')}</a>
+          {SETS_ENABLED && <a href="/sets" className="btn btn-outline mt-4">{t('sets.createSet')}</a>}
         </div>
       )}
 

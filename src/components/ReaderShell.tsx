@@ -430,7 +430,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
                   Lives here, not above the mushaf, so the page never shrinks for it. */}
               <ReaderTaskBanner />
               {/* Mobile: Sets/Share collapse to buttons here (MobileSheet portals them in). */}
-              <div id="mobile-panel-buttons" className="lg:hidden flex gap-2 mb-4 empty:hidden *:flex-1 [&>[data-testid=sets-card-button]]:order-first" />
+              <div id="mobile-panel-buttons" className="lg:hidden flex gap-2 mb-4 empty:hidden *:flex-1 [&>[data-testid=sets-card-button]]:order-first [&>[data-testid=share-card-button]]:order-last" />
               <div id="sets-card-portal" className="lg:mb-4 lg:empty:mb-0" />
               {children}
               <footer

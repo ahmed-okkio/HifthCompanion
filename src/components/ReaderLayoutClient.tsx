@@ -1,15 +1,29 @@
 'use client';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'next/navigation';
 import ReaderShell, { ReaderShellSkeleton } from '@/components/ReaderShell';
 import { fetchMe } from '@/components/ProfileMenu';
 import { fetchSets } from '@/components/SetsScreen';
 import QueryFallback from '@/components/QueryFallback';
 import { qk } from '@/lib/query/keys';
+import { SETS_ENABLED } from '@/lib/features';
+import type { AnnotationSet } from '@/types';
+
+/** Sets off: the reader only ever sees one own set — the ?set= one, else the default. */
+function oneSet(all: AnnotationSet[], requested: string | null): AnnotationSet[] {
+  const set = all.find(s => s.id === requested) ?? all.find(s => s.is_default) ?? all[0];
+  return set ? [set] : [];
+}
 
 /** Reader chrome data via TanStack Query (PRD 0016 E1); same keys as /sets and the profile menu. */
 export function useReaderData() {
   const me = useQuery({ queryKey: qk.me, queryFn: fetchMe });
-  const sets = useQuery({ queryKey: qk.sets, queryFn: fetchSets });
+  const requested = useSearchParams().get('set');
+  const sets = useQuery({
+    queryKey: qk.sets,
+    queryFn: fetchSets,
+    select: SETS_ENABLED ? undefined : (all: AnnotationSet[]) => oneSet(all, requested),
+  });
   return { me, sets, ready: me.data !== undefined && sets.data !== undefined };
 }
 

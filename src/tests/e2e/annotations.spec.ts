@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { seedSet } from './e2eUser';
 
 // AGENTS.md: every test fails on a browser console error.
 test.beforeEach(({ page }) => {
@@ -17,10 +18,10 @@ test.describe('Annotations', () => {
     await expect(canvas).toBeVisible();
 
     // Check for login prompt
-    await expect(page.locator('text=Log in to annotate')).toBeVisible();
+    await expect(page.locator('text=Sign in to annotate')).toBeVisible();
   });
 
-  test('should show set picker when authenticated', async ({ page, context }) => {
+  test('should show the signed-in reader when authenticated', async ({ page, context }) => {
     // Inject dummy session
     await context.addCookies([
       {
@@ -44,8 +45,8 @@ test.describe('Annotations', () => {
     // {sets.length > 0 ? (...) : (<p>No sets found...</p>)}
     
     // For this test, we just want to see if the "logged in" branch is hit.
-    // If authenticated, it won't show "Log in to annotate".
-    await expect(page.locator('text=Log in to annotate')).not.toBeVisible();
+    // If authenticated, it won't show "Sign in to annotate".
+    await expect(page.locator('text=Sign in to annotate')).not.toBeVisible();
   });
 
   test('should draw with highlighter tool', async ({ page, context }) => {
@@ -60,15 +61,8 @@ test.describe('Annotations', () => {
     ]);
     await context.setExtraHTTPHeaders({ 'x-e2e-test': 'true' });
 
-    // Since mock DB starts empty on page load, sets list might be empty.
-    // Let's navigate to /sets first to create a set.
-    await page.goto('/sets');
-    // /sets is a static shell: a fill before hydration is reset, so retry until Create enables.
-    await expect(async () => { await page.fill('input[placeholder="New set name..."]', 'E2E Highlight Set'); await expect(page.locator('button:has-text("Create")')).toBeEnabled({ timeout: 1000 }); }).toPass();
-    await page.click('button:has-text("Create")');
-    await expect(page.locator('text=E2E Highlight Set').first()).toBeVisible();
-
-    await page.goto('/reader/1');
+    const setId = await seedSet(page.request, 'E2E Highlight Set');
+    await page.goto(`/reader/1?set=${setId}`);
 
     // Wait for canvas to render
     const canvas = page.locator('.upper-canvas');

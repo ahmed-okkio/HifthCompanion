@@ -50,7 +50,7 @@ export default function SetsCard({ user, sets, selectedSetId, saving, onSetChang
     <MobileSheet
       testid="sets-card"
       icon={<PanelIcon d={ICON_PATHS.layers} />}
-      label={sets.find(s => s.id === selectedSetId)?.name ?? t('sets.title')}
+      label={t('sets.mobileButton')}
     >
     <PanelCard
       testid="sets-card"

@@ -23,6 +23,7 @@
 import React, { useState } from 'react';
 import { useClientValue } from '@/hooks/useClientValue';
 import Link from 'next/link';
+import { SETS_ENABLED } from '@/lib/features';
 import { usePathname } from '@/lib/i18n/usePathname';
 import { useI18n } from './I18nProvider';
 import { LAST_CIRCLE_KEY, LAST_READER_PAGE_KEY } from '@/lib/tracker/lastCircle';
@@ -115,7 +116,7 @@ export interface RailItemDef {
   matchPrefixes?: string[];
 }
 
-export const RAIL_ITEMS: RailItemDef[] = [
+export const RAIL_ITEMS: RailItemDef[] = ([
   {
     id: 'wird',
     label: 'Wird',
@@ -151,7 +152,7 @@ export const RAIL_ITEMS: RailItemDef[] = [
     href: '/shared',
     matchPrefixes: ['/shared', '/share'],
   },
-];
+] satisfies RailItemDef[]).filter((i) => SETS_ENABLED || i.id !== 'sets');
 
 /** Whether `item` should render as active for the given pathname. */
 export function isRailItemActive(item: RailItemDef, pathname: string): boolean {

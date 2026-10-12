@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { seedShare, actAsSubstitute } from './shareFixture';
+import { seedSet } from './e2eUser';
 
 function listenForErrors(page: Page) {
   page.on('console', msg => {
@@ -9,20 +10,12 @@ function listenForErrors(page: Page) {
   });
 }
 
-// Helper: create a set and navigate to the reader (mirrors features.spec.ts pattern).
+// Helper: seed a set and open the reader on it.
 async function setupAuthenticatedReader(page: Page, setName: string) {
-  await page.goto('/sets');
-  // /sets is a static shell: a fill before hydration is reset, so retry until Create enables.
-  await expect(async () => { await page.fill('input[placeholder="New set name..."]', setName); await expect(page.locator('button:has-text("Create")')).toBeEnabled({ timeout: 1000 }); }).toPass();
-  await page.click('button:has-text("Create")');
-  await expect(page.locator(`text=${setName}`)).toBeVisible();
-  await page.goto('/reader/1');
+  const setId = await seedSet(page.request, setName);
+  await page.goto(`/reader/1?set=${setId}`);
   await expect(page.locator('.upper-canvas')).toBeVisible();
   await expect(page.locator('[data-canvas-ready="true"]')).toBeVisible();
-  await page.locator('#set-picker-top').selectOption({ label: setName });
-  await expect.poll(async () => {
-    return page.evaluate(() => document.querySelector('[data-canvas-ready="true"]') !== null);
-  }, { timeout: 15000, message: 'data-canvas-ready="true" not found after set selection' }).toBeTruthy();
 }
 
 test.describe('Surah panel and toolbar layout', () => {
@@ -193,28 +186,13 @@ test.describe('Surah panel and toolbar layout', () => {
     await context.addCookies([{ name: 'sb-access-token', value: 'dummy-token', domain: 'localhost', path: '/' }]);
     await context.setExtraHTTPHeaders({ 'x-e2e-test': 'true' });
 
-    await page.goto('/sets');
-    const setA = `Set-A-${Date.now()}`;
-    const setB = `Set-B-${Date.now()}`;
-
-    // /sets is a static shell: a fill before hydration is reset, so retry until Create enables.
-    await expect(async () => { await page.fill('input[placeholder="New set name..."]', setA); await expect(page.locator('button:has-text("Create")')).toBeEnabled({ timeout: 1000 }); }).toPass();
-    await page.keyboard.press('Enter');
-    await expect(page.locator(`text=${setA}`)).toBeVisible();
-    // /sets is a static shell: a fill before hydration is reset, so retry until Create enables.
-    await expect(async () => { await page.fill('input[placeholder="New set name..."]', setB); await expect(page.locator('button:has-text("Create")')).toBeEnabled({ timeout: 1000 }); }).toPass();
-    await page.keyboard.press('Enter');
-    await expect(page.locator(`text=${setB}`)).toBeVisible();
-
-    await page.goto('/reader/1');
+    const setId = await seedSet(page.request, `Set-B-${Date.now()}`);
+    await page.goto(`/reader/1?set=${setId}`);
     await expect(page.locator('.upper-canvas')).toBeVisible();
-    await page.locator('#set-picker-top').selectOption({ label: setB });
-    await expect(page).toHaveURL(/\/reader\/1\?set=/);
 
     await page.getByRole('button', { name: /Al-Baqara\b/i }).click();
 
-    await expect(page).toHaveURL(/\/reader\/2\?set=/);
-    await expect(page.locator('#set-picker-top')).toContainText(setB);
+    await expect(page).toHaveURL(url => url.pathname === '/reader/2' && url.searchParams.get('set') === setId);
   });
 
   test('Surah panel is visible and flush to the left', async ({ page }) => {

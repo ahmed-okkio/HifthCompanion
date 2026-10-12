@@ -460,11 +460,17 @@ async function logout(page: Page) {
   await expect(page).toHaveURL(/\/login/);
 }
 
-/** Visit /sets as the current user until its set list is on screen and persisted. */
-async function visitSets(page: Page, set: string) {
-  await page.goto('/sets');
-  await expect(page.getByText(set)).toBeVisible();
-  await expect.poll(() => rawIdb(page)).toContain(set);
+/** Visit /settings as the current user until its data and their `me` (name) are persisted. */
+async function visitSettings(page: Page, name: string) {
+  await page.goto('/settings');
+  await expect.poll(() => persistedKeys(page)).toContain('["me","settings"]');
+  await expect.poll(() => rawIdb(page)).toContain(name);
+}
+
+/** The account menu shows `name` (read from the persisted `me`). */
+async function expectAccount(page: Page, name: string) {
+  await page.getByRole('button', { name: 'Account' }).click();
+  await expect(page.getByText(name)).toBeVisible();
 }
 
 test('F2a: an offline cold launch of a visited route shows the real chrome and cached data (D3, E2)', async ({ page, context }) => {
@@ -472,16 +478,16 @@ test('F2a: an offline cold launch of a visited route shows the real chrome and c
   const u = await persona(context, 'Cyra');
   await page.goto('/wird');
   await swReady(page);
-  await visitSets(page, u.set);
+  await visitSettings(page, u.name);
 
   await context.setOffline(true);
   const cold = await context.newPage();
   guardConsole(cold);
-  const off = await cold.goto('/sets');
+  const off = await cold.goto('/settings');
   expect(off?.fromServiceWorker()).toBe(true);
   await expect(cold).not.toHaveTitle(/Offline/);
   await expect(cold.locator('nav').first()).toBeVisible();
-  await expect(cold.getByText(u.set)).toBeVisible();
+  await expectAccount(cold, u.name);
   await expect(cold.getByText(OFFLINE_TEXT)).toHaveCount(0);
   await context.setOffline(false);
 });
@@ -491,7 +497,7 @@ test('F2b: after logout, offline and online relaunches show none of the prior da
   const a = await persona(context, 'Alma');
   await page.goto('/wird');
   await swReady(page);
-  await visitSets(page, a.set);
+  await visitSettings(page, a.name);
 
   await logout(page);
   await expect.poll(() => leaks(page, a.markers)).toEqual([]);
@@ -499,7 +505,7 @@ test('F2b: after logout, offline and online relaunches show none of the prior da
   await context.setOffline(true);
   const off = await context.newPage();
   guardConsole(off);
-  expect((await off.goto('/sets'))?.fromServiceWorker()).toBe(true);
+  expect((await off.goto('/settings'))?.fromServiceWorker()).toBe(true);
   await expect(off.getByText(OFFLINE_TEXT)).toBeVisible();
   await expectNoTrace(off, a.markers);
   await off.close();
@@ -507,8 +513,8 @@ test('F2b: after logout, offline and online relaunches show none of the prior da
 
   const on = await context.newPage();
   guardConsole(on);
-  await on.goto('/sets');
-  await expect(on).toHaveURL(/\/login\?next=%2Fsets$/);
+  await on.goto('/settings');
+  await expect(on).toHaveURL(/\/login\?next=%2Fsettings$/);
   await expectNoTrace(on, a.markers);
 });
 
@@ -517,19 +523,18 @@ test("F2c: user A, logout, user B shows none of A's data, online and offline (E7
   const a = await persona(context, 'Alma');
   await page.goto('/wird');
   await swReady(page);
-  await visitSets(page, a.set);
+  await visitSettings(page, a.name);
   await logout(page);
 
   const b = await persona(context, 'Badr');
-  await visitSets(page, b.set);
-  await expect.poll(() => rawIdb(page)).toContain(b.name); // B's own `me` is persisted
+  await visitSettings(page, b.name); // B's own `me` is persisted
   await expectNoTrace(page, a.markers);
 
   await context.setOffline(true);
   const cold = await context.newPage();
   guardConsole(cold);
-  expect((await cold.goto('/sets'))?.fromServiceWorker()).toBe(true);
-  await expect(cold.getByText(b.set)).toBeVisible();
+  expect((await cold.goto('/settings'))?.fromServiceWorker()).toBe(true);
+  await expectAccount(cold, b.name);
   await expectNoTrace(cold, a.markers);
   await context.setOffline(false);
 });
@@ -629,7 +634,7 @@ test('the launch intro plays once per tab, not on hard navigations', async ({ pa
   guardConsole(page);
   await page.goto('/reader');
   await expect(page.locator('.splash')).toHaveCount(0, { timeout: 5000 }); // played, then unmounted
-  await page.goto('/sets'); // full document load, like <a href> / location.assign
+  await page.goto('/settings'); // full document load, like <a href> / location.assign
   await page.waitForLoadState('load');
   await expect(page.locator('.splash')).toBeHidden(); // stays display:none, never animates
 });

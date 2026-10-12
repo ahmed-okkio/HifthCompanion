@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { SETS_ENABLED } from '../../lib/features';
 
 // AGENTS.md: every test fails on a browser console error.
 test.beforeEach(({ page }) => {
@@ -8,6 +9,8 @@ test.beforeEach(({ page }) => {
 });
 
 test.describe('Annotation Sets (Authenticated)', () => {
+  test.skip(!SETS_ENABLED, 'sets are switched off (src/lib/features.ts)');
+
   test('footer is visible on the sets page (Story 19)', async ({ page, context }) => {
     await context.addCookies([
       { name: 'sb-access-token', value: 'dummy-token', domain: 'localhost', path: '/' },
@@ -57,4 +60,14 @@ test('locale cookie renders /sets in Arabic RTL with unprefixed URL', async ({ r
   const en = await request.get('/sets', { headers: { cookie: 'locale=en' } });
   const enHtml = await en.text();
   expect(enHtml).toMatch(/<html[^>]*lang="en"[^>]*dir="ltr"/);
+});
+
+test('sets switched off: /sets redirects to the reader and no nav links to it', async ({ page, context }) => {
+  test.skip(SETS_ENABLED, 'sets are switched on');
+  await context.addCookies([{ name: 'sb-access-token', value: 'dummy-token', domain: 'localhost', path: '/' }]);
+  await context.setExtraHTTPHeaders({ 'x-e2e-test': 'true' });
+  await page.goto('/sets');
+  await expect(page).toHaveURL(/\/reader\/\d+/);
+  await expect(page.locator('.upper-canvas')).toBeVisible();
+  await expect(page.locator('a[href="/sets"]')).toHaveCount(0);
 });

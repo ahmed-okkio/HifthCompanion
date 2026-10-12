@@ -1,4 +1,4 @@
-import type { BrowserContext } from '@playwright/test';
+import type { APIRequestContext, BrowserContext } from '@playwright/test';
 
 /**
  * F4: a fresh mock identity for this context. Specs share one server mock store across
@@ -18,5 +18,18 @@ export async function asNewUser(context: BrowserContext, { profile = false } = {
       data: { seed: { profiles: [{ id, first_name: 'Mock', last_name: 'User', email_prefs: {}, wird_reminder_time: '18:00:00' }] } },
     });
   }
+  return id;
+}
+
+/**
+ * Seed a set for `userId` (default: the mock user) and return its id. Sets are off in the UI
+ * (SETS_ENABLED), so specs open the reader on it with `?set=<id>` instead of creating it on /sets.
+ */
+export async function seedSet(request: APIRequestContext, name: string, userId = '52345ff6-3348-40d5-b6d8-1234567890ab'): Promise<string> {
+  const id = `set${Date.now()}${Math.floor(Math.random() * 1e6)}`;
+  const res = await request.post('/api/test/tracker', {
+    data: { seed: { annotation_sets: [{ id, user_id: userId, name, created_at: new Date().toISOString() }] } },
+  });
+  if (!res.ok()) throw new Error(`seedSet failed: ${res.status()}`);
   return id;
 }

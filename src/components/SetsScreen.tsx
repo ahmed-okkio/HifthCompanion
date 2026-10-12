@@ -1,5 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { SETS_ENABLED } from '@/lib/features';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AnnotationSet } from '@/types';
 import { createAnnotationSet, updateAnnotationSet, deleteAnnotationSet } from '@/lib/services/annotationSets';
@@ -31,7 +33,11 @@ export async function fetchSets(): Promise<AnnotationSet[]> {
 /** /sets screen: static header + footer, data section via TanStack Query. */
 export default function SetsScreen() {
   const { t, locale } = useI18n();
-  const q = useQuery({ queryKey: qk.sets, queryFn: fetchSets });
+  const router = useRouter();
+  // Client-side: the SW serves this shell without hitting the proxy.
+  useEffect(() => { if (!SETS_ENABLED) router.replace('/reader'); }, [router]);
+  const q = useQuery({ queryKey: qk.sets, queryFn: fetchSets, enabled: SETS_ENABLED });
+  if (!SETS_ENABLED) return null;
   return (
     <>
       <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10 animate-fade-in w-full overflow-y-auto h-full">

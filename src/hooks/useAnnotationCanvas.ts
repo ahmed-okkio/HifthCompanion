@@ -190,6 +190,9 @@ export function useAnnotationCanvas({ pageNum, imageUrl, sets, user, lockedSet =
       ro.disconnect();
       if (window.fabricCanvas === fabricRef.current) delete window.fabricCanvas;
       if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
+      // The next canvas instance must flip ready false→true so effects keyed on canvasReady
+      // (mobile move/draw gating) re-apply to it — auth resolving re-creates the canvas.
+      setCanvasReady(false);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, persistence.applyBackground]);

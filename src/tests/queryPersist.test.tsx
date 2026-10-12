@@ -21,7 +21,7 @@ vi.mock('@/lib/supabase/client', () => ({
 }));
 
 import { makeQueryClient } from '@/lib/query/client';
-import { restoreFor, clearQueryCache, IDB_KEY, buster } from '@/lib/query/persist';
+import { restoreFor, clearQueryCache, IDB_KEY, buster, CACHE_SCHEMA } from '@/lib/query/persist';
 
 const flushSave = () => new Promise((r) => setTimeout(r, 1100)); // persister throttles 1s
 
@@ -52,9 +52,18 @@ describe('query cache persistence (PRD 0016 E5-E7, F3)', () => {
     expect(store.has(IDB_KEY)).toBe(false);
   });
 
-  it('discards on build mismatch (E5)', async () => {
+  it('survives a new deploy (build id is not part of the buster)', async () => {
     await seedFor('A', 'a-data');
     vi.stubEnv('NEXT_PUBLIC_BUILD_ID', 'other-build');
+    const qc = makeQueryClient();
+    (await restoreFor(qc, 'A'))();
+    expect(qc.getQueryData(['k'])).toBe('a-data');
+  });
+
+  it('discards on schema mismatch (E5)', async () => {
+    await seedFor('A', 'a-data');
+    const saved = store.get(IDB_KEY) as { buster: string };
+    store.set(IDB_KEY, { ...saved, buster: `A:${CACHE_SCHEMA + 1}` });
     const qc = makeQueryClient();
     (await restoreFor(qc, 'A'))();
     expect(qc.getQueryData(['k'])).toBeUndefined();

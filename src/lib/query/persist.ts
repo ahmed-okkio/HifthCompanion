@@ -22,7 +22,10 @@ const persister = createAsyncStoragePersister({
   deserialize: (c) => c as unknown as ReturnType<typeof JSON.parse>,
 });
 
-export const buster = (userId: string) => `${userId}:${process.env.NEXT_PUBLIC_BUILD_ID ?? 'dev'}`;
+// Bump when a query's cached data shape changes incompatibly; that alone discards every
+// persisted cache. Deploys don't, so a new build still opens instantly on the user's data.
+export const CACHE_SCHEMA = 1;
+export const buster = (userId: string) => `${userId}:${CACHE_SCHEMA}`;
 
 // Restore this user's cache (the lib discards it on buster mismatch or age > maxAge),
 // then keep persisting. Returns the unsubscribe. PRD 0016 E5.

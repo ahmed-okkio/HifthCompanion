@@ -18,11 +18,13 @@ const OFFLINE_URL = "/offline.html";
 
 /* Mushaf page imagery. Kept in its own cache so a shell version bump never evicts 70MB of
    already-downloaded pages. Cross-origin (Supabase storage), matched on path not host so a
-   storage move doesn't need a SW edit. */
+   storage move doesn't need a SW edit.
+   Images changed? Bump to hc-pages-v2: activate deletes the old name, pages refetch lazily. */
 const PAGE_CACHE = "hc-pages-v1";
 // Hashed build assets: content-addressed, so cache-first is always correct. ponytail: grows across deploys; bump this name to purge.
 const STATIC_CACHE = "hc-static-v1";
-const PAGE_IMAGE_RE = /\/storage\/v1\/object\/public\/[^/]*tajweed[^/]*\/\d+\.png$/;
+// Any bucket/folder: a rename must not silently stop caching. Only Mushaf pages live in storage.
+const PAGE_IMAGE_RE = /\/storage\/v1\/object\/public\/.+\/\d+\.png$/;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

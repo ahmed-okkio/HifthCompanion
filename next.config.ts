@@ -16,6 +16,10 @@ const nextConfig: NextConfig = {
     // Defined so prod bundles constant-fold the e2e gate and drop the browser mock client.
     NEXT_PUBLIC_PLAYWRIGHT_TEST: process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST ?? 'false',
   },
+  // Mushaf pages never change; let browsers and the CDN keep them for good.
+  async headers() {
+    return [{ source: '/quran-pages/:file', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] }];
+  },
   images: {
     // Vercel's image optimizer returns 402 once the plan's optimization quota is
     // exhausted, which blanks every next/image (logo + Mushaf pages). Serve images

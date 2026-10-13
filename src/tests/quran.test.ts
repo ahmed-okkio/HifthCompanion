@@ -49,9 +49,8 @@ describe('getPageImageUrl', () => {
     expect(url).toContain('604.png');
   });
 
-  it('returns placeholder URL when no base URL env set', () => {
-    const url = getPageImageUrl(1);
-    expect(url).toBe('https://placeholder.supabase.co/storage/v1/object/public/quran-pages/tajweed/001.png');
+  it('serves pages from the same-origin static folder', () => {
+    expect(getPageImageUrl(1)).toBe('/quran-pages/001.png');
   });
 });
 

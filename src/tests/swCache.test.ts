@@ -99,6 +99,9 @@ describe('service worker caches (PRD 0016 D3, D5, D6, F3)', () => {
     // Bucket/folder rename (NEXT_PUBLIC_IMAGE_BASE_URL) must keep caching.
     await dispatch('fetch', new Request('https://x.supabase.co/storage/v1/object/public/quran-pages/hafs/604.png'));
     expect(stored()).toContain('hc-pages-v1 https://x.supabase.co/storage/v1/object/public/quran-pages/hafs/604.png');
+    // Same-origin static pages (public/quran-pages).
+    await dispatch('fetch', new Request(`${ORIGIN}/quran-pages/007.png`));
+    expect(stored()).toContain('hc-pages-v1 /quran-pages/007.png');
   });
 
   it('falls back to /offline.html for an unmapped route when the network fails (D4)', async () => {

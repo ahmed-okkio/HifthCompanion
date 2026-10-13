@@ -24,7 +24,7 @@ const PAGE_CACHE = "hc-pages-v1";
 // Hashed build assets: content-addressed, so cache-first is always correct. ponytail: grows across deploys; bump this name to purge.
 const STATIC_CACHE = "hc-static-v1";
 // Any bucket/folder: a rename must not silently stop caching. Only Mushaf pages live in storage.
-const PAGE_IMAGE_RE = /\/storage\/v1\/object\/public\/.+\/\d+\.png$/;
+const PAGE_IMAGE_RE = /(\/storage\/v1\/object\/public\/.+|^\/quran-pages)\/\d+\.png$/;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

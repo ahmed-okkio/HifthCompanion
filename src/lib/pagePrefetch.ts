@@ -14,10 +14,10 @@ const idle: (cb: () => void) => void =
  * flipping through the Mushaf leaves a growing window of instant pages behind it.
  *
  * ponytail: one request at a time, nearest page first, on idle — a 20-way parallel burst
- * would contend with the page the user is actually looking at, and the whole ±10 window
+ * would contend with the page the user is actually looking at, and the whole ±3 window
  * lands in a couple of seconds anyway. No concurrency tuning until that measurably falls short.
  */
-export function prefetchPageImages(page: number, radius = 10): void {
+export function prefetchPageImages(page: number, radius = 3): void {
   if (typeof window === 'undefined') return;
   const centre = clampPage(page);
 

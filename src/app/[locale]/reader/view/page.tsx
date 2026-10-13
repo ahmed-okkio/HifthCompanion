@@ -70,13 +70,14 @@ function ReaderPageColumn({ page }: { page: string }) {
 
       {/* ── 1. NOTES (top) ── */}
       {user && viewSetId ? (
-        pendingNotes ? (
-          <QueryFallback q={pendingNotes} skeleton={<div className={`${SHIMMER} h-45`} />} />
-        ) : (
-          // lg-only animation: a transformed ancestor would trap MobileSheet's position:fixed sheet.
-          <div className="lg:animate-fade-in-scale lg:[animation-delay:100ms]">
-            <MobileSheet testid="notes-card" icon={<PanelIcon d={ICON_PATHS.note} />} label={t('notes.title')}>
-            {spread ? (
+        // MobileSheet stays mounted while notes load, so its mobile button doesn't pop in and
+        // shove Share sideways on every page flip. lg-only animation: a transformed ancestor
+        // would trap MobileSheet's position:fixed sheet.
+        <div className="lg:animate-fade-in-scale lg:[animation-delay:100ms]">
+          <MobileSheet testid="notes-card" icon={<PanelIcon d={ICON_PATHS.note} />} label={t('notes.title')}>
+            {pendingNotes ? (
+              <QueryFallback q={pendingNotes} skeleton={<div className={`${SHIMMER} h-45`} />} />
+            ) : spread ? (
               <SpreadNotesPanel
                 setId={viewSetId}
                 pages={spread}
@@ -86,9 +87,8 @@ function ReaderPageColumn({ page }: { page: string }) {
             ) : (
               <NotesPanel setId={viewSetId} pageNum={pageNum} initialNotes={notesA.data ?? []} currentUserId={user.id} />
             )}
-            </MobileSheet>
-          </div>
-        )
+          </MobileSheet>
+        </div>
       ) : !user ? (
         <div className="card p-8 text-center flex flex-col items-center justify-center animate-fade-in-scale [animation-delay:100ms] bg-white/82 backdrop-blur-lg">
           <div className="mb-4 opacity-50 text-muted"><Icon name="lock" size={36} /></div>

@@ -123,15 +123,20 @@ export async function listWirds(supabase: Supa): Promise<WirdView[]> {
     // Portion runs off the frozen cycle bounds, never the live scope (D8).
     // The pass is an ordered page list (gap-skipping for memorized), stepped by
     // covered-count, so an unmemorized page is never handed out as a portion.
-    const cycleEnds = mine.filter((e) => e.cycle_seq === w.cycle_seq).map((e) => e.page_end);
-    const pages = cyclePages(w, ranges);
+    let cycleEnds = mine.filter((e) => e.cycle_seq === w.cycle_seq).map((e) => e.page_end);
+    let pages = cyclePages(w, ranges);
+    const passLen = pages.length;
+    const covered = coveredCount(cycleEnds, pages); // 0..passLen
+    // Complete pass: the next Done wraps from the live scope (D5, completeWird),
+    // so the portion comes from that wrapped pass, not this pass's first page.
+    if (passLen > 0 && covered >= passLen) {
+      pages = cyclePages({ ...w, cycle_page_start: page_start, cycle_page_end: page_end }, ranges);
+      cycleEnds = [];
+    }
     const len = pages.length;
     const rate = dailyRate(w.pages_per_period, w.period_days);
-    const covered = coveredCount(cycleEnds, pages); // 0..len
     const size = portionSize(cycleEnds.length + 1, rate);
-    // Outstanding: next portion starts at index `covered`. Complete (covered ===
-    // len): the next pass begins at the first page again (nextRef on a done card).
-    const startIdx = covered < len ? covered : 0;
+    const startIdx = covered < passLen ? covered : 0;
     const endIdx = len === 0 ? 0 : Math.min(startIdx + size - 1, len - 1);
     const position = len === 0 ? w.cycle_page_start : pages[startIdx];
     const pEnd = len === 0 ? w.cycle_page_start : pages[endIdx];
@@ -155,8 +160,8 @@ export async function listWirds(supabase: Supa): Promise<WirdView[]> {
       portion_end: pEnd,
       done_today: doneToday,
       days_since_last_done: lastDone === null ? null : dayNumber(today) - dayNumber(lastDone),
-      pages_remaining: Math.max(0, len - covered),
-      pass_length: len,
+      pages_remaining: Math.max(0, passLen - covered),
+      pass_length: passLen,
       next_position,
     };
   });

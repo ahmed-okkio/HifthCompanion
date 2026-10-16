@@ -272,7 +272,7 @@ function AnnotationCanvasInner(
                 onClick={() => goSpread(pageNum + 2)}
                 disabled={pageNum >= TOTAL_PAGES - (controlled ? 1 : 0)}
                 aria-label={t('reader.nextPage')}
-                className="relative z-4 w-[clamp(50px,4vw,120px)] min-w-12.5 shrink-0"
+                className="relative z-4 w-10 shrink-0"
               />
               )}
             {/* Spread: no per-slot clip. The shared parent row (SpreadAnnotation) owns the single
@@ -298,7 +298,7 @@ function AnnotationCanvasInner(
                 onClick={() => goSpread(pageNum - 2)}
                 disabled={pageNum <= 1}
                 aria-label={t('reader.prevPage')}
-                className="relative z-4 w-[clamp(50px,4vw,120px)] min-w-12.5 shrink-0"
+                className="relative z-4 w-10 shrink-0"
               />
               )}
             </div>

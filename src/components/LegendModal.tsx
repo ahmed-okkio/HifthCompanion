@@ -204,7 +204,7 @@ export function LegendButton() {
         aria-label={t('reader.symbolGuide')}
         title={t('reader.symbolGuide')}
         onClick={() => setOpen(true)}
-        className="mt-3 hidden h-13 cursor-pointer select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-subtle bg-surface-main px-4 text-small font-medium text-neutral-600 shadow-e2 hover:bg-neutral-100 lg:flex"
+        className="hidden h-13 cursor-pointer select-none items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-subtle bg-surface-main px-4 text-small font-medium text-neutral-600 shadow-e2 hover:bg-neutral-100 lg:flex"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           <circle cx="12" cy="12" r="10" />

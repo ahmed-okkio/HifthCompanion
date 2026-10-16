@@ -29,7 +29,7 @@ function Divider() {
   return (
     <div
       aria-hidden
-      className="mx-2 h-10 w-px self-center bg-subtle"
+      className="mx-2 h-8 w-px self-center bg-subtle"
     />
   );
 }
@@ -64,7 +64,7 @@ export default function AnnotationToolbar({
   // Every tool/action button is flex:1 and stretches to the full bar height, so they read as a
   // uniform row of equal-sized cells that fills the bar (no clustered groups with empty gaps).
   // Never shrink below a usable touch target; cells grow equally to fill the bar.
-  const cellBase = 'flex min-w-11 flex-1 flex-col items-center justify-center gap-1 self-stretch rounded-md transition-colors duration-(--duration-fast) ease-out';
+  const cellBase = 'flex min-w-11 flex-1 flex-col items-center justify-center gap-0.5 self-stretch rounded-md py-1 transition-colors duration-(--duration-fast) ease-out';
   const cellDisabled = 'pointer-events-none cursor-not-allowed text-muted opacity-45';
   const labelCls = 'text-meta leading-none';
   const iconBox = 'flex h-6 w-6 items-center justify-center';
@@ -73,17 +73,17 @@ export default function AnnotationToolbar({
     <aside
       /* Shadow lives on the outer (unclipped) element — clip-path on the inner
          wrapper would otherwise cut the box-shadow off at the border box. */
-      className="sticky top-24 z-10 flex min-h-22 w-full items-center rounded-lg shadow-e2"
+      className="sticky top-24 z-10 flex min-h-16 w-full items-center rounded-lg shadow-e2"
     >
       {/* Rounded wrapper clips the scroll edge — a reserved (classic) scrollbar's
           corner is NOT clipped by plain overflow:hidden on Windows, so we use
           clip-path (geometry-based, platform-independent) to hard-clip the box,
           scrollbar included, to the rounded rect. */}
       <div
-        className="relative min-h-22 w-full overflow-hidden rounded-lg border border-subtle bg-surface-main [clip-path:inset(0_round_var(--radius-lg))]"
+        className="relative min-h-16 w-full overflow-hidden rounded-lg border border-subtle bg-surface-main [clip-path:inset(0_round_var(--radius-lg))]"
       >
       <div
-        className="relative flex min-h-22 w-full items-stretch gap-2 overflow-x-auto p-3"
+        className="relative flex min-h-16 w-full items-stretch gap-2 overflow-x-auto p-2"
       >
         {/* Move/pan tool — left of the drawing tools. Active = drag pans the zoomed page. */}
         <button

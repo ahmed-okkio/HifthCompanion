@@ -20,7 +20,7 @@ export default function ZoomControl({
     <div
       data-testid="zoom-control"
       aria-label={t('reader.zoomControls')}
-      className="mt-3 hidden h-13 select-none items-center justify-center rounded-lg border border-subtle bg-surface-main px-2 shadow-e2 lg:flex"
+      className="hidden h-13 select-none items-center justify-center rounded-lg border border-subtle bg-surface-main px-2 shadow-e2 lg:flex"
     >
       <button
         type="button"

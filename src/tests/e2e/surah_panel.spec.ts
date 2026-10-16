@@ -37,8 +37,8 @@ test.describe('Surah panel and toolbar layout', () => {
     if (rail && surah && ctx) {
       expect(rail.x).toBeLessThan(surah.x);
       expect(surah.x).toBeLessThan(ctx.x);
-      // Context panel is a fixed-width right column (~320px).
-      expect(Math.round(ctx.width)).toBe(320);
+      // Context panel is a fixed-width right column (272px).
+      expect(Math.round(ctx.width)).toBe(272);
     }
   });
 
@@ -390,14 +390,14 @@ test.describe('V3 shell structure (Story 17)', () => {
 
   test('context panel is present (in DOM) at desktop width', async ({ page }) => {
     listenForErrors(page);
-    // context-panel is always in the DOM; at desktop it becomes a 320px flex column.
+    // context-panel is always in the DOM; at desktop it becomes a 272px flex column.
     const panel = page.locator('[data-testid="context-panel"]');
     await expect(panel).toBeAttached();
     const box = await panel.boundingBox();
     expect(box, 'context-panel must have a bounding box at desktop').not.toBeNull();
     if (box) {
-      // Right column is ~320px wide at desktop.
-      expect(box.width).toBeGreaterThanOrEqual(300);
+      // Right column is ~272px wide at desktop.
+      expect(box.width).toBeGreaterThanOrEqual(260);
     }
   });
 

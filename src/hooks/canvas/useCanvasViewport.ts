@@ -4,7 +4,7 @@ import { calculatePageCanvasSize, type PageCanvasSize } from '@/lib/pageCanvas';
 
 const SHARPNESS = 1.5;
 const MAX_PIXEL_RATIO = 3;
-const PAGE_BOTTOM_GAP = 92;
+const PAGE_BOTTOM_GAP = 76;
 const FALLBACK_PAGE_OFFSET = 200;
 
 function applyHiQ(canvas: fabric.Canvas): void {

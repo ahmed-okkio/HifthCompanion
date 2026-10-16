@@ -31,6 +31,8 @@ const ROW_WIDTHS = ['w-[85%]', 'w-[75%]', 'w-[65%]'];
 /** Full-shell skeleton shown while a redirect is pending.
  *  Mirrors all three regions so the entire page appears at once after the redirect. */
 function ShellSkeleton() {
+  // Spread routes (/reader/N-M) get a two-page placeholder on desktop.
+  const spread = /\/\d+-\d+\/?$/.test(usePathname() ?? '');
   return (
     <>
       {/* REGION 1 skeleton — nav rail + surah sidebar (desktop only) */}
@@ -56,12 +58,15 @@ function ShellSkeleton() {
       <div
         className="flex-1 min-w-0 bg-surface-app lg:h-full lg:min-h-0 lg:overflow-hidden lg:flex lg:flex-col lg:flex-1 lg:min-w-0"
       >
-        <main className="w-full flex-grow px-4 pt-6 pb-2 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:py-0">
+        <main className="w-full flex-grow px-4 pt-6 pb-2 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:px-3 lg:py-0">
           <div className="mx-auto flex w-full max-w-330 flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
-            <div className="mx-auto w-fit">
+            {/* data-spread here (client nav) or on <html> (set pre-hydration in the root layout, so the
+                prebuilt static shell gets it too) switches to a two-page placeholder on desktop. */}
+            <div data-spread={spread ? '' : undefined} className="mx-auto flex w-fit">
               {/* Quran page ~= 1:1.42 */}
+              <div className={`${SHIMMER} hidden aspect-page rounded-page rounded-r-none shadow-page in-data-spread:lg:block lg:w-[clamp(280px,28vw,540px)]`} />
               <div
-                className={`${SHIMMER} w-[clamp(280px,40vw,540px)] aspect-page rounded-page shadow-page`}
+                className={`${SHIMMER} w-[clamp(280px,40vw,540px)] aspect-page rounded-page shadow-page in-data-spread:lg:w-[clamp(280px,28vw,540px)] in-data-spread:lg:rounded-l-none`}
               />
             </div>
           </div>
@@ -70,7 +75,7 @@ function ShellSkeleton() {
 
       {/* REGION 3 skeleton — context panel */}
       <div
-        className="w-full px-4 pt-6 sm:px-6 lg:flex lg:flex-col lg:flex-shrink-0 lg:w-80 lg:px-0 lg:h-full lg:min-h-0"
+        className="w-full px-4 pt-6 sm:px-6 lg:flex lg:flex-col lg:flex-shrink-0 lg:w-68 lg:px-0 lg:h-full lg:min-h-0"
       >
         <div className="flex flex-col gap-4">
           {/* Sets card skeleton */}
@@ -369,7 +374,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
                   subtree is position:fixed and a transformed ancestor (e.g. animate-fade-in,
                   which keeps a computed matrix via animation-fill-mode: both) would make it the
                   containing block, pinning the fixed bar to <main> instead of the viewport. */}
-              <main className="w-full flex-grow px-4 pt-6 pb-2 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:py-0">
+              <main className="w-full flex-grow px-4 pt-6 pb-2 sm:px-6 sm:pt-8 lg:flex lg:flex-col lg:justify-center lg:min-h-0 lg:overflow-hidden lg:px-3 lg:py-0">
                 <div data-canvas-centered className="mx-auto flex w-full max-w-330 flex-col gap-6 items-stretch lg:h-full lg:min-h-0 lg:justify-center">
 
                   <div className="flex min-w-0 flex-col gap-4">
@@ -420,7 +425,7 @@ export default function ReaderShell({ children, user, sets, account = null, lock
             <div
               data-testid="context-panel"
               data-mobile-testid="mobile-context-panel"
-              className="w-full px-4 pb-[calc(88px+env(safe-area-inset-bottom,0px))] sm:px-6 lg:flex lg:flex-col lg:flex-shrink-0 lg:w-80 lg:px-0 lg:pb-0 lg:h-full lg:min-h-0 lg:overflow-y-auto thin-scroll pt-6"
+              className="w-full px-4 pb-[calc(88px+env(safe-area-inset-bottom,0px))] sm:px-6 lg:flex lg:flex-col lg:flex-shrink-0 lg:w-68 lg:px-0 lg:pb-0 lg:h-full lg:min-h-0 lg:overflow-y-auto thin-scroll pt-6"
             >
               {/* Sets card portal target — AnnotationCanvas renders the SetsCard here (top of the
                   right panel) so the set selector + "New set" share the canvas state. */}

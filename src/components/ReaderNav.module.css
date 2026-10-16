@@ -38,11 +38,11 @@
   min-height: 72px;
   padding: 0 var(--space-16);
   display: grid;
-  /* Side columns mirror the shell's left region (rail 72 + surah 260) vs right
-     (context 320) so the centre column — and the page navigator in it — lands over
-     the centred page/canvas, not the navbar's own midpoint. R-L = 12 (the residual
-     asymmetry after the gaps/paddings; see ReaderShell). */
-  grid-template-columns: minmax(0, 260px) auto minmax(0, 272px);
+  /* Side columns mirror the shell so the centre column - and the page navigator in it -
+     lands over the centred page/canvas, not the navbar's own midpoint:
+     left  = rail 96 + surah 300 + gap 24 - padding 16 - gap 16 = 388
+     right = context 272 + gap 24 + pr 24 - padding 16 - gap 16 = 288 (see ReaderShell). */
+  grid-template-columns: minmax(0, 388px) auto minmax(0, 288px);
   grid-template-rows: 72px;          /* definite row so child height:100% anchors here */
   align-items: stretch;              /* let .left fill the row (was center → content-sized) */
   gap: var(--space-16);

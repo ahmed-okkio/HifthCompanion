@@ -80,7 +80,7 @@ export default async function RootLayout({
       <body className="font-sans">
         {/* Hard navigations (<a href>, location.assign) reload the document; hide the intro
             before first paint if it already played in this tab. */}
-        <script dangerouslySetInnerHTML={{ __html: "try{sessionStorage.introSeen&&document.documentElement.setAttribute('data-intro-seen','')}catch(e){}" }} />
+        <script dangerouslySetInnerHTML={{ __html: "try{sessionStorage.introSeen&&document.documentElement.setAttribute('data-intro-seen','')}catch(e){}if(/[/]reader[/][0-9]+-[0-9]+[/]?$/.test(location.pathname))document.documentElement.setAttribute('data-spread','')" }} />
         <SplashIntro />
         <Suspense fallback={null}>
           <TopProgressBar />

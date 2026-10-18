@@ -9,6 +9,7 @@ import { Sk } from '@/components/Skeleton';
 import QueryFallback from '@/components/QueryFallback';
 import { openingRef, closingRef } from './ref';
 import WirdPager, { type WirdCardData } from './WirdPager';
+import { portionEdit } from './PortionSheet';
 
 /** Reads the caller's wirds in the browser (RLS boundary, PRD 0016 E1). */
 async function fetchDaily() {
@@ -51,14 +52,7 @@ export default function WirdScreen() {
       // Where the next portion begins (I2/I3), known before Done is tapped so
       // the all-done list shows it without waiting on the refresh.
       nextRef: openingRef(w.next_position, locale).label,
-      edit: {
-        passPages: w.pass_pages,
-        nextPassPages: w.next_pass_pages,
-        startIdx: Math.max(0, w.pass_pages.indexOf(w.portion_start)),
-        planned: Math.max(1, w.pass_pages.indexOf(w.portion_end) - w.pass_pages.indexOf(w.portion_start) + 1),
-        loggedDates: w.logged_dates,
-        today: w.today,
-      },
+      edit: portionEdit(w),
     };
   });
 

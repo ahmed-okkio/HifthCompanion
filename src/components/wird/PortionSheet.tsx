@@ -1,9 +1,10 @@
 'use client';
 
 /**
- * PortionSheet — the pen editor (ReminderSheet idiom). Sets which day is being
- * logged (today, yesterday, or a picked past day the user forgot), the page
- * they started from and the page they read to. A read past the pass end spills
+ * PortionSheet — the pen editor (ReminderSheet idiom). Sets the page the user
+ * started from and the page they read to — for today from the card's pen, or,
+ * with `past`, for a day they forgot (Manage → "Add a day": yesterday or a
+ * picked date). A read past the pass end spills
  * into the next pass (the service writes two entries); the live line turns
  * amber to say so. Saving hands the choice back to the card, which writes it
  * optimistically — this sheet never waits on the server.
@@ -12,6 +13,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import type { WirdView } from '@/lib/wirdRead';
 import { openingRef, closingRef } from './ref';
 
 export interface PortionEdit {
@@ -35,21 +37,36 @@ export interface PortionChoice {
   next: number;
 }
 
-const shiftDay = (iso: string, days: number) =>
+export const shiftDay = (iso: string, days: number) =>
   new Date(Date.parse(iso) + days * 86_400_000).toISOString().slice(0, 10);
+
+/** The editor's inputs from a wird view: its pass pages and today's portion. */
+export function portionEdit(w: WirdView): PortionEdit {
+  const startIdx = Math.max(0, w.pass_pages.indexOf(w.portion_start));
+  return {
+    passPages: w.pass_pages,
+    nextPassPages: w.next_pass_pages,
+    startIdx,
+    planned: Math.max(1, w.pass_pages.indexOf(w.portion_end) - startIdx + 1),
+    loggedDates: w.logged_dates,
+    today: w.today,
+  };
+}
 
 export default function PortionSheet({
   edit,
+  past,
   onSave,
   onClose,
 }: {
   edit: PortionEdit;
+  past?: boolean;
   onSave: (c: PortionChoice) => void;
   onClose: () => void;
 }) {
   const { t, locale, fmtNum } = useI18n();
   const yesterday = shiftDay(edit.today, -1);
-  const [mode, setMode] = useState<'today' | 'yesterday' | 'pick'>('today');
+  const [mode, setMode] = useState<'yesterday' | 'pick'>('yesterday');
   const [picked, setPicked] = useState(shiftDay(edit.today, -2));
   const [from, setFrom] = useState(edit.startIdx);
   const [to, setTo] = useState(edit.startIdx + edit.planned - 1);
@@ -64,7 +81,7 @@ export default function PortionSheet({
 
   const pages = [...edit.passPages, ...edit.nextPassPages];
   const passLen = edit.passPages.length;
-  const date = mode === 'today' ? edit.today : mode === 'yesterday' ? yesterday : picked;
+  const date = !past ? edit.today : mode === 'yesterday' ? yesterday : picked;
   const logged = edit.loggedDates.includes(date);
   const badDate = !date || date > edit.today;
   const count = to - from + 1;
@@ -116,18 +133,17 @@ export default function PortionSheet({
         className="w-full max-w-120 bg-surface-main rounded-t-xl shadow-e3 pt-2 px-6 pb-[calc(24px+env(safe-area-inset-bottom))] flex flex-col gap-4"
       >
         <span aria-hidden className="w-9 h-1 rounded-full bg-neutral-300 self-center" />
-        <h2 id="portion-sheet-title" className="m-0 text-heading-m font-bold text-primary">{t('wird.edit.title')}</h2>
+        <h2 id="portion-sheet-title" className="m-0 text-heading-m font-bold text-primary">{t(past ? 'wird.edit.pastTitle' : 'wird.edit.title')}</h2>
 
-        <SegmentedControl
+        {past && <SegmentedControl
           value={mode}
           onChange={(k) => setMode(k as typeof mode)}
           options={[
-            { key: 'today', label: t('wird.edit.today') },
             { key: 'yesterday', label: t('wird.edit.yesterday') },
             { key: 'pick', label: t('wird.edit.pick') },
           ]}
-        />
-        {mode === 'pick' && (
+        />}
+        {past && mode === 'pick' && (
           <input
             type="date"
             className="input min-h-11"

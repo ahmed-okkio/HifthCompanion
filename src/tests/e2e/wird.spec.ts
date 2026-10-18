@@ -487,32 +487,82 @@ test.describe('Wird pen editor', () => {
     await expect(page.locator('li', { hasText: /next begins at/i })).toContainText('Al-Baqara 25');
   });
 
-  test('backfill: logging yesterday clears the waiting bar and advances today', async ({ page }) => {
-    guardConsole(page);
-    await reset(page, [seedWird('w-back', 'Back wird', 10)]);
+  // A wird last done `ago` days ago (page 1), so it waits `ago - 1` days.
+  async function seedWaiting(page: Page, id: string, ago: number) {
+    await reset(page, [seedWird(id, 'Back wird', 10)]);
     await page.request.post('/api/test/tracker', { data: { seed: { wird_entry: [
-      { id: `e-${wid('w-back')}`, wird_id: wid('w-back'), user_id: uid, entry_date: day(2), cycle_seq: 1, page_start: 1, page_end: 1 },
+      { id: `e-${wid(id)}`, wird_id: wid(id), user_id: uid, entry_date: day(ago), cycle_seq: 1, page_start: 1, page_end: 1 },
     ] } } });
-    const sheet = await openEditor(page);
+    await page.goto('/wird');
+    await page.waitForLoadState('networkidle');
+    await streamSettled(page);
+  }
+
+  test('I read it: each tap logs the oldest waiting day and slides in the next portion', async ({ page }) => {
+    guardConsole(page);
+    await seedWaiting(page, 'w-readit', 3); // waiting 2 days
+    await expect(page.getByText('Waiting 2 days')).toBeVisible();
+    const startRef = page.getByText('Start at', { exact: true }).locator('xpath=following-sibling::span[1]');
+
+    await page.getByRole('button', { name: 'I read it' }).click();
+    // Optimistic: one day fewer waiting, portion moved to page 3 (Al-Baqara 6).
     await expect(page.getByText('Waiting since yesterday')).toBeVisible();
-    await sheet.getByRole('button', { name: 'Yesterday' }).click();
+    await expect(startRef).toHaveText('Al-Baqara 6');
+
+    await page.getByRole('button', { name: 'I read it' }).click();
+    await expect(page.getByText(/^Waiting/)).toHaveCount(0);
+    await expect(startRef).toHaveText('Al-Baqara 17'); // page 4
+
+    // Persisted, oldest day first: pages 2 and 3 on the two missed days.
+    await page.goto('/wird');
+    await streamSettled(page);
+    await expect(page.getByText('7 pages to go')).toBeVisible();
+    await expect(page.getByText(/^Waiting/)).toHaveCount(0);
+  });
+
+  test('Done while days wait logs today only; the other waiting days stay unlogged', async ({ page }) => {
+    guardConsole(page);
+    await page.route('https://fonts.gstatic.com/**', (r) =>
+      r.fulfill({ status: 200, body: '', headers: { 'access-control-allow-origin': '*' } }));
+    await seedWaiting(page, 'w-skip', 4); // waiting 3 days
+    await page.getByRole('button', { name: 'I read it' }).click();
+    await expect(page.getByText('Waiting 2 days')).toBeVisible();
+    const written = page.waitForResponse((r) => isAction(r.request()), { timeout: 20000 });
+    await outstandingDone(page).click();
+    await expect(page.getByRole('heading', { name: 'All done today' })).toBeVisible({ timeout: 5000 });
+    await written;
+
+    await page.goto('/wird/manage');
+    await streamSettled(page);
+    await page.getByRole('button', { name: /Logged days/ }).click();
+    await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(3); // seed + 1 caught up + today
+  });
+
+  test('Manage: Add a day logs a past day; the pen on the card has no day choice', async ({ page }) => {
+    guardConsole(page);
+    // Manage pulls a Google-hosted Arabic font; stub its CORS preflight (harness artifact, see heatmap test).
+    await page.route('https://fonts.gstatic.com/**', (r) =>
+      r.fulfill({ status: 200, body: '', headers: { 'access-control-allow-origin': '*' } }));
+    await seedWaiting(page, 'w-add', 2); // waiting since yesterday
+    await page.getByRole('button', { name: 'Edit portion' }).click();
+    await expect(page.getByTestId('portion-sheet').getByRole('button', { name: 'Yesterday' })).toHaveCount(0);
+    await page.keyboard.press('Escape');
+
+    await page.goto('/wird/manage');
+    await streamSettled(page);
+    await page.getByRole('button', { name: '+ Add a day' }).click();
+    const sheet = page.getByTestId('portion-sheet');
+    await expect(sheet.getByRole('heading', { name: 'Log a past day' })).toBeVisible();
     const written = page.waitForResponse((r) => isAction(r.request()), { timeout: 20000 });
     await sheet.getByRole('button', { name: 'Save pages 2', exact: true }).click();
-
-    // Optimistic: sheet gone, note shown, bar cleared, card still due today.
     await expect(sheet).toHaveCount(0);
-    await expect(page.getByRole('status')).toContainText('pages 2');
-    await expect(page.getByText('Waiting since yesterday')).toHaveCount(0);
+    await expect(page.locator(`[title="${day(1)}"]`)).toHaveAttribute('data-done', 'true');
     await written;
 
     await page.goto('/wird');
     await streamSettled(page);
-    await expect(page.getByText('8 pages to go')).toBeVisible(); // pages 1–2 logged
     await expect(page.getByText(/^Waiting/)).toHaveCount(0);
-    // Yesterday is now taken: the editor refuses it.
-    await page.getByRole('button', { name: 'Edit portion' }).click();
-    await page.getByTestId('portion-sheet').getByRole('button', { name: 'Yesterday' }).click();
-    await expect(page.getByText('That day is already logged')).toBeVisible();
+    await expect(page.getByText('8 pages to go')).toBeVisible();
   });
 
   test('past the pass end: the read spills into the next pass', async ({ page }) => {

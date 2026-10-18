@@ -7,6 +7,7 @@ import { qk } from '@/lib/query/keys';
 import { Sk } from '@/components/Skeleton';
 import QueryFallback from '@/components/QueryFallback';
 import ManageList, { type ManageRow } from './ManageList';
+import { portionEdit } from './PortionSheet';
 
 async function fetchManage() {
   const sb = createClient();
@@ -22,6 +23,7 @@ async function fetchManage() {
     pages_per_period: w.pages_per_period,
     period_days: w.period_days,
     doneDates: entriesByWird[w.id] ?? [],
+    edit: portionEdit(w),
   }));
   return { rows, memorizedPages: memorizedPages(ranges) };
 }

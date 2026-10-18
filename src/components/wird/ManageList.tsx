@@ -3,8 +3,8 @@
 /**
  * ManageList — the /wird/manage rows: edit, delete, and per-wird history of the
  * current pass with an Undo on each logged day. Undo hard-deletes the entry
- * (position derives from what's left, so the day re-opens). The daily card is
- * never touched here, so it keeps its single Done control (H10).
+ * (position derives from what's left, so the day re-opens). "Add a day" logs a
+ * day the user read but forgot to mark, through the past-day PortionSheet.
  */
 
 import { useQueryClient } from '@tanstack/react-query';
@@ -13,6 +13,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useI18n } from '@/components/I18nProvider';
 import {
+  completeWird,
   deleteWird,
   deleteWirdEntry,
   listCycleEntries,
@@ -20,6 +21,7 @@ import {
 } from '@/lib/services/wird';
 import WirdForm, { type WirdEdit } from './WirdForm';
 import WirdHeatmap from './WirdHeatmap';
+import PortionSheet, { type PortionChoice, type PortionEdit } from './PortionSheet';
 import type { WirdScopeSource } from '@/types';
 import { localDate } from '@/lib/localDate';
 
@@ -27,6 +29,8 @@ export interface ManageRow extends WirdEdit {
   scope_source: WirdScopeSource;
   /** Every date this wird was completed, for the consistency heatmap. */
   doneDates: string[];
+  /** The past-day editor's inputs. */
+  edit: PortionEdit;
 }
 
 const todayISO = () => localDate();
@@ -79,6 +83,9 @@ function Row({ row, onEdit, onChanged }: { row: ManageRow; onEdit: () => void; o
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
   const [entries, setEntries] = useState<WirdEntryRow[] | null>(null);
+  const [adding, setAdding] = useState(false);
+  // A just-added day, shown at once (optimistic) and dropped if the write fails.
+  const [added, setAdded] = useState<PortionChoice | null>(null);
 
   const scopeText =
     row.scope_source === 'memorized'
@@ -116,6 +123,20 @@ function Row({ row, onEdit, onChanged }: { row: ManageRow; onEdit: () => void; o
     finally { setBusy(false); }
   }
 
+  function onAdd(c: PortionChoice) {
+    setAdding(false);
+    setError('');
+    setAdded(c);
+    completeWird(row.id, { date: c.date, start: c.start, count: c.count }).then(
+      async () => {
+        if (open) await loadHistory().catch(() => {});
+        await qc.invalidateQueries({ queryKey: qk.wird });
+        setAdded(null);
+      },
+      () => { setAdded(null); setError(t('wird.edit.logFailed')); },
+    );
+  }
+
   const fmtDate = (iso: string) =>
     iso === todayISO()
       ? t('wird.entryToday')
@@ -139,19 +160,33 @@ function Row({ row, onEdit, onChanged }: { row: ManageRow; onEdit: () => void; o
       </div>
 
       <div className="mt-3">
-        <WirdHeatmap doneDates={row.doneDates} />
+        <WirdHeatmap doneDates={added ? [...row.doneDates, added.date] : row.doneDates} />
       </div>
 
-      <button
-        type="button"
-        onClick={toggleHistory}
-        aria-expanded={open}
-        className="mt-2 border-none bg-transparent cursor-pointer p-0 text-small font-semibold text-secondary"
-      >
-        {open ? '▾ ' : '▸ '}{t('wird.history')}
-      </button>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={toggleHistory}
+          aria-expanded={open}
+          className="border-none bg-transparent cursor-pointer p-0 text-small font-semibold text-secondary"
+        >
+          {open ? '▾ ' : '▸ '}{t('wird.history')}
+        </button>
+        <button type="button" className="btn btn-ghost btn-sm" disabled={added !== null} onClick={() => setAdding(true)}>
+          {t('wird.addDay')}
+        </button>
+      </div>
 
+      {added && (
+        <p role="status" className="mt-2 text-small font-semibold text-accent">
+          {t('wird.dayLogged', {
+            date: fmtDate(added.date),
+            range: added.first === added.last ? fmtNum(added.first) : `${fmtNum(added.first)}–${fmtNum(added.last)}`,
+          })}
+        </p>
+      )}
       {error && <p role="alert" className="text-sm text-danger mt-2">{error}</p>}
+      {adding && <PortionSheet edit={row.edit} past onSave={onAdd} onClose={() => setAdding(false)} />}
 
       {open && (
         entries === null ? (

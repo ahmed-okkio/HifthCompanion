@@ -26,6 +26,14 @@ export interface WirdView extends Wird {
       else the page after today's portion (the live scope start on a wrap). Known
       up front so the UI never waits on a refresh to show it. */
   next_position: number;
+  /** The pen editor's page lists: this pass in order (the wrapped pass once
+      complete), and the pass after it (live scope), for reads past the end. */
+  pass_pages: number[];
+  next_pass_pages: number[];
+  /** Every logged day (any cycle), so the editor can refuse a day twice. */
+  logged_dates: string[];
+  /** The caller's local today (D20), the editor's default date. */
+  today: string;
 }
 
 
@@ -163,6 +171,10 @@ export async function listWirds(supabase: Supa): Promise<WirdView[]> {
       pages_remaining: Math.max(0, passLen - covered),
       pass_length: passLen,
       next_position,
+      pass_pages: pages,
+      next_pass_pages: cyclePages({ ...w, cycle_page_start: page_start, cycle_page_end: page_end }, ranges),
+      logged_dates: mine.map((e) => e.entry_date),
+      today,
     };
   });
 

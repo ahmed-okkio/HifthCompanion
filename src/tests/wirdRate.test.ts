@@ -11,6 +11,7 @@ import {
   wrapCycle,
   spanPages,
   coveredCount,
+  splitRead,
 } from '@/lib/wirdRate';
 
 describe('rate (C1)', () => {
@@ -135,5 +136,24 @@ describe('gap-skipping pass (memorized scope)', () => {
     const endIdx = Math.min(covered + size - 1, gappy.length - 1);
     expect(gappy[covered]).toBe(500);
     expect(gappy[endIdx]).toBe(501);
+  });
+});
+
+describe('splitRead (logging more / past the pass end)', () => {
+  const pass = spanPages(1, 10);
+  it('a read inside the pass is one entry', () => {
+    expect(splitRead(pass, pass, 3, 4)).toEqual([{ page_start: 4, page_end: 7, wrap: false }]);
+  });
+  it('a read past the pass end spills into the next pass', () => {
+    expect(splitRead(pass, pass, 7, 5)).toEqual([
+      { page_start: 8, page_end: 10, wrap: false },
+      { page_start: 1, page_end: 2, wrap: true },
+    ]);
+  });
+  it('clamps to both passes', () => {
+    expect(splitRead([5, 6], [5, 6], 0, 99)).toEqual([
+      { page_start: 5, page_end: 6, wrap: false },
+      { page_start: 5, page_end: 6, wrap: true },
+    ]);
   });
 });

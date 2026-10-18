@@ -26,6 +26,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useI18n } from '@/components/I18nProvider';
 import { Sk } from '@/components/Skeleton';
 import WirdCard from './WirdCard';
+import type { PortionEdit } from './PortionSheet';
 import WirdForm from './WirdForm';
 import ReminderSheet, { reminderSheetStart, type ReminderSheetStart } from './ReminderSheet';
 
@@ -42,6 +43,8 @@ export interface WirdCardData {
   doneToday: boolean;
   daysSinceLastDone: number | null;
   nextRef: string;
+  /** The pen editor's inputs (PortionSheet). */
+  edit: PortionEdit;
 }
 
 const DOTS_MAX = 5;
@@ -75,6 +78,8 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
   // (a refresh would otherwise re-render them as done-today and snap them back).
   const [doneIds, setDoneIds] = useState<Set<string>>(() => new Set());
   const outstanding = cards.filter((c) => !c.doneToday && !doneIds.has(c.id));
+  // A pen-edited Done moves the next portion; show that before the refresh lands.
+  const [nextRefs, setNextRefs] = useState<Record<string, string>>({});
 
   let content: React.ReactNode;
   if (cards.length === 0) {
@@ -88,7 +93,7 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
         <ul className="list-none m-0 p-0 flex flex-col gap-2 w-full">
           {cards.map((c) => (
             <li key={c.id} className="text-small font-semibold text-secondary text-center">
-              {t('wird.nextBegins', { name: c.name, ref: c.nextRef })}
+              {t('wird.nextBegins', { name: c.name, ref: nextRefs[c.id] ?? c.nextRef })}
             </li>
           ))}
         </ul>
@@ -100,7 +105,10 @@ export default function WirdPager({ cards, memorizedPages }: { cards: WirdCardDa
         cards={outstanding}
         t={t}
         onNew={openNew}
-        onDoneCard={(id) => setDoneIds((s) => new Set(s).add(id))}
+        onDoneCard={(id, nextRef) => {
+          setDoneIds((s) => new Set(s).add(id));
+          if (nextRef) setNextRefs((m) => ({ ...m, [id]: nextRef }));
+        }}
       />
     );
   }
@@ -144,7 +152,7 @@ function Strip({
   cards: WirdCardData[];
   t: ReturnType<typeof useI18n>['t'];
   onNew: () => void;
-  onDoneCard: (id: string) => void;
+  onDoneCard: (id: string, nextRef?: string) => void;
 }) {
   const qc = useQueryClient();
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -159,7 +167,7 @@ function Strip({
   // J10: never leave a timer running past unmount / a re-render.
   useEffect(() => () => { if (exitTimer.current) clearTimeout(exitTimer.current); }, []);
 
-  const onExit = useCallback((id: string) => {
+  const onExit = useCallback((id: string, nextRef?: string) => {
     setLeavingId(id);
     const raw = getComputedStyle(document.documentElement)
       .getPropertyValue('--duration-exit').trim(); // e.g. "320ms" or "0.32s"
@@ -170,7 +178,7 @@ function Strip({
       // next card snaps in, or the all-done panel takes over (I3/J7). Refresh in
       // the background to sync the advanced position — it can't snap the card
       // back because the pager filters it out.
-      onDoneCard(id);
+      onDoneCard(id, nextRef);
       setLeavingId(null);
       void qc.invalidateQueries({ queryKey: qk.wird });
     }, (Number.isFinite(ms) ? ms : 320) + 20); // small buffer past travel end

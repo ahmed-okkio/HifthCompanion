@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient, createClientAction } from '@/lib/supabase/server';
-import { dailyRate, portionSize, wrapCycle, coveredCount } from '@/lib/wirdRate';
+import { dailyRate, portionSize, wrapCycle, coveredCount, splitRead, type WirdCycle } from '@/lib/wirdRate';
 import { me, memorizedBounds, cyclePages } from '@/lib/wirdRead';
 import { getMyMemorization, getMyProfile } from '@/lib/services/profile';
 import { localDate } from '@/lib/localDate';
@@ -200,14 +200,22 @@ export async function updateWird(
 }
 
 /**
- * Complete a wird's portion for today (D2). Idempotent per wird per local day
- * (D3/F5): a second Done the same local day writes nothing. When the current
- * pass is already complete, the wrap runs first (D5, via wrapCycle) — cycle_seq
+ * Complete a wird's portion (D2). Idempotent per wird per local day (D3/F5): a
+ * second Done the same local day writes nothing. When the current pass is
+ * already complete, the wrap runs first (D5, via wrapCycle) — cycle_seq
  * increments and cycle_page_* reset from the live scope — and the entry is
- * written against the new cycle. Writes exactly one entry: today, the computed
- * portion start+end, and the cycle_seq it belongs to.
+ * written against the new cycle.
+ *
+ * The pen editor passes `opts`: `date` logs a past day the user forgot
+ * (default today; a past date already logged is rejected), `start` is the page
+ * they started from and `count` how many pages they read (defaults: today's
+ * position and portion). A read past the pass end writes two entries for the
+ * day — this pass's tail, then the next pass's head after the wrap.
  */
-export async function completeWird(id: string): Promise<void> {
+export async function completeWird(
+  id: string,
+  opts: { date?: string; start?: number; count?: number } = {},
+): Promise<void> {
   const supabase = await createClientAction();
   const { data, error } = await supabase
     .from('wird')
@@ -219,6 +227,8 @@ export async function completeWird(id: string): Promise<void> {
   const wird = data as Wird;
 
   const today = await todayLocal();
+  const date = opts.date ?? today;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today) throw new Error('Invalid wird date');
   const { data: entryData, error: entryErr } = await supabase
     .from('wird_entry')
     .select('*')
@@ -226,58 +236,67 @@ export async function completeWird(id: string): Promise<void> {
   if (entryErr) throw entryErr;
   const entries = (entryData ?? []) as WirdEntry[];
 
-  // D3/F5: already done today → no write, no advance.
-  if (entries.some((e) => e.entry_date === today)) return;
+  // D3/F5: already done today → no write, no advance. A past day logged twice
+  // is a stale editor, not a double tap — say so.
+  if (entries.some((e) => e.entry_date === date)) {
+    if (date === today) return;
+    throw new Error('That day is already logged');
+  }
 
   const ranges =
     wird.scope_source === 'memorized' ? (await getMyMemorization()).ranges : null;
+  // The live scope: where the next pass runs (D5).
+  const scope =
+    wird.scope_source === 'memorized'
+      ? memorizedBounds(ranges ?? []) ?? { page_start: wird.page_start, page_end: wird.page_end }
+      : { page_start: wird.page_start, page_end: wird.page_end };
+  const wrap = async (c: WirdCycle) => {
+    const next = wrapCycle(c, scope.page_start, scope.page_end);
+    const { error: wrapErr } = await supabase.from('wird').update(next).eq('id', id);
+    if (wrapErr) throw wrapErr;
+    return next;
+  };
 
-  let { cycle_seq, cycle_page_start, cycle_page_end } = wird;
-  let cycleEnds = entries.filter((e) => e.cycle_seq === cycle_seq).map((e) => e.page_end);
-  let pages = cyclePages({ ...wird, cycle_seq, cycle_page_start, cycle_page_end }, ranges);
+  let cycle: WirdCycle = {
+    cycle_seq: wird.cycle_seq,
+    cycle_page_start: wird.cycle_page_start,
+    cycle_page_end: wird.cycle_page_end,
+  };
+  let cycleEnds = entries.filter((e) => e.cycle_seq === cycle.cycle_seq).map((e) => e.page_end);
+  let pages = cyclePages({ ...wird, ...cycle }, ranges);
 
   // The next Done after a pass completes wraps (D5): reset bounds from the live
   // scope, persist them (the only time cycle_page_* are rewritten, D8), and
   // write against the new cycle. Completion is by covered-count over the ordered
   // page list, so a gappy memorized pass wraps once its real pages are all done.
   if (pages.length > 0 && coveredCount(cycleEnds, pages) >= pages.length) {
-    const scope =
-      wird.scope_source === 'memorized'
-        ? memorizedBounds(ranges ?? []) ?? {
-            page_start: wird.page_start,
-            page_end: wird.page_end,
-          }
-        : { page_start: wird.page_start, page_end: wird.page_end };
-    const next = wrapCycle(
-      { cycle_seq, cycle_page_start, cycle_page_end },
-      scope.page_start,
-      scope.page_end,
-    );
-    ({ cycle_seq, cycle_page_start, cycle_page_end } = next);
-    const { error: wrapErr } = await supabase
-      .from('wird')
-      .update({ cycle_seq, cycle_page_start, cycle_page_end })
-      .eq('id', id);
-    if (wrapErr) throw wrapErr;
+    cycle = await wrap(cycle);
     cycleEnds = [];
-    pages = cyclePages({ ...wird, cycle_seq, cycle_page_start, cycle_page_end }, ranges);
+    pages = cyclePages({ ...wird, ...cycle }, ranges);
   }
 
   if (pages.length === 0) return; // nothing to recite (no memorized pages)
 
   const rate = dailyRate(wird.pages_per_period, wird.period_days);
-  const covered = coveredCount(cycleEnds, pages);
-  const size = portionSize(cycleEnds.length + 1, rate);
-  const endIdx = Math.min(covered + size - 1, pages.length - 1);
+  const startIdx = opts.start === undefined ? coveredCount(cycleEnds, pages) : pages.indexOf(opts.start);
+  if (startIdx < 0) throw new Error('Start page is outside this pass');
+  const nextPages = cyclePages(
+    { ...wird, cycle_page_start: scope.page_start, cycle_page_end: scope.page_end },
+    ranges,
+  );
+  const parts = splitRead(pages, nextPages, startIdx, opts.count ?? portionSize(cycleEnds.length + 1, rate));
 
-  const { error: insErr } = await supabase.from('wird_entry').insert({
-    wird_id: id,
-    entry_date: today,
-    page_start: pages[covered],
-    page_end: pages[endIdx],
-    cycle_seq,
-  });
-  if (insErr) throw insErr;
+  for (const part of parts) {
+    if (part.wrap) cycle = await wrap(cycle);
+    const { error: insErr } = await supabase.from('wird_entry').insert({
+      wird_id: id,
+      entry_date: date,
+      page_start: part.page_start,
+      page_end: part.page_end,
+      cycle_seq: cycle.cycle_seq,
+    });
+    if (insErr) throw insErr;
+  }
 }
 
 /** A teacher-facing summary of one student's wird practice (L1/D17). */

@@ -138,3 +138,22 @@ export function wrapCycle(cycle: WirdCycle, scopePageStart: number, scopePageEnd
 export function orderWirdViews<T extends { done_today: boolean }>(views: T[]): T[] {
   return [...views.filter((v) => !v.done_today), ...views.filter((v) => v.done_today)];
 }
+
+/**
+ * Split a logged read of `count` pages starting at `startIdx` of the current
+ * pass's ordered `pages` into the entries to write. A read that runs past the
+ * end of the pass spills into `nextPages` (the wrapped pass): one entry for
+ * this pass's tail, one for the next pass's head (`wrap: true`). Count is
+ * clamped to what both passes hold.
+ */
+export function splitRead(
+  pages: number[],
+  nextPages: number[],
+  startIdx: number,
+  count: number,
+): { page_start: number; page_end: number; wrap: boolean }[] {
+  const last = Math.min(startIdx + Math.max(1, count) - 1, pages.length + nextPages.length - 1);
+  const out = [{ page_start: pages[startIdx], page_end: pages[Math.min(last, pages.length - 1)], wrap: false }];
+  if (last >= pages.length) out.push({ page_start: nextPages[0], page_end: nextPages[last - pages.length], wrap: true });
+  return out;
+}

@@ -1,9 +1,10 @@
 'use client';
 
 /**
- * WirdCard — one wird, one card (H7). Exactly one interactive control: the 72px
- * Done disc (H8/H10) — no end-page control, stepper or sheet. The card has two
- * layouts:
+ * WirdCard — one wird, one card (H7). The 72px Done disc is the primary control
+ * (H8/H10); a small pen beside "Start at" opens PortionSheet to log a different
+ * range (read more, started elsewhere) or a past day the user forgot. The card
+ * has two layouts:
  *   - outstanding: name, scope, the portion's opening ref as the largest
  *     element, its closing ref, the portion page range, the progress bar,
  *     "N pages to go", and the disc resting unfilled (H9).
@@ -24,6 +25,8 @@ import { useState } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import { completeWird } from '@/lib/services/wird';
 import Progress from './Progress';
+import { openingRef } from './ref';
+import PortionSheet, { type PortionChoice } from './PortionSheet';
 import type { WirdCardData } from './WirdPager';
 
 // Amber derived from --warning via color-mix — no new colour token (M5/I4).
@@ -40,12 +43,18 @@ function CheckGlyph() {
 // onExit lets WirdPager orchestrate the M6 card exit (J2–J7): WirdCard owns the
 // server write and the disc bounce, then hands off so the pager can slide the
 // slide out, close the gap, and refresh once travel ends.
-export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?: (id: string) => void }) {
-  const { t, fmtNum } = useI18n();
+export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?: (id: string, nextRef?: string) => void }) {
+  const { t, fmtNum, locale } = useI18n();
   const qc = useQueryClient();
   const [error, setError] = useState(false);
   const [bouncing, setBouncing] = useState(false);
   const [justDone, setJustDone] = useState(false);
+  const [editing, setEditing] = useState(false);
+  // A past day logged from the pen editor: shown at once (optimistic), cleared
+  // with a visible error if the write fails.
+  const [logged, setLogged] = useState<PortionChoice | null>(null);
+  const [logError, setLogError] = useState(false);
+  const [nextRef, setNextRef] = useState<string>();
 
   const scopeText = card.scope.memorized
     ? t('wird.scopeMemorized')
@@ -53,7 +62,7 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
 
   const done = card.doneToday || justDone;
 
-  function onDone() {
+  function onDone(opts?: { start: number; count: number }) {
     if (done) return;
     // Optimistic: flip the disc and fire the server write now — no spinner, no
     // await. The card exit is handed to the pager only once the disc bounce has
@@ -63,17 +72,36 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
     setError(false);
     setJustDone(true);
     // Sync once the write lands (the pager's post-slide refetch may beat it).
-    completeWird(card.id).then(() => qc.invalidateQueries({ queryKey: qk.wird }), () => {
+    completeWird(card.id, opts).then(() => qc.invalidateQueries({ queryKey: qk.wird }), () => {
       setJustDone(false);
       setError(true);
       void qc.invalidateQueries({ queryKey: qk.wird });
     });
   }
 
+  function onSave(c: PortionChoice) {
+    setEditing(false);
+    if (c.date === card.edit.today) {
+      setNextRef(openingRef(c.next, locale).label);
+      return onDone({ start: c.start, count: c.count });
+    }
+    setLogError(false);
+    setLogged(c);
+    completeWird(card.id, { date: c.date, start: c.start, count: c.count }).then(
+      () => qc.invalidateQueries({ queryKey: qk.wird }),
+      () => {
+        setLogged(null);
+        setLogError(true);
+        void qc.invalidateQueries({ queryKey: qk.wird });
+      },
+    );
+  }
+
   // Days missed, not days since the last Done: done yesterday means today's
   // portion is simply due, not waiting. Done 2 days ago = yesterday was missed.
   const missed = card.daysSinceLastDone == null ? 0 : card.daysSinceLastDone - 1;
-  const stale = !card.doneToday && missed >= 1;
+  // A just-logged yesterday means nothing is waiting any more.
+  const stale = !card.doneToday && missed >= 1 && !(logged && missed === 1 && logged.date < card.edit.today);
   const staleText =
     missed === 1 ? t('wird.staleYesterday') : t('wird.staleDays', { n: missed });
 
@@ -106,8 +134,19 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
           </div>
         ) : (
           <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center">
-            <span className="text-caption font-semibold uppercase tracking-label text-muted">
+            <span className="flex items-center gap-1 text-caption font-semibold uppercase tracking-label text-muted">
               {t('wird.startAt')}
+              <button
+                type="button"
+                className="btn btn-ghost btn-icon btn-sm text-accent"
+                aria-label={t('wird.edit.open')}
+                onClick={() => setEditing(true)}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+              </button>
             </span>
             {/* Opening reference — the largest element (H7). */}
             <span className="wird-fit-hero block font-extrabold leading-none mt-1 truncate max-w-full">
@@ -133,6 +172,20 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
                 {card.pagesToGo === 1 ? t('wird.pagesToGoOne') : t('wird.pagesToGo', { n: card.pagesToGo })}
               </span>
             </>
+          )}
+
+          {logged && (
+            <span role="status" className="text-small font-semibold text-accent text-center">
+              {t('wird.edit.loggedNote', {
+                date: new Date(logged.date + 'T00:00').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' }),
+                range: logged.first === logged.last ? fmtNum(logged.first) : `${fmtNum(logged.first)}–${fmtNum(logged.last)}`,
+              })}
+            </span>
+          )}
+          {logError && (
+            <div role="alert" className="bg-danger-muted text-danger rounded-md py-2 px-3 text-small font-semibold leading-snug text-center">
+              {t('wird.edit.logFailed')}
+            </div>
           )}
 
           {error && (
@@ -162,13 +215,13 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
               aria-label={t('wird.done')}
               data-done={done ? 'true' : undefined}
               disabled={done}
-              onClick={onDone}
+              onClick={() => onDone()}
               onAnimationEnd={(e) => {
                 if (e.animationName === 'wird-disc-bounce') {
                   setBouncing(false);
                   // Bounce done — now hand the exit to the pager so the card
                   // slides away after the tap animation has played (J1→J2).
-                  if (onExit) onExit(card.id);
+                  if (onExit) onExit(card.id, nextRef);
                 }
               }}
             >
@@ -178,6 +231,7 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
           </div>
         </div>
       </div>
+      {editing && <PortionSheet edit={card.edit} onSave={onSave} onClose={() => setEditing(false)} />}
     </div>
   );
 }

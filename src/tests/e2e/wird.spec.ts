@@ -455,3 +455,83 @@ test.describe('Wird reminder', () => {
     await expect(sheet).toHaveCount(0);
   });
 });
+
+// The pen editor: log more than planned, a forgotten past day, a read past the pass end.
+test.describe('Wird pen editor', () => {
+  const day = (ago: number) => new Date(Date.now() - ago * 86_400_000).toISOString().slice(0, 10); // UTC, like the app
+
+  async function openEditor(page: Page) {
+    await page.goto('/wird');
+    await page.waitForLoadState('networkidle');
+    await streamSettled(page);
+    await page.getByRole('button', { name: 'Edit portion' }).click();
+    return page.getByTestId('portion-sheet');
+  }
+
+  test('read more: 4 pages instead of 1 moves the next portion to page 5, persisted', async ({ page }) => {
+    guardConsole(page);
+    await reset(page, [seedWird('w-more', 'More wird', 10)]);
+    const sheet = await openEditor(page);
+    for (let i = 0; i < 3; i++) await sheet.getByRole('button', { name: 'To: one page on' }).click();
+    await expect(sheet.getByText('4 pages · 3 more than planned')).toBeVisible();
+    const written = page.waitForResponse((r) => isAction(r.request()), { timeout: 20000 });
+    await sheet.getByRole('button', { name: 'Save pages 1–4' }).click();
+
+    // Optimistic: all done at once, next portion already at page 5 (Al-Baqara 25).
+    await expect(page.getByRole('heading', { name: 'All done today' })).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('li', { hasText: /next begins at/i })).toContainText('Al-Baqara 25');
+    await written;
+
+    await page.goto('/wird');
+    await streamSettled(page);
+    await expect(page.locator('li', { hasText: /next begins at/i })).toContainText('Al-Baqara 25');
+  });
+
+  test('backfill: logging yesterday clears the waiting bar and advances today', async ({ page }) => {
+    guardConsole(page);
+    await reset(page, [seedWird('w-back', 'Back wird', 10)]);
+    await page.request.post('/api/test/tracker', { data: { seed: { wird_entry: [
+      { id: `e-${wid('w-back')}`, wird_id: wid('w-back'), user_id: uid, entry_date: day(2), cycle_seq: 1, page_start: 1, page_end: 1 },
+    ] } } });
+    const sheet = await openEditor(page);
+    await expect(page.getByText('Waiting since yesterday')).toBeVisible();
+    await sheet.getByRole('button', { name: 'Yesterday' }).click();
+    const written = page.waitForResponse((r) => isAction(r.request()), { timeout: 20000 });
+    await sheet.getByRole('button', { name: 'Save pages 2', exact: true }).click();
+
+    // Optimistic: sheet gone, note shown, bar cleared, card still due today.
+    await expect(sheet).toHaveCount(0);
+    await expect(page.getByRole('status')).toContainText('pages 2');
+    await expect(page.getByText('Waiting since yesterday')).toHaveCount(0);
+    await written;
+
+    await page.goto('/wird');
+    await streamSettled(page);
+    await expect(page.getByText('8 pages to go')).toBeVisible(); // pages 1–2 logged
+    await expect(page.getByText(/^Waiting/)).toHaveCount(0);
+    // Yesterday is now taken: the editor refuses it.
+    await page.getByRole('button', { name: 'Edit portion' }).click();
+    await page.getByTestId('portion-sheet').getByRole('button', { name: 'Yesterday' }).click();
+    await expect(page.getByText('That day is already logged')).toBeVisible();
+  });
+
+  test('past the pass end: the read spills into the next pass', async ({ page }) => {
+    guardConsole(page);
+    await reset(page, [seedWird('w-wrap', 'Wrap wird', 10)]);
+    await page.request.post('/api/test/tracker', { data: { seed: { wird_entry: [
+      { id: `e-${wid('w-wrap')}`, wird_id: wid('w-wrap'), user_id: uid, entry_date: day(1), cycle_seq: 1, page_start: 1, page_end: 8 },
+    ] } } });
+    const sheet = await openEditor(page);
+    for (let i = 0; i < 3; i++) await sheet.getByRole('button', { name: 'To: one page on' }).click();
+    await expect(sheet.getByText('4 pages · pass ends at p.10, 2 start the next pass')).toBeVisible();
+    const written = page.waitForResponse((r) => isAction(r.request()), { timeout: 20000 });
+    await sheet.getByRole('button', { name: 'Save pages 9–2' }).click();
+    await expect(page.getByRole('heading', { name: 'All done today' })).toBeVisible({ timeout: 5000 });
+    await written;
+
+    // Next pass started: page 3 is next (Al-Baqara 6), 8 pages to go after tomorrow's view.
+    await page.goto('/wird');
+    await streamSettled(page);
+    await expect(page.locator('li', { hasText: /next begins at/i })).toContainText('Al-Baqara 6');
+  });
+});

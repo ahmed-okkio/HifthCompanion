@@ -3,6 +3,9 @@ import { fabric } from 'fabric';
 import { type Tool, ALL_TOOLS, getToolCursor } from '@/lib/canvasTools';
 import { ensureObjectId } from '@/lib/canvasHistory';
 
+// Touch has no hover or mouse:out, so an overlay cursor shown on touch would stick after the stroke.
+const isTouch = (e: Event) => (e as PointerEvent).pointerType === 'touch' || (typeof TouchEvent !== 'undefined' && e instanceof TouchEvent);
+
 // Highlighter is a fixed wide brush (like a real marker), independent of the pen width.
 const HIGHLIGHTER_WIDTH = 22;
 
@@ -166,7 +169,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
       canvas.freeDrawingBrush.width = activeTool === 'highlighter' ? HIGHLIGHTER_WIDTH : penWidth;
     }
     canvas.renderAll();
-  }, [activeTool, activeColor, penWidth, opacity, user, selectedSetId, linking, fabricRef]);
+  }, [activeTool, activeColor, penWidth, opacity, user, selectedSetId, linking, canvasReady, fabricRef]);
 
   // Eraser: a radius brush (size `eraserSize`), not a click-to-delete.
   useEffect(() => {
@@ -207,7 +210,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
     const onDown = (opt: fabric.IEvent) => { down = true; if (eraseAt(canvas.getPointer(opt.e))) didErase = true; };
     const onMove = (opt: fabric.IEvent) => {
       const p = canvas.getPointer(opt.e);
-      cursorEl.style.display = 'block';
+      if (!isTouch(opt.e)) cursorEl.style.display = 'block';
       cursorEl.style.left = `${p.x}px`;
       cursorEl.style.top = `${p.y}px`;
       if (down && eraseAt(p)) didErase = true;
@@ -227,7 +230,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
       cursorEl.remove();
       if (upper) upper.style.cursor = prevCursor;
     };
-  }, [activeTool, eraserSize, linking, commit, saveNow, fabricRef]);
+  }, [activeTool, eraserSize, linking, commit, saveNow, canvasReady, fabricRef]);
 
   // Underline cursor
   useEffect(() => {
@@ -248,6 +251,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
 
     const onMove = (opt: fabric.IEvent) => {
       const p = canvas.getPointer(opt.e);
+      if (isTouch(opt.e)) return;
       guide.style.display = 'block';
       guide.style.left = `${p.x}px`;
       guide.style.top = `${p.y}px`;
@@ -261,7 +265,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
       guide.remove();
       if (upper) upper.style.cursor = prevCursor;
     };
-  }, [activeTool, activeColor, linking, fabricRef]);
+  }, [activeTool, activeColor, linking, canvasReady, fabricRef]);
 
   // Link mode: panel asks the user to pick an annotation. Hover shows a ring on the nearest
   // object; clicking it stamps a stable id, saves, and reports the pick back to the panel.
@@ -382,6 +386,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
 
     const onMove = (opt: fabric.IEvent) => {
       const p = canvas.getPointer(opt.e);
+      if (isTouch(opt.e)) return;
       cursorEl.style.display = 'block';
       cursorEl.style.left = `${p.x}px`;
       cursorEl.style.top = `${p.y}px`;
@@ -395,7 +400,7 @@ export function useCanvasTools({ fabricRef, tools, user, selectedSetId, pageNum,
       cursorEl.remove();
       if (upper) upper.style.cursor = prevCursor;
     };
-  }, [activeTool, activeColor, opacity, linking, fabricRef]);
+  }, [activeTool, activeColor, opacity, linking, canvasReady, fabricRef]);
 
   // Shape + text drawing
   useEffect(() => {

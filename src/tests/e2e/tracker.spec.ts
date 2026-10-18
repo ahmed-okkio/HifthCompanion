@@ -229,8 +229,20 @@ test.describe('Progression Tracker (Two-actor)', () => {
         surah: 2, ayah_start: 1, ayah_end: 5, entries: [], status: 'scheduled', teacher_notes: null, created_at: now }],
       membership_note: [{ id: `note-${membershipId}`, membership_id: membershipId, author_id: TEACHER_ID,
         body: 'Revise juz amma', created_at: now }],
+      agenda_item: [
+        { id: `ag-open-${membershipId}`, membership_id: membershipId, author_id: TEACHER_ID, body: 'Recite Al-Mulk next time',
+          done_at: null, created_at: now, updated_at: now },
+        { id: `ag-done-${membershipId}`, membership_id: membershipId, author_id: TEACHER_ID, body: 'Already covered item',
+          done_at: now, created_at: now, updated_at: now },
+      ],
     } } });
     await student.reload();
+    // Teacher's open agenda items show read-only under Next session; done ones stay hidden.
+    const agenda = student.getByTestId('student-agenda');
+    await expect(agenda).toContainText('Recite Al-Mulk next time');
+    await expect(agenda).not.toContainText('Already covered item');
+    await expect(agenda.getByRole('button')).toHaveCount(0);
+    await expect(agenda.getByRole('checkbox')).toHaveCount(0);
     await expect(student.getByRole('tab', { name: 'To Do' })).toHaveAttribute('aria-selected', 'true');
     await expect(student.getByText('Exams', { exact: true })).toHaveCount(0);
     const todo = student.locator('.card').filter({ hasText: /New notes from your teacher|Scheduled|Due/ });

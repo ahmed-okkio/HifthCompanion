@@ -4,7 +4,7 @@ import { createLog, deleteLog, leaveCircle, postNote } from '@/lib/tracker/actio
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { useI18n } from '@/components/I18nProvider';
 import type {
-  Circle, Homework, LogType, Membership, ProgressLog, Recurrence, Session, StatusConfig, Exam
+  Circle, Homework, LogType, Membership, ProgressLog, Recurrence, Session, StatusConfig, Exam, AgendaTask
 } from '@/types';
 import { type NewProgressLog } from '@/lib/services/progressLog';
 import { useRouter } from 'next/navigation';
@@ -72,6 +72,7 @@ export default function StudentCircle({
   markedPages,
   coveredBy,
   initialWirdDates = [],
+  agenda = [],
 }: {
   circle: Circle;
   membership: Membership;
@@ -90,6 +91,8 @@ export default function StudentCircle({
   coveredBy?: Record<string, string>;
   /** 0015 E5: the student's own wird entry dates, merged into the streak. */
   initialWirdDates?: string[];
+  /** Teacher's open agenda items for this student, read-only. */
+  agenda?: AgendaTask[];
 }) {
   const { t, locale, fmtNum } = useI18n();
   const [logs, setLogs] = useSynced(initialLogs);
@@ -168,7 +171,7 @@ export default function StudentCircle({
           memorized={memorized} attendance={attendance}
           markedPages={markedPages} markedDesktopOnly
         >
-          <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} coveredBy={coveredBy} />
+          <UpcomingSessions sessions={initialSessions} schedule={membership.schedule} coveredBy={coveredBy} agenda={agenda} />
         </StudentProfileCard>
 
         <div className="flex flex-col gap-6 min-w-0">
@@ -242,7 +245,7 @@ export default function StudentCircle({
 
 // --- Upcoming sessions (read-only, D3) ---------------------------------------
 
-function UpcomingSessions({ sessions, schedule, coveredBy }: { sessions: Session[]; schedule: Recurrence | null; coveredBy?: Record<string, string> }) {
+function UpcomingSessions({ sessions, schedule, coveredBy, agenda }: { sessions: Session[]; schedule: Recurrence | null; coveredBy?: Record<string, string>; agenda: AgendaTask[] }) {
   const { t, locale } = useI18n();
   const [now] = useState(() => Date.now());
   const subFor = (iso: string) => coveredBy?.[String(new Date(iso).getTime())];
@@ -302,6 +305,18 @@ function UpcomingSessions({ sessions, schedule, coveredBy }: { sessions: Session
           <EmptyState>{t('sessions.noSchedule')}</EmptyState>
         )}
       </div>
+
+      {/* Teacher's open agenda items — read-only for the student */}
+      {agenda.length > 0 && (
+        <div className="flex flex-col gap-2" data-testid="student-agenda">
+          <SectionTitle>{t('agenda.title')}</SectionTitle>
+          <ul className="card flex flex-col gap-2 py-3 px-4">
+            {agenda.map((item) => (
+              <li key={item.id} className="text-sm text-primary break-words">{item.body}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Next ad-hoc one-off session, if any */}
       {nextAdhoc && (

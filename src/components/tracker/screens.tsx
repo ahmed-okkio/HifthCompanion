@@ -95,6 +95,7 @@ function CircleView({ circleId }: { circleId: string }) {
             markedPages={d.markedPages}
             coveredBy={d.coveredBy}
             initialWirdDates={d.wirdDates}
+            agenda={d.agenda}
           />
         )}
       </div>

@@ -218,6 +218,7 @@ const en = {
   // 0014 session agenda
   'agenda.title': 'Agenda',
   'agenda.empty': 'Nothing on the agenda yet.',
+  'agenda.studentVisible': 'Open items are visible to the student.',
   'agenda.add': 'Add an item',
   'agenda.placeholder': 'What to cover next time',
   'agenda.done': 'Done',
@@ -897,6 +898,7 @@ const ar: Record<MessageKey, string> = {
   'waiting.ungraded': '{n} تسليم بانتظار التقييم',
   'waiting.attendance': '{d}: {s}',
   'waiting.attendanceUnmarked': 'لم يتم تسجيل الحضور ليوم {d}',
+  'agenda.studentVisible': 'العناصر المفتوحة مرئية للطالب.',
   'waiting.exam': 'اختبار بعد {n} يوم',
   'waiting.examToday': 'اختبار اليوم',
   'waiting.examOverdue': 'مر موعد الاختبار دون تقييم',

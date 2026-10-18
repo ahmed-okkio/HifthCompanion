@@ -5,7 +5,7 @@
  *
  * Layout is: the Next-session card (passed in as `sessionCard`, so the Agenda tab
  * and the Sessions tab share one component rather than two copies), then the
- * teacher's private item list. The "waiting on you" block is M4 and lands below.
+ * teacher's item list (open items are read-only visible to the student). The "waiting on you" block is M4 and lands below.
  */
 
 import { addItem, setDone, updateBody } from '@/lib/tracker/actions';
@@ -118,6 +118,7 @@ export default function AgendaPanel({
 
       <div className="flex flex-col gap-2">
         <SectionTitle>{t('agenda.title')}</SectionTitle>
+        <p className="text-xs text-muted">{t('agenda.studentVisible')}</p>
 
         {open.length === 0 && !allEmpty && <EmptyState>{t('agenda.empty')}</EmptyState>}
         {open.map((item) => (

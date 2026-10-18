@@ -24,7 +24,7 @@ const persister = createAsyncStoragePersister({
 
 // Bump when a query's cached data shape changes incompatibly; that alone discards every
 // persisted cache. Deploys don't, so a new build still opens instantly on the user's data.
-export const CACHE_SCHEMA = 1;
+export const CACHE_SCHEMA = 2; // 2: wird rows gained pass_pages/next_pass_pages/logged_dates/today
 export const buster = (userId: string) => `${userId}:${CACHE_SCHEMA}`;
 
 // Restore this user's cache (the lib discards it on buster mismatch or age > maxAge),

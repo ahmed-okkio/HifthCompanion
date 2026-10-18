@@ -432,16 +432,18 @@ function TodoList({
     const todays = [next, ...upcoming].filter((s) => s && !s.session?.canceled
       && localDate(null, new Date(s.scheduled_at)) === day);
     const list: TodoItem[] = [
-      ...groupHomework(homework).map((g) => ({
+      // Done work leaves the list: submitted homework and graded exams (they stay in Log/Exams).
+      ...groupHomework(homework).filter((g) => aggregateStatus(
+        g.items.map((h) => homeworkStatus(h, (linked.get(h.id) ?? []).length, day))) !== 'completed').map((g) => ({
         kind: 'homework' as const, key: `hw:${g.key}`, items: g.items,
         date: g.items[0].deadline ?? g.items[0].created_at.slice(0, 10),
       })),
-      ...exams.map((exam) => ({ kind: 'exam' as const, key: `ex:${exam.id}`, date: exam.scheduled_date, exam })),
+      ...exams.filter((e) => e.status === 'scheduled').map((exam) => ({ kind: 'exam' as const, key: `ex:${exam.id}`, date: exam.scheduled_date, exam })),
       ...todays.map((s) => ({ kind: 'session' as const, key: `s:${s!.scheduled_at}`, date: day, at: s!.scheduled_at })),
       ...(newNotes > 0 ? [{ kind: 'notes' as const, key: 'notes', date: day }] : []),
     ];
     return list.sort((a, b) => nearestFirst(a.date, b.date, day));
-  }, [homework, exams, sessions, schedule, now, newNotes, day]);
+  }, [homework, exams, sessions, schedule, now, newNotes, day, linked]);
   const focusId = focusExamId(exams, day);
 
   return (

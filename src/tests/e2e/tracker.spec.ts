@@ -224,9 +224,20 @@ test.describe('Progression Tracker (Two-actor)', () => {
     await teacherCtx.request.post('/api/test/tracker', { data: { seed: {
       homework: [{ id: `hw-${membershipId}`, membership_id: membershipId, prescribed_by: TEACHER_ID, group_id: null,
         type: 'memorization', deadline: day(5), page_start: 1, page_end: 1, surah: 1,
+        ayah_start: null, ayah_end: null, instructions: null, created_at: now },
+        // Submitted (has a linked log) → done, must not show in To Do.
+        { id: `hw-done-${membershipId}`, membership_id: membershipId, prescribed_by: TEACHER_ID, group_id: null,
+        type: 'memorization', deadline: day(3), page_start: 9, page_end: 9, surah: 2,
         ayah_start: null, ayah_end: null, instructions: null, created_at: now }],
+      progress_log: [{ id: `log-done-${membershipId}`, membership_id: membershipId, homework_id: `hw-done-${membershipId}`,
+        log_date: day(0), log_type: 'memorization', page_start: 9, page_end: 9, surah: 2, ayah_start: null, ayah_end: null,
+        student_status: null, student_notes: null, teacher_status: null, teacher_comment: null, reviewed_at: null,
+        created_at: now, updated_at: now }],
       exam: [{ id: `ex-${membershipId}`, membership_id: membershipId, scheduled_date: day(1), page_start: 2, page_end: 2,
-        surah: 2, ayah_start: 1, ayah_end: 5, entries: [], status: 'scheduled', teacher_notes: null, created_at: now }],
+        surah: 2, ayah_start: 1, ayah_end: 5, entries: [], status: 'scheduled', teacher_notes: null, created_at: now },
+        // Graded → done, must not show in To Do.
+        { id: `ex-done-${membershipId}`, membership_id: membershipId, scheduled_date: day(2), page_start: 3, page_end: 3,
+        surah: 2, ayah_start: 6, ayah_end: 9, entries: [], status: 'passed', teacher_notes: null, created_at: now }],
       membership_note: [{ id: `note-${membershipId}`, membership_id: membershipId, author_id: TEACHER_ID,
         body: 'Revise juz amma', created_at: now }],
       agenda_item: [

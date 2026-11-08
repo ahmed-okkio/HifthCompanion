@@ -1,5 +1,5 @@
 import type { Recurrence, Session } from '@/types';
-import { toZonedTime, fromZonedTime } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime, getTimezoneOffset } from 'date-fns-tz';
 
 // ---------------------------------------------------------------------------
 // M3 recurrence — pure logic to materialize weekly-recurring session times.
@@ -15,6 +15,28 @@ function parseTime(time: string): [number, number] {
   const h = Math.min(23, Math.max(0, Number(m[1])));
   const min = Math.min(59, Math.max(0, Number(m[2])));
   return [h, min];
+}
+
+/**
+ * Re-express a weekly rule in another zone, using both zones' offsets in force
+ * at `at`. Weekdays roll when the time crosses midnight. Schedules are stored
+ * in UTC, so the session instant stays fixed and a clock change moves only the
+ * local wall time of whoever observes DST. The editor converts with this on
+ * load and save, and email converts to the recipient's zone.
+ */
+export function shiftRule(rule: Recurrence, toTz: string, at: Date = new Date()): Recurrence {
+  const off = (tz: string) => getTimezoneOffset(tz, at) || 0; // NaN (bad zone) → treat as UTC
+  const [h, m] = parseTime(rule.time);
+  const total = h * 60 + m + (off(toTz) - off(rule.timezone || 'UTC')) / 60000;
+  const dayShift = Math.floor(total / 1440);
+  const mins = total - dayShift * 1440;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return {
+    ...rule,
+    weekdays: rule.weekdays.map((d) => (((d + dayShift) % 7) + 7) % 7).sort((a, b) => a - b),
+    time: `${pad(Math.floor(mins / 60))}:${pad(mins % 60)}`,
+    timezone: toTz,
+  };
 }
 
 /**

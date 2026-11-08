@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { recurringSlots, missingSlots, sectionSessions, nextSessionDate } from '../lib/recurrence';
+import { recurringSlots, missingSlots, sectionSessions, nextSessionDate, shiftRule } from '../lib/recurrence';
 import type { Recurrence, Session } from '../types';
 
 // Fixed Monday for determinism: 2026-06-29 is a Monday (UTC).
@@ -202,5 +202,31 @@ describe('nextSessionDate (homework deadline default)', () => {
 
   it('no schedule and no rows → null', () => {
     expect(nextSessionDate(null, [], new Date('2026-07-03T09:00:00Z'))).toBeNull();
+  });
+});
+
+// Schedules are stored in UTC so a teacher's DST change never moves the
+// session for students elsewhere; the editor and email convert with shiftRule.
+describe('shiftRule', () => {
+  const WINTER = new Date('2026-11-08T12:00:00Z');
+  const SUMMER = new Date('2026-07-01T12:00:00Z');
+  const london: Recurrence = { weekdays: [1, 3], time: '17:00', timezone: 'Europe/London', minutes: 45 };
+
+  it('converts with the offset in force at `at`', () => {
+    expect(shiftRule(london, 'UTC', WINTER)).toEqual({ weekdays: [1, 3], time: '17:00', timezone: 'UTC', minutes: 45 });
+    expect(shiftRule(london, 'UTC', SUMMER)).toMatchObject({ weekdays: [1, 3], time: '16:00' });
+  });
+
+  it('rolls weekdays across midnight, both directions, half-hour zones', () => {
+    expect(shiftRule({ weekdays: [1], time: '01:00', timezone: 'Asia/Riyadh' }, 'UTC', WINTER))
+      .toMatchObject({ weekdays: [0], time: '22:00' }); // Mon 01:00 +3 → Sun 22:00 UTC
+    expect(shiftRule({ weekdays: [6], time: '22:00', timezone: 'UTC' }, 'Asia/Kolkata', WINTER))
+      .toMatchObject({ weekdays: [0], time: '03:30' }); // Sat 22:00 UTC → Sun 03:30 IST
+  });
+
+  it('a UTC rule keeps its instant across the DST change; only London wall time moves', () => {
+    const utc = shiftRule(london, 'UTC', WINTER);
+    expect(shiftRule(utc, 'Europe/London', SUMMER).time).toBe('18:00');
+    expect(shiftRule(utc, 'Asia/Riyadh', SUMMER).time).toBe(shiftRule(utc, 'Asia/Riyadh', WINTER).time);
   });
 });

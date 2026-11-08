@@ -55,7 +55,9 @@ export interface StatusConfig {
 
 /**
  * Weekly recurrence rule stored on membership.schedule (D4). `weekdays` are
- * 0=Sunday..6=Saturday; `time` is local "HH:MM". null → no recurring sessions.
+ * 0=Sunday..6=Saturday; `time` is "HH:MM" in `timezone`. Saved rules are
+ * always UTC so a DST change never moves the session instant (see shiftRule).
+ * null → no recurring sessions.
  */
 export interface Recurrence {
   weekdays: number[];

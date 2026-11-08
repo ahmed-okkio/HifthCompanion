@@ -20,7 +20,7 @@ import {
   type RecipientLocale,
 } from '@/lib/email/templates';
 import { isLocale } from '@/lib/i18n/config';
-import { recurringSlots } from '@/lib/recurrence';
+import { recurringSlots, shiftRule } from '@/lib/recurrence';
 import { DEFAULT_SESSION_MINUTES, type Recurrence } from '@/types';
 
 /** Push copy for an event. Kept short: a notification is a headline, not a letter. */
@@ -610,20 +610,24 @@ export async function notifySchedule(
       summary,
       status: cleared ? 'CANCELLED' : 'CONFIRMED',
     });
-    const facts = {
-      weekdays: schedule?.weekdays ?? [],
-      time: schedule?.time ?? '',
-      timezone: schedule?.timezone ?? null,
-      circleName: info.circleName,
-      teacherName: info.teacherName,
-      cleared,
+    // The rule is stored in UTC; state days and time in the reader's own zone.
+    const factsFor = (tz: string | null) => {
+      const local = schedule ? shiftRule(schedule, tz ?? schedule.timezone ?? 'UTC') : null;
+      return {
+        weekdays: local?.weekdays ?? [],
+        time: local?.time ?? '',
+        timezone: local?.timezone ?? null,
+        circleName: info.circleName,
+        teacherName: info.teacherName,
+        cleared,
+      };
     };
     const subject = (locale: RecipientLocale) =>
       cleared
         ? pickText(locale, 'Session schedule canceled', 'إلغاء مواعيد الجلسات')
         : pickText(locale, 'Your session schedule', 'مواعيد جلساتك');
 
-    await deliver(db, info.studentId, 'session_change', (locale) => ({
+    await deliver(db, info.studentId, 'session_change', (locale, tz, facts = factsFor(tz)) => ({
       subject: subject(locale),
       html: scheduleBody({ ...facts, studentName: info.studentName }, locale),
       invite: {
@@ -642,7 +646,7 @@ export async function notifySchedule(
     }), actorId);
 
     if (!info.teacherId) return;
-    await deliver(db, info.teacherId, 'session_change', (locale) => ({
+    await deliver(db, info.teacherId, 'session_change', (locale, tz, facts = factsFor(tz)) => ({
       subject: subject(locale),
       html: scheduleBody({ ...facts, studentName: info.studentName }, locale),
       invite: {

@@ -11,7 +11,7 @@ import type {
 } from '@/types';
 import { DEFAULT_SESSION_MINUTES, SESSION_LENGTHS } from '@/types';
 import { displayName } from '@/lib/displayName';
-import { sectionSessions, floatingNow, nextSessionDate, type SessionSlot } from '@/lib/recurrence';
+import { sectionSessions, floatingNow, nextSessionDate, shiftRule, type SessionSlot } from '@/lib/recurrence';
 import { SubAssignForm, CoveredBy, AttributionProvider, Attribution } from './subs';
 import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import NotesThread from './NotesThread';
@@ -209,12 +209,7 @@ export default function TeacherStudent({
             membershipId={member.id} state={homeworkState} teacherStatuses={circle.teacher_statuses}
             setId={defaultSetId}
             /* Work set today is due at the next lesson (the form still overrides). */
-            defaultDeadline={nextSessionDate(
-              sessionsState.weekdays.length
-                ? { weekdays: sessionsState.weekdays, time: sessionsState.time, timezone: sessionsState.tz, minutes: sessionsState.minutes }
-                : null,
-              sessionsState.sessions,
-            ) ?? ''}
+            defaultDeadline={nextSessionDate(sessionsState.rule, sessionsState.sessions) ?? ''}
           />
         )}
         {tab === 'exams' && <ExamsPanel membershipId={member.id} initial={initialExams} locale={locale} setId={defaultSetId} />}
@@ -463,13 +458,16 @@ function useSessionsState(
       return next;
     })), HOLD_MS);
   }, []);
-  const [weekdays, setWeekdays] = useState<number[]>(initialSchedule?.weekdays ?? []);
-  const [time, setTime] = useState(initialSchedule?.time ?? '17:00');
-  const [tz, setTz] = useState(initialSchedule?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
+  // Saved rules are UTC (fixed instant); the editor shows the teacher's own clock.
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const [local] = useState(() => initialSchedule && shiftRule(initialSchedule, tz));
+  const [weekdays, setWeekdays] = useState<number[]>(local?.weekdays ?? []);
+  const [time, setTime] = useState(local?.time ?? '17:00');
   const [minutes, setMinutes] = useState(initialSchedule?.minutes ?? DEFAULT_SESSION_MINUTES);
+  const rule = weekdays.length ? shiftRule({ weekdays, time, timezone: tz, minutes }, 'UTC') : null;
   return {
     sessions, setSessions, subOverride, setSubOverride, held, hold,
-    weekdays, setWeekdays, time, setTime, tz, setTz, minutes, setMinutes,
+    weekdays, setWeekdays, time, setTime, minutes, setMinutes, rule,
   };
 }
 
@@ -495,7 +493,7 @@ function StudentSessions({
   const { t, locale, fmtNum } = useI18n();
   const {
     sessions, setSessions, subOverride, setSubOverride, held, hold,
-    weekdays, setWeekdays, time, setTime, tz, setTz, minutes, setMinutes,
+    weekdays, setWeekdays, time, setTime, minutes, setMinutes, rule,
   } = state;
   // 0013 per-session sub controls (F3/F4/F5): inline assign form key + local
   // name overrides (undefined = server value, null = just reclaimed).
@@ -538,8 +536,6 @@ function StudentSessions({
     [locale],
   );
 
-  const rule = weekdays.length ? { weekdays, time, timezone: tz, minutes } : null;
-
   function toggleDay(d: number) {
     setWeekdays((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d].sort()));
   }
@@ -558,7 +554,7 @@ function StudentSessions({
 
   async function handleAdhoc() {
     if (!adhocDate) return;
-    const iso = new Date(`${adhocDate}T${adhocTime}:00Z`).toISOString();
+    const iso = new Date(`${adhocDate}T${adhocTime}`).toISOString(); // teacher's local time, like reschedule
     const snapshot = sessions;
     const pending = { ...placeholderRow(membershipId, iso), is_adhoc: true };
     vt(() => setSessions((p) => upsertByInstant(p, pending)));

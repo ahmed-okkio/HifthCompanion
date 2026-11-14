@@ -498,6 +498,14 @@ test.describe('Wird pen editor', () => {
     await streamSettled(page);
   }
 
+  test('Open in Mushaf takes you to the page today\'s portion starts on', async ({ page }) => {
+    guardConsole(page);
+    await seedWaiting(page, 'w-open', 1); // page 1 read yesterday → today starts on page 2
+    await expect(page.getByText('Start at', { exact: true }).locator('xpath=following-sibling::span[1]')).toHaveText('Al-Baqara 1');
+    await page.getByRole('link', { name: 'Open in Mushaf' }).click();
+    await expect(page).toHaveURL(/\/reader\/2$/, { timeout: 10000 });
+  });
+
   test('I read it: each tap logs the oldest waiting day and slides in the next portion', async ({ page }) => {
     guardConsole(page);
     await seedWaiting(page, 'w-readit', 3); // waiting 2 days

@@ -22,6 +22,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { qk } from '@/lib/query/keys';
 import { useRef, useState } from 'react';
+import Link from 'next/link';
+import { Icon } from '@/components/tracker/ui';
 import { useI18n } from '@/components/I18nProvider';
 import { completeWird } from '@/lib/services/wird';
 import Progress from './Progress';
@@ -110,7 +112,9 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
   }
 
   // The portion as shown: the fetched one, or moved on by the caught-up days.
-  const view = pending === 0 ? card : advance(card, pending, locale);
+  const view = pending === 0
+    ? { ...card, startPage: [...card.edit.passPages, ...card.edit.nextPassPages][card.edit.startIdx] }
+    : advance(card, pending, locale);
 
   return (
     <div
@@ -172,6 +176,12 @@ export default function WirdCard({ card, onExit }: { card: WirdCardData; onExit?
                 ? t('wird.pageRangeOne', { range: view.portionRange })
                 : t('wird.pageRange', { range: view.portionRange })}
             </span>
+            {view.startPage && (
+              <Link href={`/reader/${view.startPage}`} className="btn btn-xs btn-outline mt-2 text-accent no-underline">
+                <Icon name="book" size={13} />
+                {t('homework.openInMushaf')}
+              </Link>
+            )}
           </div>
         )}
 
@@ -254,6 +264,7 @@ function advance(card: WirdCardData, n: number, locale: 'en' | 'ar') {
   const len = inNext ? nextPassPages.length : passPages.length;
   const pagesToGo = inNext ? all.length - s : passPages.length - s;
   return {
+    startPage: all[s],
     opening: openingRef(all[s], locale).label,
     closing: closingRef(all[e], locale).label,
     portionRange: s === e ? `${all[s]}` : `${all[s]}–${all[e]}`,

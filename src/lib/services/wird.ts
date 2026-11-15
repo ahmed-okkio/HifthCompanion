@@ -78,7 +78,7 @@ export async function createWird(input: {
   return data as Wird;
 }
 
-/** Soft-delete a wird (F3/D19). Entries are untouched and keep feeding the streak (E6). */
+/** Soft-delete a wird (F3/D19). Entries are untouched (E6). */
 export async function deleteWird(id: string): Promise<void> {
   const supabase = await createClientAction();
   const { error } = await supabase
@@ -135,8 +135,7 @@ export async function deleteWirdEntry(entryId: string): Promise<void> {
 /**
  * Edit a wird's name, scope and rate. Name and rate change in place. A scope
  * change restarts the current pass on the new range (cycle_seq bumps, position
- * resets to the new start) — past entries are untouched and keep feeding the
- * streak (E6), they simply no longer count toward the new cycle's position.
+ * resets to the new start) — past entries are untouched (E6), they simply no longer count toward the new cycle's position.
  */
 export async function updateWird(
   id: string,

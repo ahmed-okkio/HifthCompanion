@@ -129,12 +129,6 @@ export async function getCovering(sb: Supa): Promise<CoveringSession[]> {
   return (ok(await sb.rpc('covering_sessions')) ?? []) as CoveringSession[];
 }
 
-/** Every entry_date of the caller's wird entries (merged streak, 0015 E5). */
-async function listWirdEntryDates(sb: Supa, userId: string): Promise<string[]> {
-  const rows = ok(await sb.from('wird_entry').select('entry_date, wird!inner(user_id)').eq('wird.user_id', userId)) ?? [];
-  return (rows as { entry_date: string }[]).map((e) => e.entry_date);
-}
-
 /** Read-only wird summary of one student for their teacher (0015 L1); RLS B3 is the gate. */
 export async function getStudentWirdSummary(sb: Supa, userId: string, today: string): Promise<StudentWirdSummary | null> {
   const list = (ok(await sb.from('wird').select('id, name').eq('user_id', userId).is('deleted_at', null).order('created_at', { ascending: true })) ?? []) as { id: string; name: string }[];
@@ -183,7 +177,7 @@ export type CircleView =
   | { kind: 'pending'; membershipId: string; circleName: string; teacherName: string }
   | { kind: 'student'; circle: Circle; membership: Membership; sessions: Session[]; logs: ProgressLog[]; homework: Homework[];
       notes: NoteWithAuthor[]; exams: Exam[]; roster: RosterMember[]; selfUserId: string; memorized: ReturnType<typeof rangesTotals>;
-      defaultSetId: string | null; markedPages: Awaited<ReturnType<typeof markedPages>>; coveredBy: Record<string, string>; wirdDates: string[];
+      defaultSetId: string | null; markedPages: Awaited<ReturnType<typeof markedPages>>; coveredBy: Record<string, string>;
       agenda: AgendaTask[] };
 
 export async function loadCircle(sb: Supa, circleId: string): Promise<CircleView> {
@@ -216,7 +210,7 @@ export async function loadCircle(sb: Supa, circleId: string): Promise<CircleView
     return { kind: 'pending', membershipId: membership.id, circleName: circle.name, teacherName: nameOf(tp, circle.teacher_id) };
   }
 
-  const [logs, sessions, homework, notes, roster, exams, defaultSetId, ranges, wirdDates, subs, agenda] = await Promise.all([
+  const [logs, sessions, homework, notes, roster, exams, defaultSetId, ranges, subs, agenda] = await Promise.all([
     getLogs(sb, membership.id),
     getSessions(sb, membership.id),
     listHomework(sb, membership.id),
@@ -225,7 +219,6 @@ export async function loadCircle(sb: Supa, circleId: string): Promise<CircleView
     getExams(sb, membership.id),
     getStudentDefaultSetId(sb, membership.id),
     getMemorization(sb, uid),
-    listWirdEntryDates(sb, uid),
     listSubstitutions(sb, [membership.id]),
     listOpenAgenda(sb, membership.id),
   ]);
@@ -239,7 +232,7 @@ export async function loadCircle(sb: Supa, circleId: string): Promise<CircleView
 
   return {
     kind: 'student', circle, membership, sessions, logs, homework, notes, exams, roster, selfUserId: uid,
-    memorized: rangesTotals(ranges), defaultSetId, markedPages: marked, coveredBy, wirdDates, agenda,
+    memorized: rangesTotals(ranges), defaultSetId, markedPages: marked, coveredBy, agenda,
   };
 }
 

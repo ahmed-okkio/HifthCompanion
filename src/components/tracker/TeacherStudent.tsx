@@ -1259,7 +1259,6 @@ function TeacherResultForm({
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
-  const [note, setNote] = useState('');
   const [logDate, setLogDate] = useState(today());
   // Review, submitted in the same shot (D6-teacher): grade + comment + reviewed_at.
   const [teacherStatus, setTeacherStatus] = useState<string | null>(null);
@@ -1272,9 +1271,8 @@ function TeacherResultForm({
     setBusy(true);
     setError('');
     // Close first: the form has nothing more to say once the values are read.
-    const draft = { note, comment };
+    const draft = { comment };
     setOpen(false);
-    setNote('');
     setComment('');
     try {
       const log = await logAndReview({
@@ -1288,7 +1286,7 @@ function TeacherResultForm({
         ayah_start: hw.ayah_start,
         ayah_end: hw.ayah_end,
         student_status: null,
-        student_notes: draft.note || null,
+        student_notes: null,
         teacher_status: teacherStatus,
         teacher_comment: draft.comment || null,
       });
@@ -1296,7 +1294,6 @@ function TeacherResultForm({
     } catch (e) {
       // Re-open with the text intact rather than losing the teacher's typing.
       setOpen(true);
-      setNote(draft.note);
       setComment(draft.comment);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -1319,7 +1316,6 @@ function TeacherResultForm({
         <input type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)}
                className="input input-sm min-h-8" />
       </label>
-      <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('log.note')} className="input input-sm min-h-8" />
       <span className="text-xs text-muted">{t('grade.teacherStatus')}</span>
       <GradeButtons statuses={teacherStatuses} value={teacherStatus} onPick={setTeacherStatus} />
       <input value={comment} onChange={(e) => setComment(e.target.value)} placeholder={t('grade.comment')} className="input input-sm min-h-8" />

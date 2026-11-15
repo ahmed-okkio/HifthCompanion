@@ -94,7 +94,6 @@ function CircleView({ circleId }: { circleId: string }) {
             defaultSetId={d.defaultSetId}
             markedPages={d.markedPages}
             coveredBy={d.coveredBy}
-            initialWirdDates={d.wirdDates}
             agenda={d.agenda}
           />
         )}

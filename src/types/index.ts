@@ -286,7 +286,7 @@ export interface Wird {
   cycle_page_end: number;
   created_at: string;
   updated_at: string;
-  /** Soft delete (D19). Entries survive and keep feeding the streak. */
+  /** Soft delete (D19). Entries survive. */
   deleted_at: string | null;
 }
 

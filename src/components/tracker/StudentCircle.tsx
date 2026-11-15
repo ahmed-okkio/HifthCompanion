@@ -12,7 +12,6 @@ import type { NoteWithAuthor } from '@/lib/services/membershipNotes';
 import { NoteCard } from './NotesThread';
 import { homeworkStatus, aggregateStatus, focusExamId, groupHomework, nearestFirst, homeworkEntryLabel, homeworkTarget, type HomeworkStatus } from '@/lib/homework';
 import { recurringSlots, sectionSessions } from '@/lib/recurrence';
-import { isStreakAtRisk, mergeActivity } from '@/lib/streak';
 import { getSurahForPage, getAyahsOnPage, getPageForAyah, juzPageBounds } from '@/lib/quran';
 import MarkedPagesList from '@/components/MarkedPagesList';
 import { wholeSurahPages } from '@/lib/homework';
@@ -71,7 +70,6 @@ export default function StudentCircle({
   defaultSetId,
   markedPages,
   coveredBy,
-  initialWirdDates = [],
   agenda = [],
 }: {
   circle: Circle;
@@ -89,8 +87,6 @@ export default function StudentCircle({
   markedPages: MarkedPage[];
   /** 0013 F5/D13: sub name keyed by session instant (ms) — "covered by X". */
   coveredBy?: Record<string, string>;
-  /** 0015 E5: the student's own wird entry dates, merged into the streak. */
-  initialWirdDates?: string[];
   /** Teacher's open agenda items for this student, read-only. */
   agenda?: AgendaTask[];
 }) {
@@ -117,13 +113,6 @@ export default function StudentCircle({
     setTab(key);
   }
 
-  // E5: the streak runs on the MERGED stream (logs + own wird dates), kept
-  // separate from `logs` so homework aggregation below is untouched (E1/E6).
-  const streakStream = useMemo(
-    () => mergeActivity(logs, initialWirdDates),
-    [logs, initialWirdDates],
-  );
-  const atRisk = useMemo(() => isStreakAtRisk(streakStream), [streakStream]);
   const statuses = circle.student_statuses;
 
   // Sidebar KPIs — attendance from marked sessions. Open homework lives in To do.
@@ -155,14 +144,6 @@ export default function StudentCircle({
 
   return (
     <div className="flex flex-col gap-6">
-      {atRisk && (
-        <div
-          className="card flex items-center gap-2 px-4 py-3 bg-danger-muted border-danger-muted text-danger text-small font-semibold" role="status"
-        >
-          <Icon name="alert" size={15} /> {t('log.streakAtRisk')}
-        </div>
-      )}
-
       {/* Profile/stats col (mirrors teacher view) + feed (tabs) + schedule sidebar. */}
       <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)_320px] items-start">
         <StudentProfileCard

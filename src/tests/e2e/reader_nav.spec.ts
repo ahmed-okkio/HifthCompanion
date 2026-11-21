@@ -43,6 +43,22 @@ test('mushaf page flip does not drive the top progress bar (skeleton covers it)'
   await expect(page).toHaveURL(/\/reader\/4(\?|$)/);
 });
 
+test('desktop: double page is the default until the user picks single', async ({ page }) => {
+  page.on('console', (msg) => {
+    if (msg.type() === 'error') throw new Error(`console error: ${msg.text()}`);
+  });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.addInitScript(() => { if (!sessionStorage.cleared) { localStorage.removeItem('reader-spread-mode'); sessionStorage.cleared = '1'; } });
+  await page.goto('/reader/3');
+  await expect(page).toHaveURL(/\/reader\/3-4(\?|$)/);
+  await expect(page.locator('.upper-canvas')).toHaveCount(2);
+  await page.getByTestId('spread-toggle').click();
+  await expect(page).toHaveURL(/\/reader\/3(\?|$)/);
+  await page.reload();
+  await expect(page).toHaveURL(/\/reader\/3(\?|$)/);
+  await expect(page.locator('.upper-canvas')).toHaveCount(1);
+});
+
 test('desktop: mobile surah burger button is hidden', async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto('/reader/1');

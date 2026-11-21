@@ -7,6 +7,10 @@ import { useI18n } from '@/components/I18nProvider';
 /** localStorage key holding the persisted spread/single preference ('1' = spread). */
 export const SPREAD_MODE_KEY = 'reader-spread-mode';
 
+/** Double page is the default wherever two pages fit (>= lg); only an explicit '0' opts out. */
+export const prefersSpread = () =>
+  localStorage.getItem(SPREAD_MODE_KEY) !== '0' && window.matchMedia('(min-width: 1024px)').matches;
+
 /**
  * M5 — desktop spread/single mode toggle (C1–C4, E2). Renders next to the zoom control.
  * Writes the preference to localStorage and client-navigates N↔N-M with the existing pairing

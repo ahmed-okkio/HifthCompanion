@@ -1,3 +1,4 @@
+import { writeFileSync } from 'node:fs';
 import { test as setup } from '@playwright/test';
 
 setup('authenticate', async ({ page, context }) => {
@@ -23,6 +24,9 @@ setup('authenticate', async ({ page, context }) => {
     }
   ]);
 
-  // Save auth state
-  await page.context().storageState({ path: 'playwright/.auth/user.json' });
+  // Save auth state. Desktop defaults to double page; specs were written against single page,
+  // so pin it here (the spread default has its own test in reader_nav.spec.ts).
+  const state = await page.context().storageState();
+  state.origins = [{ origin: 'http://localhost:3100', localStorage: [{ name: 'reader-spread-mode', value: '0' }] }];
+  writeFileSync('playwright/.auth/user.json', JSON.stringify(state));
 });

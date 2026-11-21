@@ -6,7 +6,7 @@ import type { AnnotationSet } from '@/types';
 import { getPageImageUrl, clampPage } from '@/lib/quran';
 import { prefetchPageImages } from '@/lib/pagePrefetch';
 import { LAST_READER_PAGE_KEY } from '@/lib/tracker/lastCircle';
-import { SPREAD_MODE_KEY } from './SpreadToggle';
+import { prefersSpread } from './SpreadToggle';
 import ReaderNav from './ReaderNav';
 import Brand from './Brand';
 import SurahNavPanel from './SurahNavPanel';
@@ -204,9 +204,9 @@ export default function ReaderShell({ children, user, sets, account = null, lock
     // surah bookmark.  Without this guard, C3 fires second (parent effect)
     // and clobbers the child's pinned-surah redirect with page 1.
     if (pathname === spreadBase || pathname === `${spreadBase}/`) return;
-    const raw = localStorage.getItem(SPREAD_MODE_KEY);
-    if (raw === '1' && !spread) router.replace(hrefFor(pageNum, true));
-    else if (raw === '0' && spread) router.replace(hrefFor(spread[0], false));
+    const want = prefersSpread();
+    if (want && !spread) router.replace(hrefFor(pageNum, true));
+    else if (!want && spread) router.replace(hrefFor(spread[0], false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
@@ -224,11 +224,11 @@ export default function ReaderShell({ children, user, sets, account = null, lock
     if (isIndex) { setPendingRedirect(true); return; }
 
     const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
-    const spreadPref = localStorage.getItem(SPREAD_MODE_KEY);
+    const want = prefersSpread();
 
     // Mode mismatch: pref says spread but URL is single (or vice versa) on desktop
-    const wantsSpread = spreadPref === '1' && !spread && isDesktop;
-    const wantsSingle = spreadPref === '0' && !!spread && isDesktop;
+    const wantsSpread = want && !spread;
+    const wantsSingle = !want && !!spread && isDesktop;
     // Mobile + spread URL → E1 will collapse
     const mobileSpread = !isDesktop && !!spread;
 
